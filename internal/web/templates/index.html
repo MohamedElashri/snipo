@@ -1,0 +1,417 @@
+{{define "content"}}
+<div class="app-container" x-data="snippetsApp()">
+    <!-- Sidebar -->
+    <aside class="sidebar" :class="{ 'open': $store.app.sidebarOpen }">
+        <div class="sidebar-header">
+            <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+            <h1>Snipo</h1>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <!-- Quick actions -->
+            <div class="sidebar-section">
+                <div class="sidebar-item" @click="clearFilters()" :class="{ 'active': !filter.tagId && !filter.folderId && !filter.isFavorite }">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <span>All Snippets</span>
+                    <span class="sidebar-item-count" x-text="totalSnippets"></span>
+                </div>
+                <div class="sidebar-item" @click="showFavorites()" :class="{ 'active': filter.isFavorite }">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                    <span>Favorites</span>
+                </div>
+            </div>
+            
+            <!-- Folders -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Folders</div>
+                <template x-for="folder in folders" :key="folder.id">
+                    <div>
+                        <div class="sidebar-item folder-item" 
+                             @click="filterByFolder(folder.id)"
+                             :class="{ 'active': filter.folderId === folder.id }">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            <span x-text="folder.name"></span>
+                            <span class="sidebar-item-count" x-text="folder.snippet_count || 0"></span>
+                        </div>
+                        <!-- Nested folders -->
+                        <template x-for="child in folder.children || []" :key="child.id">
+                            <div class="sidebar-item folder-item nested"
+                                 @click="filterByFolder(child.id)"
+                                 :class="{ 'active': filter.folderId === child.id }">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                                <span x-text="child.name"></span>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+            
+            <!-- Tags -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Tags</div>
+                <template x-for="tag in tags" :key="tag.id">
+                    <div class="sidebar-item" 
+                         @click="filterByTag(tag.id)"
+                         :class="{ 'active': filter.tagId === tag.id }">
+                        <span class="tag-dot" :style="{ background: tag.color }"></span>
+                        <span x-text="tag.name"></span>
+                        <span class="sidebar-item-count" x-text="tag.snippet_count || 0"></span>
+                    </div>
+                </template>
+            </div>
+        </nav>
+        
+        <!-- Sidebar footer -->
+        <div style="padding: 1rem; border-top: 1px solid var(--sidebar-border);">
+            <div class="sidebar-item" @click="logout()" style="color: var(--snipo-danger); cursor: pointer;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span>Logout</span>
+            </div>
+        </div>
+    </aside>
+    
+    <!-- Main content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="main-header">
+            <!-- Mobile menu toggle -->
+            <button class="btn-icon" @click="$store.app.toggleSidebar()" style="display: none;" id="menu-toggle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            
+            <!-- Search -->
+            <div class="search-container">
+                <input 
+                    type="search" 
+                    class="search-input" 
+                    placeholder="Search snippets... (Ctrl+K)"
+                    x-model="filter.query"
+                    @input.debounce.300ms="search()"
+                >
+            </div>
+            
+            <!-- Actions -->
+            <div class="header-actions">
+                <!-- Theme toggle -->
+                <button class="btn-icon" @click="$store.app.toggleTheme()" title="Toggle theme">
+                    <!-- Sun icon (shown in dark mode) -->
+                    <svg x-show="$store.app.darkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <!-- Moon icon (shown in light mode) -->
+                    <svg x-show="!$store.app.darkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+                
+                <button class="btn-icon btn-primary" @click="newSnippet()" title="New Snippet (Ctrl+N)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Content area -->
+        <div class="snippet-list" x-show="!showEditor">
+            <!-- Loading state -->
+            <div class="loading" x-show="loading">
+                <div class="spinner"></div>
+            </div>
+            
+            <!-- Empty state -->
+            <div class="empty-state" x-show="!loading && snippets.length === 0">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <polyline points="16 18 22 12 16 6"></polyline>
+                    <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
+                <h3>No snippets yet</h3>
+                <p>Create your first snippet to get started</p>
+                <button class="btn-primary mt-4" @click="newSnippet()">
+                    Create Snippet
+                </button>
+            </div>
+            
+            <!-- Snippet grid -->
+            <div class="snippet-grid" x-show="!loading && snippets.length > 0">
+                <template x-for="snippet in snippets" :key="snippet.id">
+                    <article class="snippet-card" @click="editSnippet(snippet)">
+                        <div class="snippet-card-header">
+                            <h3 class="snippet-card-title" x-text="snippet.title"></h3>
+                            <span class="snippet-card-language" 
+                                  :style="{ background: getLanguageColor(snippet.language) }"
+                                  x-text="snippet.language"></span>
+                        </div>
+                        
+                        <pre class="snippet-card-preview"><code :class="'language-' + snippet.language" x-text="snippet.content.substring(0, 200)"></code></pre>
+                        
+                        <div class="snippet-card-footer">
+                            <div class="snippet-card-tags">
+                                <template x-for="tag in (snippet.tags || []).slice(0, 3)" :key="tag.id">
+                                    <span class="tag">
+                                        <span class="tag-dot" :style="{ background: tag.color }"></span>
+                                        <span x-text="tag.name"></span>
+                                    </span>
+                                </template>
+                            </div>
+                            <div class="snippet-card-meta">
+                                <span x-show="snippet.is_favorite" title="Favorite">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                    </svg>
+                                </span>
+                                <span x-show="snippet.is_public" title="Public">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                                    </svg>
+                                </span>
+                                <span x-text="formatDate(snippet.updated_at)"></span>
+                            </div>
+                        </div>
+                    </article>
+                </template>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="flex justify-between items-center mt-4" x-show="pagination.totalPages > 1">
+                <button 
+                    @click="pagination.page--; loadSnippets()"
+                    :disabled="pagination.page <= 1"
+                    class="btn-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <span class="text-sm text-muted">
+                    Page <span x-text="pagination.page"></span> of <span x-text="pagination.totalPages"></span>
+                </span>
+                <button 
+                    @click="pagination.page++; loadSnippets()"
+                    :disabled="pagination.page >= pagination.totalPages"
+                    class="btn-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Editor -->
+        <div class="editor-container" x-show="showEditor" x-cloak>
+            <div class="editor-toolbar">
+                <button class="btn-icon" @click="cancelEdit()" title="Back">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                </button>
+                
+                <input 
+                    type="text" 
+                    class="editor-title-input"
+                    x-model="editingSnippet.title"
+                    placeholder="Snippet title..."
+                >
+                
+                <div class="flex gap-2">
+                    <button class="btn-icon" @click="toggleFavorite(editingSnippet)" x-show="editingSnippet?.id" title="Toggle Favorite">
+                        <svg viewBox="0 0 24 24" :fill="editingSnippet?.is_favorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                    </button>
+                    <button class="btn-icon" @click="copyToClipboard(editingSnippet)" title="Copy to Clipboard">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+                    <button class="btn-icon" @click="confirmDelete(editingSnippet)" x-show="editingSnippet?.id" title="Delete">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                    <button class="btn-primary" @click="saveSnippet()" style="padding: 0.5rem 1rem;">
+                        Save
+                    </button>
+                </div>
+            </div>
+            
+            <div class="editor-main">
+                <div class="editor-code">
+                    <!-- Code input and preview split -->
+                    <div class="code-split">
+                        <textarea 
+                            class="code-textarea"
+                            x-model="editingSnippet.content"
+                            placeholder="Paste your code here..."
+                            spellcheck="false"
+                            @input="$nextTick(() => highlightAll())"
+                        ></textarea>
+                        <div class="code-preview">
+                            <pre><code :class="'language-' + editingSnippet.language" x-text="editingSnippet.content"></code></pre>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="editor-sidebar">
+                    <!-- Language -->
+                    <div class="editor-field">
+                        <label>Language</label>
+                        <select x-model="editingSnippet.language" @change="$nextTick(() => highlightAll())">
+                            <option value="javascript">JavaScript</option>
+                            <option value="typescript">TypeScript</option>
+                            <option value="python">Python</option>
+                            <option value="go">Go</option>
+                            <option value="rust">Rust</option>
+                            <option value="java">Java</option>
+                            <option value="csharp">C#</option>
+                            <option value="cpp">C++</option>
+                            <option value="ruby">Ruby</option>
+                            <option value="php">PHP</option>
+                            <option value="swift">Swift</option>
+                            <option value="kotlin">Kotlin</option>
+                            <option value="html">HTML</option>
+                            <option value="css">CSS</option>
+                            <option value="sql">SQL</option>
+                            <option value="bash">Bash</option>
+                            <option value="json">JSON</option>
+                            <option value="yaml">YAML</option>
+                            <option value="markdown">Markdown</option>
+                            <option value="plaintext">Plain Text</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div class="editor-field">
+                        <label>Description</label>
+                        <textarea 
+                            x-model="editingSnippet.description"
+                            placeholder="Optional description..."
+                            rows="2"
+                            style="resize: vertical;"
+                        ></textarea>
+                    </div>
+                    
+                    <!-- Folder -->
+                    <div class="editor-field">
+                        <label>Folder</label>
+                        <select x-model="editingSnippet.folder_id">
+                            <option value="">No folder</option>
+                            <template x-for="folder in folders" :key="folder.id">
+                                <option :value="folder.id" x-text="folder.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                    
+                    <!-- Tags -->
+                    <div class="editor-field">
+                        <label>Tags</label>
+                        <div class="flex gap-1 flex-wrap mb-2">
+                            <template x-for="(tag, index) in editingSnippet.tags" :key="index">
+                                <span class="tag" style="background: var(--snipo-primary); color: white;">
+                                    <span x-text="tag"></span>
+                                    <button @click="removeTag(index)" style="background:none;border:none;cursor:pointer;padding:0;margin-left:0.25rem;color:white;">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                    </button>
+                                </span>
+                            </template>
+                        </div>
+                        <input 
+                            type="text"
+                            placeholder="Add tag and press Enter"
+                            @keydown.enter.prevent="addTag($event.target.value); $event.target.value = ''"
+                            list="existing-tags"
+                        >
+                        <datalist id="existing-tags">
+                            <template x-for="tag in tags" :key="tag.id">
+                                <option :value="tag.name"></option>
+                            </template>
+                        </datalist>
+                    </div>
+                    
+                    <!-- Public toggle -->
+                    <div class="editor-field">
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" x-model="editingSnippet.is_public" role="switch">
+                            <span>Public snippet</span>
+                        </label>
+                        <p class="text-sm text-muted mt-2" x-show="editingSnippet.is_public">
+                            Anyone with the link can view this snippet
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Delete confirmation modal -->
+    <div class="modal-backdrop" x-show="showDeleteModal" x-cloak @click.self="showDeleteModal = false">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Delete Snippet</h3>
+                <button class="btn-icon" @click="showDeleteModal = false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete "<span x-text="deleteTarget?.title"></span>"?</p>
+                <p class="text-sm text-muted">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button @click="showDeleteModal = false">Cancel</button>
+                <button class="btn-primary" style="background: var(--snipo-danger); border-color: var(--snipo-danger);" @click="deleteSnippet()">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    [x-cloak] { display: none !important; }
+    
+    @media (max-width: 768px) {
+        #menu-toggle { display: flex !important; }
+    }
+</style>
+{{end}}

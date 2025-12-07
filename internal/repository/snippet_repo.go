@@ -161,12 +161,12 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 	var args []interface{}
 
 	if filter.Language != "" {
-		conditions = append(conditions, "language = ?")
+		conditions = append(conditions, "s.language = ?")
 		args = append(args, filter.Language)
 	}
 
 	if filter.IsFavorite != nil {
-		conditions = append(conditions, "is_favorite = ?")
+		conditions = append(conditions, "s.is_favorite = ?")
 		if *filter.IsFavorite {
 			args = append(args, 1)
 		} else {
@@ -175,12 +175,24 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 	}
 
 	if filter.IsPublic != nil {
-		conditions = append(conditions, "is_public = ?")
+		conditions = append(conditions, "s.is_public = ?")
 		if *filter.IsPublic {
 			args = append(args, 1)
 		} else {
 			args = append(args, 0)
 		}
+	}
+
+	// Filter by tag
+	if filter.TagID > 0 {
+		conditions = append(conditions, "s.id IN (SELECT snippet_id FROM snippet_tags WHERE tag_id = ?)")
+		args = append(args, filter.TagID)
+	}
+
+	// Filter by folder
+	if filter.FolderID > 0 {
+		conditions = append(conditions, "s.id IN (SELECT snippet_id FROM snippet_folders WHERE folder_id = ?)")
+		args = append(args, filter.FolderID)
 	}
 
 	whereClause := ""
@@ -189,7 +201,7 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 	}
 
 	// Count total
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM snippets %s", whereClause)
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM snippets s %s", whereClause)
 	var total int
 	if err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, fmt.Errorf("failed to count snippets: %w", err)
@@ -216,11 +228,11 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 
 	// Build main query
 	query := fmt.Sprintf(`
-		SELECT id, title, description, content, language, is_favorite, is_public,
-		       view_count, s3_key, checksum, created_at, updated_at
-		FROM snippets
+		SELECT s.id, s.title, s.description, s.content, s.language, s.is_favorite, s.is_public,
+		       s.view_count, s.s3_key, s.checksum, s.created_at, s.updated_at
+		FROM snippets s
 		%s
-		ORDER BY %s %s
+		ORDER BY s.%s %s
 		LIMIT ? OFFSET ?
 	`, whereClause, filter.SortBy, sortOrder)
 

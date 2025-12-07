@@ -49,6 +49,18 @@ func (h *SnippetHandler) List(w http.ResponseWriter, r *http.Request) {
 		filter.IsFavorite = &isFav
 	}
 
+	if tagID := r.URL.Query().Get("tag_id"); tagID != "" {
+		if id, err := strconv.ParseInt(tagID, 10, 64); err == nil && id > 0 {
+			filter.TagID = id
+		}
+	}
+
+	if folderID := r.URL.Query().Get("folder_id"); folderID != "" {
+		if id, err := strconv.ParseInt(folderID, 10, 64); err == nil && id > 0 {
+			filter.FolderID = id
+		}
+	}
+
 	if sortBy := r.URL.Query().Get("sort"); sortBy != "" {
 		filter.SortBy = sortBy
 	}

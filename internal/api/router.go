@@ -12,6 +12,7 @@ import (
 	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/internal/repository"
 	"github.com/MohamedElashri/snipo/internal/services"
+	"github.com/MohamedElashri/snipo/internal/web"
 )
 
 // RouterConfig holds router configuration
@@ -40,12 +41,20 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	// Create repositories
 	snippetRepo := repository.NewSnippetRepository(cfg.DB)
+	tagRepo := repository.NewTagRepository(cfg.DB)
+	folderRepo := repository.NewFolderRepository(cfg.DB)
+	tokenRepo := repository.NewTokenRepository(cfg.DB)
 
 	// Create services
-	snippetService := services.NewSnippetService(snippetRepo, cfg.Logger)
+	snippetService := services.NewSnippetService(snippetRepo, cfg.Logger).
+		WithTagRepo(tagRepo).
+		WithFolderRepo(folderRepo)
 
 	// Create handlers
 	snippetHandler := handlers.NewSnippetHandler(snippetService)
+	tagHandler := handlers.NewTagHandler(tagRepo)
+	folderHandler := handlers.NewFolderHandler(folderRepo)
+	tokenHandler := handlers.NewTokenHandler(tokenRepo)
 	authHandler := handlers.NewAuthHandler(cfg.AuthService)
 	healthHandler := handlers.NewHealthHandler(cfg.DB, cfg.Version, cfg.Commit)
 
@@ -70,7 +79,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	// Protected routes (auth required)
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.RequireAuth(cfg.AuthService))
+		r.Use(middleware.RequireAuthWithTokenRepo(cfg.AuthService, tokenRepo))
 
 		// Snippet CRUD
 		r.Route("/api/v1/snippets", func(r chi.Router) {
@@ -86,7 +95,56 @@ func NewRouter(cfg RouterConfig) http.Handler {
 				r.Post("/duplicate", snippetHandler.Duplicate)
 			})
 		})
+
+		// Tag CRUD
+		r.Route("/api/v1/tags", func(r chi.Router) {
+			r.Get("/", tagHandler.List)
+			r.Post("/", tagHandler.Create)
+
+			r.Route("/{id}", func(r chi.Router) {
+				r.Get("/", tagHandler.Get)
+				r.Put("/", tagHandler.Update)
+				r.Delete("/", tagHandler.Delete)
+			})
+		})
+
+		// Folder CRUD
+		r.Route("/api/v1/folders", func(r chi.Router) {
+			r.Get("/", folderHandler.List)
+			r.Post("/", folderHandler.Create)
+
+			r.Route("/{id}", func(r chi.Router) {
+				r.Get("/", folderHandler.Get)
+				r.Put("/", folderHandler.Update)
+				r.Delete("/", folderHandler.Delete)
+				r.Put("/move", folderHandler.Move)
+			})
+		})
+
+		// API Token management
+		r.Route("/api/v1/tokens", func(r chi.Router) {
+			r.Get("/", tokenHandler.List)
+			r.Post("/", tokenHandler.Create)
+
+			r.Route("/{id}", func(r chi.Router) {
+				r.Get("/", tokenHandler.Get)
+				r.Delete("/", tokenHandler.Delete)
+			})
+		})
 	})
+
+	// Web UI routes
+	webHandler, err := web.NewHandler(cfg.AuthService)
+	if err != nil {
+		cfg.Logger.Error("failed to create web handler", "error", err)
+	} else {
+		// Static files
+		r.Handle("/static/*", web.StaticHandler())
+
+		// Web pages
+		r.Get("/", webHandler.Index)
+		r.Get("/login", webHandler.Login)
+	}
 
 	return r
 }

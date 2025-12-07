@@ -1,0 +1,58 @@
+{{define "content"}}
+<div class="login-container" x-data="loginForm()">
+    <!-- Theme toggle in corner -->
+    <button class="btn-icon" 
+            style="position: fixed; top: 1rem; right: 1rem;"
+            @click="theme.toggle()"
+            title="Toggle theme">
+        <svg x-show="theme.get() === 'dark'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg x-show="theme.get() !== 'dark'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+    </button>
+    
+    <div class="login-card">
+        <div class="login-header">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"></polyline>
+                <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+            <h1>Snipo</h1>
+            <p>Your personal snippet manager</p>
+        </div>
+        
+        <form @submit.prevent="login">
+            <div class="mb-4">
+                <label for="password">Master Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    x-model="password"
+                    placeholder="Enter your password"
+                    required
+                    autofocus
+                >
+            </div>
+            
+            <template x-if="error">
+                <p class="text-sm" style="color: var(--snipo-danger);" x-text="error"></p>
+            </template>
+            
+            <button type="submit" class="btn-primary" style="width: 100%;" :disabled="loading">
+                <span x-show="!loading">Sign In</span>
+                <span x-show="loading">Signing in...</span>
+            </button>
+        </form>
+    </div>
+</div>
+{{end}}

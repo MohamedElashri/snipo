@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
@@ -9,6 +10,15 @@ import (
 	"time"
 
 	"github.com/MohamedElashri/snipo/internal/auth"
+	"github.com/MohamedElashri/snipo/internal/repository"
+)
+
+// Context keys for authentication
+type contextKey string
+
+const (
+	// ContextKeyAPIToken is the context key for API token
+	ContextKeyAPIToken contextKey = "api_token"
 )
 
 // SecurityHeaders adds essential security headers to responses
@@ -99,23 +109,56 @@ func Recovery(logger *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-// RequireAuth checks for valid authentication
+// RequireAuth checks for valid authentication (session or API token)
 func RequireAuth(authService *auth.Service) func(http.Handler) http.Handler {
+	return RequireAuthWithTokenRepo(authService, nil)
+}
+
+// RequireAuthWithTokenRepo checks for valid authentication with API token support
+func RequireAuthWithTokenRepo(authService *auth.Service, tokenRepo *repository.TokenRepository) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			token := auth.GetSessionFromRequest(r)
-
-			if token == "" || !authService.ValidateSession(token) {
-				// Check if it's an API request
-				if strings.HasPrefix(r.URL.Path, "/api/") {
-					http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				} else {
-					http.Redirect(w, r, "/login", http.StatusSeeOther)
+			// First, check for API token in header
+			if tokenRepo != nil {
+				// Check Authorization header (Bearer token)
+				authHeader := r.Header.Get("Authorization")
+				if strings.HasPrefix(authHeader, "Bearer ") {
+					token := strings.TrimPrefix(authHeader, "Bearer ")
+					apiToken, err := tokenRepo.ValidateToken(r.Context(), token)
+					if err == nil && apiToken != nil {
+						// Valid API token, add to context and continue
+						ctx := context.WithValue(r.Context(), ContextKeyAPIToken, apiToken)
+						next.ServeHTTP(w, r.WithContext(ctx))
+						return
+					}
 				}
+
+				// Check X-API-Key header
+				apiKey := r.Header.Get("X-API-Key")
+				if apiKey != "" {
+					apiToken, err := tokenRepo.ValidateToken(r.Context(), apiKey)
+					if err == nil && apiToken != nil {
+						// Valid API token, add to context and continue
+						ctx := context.WithValue(r.Context(), ContextKeyAPIToken, apiToken)
+						next.ServeHTTP(w, r.WithContext(ctx))
+						return
+					}
+				}
+			}
+
+			// Fall back to session authentication
+			sessionToken := auth.GetSessionFromRequest(r)
+			if sessionToken != "" && authService.ValidateSession(sessionToken) {
+				next.ServeHTTP(w, r)
 				return
 			}
 
-			next.ServeHTTP(w, r)
+			// No valid authentication found
+			if strings.HasPrefix(r.URL.Path, "/api/") {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			} else {
+				http.Redirect(w, r, "/login", http.StatusSeeOther)
+			}
 		})
 	}
 }

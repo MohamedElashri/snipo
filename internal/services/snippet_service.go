@@ -19,8 +19,10 @@ var (
 
 // SnippetService handles snippet business logic
 type SnippetService struct {
-	repo   *repository.SnippetRepository
-	logger *slog.Logger
+	repo       *repository.SnippetRepository
+	tagRepo    *repository.TagRepository
+	folderRepo *repository.FolderRepository
+	logger     *slog.Logger
 }
 
 // NewSnippetService creates a new snippet service
@@ -29,6 +31,18 @@ func NewSnippetService(repo *repository.SnippetRepository, logger *slog.Logger) 
 		repo:   repo,
 		logger: logger,
 	}
+}
+
+// WithTagRepo adds tag repository to the service
+func (s *SnippetService) WithTagRepo(tagRepo *repository.TagRepository) *SnippetService {
+	s.tagRepo = tagRepo
+	return s
+}
+
+// WithFolderRepo adds folder repository to the service
+func (s *SnippetService) WithFolderRepo(folderRepo *repository.FolderRepository) *SnippetService {
+	s.folderRepo = folderRepo
+	return s
 }
 
 // Create creates a new snippet
@@ -42,6 +56,28 @@ func (s *SnippetService) Create(ctx context.Context, input *models.SnippetInput)
 	if err != nil {
 		s.logger.Error("failed to create snippet", "error", err)
 		return nil, err
+	}
+
+	// Set tags if provided
+	if s.tagRepo != nil && len(input.Tags) > 0 {
+		if err := s.tagRepo.SetSnippetTags(ctx, snippet.ID, input.Tags); err != nil {
+			s.logger.Warn("failed to set snippet tags", "id", snippet.ID, "error", err)
+		} else {
+			// Fetch tags to include in response
+			tags, _ := s.tagRepo.GetSnippetTags(ctx, snippet.ID)
+			snippet.Tags = tags
+		}
+	}
+
+	// Set folder if provided
+	if s.folderRepo != nil && input.FolderID != nil {
+		if err := s.folderRepo.SetSnippetFolder(ctx, snippet.ID, input.FolderID); err != nil {
+			s.logger.Warn("failed to set snippet folder", "id", snippet.ID, "error", err)
+		} else {
+			// Fetch folders to include in response
+			folders, _ := s.folderRepo.GetSnippetFolders(ctx, snippet.ID)
+			snippet.Folders = folders
+		}
 	}
 
 	s.logger.Info("snippet created", "id", snippet.ID, "title", snippet.Title)
@@ -58,6 +94,18 @@ func (s *SnippetService) GetByID(ctx context.Context, id string) (*models.Snippe
 
 	if snippet == nil {
 		return nil, ErrSnippetNotFound
+	}
+
+	// Fetch tags
+	if s.tagRepo != nil {
+		tags, _ := s.tagRepo.GetSnippetTags(ctx, id)
+		snippet.Tags = tags
+	}
+
+	// Fetch folders
+	if s.folderRepo != nil {
+		folders, _ := s.folderRepo.GetSnippetFolders(ctx, id)
+		snippet.Folders = folders
 	}
 
 	return snippet, nil
@@ -104,6 +152,24 @@ func (s *SnippetService) Update(ctx context.Context, id string, input *models.Sn
 	if err != nil {
 		s.logger.Error("failed to update snippet", "id", id, "error", err)
 		return nil, err
+	}
+
+	// Update tags if provided
+	if s.tagRepo != nil && input.Tags != nil {
+		if err := s.tagRepo.SetSnippetTags(ctx, id, input.Tags); err != nil {
+			s.logger.Warn("failed to update snippet tags", "id", id, "error", err)
+		}
+		tags, _ := s.tagRepo.GetSnippetTags(ctx, id)
+		snippet.Tags = tags
+	}
+
+	// Update folder if provided
+	if s.folderRepo != nil {
+		if err := s.folderRepo.SetSnippetFolder(ctx, id, input.FolderID); err != nil {
+			s.logger.Warn("failed to update snippet folder", "id", id, "error", err)
+		}
+		folders, _ := s.folderRepo.GetSnippetFolders(ctx, id)
+		snippet.Folders = folders
 	}
 
 	s.logger.Info("snippet updated", "id", id)
