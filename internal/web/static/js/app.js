@@ -126,6 +126,7 @@ document.addEventListener('alpine:init', () => {
     },
     pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
     totalSnippets: 0, // Total count for "All Snippets" (unfiltered)
+    favoritesCount: 0, // Count of favorite snippets
     loading: true,
     showEditor: false,
     showDeleteModal: false,
@@ -138,18 +139,34 @@ document.addEventListener('alpine:init', () => {
     passwordForm: { current: '', new: '', confirm: '' },
     passwordError: '',
     passwordSuccess: '',
+    // Sidebar collapse state
+    foldersCollapsed: false,
+    tagsCollapsed: false,
+    // Folder/Tag management
+    showFolderModal: false,
+    showTagModal: false,
+    editingFolder: { name: '', parent_id: '' },
+    editingTag: { id: null, name: '' },
     
     async init() {
       await Promise.all([
         this.loadSnippets(),
         this.loadTags(),
-        this.loadFolders()
+        this.loadFolders(),
+        this.loadFavoritesCount()
       ]);
       // Store total snippets count on initial load
       this.totalSnippets = this.pagination.total;
       this.loading = false;
       // Highlight code after initial load
       this.$nextTick(() => this.highlightAll());
+    },
+    
+    async loadFavoritesCount() {
+      const result = await api.get('/api/v1/snippets?is_favorite=true&limit=1');
+      if (result && result.pagination) {
+        this.favoritesCount = result.pagination.total;
+      }
     },
     
     highlightAll() {
@@ -194,6 +211,7 @@ document.addEventListener('alpine:init', () => {
     },
     
     async filterByTag(tagId) {
+      this.showEditor = false; // Close editor when navigating
       this.filter.tagId = tagId;
       this.filter.folderId = null;
       this.pagination.page = 1;
@@ -201,6 +219,7 @@ document.addEventListener('alpine:init', () => {
     },
     
     async filterByFolder(folderId) {
+      this.showEditor = false; // Close editor when navigating
       this.filter.folderId = folderId;
       this.filter.tagId = null;
       this.pagination.page = 1;
@@ -208,6 +227,7 @@ document.addEventListener('alpine:init', () => {
     },
     
     async clearFilters() {
+      this.showEditor = false; // Close editor when navigating
       this.filter = { query: '', tagId: null, folderId: null, language: '', isFavorite: null };
       this.pagination.page = 1;
       await this.loadSnippets();
@@ -216,6 +236,7 @@ document.addEventListener('alpine:init', () => {
     },
     
     async showFavorites() {
+      this.showEditor = false; // Close editor when navigating
       this.filter.isFavorite = true;
       this.filter.tagId = null;
       this.filter.folderId = null;
@@ -446,8 +467,12 @@ document.addEventListener('alpine:init', () => {
       });
       
       if (result && !result.error) {
-        this.passwordSuccess = 'Password changed successfully';
+        this.passwordSuccess = 'Password changed successfully. Logging out...';
         this.passwordForm = { current: '', new: '', confirm: '' };
+        // Logout after successful password change
+        setTimeout(async () => {
+          await this.logout();
+        }, 1500);
       } else {
         this.passwordError = result?.error?.message || 'Failed to change password';
       }
@@ -497,6 +522,120 @@ document.addEventListener('alpine:init', () => {
     formatTokenDate(dateStr) {
       if (!dateStr) return 'Never';
       return new Date(dateStr).toLocaleDateString();
+    },
+    
+    // Computed: Flatten folders for select dropdown (includes nested with indentation)
+    get flattenedFolders() {
+      const result = [];
+      const flatten = (folders, depth = 0) => {
+        for (const folder of folders) {
+          result.push({
+            id: folder.id,
+            name: folder.name,
+            displayName: '  '.repeat(depth) + (depth > 0 ? '└ ' : '') + folder.name
+          });
+          if (folder.children && folder.children.length > 0) {
+            flatten(folder.children, depth + 1);
+          }
+        }
+      };
+      flatten(this.folders);
+      return result;
+    },
+    
+    // Folder management
+    showNewFolderModal() {
+      this.editingFolder = { name: '', parent_id: '' };
+      this.showFolderModal = true;
+    },
+    
+    renameFolder(folder) {
+      this.editingFolder = { id: folder.id, name: folder.name, parent_id: folder.parent_id || '' };
+      this.showFolderModal = true;
+    },
+    
+    async saveFolder() {
+      if (!this.editingFolder.name.trim()) {
+        showToast('Folder name is required', 'error');
+        return;
+      }
+      
+      const data = {
+        name: this.editingFolder.name,
+        parent_id: this.editingFolder.parent_id ? parseInt(this.editingFolder.parent_id) : null
+      };
+      
+      let result;
+      if (this.editingFolder.id) {
+        // Update existing folder
+        result = await api.put(`/api/v1/folders/${this.editingFolder.id}`, data);
+      } else {
+        // Create new folder
+        result = await api.post('/api/v1/folders', data);
+      }
+      
+      if (result && !result.error) {
+        this.showFolderModal = false;
+        await this.loadFolders();
+        showToast(this.editingFolder.id ? 'Folder renamed' : 'Folder created');
+      } else {
+        showToast(result?.error?.message || 'Failed to save folder', 'error');
+      }
+    },
+    
+    async deleteFolder(folder) {
+      if (!confirm(`Delete folder "${folder.name}"? Snippets in this folder will not be deleted.`)) return;
+      
+      const result = await api.delete(`/api/v1/folders/${folder.id}`);
+      if (!result || !result.error) {
+        await this.loadFolders();
+        if (this.filter.folderId === folder.id) {
+          this.clearFilters();
+        }
+        showToast('Folder deleted');
+      } else {
+        showToast('Failed to delete folder', 'error');
+      }
+    },
+    
+    // Tag management
+    renameTag(tag) {
+      this.editingTag = { id: tag.id, name: tag.name };
+      this.showTagModal = true;
+    },
+    
+    async saveTag() {
+      if (!this.editingTag.name.trim()) {
+        showToast('Tag name is required', 'error');
+        return;
+      }
+      
+      const result = await api.put(`/api/v1/tags/${this.editingTag.id}`, {
+        name: this.editingTag.name
+      });
+      
+      if (result && !result.error) {
+        this.showTagModal = false;
+        await this.loadTags();
+        showToast('Tag renamed');
+      } else {
+        showToast(result?.error?.message || 'Failed to rename tag', 'error');
+      }
+    },
+    
+    async deleteTag(tag) {
+      if (!confirm(`Delete tag "${tag.name}"? This will remove the tag from all snippets.`)) return;
+      
+      const result = await api.delete(`/api/v1/tags/${tag.id}`);
+      if (!result || !result.error) {
+        await this.loadTags();
+        if (this.filter.tagId === tag.id) {
+          this.clearFilters();
+        }
+        showToast('Tag deleted');
+      } else {
+        showToast('Failed to delete tag', 'error');
+      }
     }
   }));
   
