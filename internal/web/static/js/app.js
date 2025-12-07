@@ -129,6 +129,7 @@ document.addEventListener('alpine:init', () => {
     favoritesCount: 0, // Count of favorite snippets
     loading: true,
     showEditor: false,
+    isEditing: false, // false = preview mode, true = edit mode
     showDeleteModal: false,
     deleteTarget: null,
     showSettings: false,
@@ -257,10 +258,11 @@ document.addEventListener('alpine:init', () => {
         is_favorite: false
       };
       this.showEditor = true;
+      this.isEditing = true; // New snippets go directly to edit mode
     },
     
-    async editSnippet(snippet) {
-      // Fetch full snippet with tags/folders
+    async viewSnippet(snippet) {
+      // Fetch full snippet and show in preview mode
       const result = await api.get(`/api/v1/snippets/${snippet.id}`);
       if (result) {
         this.editingSnippet = {
@@ -269,6 +271,28 @@ document.addEventListener('alpine:init', () => {
           folder_id: result.folders?.[0]?.id || null
         };
         this.showEditor = true;
+        this.isEditing = false; // Preview mode by default
+        // Trigger syntax highlighting after view opens
+        this.$nextTick(() => this.highlightAll());
+      }
+    },
+    
+    startEditing() {
+      this.isEditing = true;
+      this.$nextTick(() => this.highlightAll());
+    },
+    
+    async editSnippet(snippet) {
+      // Fetch full snippet with tags/folders and go to edit mode
+      const result = await api.get(`/api/v1/snippets/${snippet.id}`);
+      if (result) {
+        this.editingSnippet = {
+          ...result,
+          tags: (result.tags || []).map(t => t.name),
+          folder_id: result.folders?.[0]?.id || null
+        };
+        this.showEditor = true;
+        this.isEditing = true; // Edit mode
         // Trigger syntax highlighting after editor opens
         this.$nextTick(() => this.highlightAll());
       }

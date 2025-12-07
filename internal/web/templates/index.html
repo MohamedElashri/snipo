@@ -244,7 +244,7 @@
             <!-- Snippet grid -->
             <div class="snippet-grid" x-show="!loading && snippets.length > 0">
                 <template x-for="snippet in snippets" :key="snippet.id">
-                    <article class="snippet-card" @click="editSnippet(snippet)">
+                    <article class="snippet-card" @click="viewSnippet(snippet)">
                         <div class="snippet-card-header">
                             <h3 class="snippet-card-title" x-text="snippet.title"></h3>
                             <span class="snippet-card-language" 
@@ -307,8 +307,9 @@
             </div>
         </div>
         
-        <!-- Editor -->
+        <!-- Snippet View/Editor -->
         <div class="editor-container" x-show="showEditor" x-cloak>
+            <!-- Toolbar -->
             <div class="editor-toolbar">
                 <button class="btn-icon" @click="cancelEdit()" title="Back">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -317,7 +318,12 @@
                     </svg>
                 </button>
                 
+                <!-- Preview mode: show title as text -->
+                <h2 class="editor-title-display" x-show="!isEditing" x-text="editingSnippet.title || 'Untitled'"></h2>
+                
+                <!-- Edit mode: show title input -->
                 <input 
+                    x-show="isEditing"
                     type="text" 
                     class="editor-title-input"
                     x-model="editingSnippet.title"
@@ -342,17 +348,63 @@
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                         </svg>
                     </button>
-                    <button class="btn-primary" @click="saveSnippet()" style="padding: 0.5rem 1rem;">
+                    
+                    <!-- Edit button (preview mode) -->
+                    <button class="btn-primary" x-show="!isEditing" @click="startEditing()" style="padding: 0.5rem 1rem;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="margin-right: 0.25rem;">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Edit
+                    </button>
+                    
+                    <!-- Save button (edit mode) -->
+                    <button class="btn-primary" x-show="isEditing" @click="saveSnippet()" style="padding: 0.5rem 1rem;">
                         Save
                     </button>
                 </div>
             </div>
             
-            <!-- Metadata bar (top) -->
-            <div class="editor-metadata">
-                <!-- Left side: Description -->
-                <div class="editor-metadata-left">
-                    <div class="editor-field-inline">
+            <!-- PREVIEW MODE: Full-width code preview with metadata -->
+            <div class="preview-mode" x-show="!isEditing">
+                <!-- Metadata bar -->
+                <div class="preview-metadata">
+                    <div class="preview-meta-item" x-show="editingSnippet.description">
+                        <span class="preview-meta-label">Description</span>
+                        <span x-text="editingSnippet.description"></span>
+                    </div>
+                    <div class="preview-meta-item">
+                        <span class="preview-meta-label">Language</span>
+                        <span class="language-badge" :style="{ background: getLanguageColor(editingSnippet.language) }" x-text="editingSnippet.language"></span>
+                    </div>
+                    <div class="preview-meta-item" x-show="editingSnippet.folder_id">
+                        <span class="preview-meta-label">Folder</span>
+                        <a href="#" class="folder-link" @click.prevent="filterByFolder(editingSnippet.folder_id)" x-text="flattenedFolders.find(f => f.id == editingSnippet.folder_id)?.name || ''"></a>
+                    </div>
+                    <div class="preview-meta-item" x-show="editingSnippet.tags?.length > 0">
+                        <span class="preview-meta-label">Tags</span>
+                        <div class="preview-tags">
+                            <template x-for="tag in editingSnippet.tags" :key="tag">
+                                <span class="tag-badge" x-text="tag"></span>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="preview-meta-item" x-show="editingSnippet.is_public">
+                        <span class="tag-badge public-badge">Public</span>
+                    </div>
+                </div>
+                
+                <!-- Full code preview -->
+                <div class="preview-code">
+                    <pre><code :class="'language-' + editingSnippet.language" x-text="editingSnippet.content"></code></pre>
+                </div>
+            </div>
+            
+            <!-- EDIT MODE: Split view with editor left, preview right, sidebar for metadata -->
+            <div class="edit-mode" x-show="isEditing">
+                <!-- Top metadata bar (description, language, folder, public) -->
+                <div class="editor-metadata">
+                    <div class="editor-field-inline" style="flex: 1;">
                         <label>Description</label>
                         <input 
                             type="text"
@@ -360,10 +412,7 @@
                             placeholder="Optional description..."
                         >
                     </div>
-                </div>
-                
-                <!-- Right side: Language, Folder, Tags, Public -->
-                <div class="editor-metadata-right">
+                    
                     <div class="editor-field-inline compact">
                         <label>Language</label>
                         <select x-model="editingSnippet.language" @change="$nextTick(() => highlightAll())">
@@ -400,40 +449,15 @@
                         </select>
                     </div>
                     
-                    <div class="editor-field-inline tags-field">
-                        <label>Tags</label>
-                        <div class="tags-inline">
-                            <template x-for="(tag, index) in editingSnippet.tags" :key="index">
-                                <span class="tag-chip">
-                                    <span x-text="tag"></span>
-                                    <button @click="removeTag(index)" class="tag-remove">×</button>
-                                </span>
-                            </template>
-                            <input 
-                                type="text"
-                                class="tag-input"
-                                placeholder="+ tag"
-                                @keydown.enter.prevent="addTag($event.target.value); $event.target.value = ''"
-                                list="existing-tags"
-                            >
-                            <datalist id="existing-tags">
-                                <template x-for="tag in tags" :key="tag.id">
-                                    <option :value="tag.name"></option>
-                                </template>
-                            </datalist>
-                        </div>
-                    </div>
-                    
                     <label class="public-toggle">
                         <input type="checkbox" x-model="editingSnippet.is_public">
                         <span>Public</span>
                     </label>
                 </div>
-            </div>
-            
-            <div class="editor-main">
-                <div class="editor-code">
-                    <!-- Code input and preview split -->
+                
+                <!-- Main edit area: code split + tags sidebar -->
+                <div class="editor-main-with-sidebar">
+                    <!-- Code split (editor left, preview right) -->
                     <div class="code-split">
                         <textarea 
                             class="code-textarea"
@@ -444,6 +468,52 @@
                         ></textarea>
                         <div class="code-preview">
                             <pre><code :class="'language-' + editingSnippet.language" x-text="editingSnippet.content"></code></pre>
+                        </div>
+                    </div>
+                    
+                    <!-- Tags sidebar (right) -->
+                    <div class="tags-sidebar">
+                        <div class="tags-sidebar-header">
+                            <label>Tags</label>
+                        </div>
+                        
+                        <!-- Current tags (vertical list) -->
+                        <div class="tags-list">
+                            <template x-for="(tag, index) in editingSnippet.tags" :key="index">
+                                <div class="tag-list-item">
+                                    <span x-text="tag"></span>
+                                    <button @click="removeTag(index)" class="tag-remove-btn" title="Remove">×</button>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        <!-- Add new tag -->
+                        <div class="tag-add-section">
+                            <input 
+                                type="text"
+                                class="tag-add-input"
+                                placeholder="Add tag..."
+                                @keydown.enter.prevent="addTag($event.target.value); $event.target.value = ''"
+                                list="existing-tags-edit"
+                            >
+                            <datalist id="existing-tags-edit">
+                                <template x-for="tag in tags" :key="tag.id">
+                                    <option :value="tag.name"></option>
+                                </template>
+                            </datalist>
+                        </div>
+                        
+                        <!-- Existing tags to quickly add -->
+                        <div class="tags-suggestions" x-show="tags.length > 0">
+                            <label class="tags-suggestions-label">Quick add:</label>
+                            <div class="tags-suggestions-list">
+                                <template x-for="tag in tags.filter(t => !editingSnippet.tags.includes(t.name)).slice(0, 10)" :key="tag.id">
+                                    <button class="tag-suggestion" @click="addTag(tag.name)" :title="tag.name">
+                                        <span class="tag-dot" :style="{ background: tag.color }"></span>
+                                        <span x-text="tag.name"></span>
+                                    </button>
+                                </template>
+                            </div>
                         </div>
                     </div>
                 </div>
