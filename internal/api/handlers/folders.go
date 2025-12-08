@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -57,7 +56,7 @@ func (h *FolderHandler) List(w http.ResponseWriter, r *http.Request) {
 // Create handles POST /api/v1/folders
 func (h *FolderHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var input models.FolderInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := DecodeJSON(r, &input); err != nil {
 		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
@@ -131,7 +130,7 @@ func (h *FolderHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var input models.FolderInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := DecodeJSON(r, &input); err != nil {
 		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
@@ -213,7 +212,7 @@ func (h *FolderHandler) Move(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req MoveRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}

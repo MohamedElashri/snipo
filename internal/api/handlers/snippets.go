@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -85,7 +84,7 @@ func (h *SnippetHandler) List(w http.ResponseWriter, r *http.Request) {
 // Create handles POST /api/v1/snippets
 func (h *SnippetHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var input models.SnippetInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := DecodeJSON(r, &input); err != nil {
 		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
@@ -139,7 +138,7 @@ func (h *SnippetHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var input models.SnippetInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := DecodeJSON(r, &input); err != nil {
 		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}

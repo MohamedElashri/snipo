@@ -39,11 +39,12 @@ type DatabaseConfig struct {
 
 // AuthConfig holds authentication settings
 type AuthConfig struct {
-	MasterPassword  string
-	SessionSecret   string
-	SessionDuration time.Duration
-	RateLimit       int
-	RateLimitWindow time.Duration
+	MasterPassword         string
+	SessionSecret          string
+	SessionSecretGenerated bool // True if session secret was auto-generated (not recommended for production)
+	SessionDuration        time.Duration
+	RateLimit              int
+	RateLimitWindow        time.Duration
 }
 
 // S3Config holds S3 storage settings
@@ -95,6 +96,7 @@ func Load() (*Config, error) {
 			return nil, err
 		}
 		sessionSecret = secret
+		cfg.Auth.SessionSecretGenerated = true
 	}
 	cfg.Auth.SessionSecret = sessionSecret
 	cfg.Auth.SessionDuration = getEnvDuration("SNIPO_SESSION_DURATION", 168*time.Hour)

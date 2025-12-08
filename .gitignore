@@ -2,8 +2,13 @@
 *.md
 !README.md
 !docs/*
+!SECURITY.md
 
 ## data/binaries (used for testing during development)
 /data
 cookies.txt
 bin/*
+
+## Coverage
+coverage.out
+coverage.html

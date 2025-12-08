@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/MohamedElashri/snipo/internal/api"
+	"github.com/MohamedElashri/snipo/internal/api/middleware"
 	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/internal/config"
 	"github.com/MohamedElashri/snipo/internal/database"
@@ -56,6 +57,15 @@ func runServer() {
 	if err != nil {
 		logger.Error("failed to load configuration", "error", err)
 		os.Exit(1)
+	}
+
+	// Configure proxy trust setting
+	middleware.TrustProxy = cfg.Server.TrustProxy
+
+	// Warn if session secret was auto-generated
+	if cfg.Auth.SessionSecretGenerated {
+		logger.Warn("SECURITY WARNING: SNIPO_SESSION_SECRET not set - using auto-generated secret",
+			"recommendation", "Set SNIPO_SESSION_SECRET environment variable for production. Generate with: openssl rand -hex 32")
 	}
 
 	// Connect to database
