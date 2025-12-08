@@ -5,11 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Title}} - Snipo</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+    
     <!-- Pico CSS (local) -->
     <link rel="stylesheet" href="/static/vendor/css/pico.min.css">
     
     <!-- Prism.js theme (local) -->
     <link id="prism-theme" rel="stylesheet" href="/static/vendor/css/prism-tomorrow.min.css">
+    
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="/static/vendor/css/codemirror.min.css">
+    <link id="codemirror-theme" rel="stylesheet" href="/static/vendor/css/codemirror-material-darker.min.css">
     
     <!-- Fonts (local) -->
     <link rel="stylesheet" href="/static/vendor/css/fonts.css">
@@ -29,6 +38,13 @@
                     ? '/static/vendor/css/prism-tomorrow.min.css'
                     : '/static/vendor/css/prism.min.css';
             }
+            // Update CodeMirror theme link
+            const cmLink = document.getElementById('codemirror-theme');
+            if (cmLink) {
+                cmLink.href = theme === 'dark'
+                    ? '/static/vendor/css/codemirror-material-darker.min.css'
+                    : '/static/vendor/css/codemirror-eclipse.min.css';
+            }
         })();
     </script>
 </head>
@@ -38,12 +54,30 @@
     <!-- Toast container -->
     <div id="toast-container" class="toast-container"></div>
     
-    <!-- Alpine.js with collapse plugin (local) -->
-    <script defer src="/static/vendor/js/alpine-collapse.min.js"></script>
-    <script defer src="/static/vendor/js/alpine.min.js"></script>
-    
     <!-- htmx (local) -->
     <script src="/static/vendor/js/htmx.min.js"></script>
+    
+    <!-- Marked.js for markdown rendering (local) -->
+    <script src="/static/vendor/js/marked.min.js"></script>
+    
+    <!-- CodeMirror (local) -->
+    <script src="/static/vendor/js/codemirror.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/simple.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/javascript.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/python.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/go.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/shell.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/sql.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/yaml.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/markdown.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/xml.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/htmlmixed.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/css.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/clike.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/ruby.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/php.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/swift.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/rust.min.js"></script>
     
     <!-- Prism.js (local) -->
     <script src="/static/vendor/js/prism.min.js"></script>
@@ -56,7 +90,11 @@
     <script src="/static/vendor/js/prism-sql.min.js"></script>
     <script src="/static/vendor/js/prism-markdown.min.js"></script>
     
-    <!-- App JS -->
-    <script src="/static/js/app.js"></script>
+    <!-- App JS (must load before Alpine, defer ensures execution order) -->
+    <script defer src="/static/js/app.js"></script>
+    
+    <!-- Alpine.js with collapse plugin (load last after app.js) -->
+    <script defer src="/static/vendor/js/alpine-collapse.min.js"></script>
+    <script defer src="/static/vendor/js/alpine.min.js"></script>
 </body>
 </html>

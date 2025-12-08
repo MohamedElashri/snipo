@@ -10,6 +10,8 @@ const theme = {
     document.documentElement.setAttribute('data-theme', value);
     // Update Prism theme
     this.updatePrismTheme(value);
+    // Update CodeMirror theme
+    this.updateCodeMirrorTheme(value);
   },
   toggle() {
     const current = this.get();
@@ -28,6 +30,14 @@ const theme = {
       } else {
         prismLink.href = '/static/vendor/css/prism.min.css';
       }
+    }
+  },
+  updateCodeMirrorTheme(themeName) {
+    const cmLink = document.getElementById('codemirror-theme');
+    if (cmLink) {
+      cmLink.href = themeName === 'dark'
+        ? '/static/vendor/css/codemirror-material-darker.min.css'
+        : '/static/vendor/css/codemirror-eclipse.min.css';
     }
   }
 };
@@ -164,6 +174,9 @@ document.addEventListener('alpine:init', () => {
     importResult: null,
     s3Status: { enabled: false },
     s3Backups: [],
+    // CodeMirror instance
+    cmEditor: null,
+    cmIgnoreChange: false, // Flag to prevent infinite loops
     
     async init() {
       await Promise.all([
@@ -263,6 +276,144 @@ document.addEventListener('alpine:init', () => {
       // Re-run Prism highlighting on all code blocks
       if (typeof Prism !== 'undefined') {
         Prism.highlightAll();
+      }
+    },
+    
+    renderMarkdown(content) {
+      // Render markdown content as HTML using marked.js
+      if (!content) return '';
+      if (typeof marked !== 'undefined') {
+        // Configure marked for safe rendering
+        marked.setOptions({
+          breaks: true,
+          gfm: true
+        });
+        return marked.parse(content);
+      }
+      // Fallback: return content as-is if marked is not available
+      return content;
+    },
+    
+    // CodeMirror language mode mapping
+    getCodeMirrorMode(language) {
+      const modeMap = {
+        'javascript': 'javascript',
+        'typescript': 'javascript',
+        'python': 'python',
+        'go': 'go',
+        'rust': 'rust',
+        'java': 'text/x-java',
+        'csharp': 'text/x-csharp',
+        'cpp': 'text/x-c++src',
+        'ruby': 'ruby',
+        'php': 'php',
+        'swift': 'swift',
+        'kotlin': 'text/x-kotlin',
+        'html': 'htmlmixed',
+        'css': 'css',
+        'sql': 'sql',
+        'bash': 'shell',
+        'json': { name: 'javascript', json: true },
+        'yaml': 'yaml',
+        'markdown': 'markdown',
+        'plaintext': 'text/plain'
+      };
+      return modeMap[language] || 'text/plain';
+    },
+    
+    // Initialize CodeMirror editor
+    initCodeMirror() {
+      if (typeof CodeMirror === 'undefined') {
+        console.error('CodeMirror not loaded');
+        return;
+      }
+      
+      const container = this.$refs.codeEditor;
+      if (!container || this.cmEditor) return;
+      
+      const isDark = theme.get() === 'dark';
+      
+      this.cmEditor = CodeMirror(container, {
+        value: '',
+        mode: 'javascript',
+        theme: isDark ? 'material-darker' : 'eclipse',
+        lineNumbers: true,
+        lineWrapping: false,
+        indentUnit: 2,
+        tabSize: 2,
+        indentWithTabs: false,
+        smartIndent: true,
+        electricChars: true,
+        autofocus: false,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        extraKeys: {
+          'Tab': (cm) => {
+            if (cm.somethingSelected()) {
+              cm.indentSelection('add');
+            } else {
+              cm.replaceSelection('  ', 'end');
+            }
+          },
+          'Shift-Tab': (cm) => {
+            cm.indentSelection('subtract');
+          }
+        }
+      });
+      
+      // Handle changes
+      this.cmEditor.on('change', () => {
+        if (this.cmIgnoreChange) return;
+        
+        const value = this.cmEditor.getValue();
+        if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
+          this.updateActiveFileContent(value);
+        } else {
+          this.editingSnippet.content = value;
+          this.scheduleAutoSave();
+        }
+      });
+    },
+    
+    // Update CodeMirror content and mode
+    updateCodeMirror() {
+      if (!this.cmEditor) return;
+      
+      this.cmIgnoreChange = true;
+      
+      // Get current content
+      const content = (this.editingSnippet.files && this.editingSnippet.files.length > 0)
+        ? (this.activeFile?.content || '')
+        : (this.editingSnippet.content || '');
+      
+      // Get current language
+      const language = (this.editingSnippet.files && this.editingSnippet.files.length > 0)
+        ? (this.activeFile?.language || 'javascript')
+        : (this.editingSnippet.language || 'javascript');
+      
+      // Update editor
+      this.cmEditor.setValue(content);
+      this.cmEditor.setOption('mode', this.getCodeMirrorMode(language));
+      
+      // Update theme based on current app theme
+      const isDark = theme.get() === 'dark';
+      this.cmEditor.setOption('theme', isDark ? 'material-darker' : 'eclipse');
+      
+      this.cmIgnoreChange = false;
+      
+      // Refresh to ensure proper rendering
+      this.$nextTick(() => {
+        if (this.cmEditor) {
+          this.cmEditor.refresh();
+        }
+      });
+    },
+    
+    // Destroy CodeMirror instance
+    destroyCodeMirror() {
+      if (this.cmEditor) {
+        this.cmEditor.toTextArea();
+        this.cmEditor = null;
       }
     },
     
@@ -367,8 +518,9 @@ document.addEventListener('alpine:init', () => {
       this.isEditing = true;
       this.updateUrl({ edit: true });
       
-      // Focus filename input after render
+      // Update CodeMirror and focus filename input after render
       this.$nextTick(() => {
+        this.updateCodeMirror();
         const input = document.querySelector('.filename-input');
         if (input) {
           input.focus();
@@ -399,7 +551,10 @@ document.addEventListener('alpine:init', () => {
       if (this.editingSnippet?.id) {
         this.updateUrl({ snippet: this.editingSnippet.id, edit: true });
       }
-      this.$nextTick(() => this.highlightAll());
+      this.$nextTick(() => {
+        this.updateCodeMirror();
+        this.highlightAll();
+      });
     },
     
     async editSnippet(snippet) {
@@ -415,7 +570,10 @@ document.addEventListener('alpine:init', () => {
         this.showEditor = true;
         this.isEditing = true;
         this.updateUrl({ snippet: snippet.id, edit: true });
-        this.$nextTick(() => this.highlightAll());
+        this.$nextTick(() => {
+          this.updateCodeMirror();
+          this.highlightAll();
+        });
       }
     },
     
@@ -573,7 +731,10 @@ document.addEventListener('alpine:init', () => {
         this.hasDraft = false;
         this.clearDraft();
         showToast('Draft restored');
-        this.$nextTick(() => this.highlightAll());
+        this.$nextTick(() => {
+          this.updateCodeMirror();
+          this.highlightAll();
+        });
       }
     },
     
@@ -753,7 +914,12 @@ document.addEventListener('alpine:init', () => {
     
     selectFile(index) {
       this.activeFileIndex = index;
-      this.$nextTick(() => this.highlightAll());
+      this.$nextTick(() => {
+        if (this.isEditing) {
+          this.updateCodeMirror();
+        }
+        this.highlightAll();
+      });
     },
     
     updateActiveFileContent(content) {
@@ -770,6 +936,10 @@ document.addEventListener('alpine:init', () => {
         this.editingSnippet.files[this.activeFileIndex].language = language;
       } else {
         this.editingSnippet.language = language;
+      }
+      // Update CodeMirror mode
+      if (this.cmEditor) {
+        this.cmEditor.setOption('mode', this.getCodeMirrorMode(language));
       }
       this.$nextTick(() => this.highlightAll());
       this.scheduleAutoSave();

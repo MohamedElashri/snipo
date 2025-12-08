@@ -467,7 +467,14 @@
                 
                 <!-- Full code preview -->
                 <div class="preview-code-wrapper">
-                    <div class="preview-code-scroll">
+                    <!-- Rendered markdown view -->
+                    <div class="preview-markdown-scroll" 
+                         x-show="(activeFile?.language || editingSnippet.language) === 'markdown'"
+                         x-html="renderMarkdown(activeFile?.content || editingSnippet.content)">
+                    </div>
+                    <!-- Code view for non-markdown -->
+                    <div class="preview-code-scroll" 
+                         x-show="(activeFile?.language || editingSnippet.language) !== 'markdown'">
                         <pre><code :class="'language-' + (activeFile?.language || editingSnippet.language)" x-text="activeFile?.content || editingSnippet.content"></code></pre>
                     </div>
                 </div>
@@ -577,28 +584,12 @@
                             </button>
                         </div>
                         
-                        <!-- Code editor -->
+                        <!-- Code editor (CodeMirror) -->
                         <div class="code-editor-wrapper">
-                            <!-- Multi-file mode -->
-                            <template x-if="editingSnippet.files && editingSnippet.files.length > 0">
-                                <textarea 
-                                    class="code-textarea"
-                                    :value="activeFile.content"
-                                    @input="updateActiveFileContent($event.target.value)"
-                                    placeholder="Paste your code here..."
-                                    spellcheck="false"
-                                ></textarea>
-                            </template>
-                            <!-- Single-file mode (legacy) -->
-                            <template x-if="!editingSnippet.files || editingSnippet.files.length === 0">
-                                <textarea 
-                                    class="code-textarea"
-                                    x-model="editingSnippet.content"
-                                    placeholder="Paste your code here..."
-                                    spellcheck="false"
-                                    @input="scheduleAutoSave()"
-                                ></textarea>
-                            </template>
+                            <div id="code-editor" 
+                                 x-ref="codeEditor"
+                                 x-init="initCodeMirror()"
+                                 class="codemirror-container"></div>
                         </div>
                     </div>
                     

@@ -14,10 +14,10 @@ info:
     API tokens can be created via the Settings page or `/api/v1/tokens` endpoint.
   version: 1.0.0
   license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
+    name: GPL-3.0
+    url: https://www.gnu.org/licenses/gpl-3.0.html
   contact:
-    name: Mohamed Elashri
+    name: Mohamed Elashri 
     url: https://github.com/MohamedElashri/snipo
 
 servers:

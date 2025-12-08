@@ -30,11 +30,13 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 # ============================================================================
 # Final stage - minimal runtime image
 # ============================================================================
-FROM scratch
+FROM alpine:3.20
 
-# Import CA certificates and timezone data from builder
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+# Install ca-certificates for HTTPS and create non-root user
+RUN apk add --no-cache ca-certificates tzdata \
+    && adduser -D -u 1000 snipo \
+    && mkdir -p /data \
+    && chown -R snipo:snipo /data
 
 # Copy the binary
 COPY --from=builder /snipo /snipo
@@ -50,7 +52,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD ["/snipo", "health"]
 
 # Run as non-root user 
-USER 1000:1000
+USER snipo
 
 # Default environment variables
 ENV SNIPO_HOST=0.0.0.0 \

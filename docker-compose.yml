@@ -9,9 +9,9 @@ services:
       - snipo_data:/data
     environment:
       # Required: Set a master password
-      - SNIPO_MASTER_PASSWORD=${SNIPO_MASTER_PASSWORD:?Master password is required}
+      - SNIPO_MASTER_PASSWORD=${SNIPO_MASTER_PASSWORD:-<Put_your_master_password_here>}
       # Required: Set a random session secret (generate with: openssl rand -hex 32)
-      - SNIPO_SESSION_SECRET=${SNIPO_SESSION_SECRET:?Session secret is required}
+      - SNIPO_SESSION_SECRET=${SNIPO_SESSION_SECRET:-4c7b774039836c4316774795078ef183d093f2c4eda0796e7cd16913494153a6}
       # Optional: Server configuration
       - SNIPO_HOST=0.0.0.0
       - SNIPO_PORT=8080
@@ -26,7 +26,7 @@ services:
       # - SNIPO_S3_REGION=us-east-1
       # - SNIPO_S3_SSL=true
     healthcheck:
-      test: ["/snipo", "health"]
+      test: ["CMD", "/snipo", "health"]
       interval: 30s
       timeout: 5s
       retries: 3
