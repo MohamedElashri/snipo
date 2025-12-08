@@ -10,8 +10,6 @@ const theme = {
     document.documentElement.setAttribute('data-theme', value);
     // Update Prism theme
     this.updatePrismTheme(value);
-    // Update CodeMirror theme
-    this.updateCodeMirrorTheme(value);
   },
   toggle() {
     const current = this.get();
@@ -30,14 +28,6 @@ const theme = {
       } else {
         prismLink.href = '/static/vendor/css/prism.min.css';
       }
-    }
-  },
-  updateCodeMirrorTheme(themeName) {
-    const cmLink = document.getElementById('codemirror-theme');
-    if (cmLink) {
-      cmLink.href = themeName === 'dark'
-        ? '/static/vendor/css/codemirror-material-darker.min.css'
-        : '/static/vendor/css/codemirror-eclipse.min.css';
     }
   }
 };
@@ -174,9 +164,9 @@ document.addEventListener('alpine:init', () => {
     importResult: null,
     s3Status: { enabled: false },
     s3Backups: [],
-    // CodeMirror instance
-    cmEditor: null,
-    cmIgnoreChange: false, // Flag to prevent infinite loops
+    // Ace Editor instance
+    aceEditor: null,
+    aceIgnoreChange: false, // Flag to prevent infinite loops
     
     async init() {
       await Promise.all([
@@ -264,8 +254,6 @@ document.addEventListener('alpine:init', () => {
           this.isEditing = isEdit;
           this.$nextTick(() => {
             if (isEdit) {
-              // Ensure CodeMirror is initialized when restoring edit mode
-              this.initCodeMirror();
               this.updateCodeMirror();
             }
             this.highlightAll();
@@ -303,173 +291,138 @@ document.addEventListener('alpine:init', () => {
       return content;
     },
     
-    // CodeMirror language mode mapping
-    getCodeMirrorMode(language) {
+    // Ace Editor language mode mapping
+    getAceMode(language) {
       const modeMap = {
-        'javascript': 'javascript',
-        'typescript': 'javascript',
-        'python': 'python',
-        'go': 'go',
-        'rust': 'rust',
-        'java': 'text/x-java',
-        'csharp': 'text/x-csharp',
-        'cpp': 'text/x-c++src',
-        'ruby': 'ruby',
-        'php': 'php',
-        'swift': 'swift',
-        'kotlin': 'text/x-kotlin',
-        'html': 'htmlmixed',
-        'css': 'css',
-        'sql': 'sql',
-        'bash': 'shell',
-        'json': { name: 'javascript', json: true },
-        'yaml': 'yaml',
-        'markdown': 'markdown',
-        'plaintext': 'text/plain'
+        'javascript': 'ace/mode/javascript',
+        'typescript': 'ace/mode/typescript',
+        'python': 'ace/mode/python',
+        'go': 'ace/mode/golang',
+        'rust': 'ace/mode/rust',
+        'java': 'ace/mode/java',
+        'csharp': 'ace/mode/csharp',
+        'cpp': 'ace/mode/c_cpp',
+        'ruby': 'ace/mode/ruby',
+        'php': 'ace/mode/php',
+        'swift': 'ace/mode/swift',
+        'kotlin': 'ace/mode/kotlin',
+        'html': 'ace/mode/html',
+        'css': 'ace/mode/css',
+        'sql': 'ace/mode/sql',
+        'bash': 'ace/mode/sh',
+        'json': 'ace/mode/json',
+        'yaml': 'ace/mode/yaml',
+        'markdown': 'ace/mode/markdown',
+        'plaintext': 'ace/mode/text'
       };
-      return modeMap[language] || 'text/plain';
+      return modeMap[language] || 'ace/mode/text';
     },
     
-    // Initialize CodeMirror editor
-    initCodeMirror() {
-      if (typeof CodeMirror === 'undefined') {
-        console.error('CodeMirror not loaded');
-        return;
-      }
-      
+    // Initialize or update Ace Editor
+    updateCodeMirror() {
       const container = this.$refs.codeEditor;
       if (!container) return;
       
-      // If editor already exists, just refresh it
-      if (this.cmEditor) {
-        try {
-          this.cmEditor.refresh();
-        } catch (e) {
-          console.warn('CodeMirror refresh error:', e);
-        }
-        return;
-      }
-      
-      const isDark = theme.get() === 'dark';
-      
-      try {
-        this.cmEditor = CodeMirror(container, {
-          value: '',
-          mode: 'javascript',
-          theme: isDark ? 'material-darker' : 'eclipse',
-          lineNumbers: true,
-          lineWrapping: false,
-          indentUnit: 2,
-          tabSize: 2,
-          indentWithTabs: false,
-          smartIndent: true,
-          electricChars: true,
-          autofocus: false,
-          matchBrackets: true,
-          autoCloseBrackets: true,
-          extraKeys: {
-            'Tab': (cm) => {
-              if (cm.somethingSelected()) {
-                cm.indentSelection('add');
-              } else {
-                cm.replaceSelection('  ', 'end');
-              }
-            },
-            'Shift-Tab': (cm) => {
-              cm.indentSelection('subtract');
-            }
-          }
-        });
-        
-        // Handle changes
-        this.cmEditor.on('change', () => {
-          if (this.cmIgnoreChange) return;
-          
-          try {
-            const value = this.cmEditor.getValue();
-            if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
-              this.updateActiveFileContent(value);
-            } else {
-              this.editingSnippet.content = value;
-              this.scheduleAutoSave();
-            }
-          } catch (e) {
-            console.warn('CodeMirror change handler error:', e);
-          }
-        });
-      } catch (e) {
-        console.error('CodeMirror initialization error:', e);
-        this.cmEditor = null;
-      }
-    },
-    
-    // Update CodeMirror content and mode
-    updateCodeMirror() {
-      if (!this.cmEditor) return;
-      
-      this.cmIgnoreChange = true;
-      
-      // Get current content
+      // Get current content and language
       const content = (this.editingSnippet.files && this.editingSnippet.files.length > 0)
         ? (this.activeFile?.content || '')
         : (this.editingSnippet.content || '');
       
-      // Get current language
       const language = (this.editingSnippet.files && this.editingSnippet.files.length > 0)
         ? (this.activeFile?.language || 'javascript')
         : (this.editingSnippet.language || 'javascript');
       
-      const mode = this.getCodeMirrorMode(language);
+      const aceMode = this.getAceMode(language);
       const isDark = theme.get() === 'dark';
-      const newTheme = isDark ? 'material-darker' : 'eclipse';
+      const aceTheme = isDark ? 'ace/theme/monokai' : 'ace/theme/chrome';
       
-      try {
-        // Use swapDoc to completely replace the document - this avoids
-        // cursor position issues when switching between files with different lengths
-        const newDoc = CodeMirror.Doc(content, mode);
-        this.cmEditor.swapDoc(newDoc);
-        
-        // Set theme after swapping document
-        this.cmEditor.setOption('theme', newTheme);
-      } catch (e) {
-        console.warn('CodeMirror update error:', e);
-        // Fallback: try simple setValue if swapDoc fails
-        try {
-          this.cmEditor.setValue(content);
-          this.cmEditor.setOption('mode', mode);
-          this.cmEditor.setOption('theme', newTheme);
-        } catch (e2) {
-          console.warn('CodeMirror setValue fallback error:', e2);
+      // If no editor exists, create one
+      if (!this.aceEditor) {
+        if (typeof ace === 'undefined') {
+          console.error('Ace Editor not loaded');
+          return;
         }
+        
+        try {
+          // Set base path for Ace to find modes and themes
+          ace.config.set('basePath', '/static/vendor/js/ace');
+          
+          // Ensure container has an ID for Ace
+          if (!container.id) {
+            container.id = 'ace-editor-' + Date.now();
+          }
+          
+          this.aceEditor = ace.edit(container.id);
+          this.aceEditor.setTheme(aceTheme);
+          this.aceEditor.session.setMode(aceMode);
+          this.aceEditor.setValue(content, -1); // -1 moves cursor to start
+          
+          // Configure editor
+          this.aceEditor.setOptions({
+            fontSize: '14px',
+            showPrintMargin: false,
+            tabSize: 2,
+            useSoftTabs: true,
+            wrap: true
+          });
+          
+          // Handle changes
+          const self = this;
+          this.aceEditor.session.on('change', () => {
+            if (self.aceIgnoreChange) return;
+            
+            const value = self.aceEditor.getValue();
+            if (self.editingSnippet.files && self.editingSnippet.files.length > 0) {
+              self.updateActiveFileContent(value);
+            } else {
+              self.editingSnippet.content = value;
+              self.scheduleAutoSave();
+            }
+          });
+        } catch (e) {
+          console.error('Ace Editor initialization error:', e);
+          this.aceEditor = null;
+          return;
+        }
+      } else {
+        // Editor exists - update content and mode
+        this.aceIgnoreChange = true;
+        try {
+          const currentValue = this.aceEditor.getValue();
+          if (currentValue !== content) {
+            this.aceEditor.setValue(content, -1);
+          }
+          this.aceEditor.session.setMode(aceMode);
+          this.aceEditor.setTheme(aceTheme);
+        } catch (e) {
+          console.warn('Ace Editor update error:', e);
+        }
+        this.aceIgnoreChange = false;
       }
       
-      this.cmIgnoreChange = false;
-      
-      // Refresh to ensure proper rendering after DOM updates
+      // Resize after DOM update
       this.$nextTick(() => {
-        if (this.cmEditor) {
-          try {
-            this.cmEditor.refresh();
-          } catch (e) {
-            // Ignore refresh errors - they're usually cosmetic
-          }
+        if (this.aceEditor) {
+          this.aceEditor.resize();
         }
       });
     },
     
-    // Destroy CodeMirror instance
+    // Destroy Ace Editor instance
     destroyCodeMirror() {
-      if (this.cmEditor) {
+      if (this.aceEditor) {
         try {
-          // Get the wrapper element before destroying
-          const wrapper = this.cmEditor.getWrapperElement();
-          if (wrapper && wrapper.parentNode) {
-            wrapper.parentNode.removeChild(wrapper);
+          this.aceEditor.destroy();
+          // Clear the container
+          const container = this.$refs.codeEditor;
+          if (container) {
+            container.innerHTML = '';
+            container.className = 'ace-editor-container';
           }
         } catch (e) {
-          console.warn('CodeMirror destroy error:', e);
+          // Ignore errors during cleanup
         }
-        this.cmEditor = null;
+        this.aceEditor = null;
       }
     },
     
@@ -576,8 +529,6 @@ document.addEventListener('alpine:init', () => {
       
       // Update CodeMirror and focus filename input after render
       this.$nextTick(() => {
-        // Ensure CodeMirror is initialized before updating
-        this.initCodeMirror();
         this.updateCodeMirror();
         const input = document.querySelector('.filename-input');
         if (input) {
@@ -610,8 +561,6 @@ document.addEventListener('alpine:init', () => {
         this.updateUrl({ snippet: this.editingSnippet.id, edit: true });
       }
       this.$nextTick(() => {
-        // Ensure CodeMirror is initialized before updating
-        this.initCodeMirror();
         this.updateCodeMirror();
         this.highlightAll();
       });
@@ -631,8 +580,6 @@ document.addEventListener('alpine:init', () => {
         this.isEditing = true;
         this.updateUrl({ snippet: snippet.id, edit: true });
         this.$nextTick(() => {
-          // Ensure CodeMirror is initialized before updating
-          this.initCodeMirror();
           this.updateCodeMirror();
           this.highlightAll();
         });
@@ -684,6 +631,9 @@ document.addEventListener('alpine:init', () => {
       if (result && !result.error) {
         showToast(this.editingSnippet.id ? 'Snippet updated' : 'Snippet created');
         this.showEditor = false;
+        this.isEditing = false;
+        // Destroy CodeMirror when leaving editor
+        this.destroyCodeMirror();
         this.resetEditingSnippet();
         this.clearDraft(); // Clear draft on successful save
         this.updateUrl({}); // Clear URL params
@@ -697,6 +647,9 @@ document.addEventListener('alpine:init', () => {
     
     cancelEdit() {
       this.showEditor = false;
+      this.isEditing = false;
+      // Destroy CodeMirror when leaving editor
+      this.destroyCodeMirror();
       this.resetEditingSnippet();
       this.clearDraft();
       // Restore URL to current filter state
@@ -794,8 +747,6 @@ document.addEventListener('alpine:init', () => {
         this.clearDraft();
         showToast('Draft restored');
         this.$nextTick(() => {
-          // Ensure CodeMirror is initialized before updating
-          this.initCodeMirror();
           this.updateCodeMirror();
           this.highlightAll();
         });
@@ -980,8 +931,6 @@ document.addEventListener('alpine:init', () => {
       this.activeFileIndex = index;
       this.$nextTick(() => {
         if (this.isEditing) {
-          // Ensure CodeMirror is initialized before updating
-          this.initCodeMirror();
           this.updateCodeMirror();
         }
         this.highlightAll();
@@ -998,19 +947,27 @@ document.addEventListener('alpine:init', () => {
     },
     
     updateActiveFileLanguage(language) {
+      // Get current content before updating language
+      const currentContent = this.aceEditor ? this.aceEditor.getValue() : '';
+      
       if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
         this.editingSnippet.files[this.activeFileIndex].language = language;
+        // Also update content from editor
+        this.editingSnippet.files[this.activeFileIndex].content = currentContent;
       } else {
         this.editingSnippet.language = language;
+        this.editingSnippet.content = currentContent;
       }
-      // Update CodeMirror mode with error handling
-      if (this.cmEditor) {
+      
+      // Update Ace Editor mode
+      if (this.aceEditor) {
         try {
-          this.cmEditor.setOption('mode', this.getCodeMirrorMode(language));
+          this.aceEditor.session.setMode(this.getAceMode(language));
         } catch (e) {
-          console.warn('CodeMirror setOption error:', e);
+          console.warn('Ace setMode error:', e);
         }
       }
+      
       this.$nextTick(() => this.highlightAll());
       this.scheduleAutoSave();
     },
@@ -1021,7 +978,18 @@ document.addEventListener('alpine:init', () => {
         // Auto-detect language from extension
         const detectedLang = this.detectLanguageFromFilename(filename);
         if (detectedLang) {
-          this.editingSnippet.files[this.activeFileIndex].language = detectedLang;
+          const currentLang = this.editingSnippet.files[this.activeFileIndex].language;
+          if (detectedLang !== currentLang) {
+            this.editingSnippet.files[this.activeFileIndex].language = detectedLang;
+            // Update Ace Editor mode
+            if (this.aceEditor) {
+              try {
+                this.aceEditor.session.setMode(this.getAceMode(detectedLang));
+              } catch (e) {
+                console.warn('Ace setMode error:', e);
+              }
+            }
+          }
         }
       }
       this.scheduleAutoSave();

@@ -32,11 +32,12 @@ func SecurityHeaders(next http.Handler) http.Handler {
 		// Content Security Policy - all resources served locally
 		w.Header().Set("Content-Security-Policy", strings.Join([]string{
 			"default-src 'self'",
-			"script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-eval needed for Alpine.js
+			"script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:", // unsafe-eval needed for Alpine.js, blob for Ace workers
 			"style-src 'self' 'unsafe-inline'",
 			"img-src 'self' data: blob:",
 			"font-src 'self'",
 			"connect-src 'self'",
+			"worker-src 'self' blob:", // Allow Ace Editor web workers
 			"frame-ancestors 'none'",
 			"form-action 'self'",
 			"base-uri 'self'",
