@@ -1,0 +1,37 @@
+services:
+  snipo:
+    image: ghcr.io/mohamedelashri/snipo:latest
+    container_name: snipo
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - snipo_data:/data
+    environment:
+      # Required: Set a master password
+      - SNIPO_MASTER_PASSWORD=${SNIPO_MASTER_PASSWORD:?Master password is required}
+      # Required: Set a random session secret (generate with: openssl rand -hex 32)
+      - SNIPO_SESSION_SECRET=${SNIPO_SESSION_SECRET:?Session secret is required}
+      # Optional: Server configuration
+      - SNIPO_HOST=0.0.0.0
+      - SNIPO_PORT=8080
+      - SNIPO_LOG_LEVEL=info
+      - SNIPO_LOG_FORMAT=json
+      # Optional: S3 backup configuration
+      # - SNIPO_S3_ENABLED=true
+      # - SNIPO_S3_ENDPOINT=s3.amazonaws.com
+      # - SNIPO_S3_ACCESS_KEY=access-key
+      # - SNIPO_S3_SECRET_KEY=secret-key
+      # - SNIPO_S3_BUCKET=bucket-name
+      # - SNIPO_S3_REGION=us-east-1
+      # - SNIPO_S3_SSL=true
+    healthcheck:
+      test: ["/snipo", "health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  snipo_data:
+    driver: local

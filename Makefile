@@ -1,4 +1,4 @@
-.PHONY: all build run test clean docker dev
+.PHONY: all build run test test-coverage test-short coverage coverage-func lint clean docker docker-run docker-stop dev migrate migrate-down
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -17,10 +17,22 @@ dev:
 	go run ./cmd/server serve
 
 test:
-	go test -v -race -coverprofile=coverage.out ./...
+	go test -v -race ./...
+
+test-coverage:
+	go test -race -coverprofile=coverage.out ./...
+	@echo "\n=== Coverage Summary ==="
+	@go tool cover -func=coverage.out | tail -1
+
+test-short:
+	go test -short ./...
 
 coverage:
 	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report: coverage.html"
+
+coverage-func:
+	go tool cover -func=coverage.out
 
 lint:
 	golangci-lint run

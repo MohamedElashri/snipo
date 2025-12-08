@@ -66,7 +66,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	token := auth.GetSessionFromRequest(r)
 	if token != "" {
-		h.authService.InvalidateSession(token)
+		_ = h.authService.InvalidateSession(token)
 	}
 
 	h.authService.ClearSessionCookie(w)

@@ -1,0 +1,1622 @@
+openapi: 3.1.0
+info:
+  title: Snipo API
+  description: |
+    REST API for Snipo - a lightweight, self-hosted snippet manager.
+    
+    ## Authentication
+    
+    All protected endpoints require authentication via one of:
+    - **Session Cookie**: `snipo_session` cookie (for web UI)
+    - **Bearer Token**: `Authorization: Bearer <token>` header
+    - **API Key**: `X-API-Key: <key>` header
+    
+    API tokens can be created via the Settings page or `/api/v1/tokens` endpoint.
+  version: 1.0.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  contact:
+    name: Mohamed Elashri
+    url: https://github.com/MohamedElashri/snipo
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Authentication
+    description: Login, logout, and session management
+  - name: Snippets
+    description: Code snippet CRUD operations
+  - name: Tags
+    description: Tag management
+  - name: Folders
+    description: Folder organization
+  - name: Tokens
+    description: API token management
+  - name: Backup
+    description: Backup and restore operations
+
+paths:
+  /ping:
+    get:
+      tags: [Health]
+      summary: Liveness check
+      description: Simple liveness check that returns "pong"
+      operationId: ping
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: pong
+
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Returns health status including database connectivity and version info
+      operationId: health
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login
+      description: Authenticate with password and receive a session cookie
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: snipo_session=abc123; Path=/; HttpOnly; SameSite=Lax
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout
+      description: Invalidate current session
+      operationId: logout
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  /api/v1/auth/check:
+    get:
+      tags: [Authentication]
+      summary: Check authentication status
+      description: Verify if current session is valid
+      operationId: authCheck
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authenticated:
+                    type: boolean
+                    example: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/change-password:
+    post:
+      tags: [Authentication]
+      summary: Change password
+      description: Update the application password
+      operationId: changePassword
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Password changed successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/snippets:
+    get:
+      tags: [Snippets]
+      summary: List snippets
+      description: Get paginated list of snippets with optional filtering
+      operationId: listSnippets
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: q
+          in: query
+          description: Search query
+          schema:
+            type: string
+        - name: language
+          in: query
+          description: Filter by language
+          schema:
+            type: string
+        - name: favorite
+          in: query
+          description: Filter by favorite status
+          schema:
+            type: boolean
+        - name: tag_id
+          in: query
+          description: Filter by tag ID
+          schema:
+            type: integer
+        - name: folder_id
+          in: query
+          description: Filter by folder ID
+          schema:
+            type: integer
+        - name: sort
+          in: query
+          description: Sort field
+          schema:
+            type: string
+            enum: [created_at, updated_at, title]
+            default: updated_at
+        - name: order
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: List of snippets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnippetListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Snippets]
+      summary: Create snippet
+      description: Create a new code snippet
+      operationId: createSnippet
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnippetInput'
+      responses:
+        '201':
+          description: Snippet created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snippet'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/v1/snippets/search:
+    get:
+      tags: [Snippets]
+      summary: Full-text search
+      description: Search snippets using full-text search
+      operationId: searchSnippets
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Snippet'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/snippets/public/{id}:
+    get:
+      tags: [Snippets]
+      summary: Get public snippet
+      description: Get a public snippet without authentication
+      operationId: getPublicSnippet
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Public snippet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snippet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/snippets/{id}:
+    get:
+      tags: [Snippets]
+      summary: Get snippet
+      description: Get a single snippet by ID
+      operationId: getSnippet
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Snippet details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snippet'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Snippets]
+      summary: Update snippet
+      description: Update an existing snippet
+      operationId: updateSnippet
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SnippetInput'
+      responses:
+        '200':
+          description: Snippet updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snippet'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    delete:
+      tags: [Snippets]
+      summary: Delete snippet
+      description: Delete a snippet
+      operationId: deleteSnippet
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Snippet deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/snippets/{id}/favorite:
+    post:
+      tags: [Snippets]
+      summary: Toggle favorite
+      description: Toggle the favorite status of a snippet
+      operationId: toggleFavorite
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Favorite toggled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snippet'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/snippets/{id}/duplicate:
+    post:
+      tags: [Snippets]
+      summary: Duplicate snippet
+      description: Create a copy of an existing snippet
+      operationId: duplicateSnippet
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Snippet duplicated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snippet'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/tags:
+    get:
+      tags: [Tags]
+      summary: List tags
+      description: Get all tags with snippet counts
+      operationId: listTags
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      responses:
+        '200':
+          description: List of tags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tag'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Tags]
+      summary: Create tag
+      description: Create a new tag
+      operationId: createTag
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagInput'
+      responses:
+        '201':
+          description: Tag created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Tag already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/tags/{id}:
+    get:
+      tags: [Tags]
+      summary: Get tag
+      description: Get a single tag by ID
+      operationId: getTag
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tag details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Tags]
+      summary: Update tag
+      description: Update an existing tag
+      operationId: updateTag
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagInput'
+      responses:
+        '200':
+          description: Tag updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Tag name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Tags]
+      summary: Delete tag
+      description: Delete a tag
+      operationId: deleteTag
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Tag deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/folders:
+    get:
+      tags: [Folders]
+      summary: List folders
+      description: Get all folders, optionally as a tree structure
+      operationId: listFolders
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: tree
+          in: query
+          description: Return as nested tree structure
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: List of folders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Folder'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Folders]
+      summary: Create folder
+      description: Create a new folder
+      operationId: createFolder
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FolderInput'
+      responses:
+        '201':
+          description: Folder created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Folder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/v1/folders/{id}:
+    get:
+      tags: [Folders]
+      summary: Get folder
+      description: Get a single folder by ID
+      operationId: getFolder
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Folder details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Folder'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Folders]
+      summary: Update folder
+      description: Update an existing folder
+      operationId: updateFolder
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FolderInput'
+      responses:
+        '200':
+          description: Folder updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Folder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+    delete:
+      tags: [Folders]
+      summary: Delete folder
+      description: Delete a folder (cascades to child folders)
+      operationId: deleteFolder
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Folder deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/folders/{id}/move:
+    put:
+      tags: [Folders]
+      summary: Move folder
+      description: Move a folder to a new parent
+      operationId: moveFolder
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                parent_id:
+                  type: integer
+                  nullable: true
+                  description: New parent folder ID (null for root)
+      responses:
+        '200':
+          description: Folder moved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Folder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/v1/tokens:
+    get:
+      tags: [Tokens]
+      summary: List API tokens
+      description: Get all API tokens (without the actual token values)
+      operationId: listTokens
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      responses:
+        '200':
+          description: List of tokens
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/APIToken'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Tokens]
+      summary: Create API token
+      description: Create a new API token. The token value is only returned once.
+      operationId: createToken
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/APITokenInput'
+      responses:
+        '201':
+          description: Token created (includes the token value)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIToken'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/v1/tokens/{id}:
+    get:
+      tags: [Tokens]
+      summary: Get token info
+      description: Get token metadata (not the token value)
+      operationId: getToken
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Token info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIToken'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Tokens]
+      summary: Revoke token
+      description: Revoke an API token
+      operationId: deleteToken
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Token revoked
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/backup/export:
+    get:
+      tags: [Backup]
+      summary: Export backup
+      description: Export all data as JSON or ZIP, optionally encrypted
+      operationId: exportBackup
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: format
+          in: query
+          description: Export format
+          schema:
+            type: string
+            enum: [json, zip]
+            default: json
+        - name: password
+          in: query
+          description: Optional encryption password
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Backup file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupData'
+            application/zip:
+              schema:
+                type: string
+                format: binary
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+                description: Encrypted backup
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/backup/import:
+    post:
+      tags: [Backup]
+      summary: Import backup
+      description: Import data from a backup file
+      operationId: importBackup
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Backup file (JSON or ZIP)
+                strategy:
+                  type: string
+                  enum: [replace, merge, skip]
+                  default: merge
+                  description: |
+                    - replace: Clear all data and import
+                    - merge: Add new items, keep existing
+                    - skip: Only add items that don't exist
+                password:
+                  type: string
+                  description: Decryption password if backup is encrypted
+      responses:
+        '200':
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/backup/s3/status:
+    get:
+      tags: [Backup]
+      summary: S3 status
+      description: Check if S3 storage is configured
+      operationId: s3Status
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      responses:
+        '200':
+          description: S3 configuration status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/backup/s3/sync:
+    post:
+      tags: [Backup]
+      summary: Sync to S3
+      description: Upload a backup to S3 storage
+      operationId: s3Sync
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportOptions'
+      responses:
+        '200':
+          description: Sync result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/S3SyncResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: S3 not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/backup/s3/list:
+    get:
+      tags: [Backup]
+      summary: List S3 backups
+      description: List all backups stored in S3
+      operationId: s3List
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      responses:
+        '200':
+          description: List of S3 backups
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  backups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/S3BackupInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: S3 not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/backup/s3/restore:
+    post:
+      tags: [Backup]
+      summary: Restore from S3
+      description: Restore data from an S3 backup
+      operationId: s3Restore
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key]
+              properties:
+                key:
+                  type: string
+                  description: S3 object key
+                strategy:
+                  type: string
+                  enum: [replace, merge, skip]
+                  default: merge
+                password:
+                  type: string
+                  description: Decryption password if backup is encrypted
+      responses:
+        '200':
+          description: Restore result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: S3 not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/backup/s3/delete:
+    delete:
+      tags: [Backup]
+      summary: Delete S3 backup
+      description: Delete a backup from S3 storage
+      operationId: s3Delete
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: key
+          in: query
+          required: true
+          description: S3 object key to delete
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Backup deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Backup deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: S3 not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: snipo_session
+    bearerAuth:
+      type: http
+      scheme: bearer
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+    ValidationError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Validation failed
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        version:
+          type: string
+          example: 1.0.0
+        commit:
+          type: string
+          example: abc1234
+        database:
+          type: string
+          example: ok
+
+    LoginRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ChangePasswordRequest:
+      type: object
+      required: [current_password, new_password]
+      properties:
+        current_password:
+          type: string
+        new_password:
+          type: string
+          minLength: 6
+
+    Snippet:
+      type: object
+      properties:
+        id:
+          type: string
+          example: a1b2c3d4e5f6
+        title:
+          type: string
+          example: Docker Compose Template
+        description:
+          type: string
+          example: Basic multi-container setup
+        content:
+          type: string
+          description: Primary file content (legacy)
+        language:
+          type: string
+          example: yaml
+        is_favorite:
+          type: boolean
+        is_public:
+          type: boolean
+        view_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        folders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Folder'
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnippetFile'
+
+    SnippetFile:
+      type: object
+      properties:
+        id:
+          type: integer
+        filename:
+          type: string
+          example: main.js
+        content:
+          type: string
+        language:
+          type: string
+          example: javascript
+        sort_order:
+          type: integer
+
+    SnippetInput:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 1000
+        content:
+          type: string
+          description: Legacy single-file content
+        language:
+          type: string
+          default: plaintext
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tag names (auto-created if not exist)
+        folder_id:
+          type: integer
+          nullable: true
+        is_public:
+          type: boolean
+          default: false
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnippetFileInput'
+          description: Multi-file content
+
+    SnippetFileInput:
+      type: object
+      required: [filename]
+      properties:
+        id:
+          type: integer
+          description: File ID (0 for new files)
+        filename:
+          type: string
+        content:
+          type: string
+        language:
+          type: string
+
+    SnippetListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Snippet'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          example: docker
+        color:
+          type: string
+          example: "#0db7ed"
+        created_at:
+          type: string
+          format: date-time
+        snippet_count:
+          type: integer
+
+    TagInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 50
+        color:
+          type: string
+          default: "#6366f1"
+          pattern: "^#[0-9a-fA-F]{6}$"
+
+    Folder:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          example: DevOps
+        parent_id:
+          type: integer
+          nullable: true
+        icon:
+          type: string
+          default: folder
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        snippet_count:
+          type: integer
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/Folder'
+          description: Only present when tree=true
+
+    FolderInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        parent_id:
+          type: integer
+          nullable: true
+        icon:
+          type: string
+        sort_order:
+          type: integer
+
+    APIToken:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          example: CI/CD Token
+        token:
+          type: string
+          description: Only returned on creation
+        permissions:
+          type: string
+          enum: [read, write, admin]
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    APITokenInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        permissions:
+          type: string
+          enum: [read, write, admin]
+          default: read
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    BackupData:
+      type: object
+      properties:
+        version:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        snippets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Snippet'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        folders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Folder'
+
+    ExportOptions:
+      type: object
+      properties:
+        format:
+          type: string
+          enum: [json, zip]
+          default: json
+        password:
+          type: string
+          description: Optional encryption password
+
+    ImportResult:
+      type: object
+      properties:
+        snippets_imported:
+          type: integer
+        tags_imported:
+          type: integer
+        folders_imported:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+
+    S3BackupInfo:
+      type: object
+      properties:
+        key:
+          type: string
+          example: backups/snipo-backup-2024-12-01.json
+        size:
+          type: integer
+        last_modified:
+          type: string
+          format: date-time
+
+    S3SyncResult:
+      type: object
+      properties:
+        uploaded:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

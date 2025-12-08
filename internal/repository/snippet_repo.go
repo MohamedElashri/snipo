@@ -142,7 +142,7 @@ func (r *SnippetRepository) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Delete related data first (in case CASCADE doesn't work)
 	_, _ = tx.ExecContext(ctx, "DELETE FROM snippet_tags WHERE snippet_id = ?", id)

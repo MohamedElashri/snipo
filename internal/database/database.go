@@ -115,7 +115,7 @@ func (db *DB) Migrate(ctx context.Context) error {
 		}
 
 		if _, err := tx.ExecContext(ctx, m.SQL); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return fmt.Errorf("failed to apply migration %d (%s): %w", m.Version, m.Name, err)
 		}
 
@@ -124,7 +124,7 @@ func (db *DB) Migrate(ctx context.Context) error {
 			"INSERT INTO schema_migrations (version, name) VALUES (?, ?)",
 			m.Version, m.Name,
 		); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			return fmt.Errorf("failed to record migration: %w", err)
 		}
 
