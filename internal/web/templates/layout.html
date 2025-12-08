@@ -54,10 +54,6 @@
     <!-- Toast container -->
     <div id="toast-container" class="toast-container"></div>
     
-    <!-- Alpine.js with collapse plugin (local) -->
-    <script defer src="/static/vendor/js/alpine-collapse.min.js"></script>
-    <script defer src="/static/vendor/js/alpine.min.js"></script>
-    
     <!-- htmx (local) -->
     <script src="/static/vendor/js/htmx.min.js"></script>
     
@@ -66,6 +62,7 @@
     
     <!-- CodeMirror (local) -->
     <script src="/static/vendor/js/codemirror.min.js"></script>
+    <script src="/static/vendor/js/codemirror-modes/simple.min.js"></script>
     <script src="/static/vendor/js/codemirror-modes/javascript.min.js"></script>
     <script src="/static/vendor/js/codemirror-modes/python.min.js"></script>
     <script src="/static/vendor/js/codemirror-modes/go.min.js"></script>
@@ -93,7 +90,11 @@
     <script src="/static/vendor/js/prism-sql.min.js"></script>
     <script src="/static/vendor/js/prism-markdown.min.js"></script>
     
-    <!-- App JS -->
+    <!-- App JS (must load before Alpine) -->
     <script src="/static/js/app.js"></script>
+    
+    <!-- Alpine.js with collapse plugin (load last, defer ensures DOM is ready) -->
+    <script defer src="/static/vendor/js/alpine-collapse.min.js"></script>
+    <script defer src="/static/vendor/js/alpine.min.js"></script>
 </body>
 </html>
