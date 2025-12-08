@@ -368,7 +368,7 @@
                 <input 
                     x-show="isEditing"
                     type="text" 
-                    class="editor-title-input"
+                    class="editor-title-input bordered"
                     x-model="editingSnippet.title"
                     placeholder="Snippet title..."
                     @input="scheduleAutoSave()"
@@ -525,13 +525,14 @@
                         <span>Public</span>
                     </label>
                     
-                    <div class="editor-field-inline" style="flex: 1; margin-left: 0.5rem;">
-                        <input 
-                            type="text"
+                    <div class="editor-field-inline description-field">
+                        <textarea 
                             x-model="editingSnippet.description"
                             placeholder="Description (optional)"
-                            style="width: 100%;"
-                        >
+                            rows="1"
+                            class="description-textarea"
+                            @input="autoResizeTextarea($event.target)"
+                        ></textarea>
                     </div>
                 </div>
                 
@@ -597,18 +598,8 @@
                             <label>Tags</label>
                         </div>
                         
-                        <!-- Current tags (vertical list) -->
-                        <div class="tags-list">
-                            <template x-for="(tag, index) in editingSnippet.tags" :key="index">
-                                <div class="tag-list-item">
-                                    <span x-text="tag"></span>
-                                    <button @click="removeTag(index)" class="tag-remove-btn" title="Remove">×</button>
-                                </div>
-                            </template>
-                        </div>
-                        
-                        <!-- Add new tag -->
-                        <div class="tag-add-section">
+                        <!-- Add new tag (moved to top) -->
+                        <div class="tag-add-section top">
                             <input 
                                 type="text"
                                 class="tag-add-input"
@@ -623,11 +614,24 @@
                             </datalist>
                         </div>
                         
+                        <!-- Current tags (vertical list) -->
+                        <div class="tags-list">
+                            <template x-for="(tag, index) in editingSnippet.tags" :key="index">
+                                <div class="tag-list-item">
+                                    <span x-text="tag"></span>
+                                    <button @click="removeTag(index)" class="tag-remove-btn" title="Remove">×</button>
+                                </div>
+                            </template>
+                            <div class="tags-empty" x-show="!editingSnippet.tags || editingSnippet.tags.length === 0">
+                                <span class="text-muted text-sm">No tags yet</span>
+                            </div>
+                        </div>
+                        
                         <!-- Existing tags to quickly add -->
-                        <div class="tags-suggestions" x-show="tags.length > 0">
+                        <div class="tags-suggestions" x-show="tags.filter(t => !editingSnippet.tags.includes(t.name)).length > 0">
                             <label class="tags-suggestions-label">Quick add:</label>
                             <div class="tags-suggestions-list">
-                                <template x-for="tag in tags.filter(t => !editingSnippet.tags.includes(t.name)).slice(0, 10)" :key="tag.id">
+                                <template x-for="tag in tags.filter(t => !editingSnippet.tags.includes(t.name)).slice(0, 12)" :key="tag.id">
                                     <button class="tag-suggestion" @click="addTag(tag.name)" :title="tag.name">
                                         <span class="tag-dot" :style="{ background: tag.color }"></span>
                                         <span x-text="tag.name"></span>

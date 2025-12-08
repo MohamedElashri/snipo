@@ -663,9 +663,21 @@ body {
   margin: 0;
 }
 
+.editor-title-input.bordered {
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 0.375rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--pico-form-element-background-color);
+}
+
+.editor-title-input.bordered:hover {
+  border-color: var(--snipo-primary);
+}
+
 .editor-title-input:focus {
   outline: none;
-  border-bottom: 2px solid var(--snipo-primary);
+  border-color: var(--snipo-primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
 
 .editor-title-display {
@@ -1111,9 +1123,9 @@ body {
 
 /* Tags Sidebar */
 .tags-sidebar {
-  width: 140px;
-  min-width: 140px;
-  max-width: 140px;
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px;
   background: var(--pico-card-background-color);
   border-left: 1px solid var(--pico-muted-border-color);
   display: flex;
@@ -1181,6 +1193,17 @@ body {
   border-top: 1px solid var(--pico-muted-border-color);
 }
 
+.tag-add-section.top {
+  border-top: none;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  padding: 0.5rem;
+}
+
+.tags-empty {
+  padding: 0.5rem;
+  text-align: center;
+}
+
 .tag-add-input {
   width: 100%;
   padding: 0.25rem 0.35rem;
@@ -1189,10 +1212,11 @@ body {
 }
 
 .tags-suggestions {
-  padding: 0.35rem;
+  padding: 0.5rem;
   border-top: 1px solid var(--pico-muted-border-color);
   overflow-y: auto;
-  max-height: 120px;
+  flex: 1;
+  min-height: 0;
 }
 
 .tags-suggestions-label {
@@ -1346,11 +1370,29 @@ body {
 }
 
 .editor-field-inline input,
-.editor-field-inline select {
+.editor-field-inline select,
+.editor-field-inline textarea {
   padding: 0.25rem 0.4rem;
   font-size: 0.8rem;
   margin-bottom: 0;
   height: auto;
+}
+
+/* Description field */
+.description-field {
+  flex: 1;
+  margin-left: 0.5rem;
+  min-width: 120px;
+}
+
+.description-textarea {
+  width: 100%;
+  min-height: 28px;
+  max-height: 80px;
+  resize: none;
+  overflow-y: auto;
+  line-height: 1.4;
+  font-family: inherit;
 }
 
 .editor-field-inline.compact select {

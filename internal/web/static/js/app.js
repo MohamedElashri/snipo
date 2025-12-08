@@ -880,8 +880,12 @@ document.addEventListener('alpine:init', () => {
       this.editingSnippet.files.push(newFile);
       this.activeFileIndex = this.editingSnippet.files.length - 1;
       
-      // Focus the filename input after a tick
+      // Update the editor to show the new empty file content
       this.$nextTick(() => {
+        // Update CodeMirror/Ace to show empty content for new file
+        this.updateCodeMirror();
+        
+        // Focus the filename input
         const input = document.querySelector('.filename-input');
         if (input) {
           input.focus();
@@ -890,6 +894,13 @@ document.addEventListener('alpine:init', () => {
       });
       
       this.scheduleAutoSave();
+    },
+    
+    // Auto-resize textarea for description
+    autoResizeTextarea(el) {
+      if (!el) return;
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 80) + 'px';
     },
     
     validateFilename() {
