@@ -256,11 +256,20 @@ document.addEventListener('alpine:init', () => {
           this.editingSnippet = {
             ...result,
             tags: (result.tags || []).map(t => t.name),
-            folder_id: result.folders?.[0]?.id || null
+            folder_id: result.folders?.[0]?.id || null,
+            files: result.files || []
           };
+          this.activeFileIndex = 0;
           this.showEditor = true;
           this.isEditing = isEdit;
-          this.$nextTick(() => this.highlightAll());
+          this.$nextTick(() => {
+            if (isEdit) {
+              // Ensure CodeMirror is initialized when restoring edit mode
+              this.initCodeMirror();
+              this.updateCodeMirror();
+            }
+            this.highlightAll();
+          });
         }
       }
     },
@@ -329,50 +338,69 @@ document.addEventListener('alpine:init', () => {
       }
       
       const container = this.$refs.codeEditor;
-      if (!container || this.cmEditor) return;
+      if (!container) return;
+      
+      // If editor already exists, just refresh it
+      if (this.cmEditor) {
+        try {
+          this.cmEditor.refresh();
+        } catch (e) {
+          console.warn('CodeMirror refresh error:', e);
+        }
+        return;
+      }
       
       const isDark = theme.get() === 'dark';
       
-      this.cmEditor = CodeMirror(container, {
-        value: '',
-        mode: 'javascript',
-        theme: isDark ? 'material-darker' : 'eclipse',
-        lineNumbers: true,
-        lineWrapping: false,
-        indentUnit: 2,
-        tabSize: 2,
-        indentWithTabs: false,
-        smartIndent: true,
-        electricChars: true,
-        autofocus: false,
-        matchBrackets: true,
-        autoCloseBrackets: true,
-        extraKeys: {
-          'Tab': (cm) => {
-            if (cm.somethingSelected()) {
-              cm.indentSelection('add');
-            } else {
-              cm.replaceSelection('  ', 'end');
+      try {
+        this.cmEditor = CodeMirror(container, {
+          value: '',
+          mode: 'javascript',
+          theme: isDark ? 'material-darker' : 'eclipse',
+          lineNumbers: true,
+          lineWrapping: false,
+          indentUnit: 2,
+          tabSize: 2,
+          indentWithTabs: false,
+          smartIndent: true,
+          electricChars: true,
+          autofocus: false,
+          matchBrackets: true,
+          autoCloseBrackets: true,
+          extraKeys: {
+            'Tab': (cm) => {
+              if (cm.somethingSelected()) {
+                cm.indentSelection('add');
+              } else {
+                cm.replaceSelection('  ', 'end');
+              }
+            },
+            'Shift-Tab': (cm) => {
+              cm.indentSelection('subtract');
             }
-          },
-          'Shift-Tab': (cm) => {
-            cm.indentSelection('subtract');
           }
-        }
-      });
-      
-      // Handle changes
-      this.cmEditor.on('change', () => {
-        if (this.cmIgnoreChange) return;
+        });
         
-        const value = this.cmEditor.getValue();
-        if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
-          this.updateActiveFileContent(value);
-        } else {
-          this.editingSnippet.content = value;
-          this.scheduleAutoSave();
-        }
-      });
+        // Handle changes
+        this.cmEditor.on('change', () => {
+          if (this.cmIgnoreChange) return;
+          
+          try {
+            const value = this.cmEditor.getValue();
+            if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
+              this.updateActiveFileContent(value);
+            } else {
+              this.editingSnippet.content = value;
+              this.scheduleAutoSave();
+            }
+          } catch (e) {
+            console.warn('CodeMirror change handler error:', e);
+          }
+        });
+      } catch (e) {
+        console.error('CodeMirror initialization error:', e);
+        this.cmEditor = null;
+      }
     },
     
     // Update CodeMirror content and mode
@@ -391,20 +419,40 @@ document.addEventListener('alpine:init', () => {
         ? (this.activeFile?.language || 'javascript')
         : (this.editingSnippet.language || 'javascript');
       
-      // Update editor
-      this.cmEditor.setValue(content);
-      this.cmEditor.setOption('mode', this.getCodeMirrorMode(language));
-      
-      // Update theme based on current app theme
+      const mode = this.getCodeMirrorMode(language);
       const isDark = theme.get() === 'dark';
-      this.cmEditor.setOption('theme', isDark ? 'material-darker' : 'eclipse');
+      const newTheme = isDark ? 'material-darker' : 'eclipse';
+      
+      try {
+        // Use swapDoc to completely replace the document - this avoids
+        // cursor position issues when switching between files with different lengths
+        const newDoc = CodeMirror.Doc(content, mode);
+        this.cmEditor.swapDoc(newDoc);
+        
+        // Set theme after swapping document
+        this.cmEditor.setOption('theme', newTheme);
+      } catch (e) {
+        console.warn('CodeMirror update error:', e);
+        // Fallback: try simple setValue if swapDoc fails
+        try {
+          this.cmEditor.setValue(content);
+          this.cmEditor.setOption('mode', mode);
+          this.cmEditor.setOption('theme', newTheme);
+        } catch (e2) {
+          console.warn('CodeMirror setValue fallback error:', e2);
+        }
+      }
       
       this.cmIgnoreChange = false;
       
-      // Refresh to ensure proper rendering
+      // Refresh to ensure proper rendering after DOM updates
       this.$nextTick(() => {
         if (this.cmEditor) {
-          this.cmEditor.refresh();
+          try {
+            this.cmEditor.refresh();
+          } catch (e) {
+            // Ignore refresh errors - they're usually cosmetic
+          }
         }
       });
     },
@@ -412,7 +460,15 @@ document.addEventListener('alpine:init', () => {
     // Destroy CodeMirror instance
     destroyCodeMirror() {
       if (this.cmEditor) {
-        this.cmEditor.toTextArea();
+        try {
+          // Get the wrapper element before destroying
+          const wrapper = this.cmEditor.getWrapperElement();
+          if (wrapper && wrapper.parentNode) {
+            wrapper.parentNode.removeChild(wrapper);
+          }
+        } catch (e) {
+          console.warn('CodeMirror destroy error:', e);
+        }
         this.cmEditor = null;
       }
     },
@@ -520,6 +576,8 @@ document.addEventListener('alpine:init', () => {
       
       // Update CodeMirror and focus filename input after render
       this.$nextTick(() => {
+        // Ensure CodeMirror is initialized before updating
+        this.initCodeMirror();
         this.updateCodeMirror();
         const input = document.querySelector('.filename-input');
         if (input) {
@@ -552,6 +610,8 @@ document.addEventListener('alpine:init', () => {
         this.updateUrl({ snippet: this.editingSnippet.id, edit: true });
       }
       this.$nextTick(() => {
+        // Ensure CodeMirror is initialized before updating
+        this.initCodeMirror();
         this.updateCodeMirror();
         this.highlightAll();
       });
@@ -571,6 +631,8 @@ document.addEventListener('alpine:init', () => {
         this.isEditing = true;
         this.updateUrl({ snippet: snippet.id, edit: true });
         this.$nextTick(() => {
+          // Ensure CodeMirror is initialized before updating
+          this.initCodeMirror();
           this.updateCodeMirror();
           this.highlightAll();
         });
@@ -732,6 +794,8 @@ document.addEventListener('alpine:init', () => {
         this.clearDraft();
         showToast('Draft restored');
         this.$nextTick(() => {
+          // Ensure CodeMirror is initialized before updating
+          this.initCodeMirror();
           this.updateCodeMirror();
           this.highlightAll();
         });
@@ -916,6 +980,8 @@ document.addEventListener('alpine:init', () => {
       this.activeFileIndex = index;
       this.$nextTick(() => {
         if (this.isEditing) {
+          // Ensure CodeMirror is initialized before updating
+          this.initCodeMirror();
           this.updateCodeMirror();
         }
         this.highlightAll();
@@ -937,9 +1003,13 @@ document.addEventListener('alpine:init', () => {
       } else {
         this.editingSnippet.language = language;
       }
-      // Update CodeMirror mode
+      // Update CodeMirror mode with error handling
       if (this.cmEditor) {
-        this.cmEditor.setOption('mode', this.getCodeMirrorMode(language));
+        try {
+          this.cmEditor.setOption('mode', this.getCodeMirrorMode(language));
+        } catch (e) {
+          console.warn('CodeMirror setOption error:', e);
+        }
       }
       this.$nextTick(() => this.highlightAll());
       this.scheduleAutoSave();
