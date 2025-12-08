@@ -170,6 +170,50 @@ make docker
 make lint
 ```
 
+## Releasing (Maintainer Notes)
+
+Releases are automated via GitHub Actions. When a version tag is pushed, the workflow will:
+
+1. Run tests
+2. Build binaries for `linux/amd64` and `linux/arm64`
+3. Build and push multi-arch Docker images to `ghcr.io`
+4. Create a GitHub Release with auto-generated changelog
+
+### Creating a Release
+
+```bash
+# Ensure you're on main with latest changes
+git checkout main
+git pull origin main
+
+# Create and push a version tag (triggers release workflow)
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+### Version Format
+
+Use [Semantic Versioning](https://semver.org/):
+- **Major** (`v2.0.0`): Breaking changes
+- **Minor** (`v1.1.0`): New features, backward compatible
+- **Patch** (`v1.0.1`): Bug fixes
+
+### Release Artifacts
+
+Each release includes:
+- `snipo_linux_amd64.tar.gz` - Linux x86_64 binary
+- `snipo_linux_arm64.tar.gz` - Linux ARM64 binary
+- Docker images tagged as `v1.0.0`, `v1.0`, `v1`, and `latest`
+
+### For Forks
+
+If you fork this repository:
+
+1. Enable GitHub Actions in your fork
+2. Ensure `GITHUB_TOKEN` has `contents: write` and `packages: write` permissions
+3. Update the Docker image name in `.github/workflows/release.yml` if needed
+4. Push a tag to trigger your own release
+
 ## License
 
 GPLv3 License - see [LICENSE](LICENSE) for details.
