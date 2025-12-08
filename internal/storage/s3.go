@@ -47,18 +47,6 @@ func NewS3Storage(cfg S3Config) (*S3Storage, error) {
 	}
 	endpointURL := fmt.Sprintf("%s://%s", scheme, cfg.Endpoint)
 
-	// Create custom resolver for S3-compatible endpoints
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		if service == s3.ServiceID {
-			return aws.Endpoint{
-				URL:               endpointURL,
-				HostnameImmutable: true,
-				SigningRegion:     cfg.Region,
-			}, nil
-		}
-		return aws.Endpoint{}, fmt.Errorf("unknown endpoint requested")
-	})
-
 	// Load AWS config
 	awsCfg, err := config.LoadDefaultConfig(context.Background(),
 		config.WithRegion(cfg.Region),
@@ -67,14 +55,14 @@ func NewS3Storage(cfg S3Config) (*S3Storage, error) {
 			cfg.SecretAccessKey,
 			"",
 		)),
-		config.WithEndpointResolverWithOptions(customResolver),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 
-	// Create S3 client with path-style addressing for S3-compatible services
+	// Create S3 client with service-specific endpoint and path-style addressing
 	client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(endpointURL)
 		o.UsePathStyle = true
 	})
 

@@ -127,7 +127,7 @@ func (s *Service) ValidateSession(token string) bool {
 
 	if time.Now().After(expiresAt) {
 		// Clean up expired session
-		s.db.Exec("DELETE FROM sessions WHERE token_hash = ?", tokenHash)
+		_, _ = s.db.Exec("DELETE FROM sessions WHERE token_hash = ?", tokenHash)
 		return false
 	}
 
