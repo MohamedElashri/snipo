@@ -271,7 +271,7 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 			if _, existed := existingFoldersByName[folder.Name]; !existed {
 				if newID, ok := folderMap[folder.ID]; ok {
 					if newParentID, ok := folderMap[*folder.ParentID]; ok {
-						b.folderRepo.Move(ctx, newID, &newParentID)
+						_, _ = b.folderRepo.Move(ctx, newID, &newParentID)
 					}
 				}
 			}
@@ -353,7 +353,9 @@ func (b *BackupService) createZipBackup(data models.BackupData) ([]byte, error) 
 				if err != nil {
 					return nil, err
 				}
-				w.Write([]byte(f.Content))
+				if _, err := w.Write([]byte(f.Content)); err != nil {
+					return nil, err
+				}
 			}
 		} else {
 			// Legacy single-file snippet
@@ -363,7 +365,9 @@ func (b *BackupService) createZipBackup(data models.BackupData) ([]byte, error) 
 			if err != nil {
 				return nil, err
 			}
-			w.Write([]byte(s.Content))
+			if _, err := w.Write([]byte(s.Content)); err != nil {
+				return nil, err
+			}
 		}
 	}
 

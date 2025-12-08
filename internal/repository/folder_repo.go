@@ -324,7 +324,7 @@ func (r *FolderRepository) SetSnippetFolder(ctx context.Context, snippetID strin
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Remove existing folder associations
 	_, err = tx.ExecContext(ctx, `DELETE FROM snippet_folders WHERE snippet_id = ?`, snippetID)

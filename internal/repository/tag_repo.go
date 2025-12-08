@@ -194,7 +194,7 @@ func (r *TagRepository) SetSnippetTags(ctx context.Context, snippetID string, ta
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Remove existing tags
 	_, err = tx.ExecContext(ctx, `DELETE FROM snippet_tags WHERE snippet_id = ?`, snippetID)
