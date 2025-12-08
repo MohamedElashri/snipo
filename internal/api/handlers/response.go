@@ -2,8 +2,32 @@ package handlers
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 )
+
+// MaxJSONBodySize is the maximum allowed size for JSON request bodies (2MB)
+const MaxJSONBodySize = 2 * 1024 * 1024
+
+// DecodeJSON safely decodes JSON from request body with size limit
+func DecodeJSON(r *http.Request, v interface{}) error {
+	// Limit request body size to prevent DoS
+	r.Body = http.MaxBytesReader(nil, r.Body, MaxJSONBodySize)
+
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields() // Reject unknown fields for stricter validation
+
+	if err := decoder.Decode(v); err != nil {
+		return err
+	}
+
+	// Ensure only one JSON object in body
+	if decoder.More() {
+		return io.ErrUnexpectedEOF
+	}
+
+	return nil
+}
 
 // ErrorResponse represents an API error response
 type ErrorResponse struct {

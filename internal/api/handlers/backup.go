@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 
@@ -113,7 +112,7 @@ func (h *BackupHandler) S3Sync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var opts models.ExportOptions
-	if err := json.NewDecoder(r.Body).Decode(&opts); err != nil {
+	if err := DecodeJSON(r, &opts); err != nil {
 		// Use defaults if no body
 		opts.Format = "json"
 	}
@@ -159,7 +158,7 @@ func (h *BackupHandler) S3Restore(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := DecodeJSON(r, &req); err != nil {
 		Error(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body")
 		return
 	}

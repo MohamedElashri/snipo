@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/argon2"
@@ -41,33 +42,151 @@ type Config struct {
 
 // Service handles authentication
 type Service struct {
-	db              *sql.DB
-	masterPassword  string
-	sessionSecret   string
-	sessionDuration time.Duration
-	logger          *slog.Logger
+	db                 *sql.DB
+	masterPasswordHash string
+	sessionSecret      string
+	sessionDuration    time.Duration
+	logger             *slog.Logger
+	failedAttempts     *FailedLoginTracker
+}
+
+// FailedLoginTracker tracks failed login attempts per IP for progressive delays
+type FailedLoginTracker struct {
+	attempts map[string]*loginAttempt
+	mu       sync.RWMutex
+}
+
+type loginAttempt struct {
+	count    int
+	lastFail time.Time
+}
+
+// NewFailedLoginTracker creates a new tracker
+func NewFailedLoginTracker() *FailedLoginTracker {
+	tracker := &FailedLoginTracker{
+		attempts: make(map[string]*loginAttempt),
+	}
+	// Start cleanup goroutine
+	go tracker.cleanup()
+	return tracker
+}
+
+// RecordFailure records a failed login attempt
+func (t *FailedLoginTracker) RecordFailure(ip string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if t.attempts[ip] == nil {
+		t.attempts[ip] = &loginAttempt{}
+	}
+	t.attempts[ip].count++
+	t.attempts[ip].lastFail = time.Now()
+}
+
+// RecordSuccess clears failed attempts for an IP
+func (t *FailedLoginTracker) RecordSuccess(ip string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	delete(t.attempts, ip)
+}
+
+// GetDelay returns the delay duration before next login attempt is allowed
+// Progressive delays: 0s, 1s, 2s, 4s, 8s, 16s, 30s (max)
+func (t *FailedLoginTracker) GetDelay(ip string) time.Duration {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	attempt := t.attempts[ip]
+	if attempt == nil || attempt.count == 0 {
+		return 0
+	}
+
+	// Calculate delay: 2^(attempts-1) seconds, max 30 seconds
+	delaySeconds := 1 << (attempt.count - 1) // 1, 2, 4, 8, 16, 32...
+	if delaySeconds > 30 {
+		delaySeconds = 30
+	}
+
+	elapsed := time.Since(attempt.lastFail)
+	requiredDelay := time.Duration(delaySeconds) * time.Second
+
+	if elapsed >= requiredDelay {
+		return 0
+	}
+	return requiredDelay - elapsed
+}
+
+// cleanup removes old entries periodically
+func (t *FailedLoginTracker) cleanup() {
+	ticker := time.NewTicker(10 * time.Minute)
+	for range ticker.C {
+		t.mu.Lock()
+		now := time.Now()
+		for ip, attempt := range t.attempts {
+			// Remove entries older than 1 hour
+			if now.Sub(attempt.lastFail) > time.Hour {
+				delete(t.attempts, ip)
+			}
+		}
+		t.mu.Unlock()
+	}
 }
 
 // NewService creates a new authentication service
+// The master password is hashed at startup using Argon2id for secure storage in memory
 func NewService(db *sql.DB, masterPassword, sessionSecret string, sessionDuration time.Duration, logger *slog.Logger) *Service {
+	// Hash the master password at startup so plaintext is never stored in memory
+	passwordHash, err := HashPassword(masterPassword)
+	if err != nil {
+		logger.Error("failed to hash master password", "error", err)
+		// Fall back to plaintext comparison if hashing fails (should never happen)
+		passwordHash = masterPassword
+	} else {
+		logger.Info("master password hashed with Argon2id")
+	}
+
 	return &Service{
-		db:              db,
-		masterPassword:  masterPassword,
-		sessionSecret:   sessionSecret,
-		sessionDuration: sessionDuration,
-		logger:          logger,
+		db:                 db,
+		masterPasswordHash: passwordHash,
+		sessionSecret:      sessionSecret,
+		sessionDuration:    sessionDuration,
+		logger:             logger,
+		failedAttempts:     NewFailedLoginTracker(),
 	}
 }
 
 // VerifyPassword checks if the provided password matches the master password
 func (s *Service) VerifyPassword(password string) bool {
-	return subtle.ConstantTimeCompare([]byte(password), []byte(s.masterPassword)) == 1
+	return VerifyPasswordHash(password, s.masterPasswordHash)
+}
+
+// VerifyPasswordWithDelay checks password and enforces progressive delays
+// Returns: valid bool, remainingDelay time.Duration
+func (s *Service) VerifyPasswordWithDelay(password, clientIP string) (bool, time.Duration) {
+	// Check if client needs to wait
+	delay := s.failedAttempts.GetDelay(clientIP)
+	if delay > 0 {
+		return false, delay
+	}
+
+	if s.VerifyPassword(password) {
+		s.failedAttempts.RecordSuccess(clientIP)
+		return true, 0
+	}
+
+	s.failedAttempts.RecordFailure(clientIP)
+	s.logger.Warn("failed login attempt", "ip", clientIP)
+	return false, 0
 }
 
 // UpdatePassword updates the master password (in-memory only, resets on restart)
 // For persistent password storage, this would need to be stored in the database
 func (s *Service) UpdatePassword(newPassword string) error {
-	s.masterPassword = newPassword
+	passwordHash, err := HashPassword(newPassword)
+	if err != nil {
+		return fmt.Errorf("failed to hash new password: %w", err)
+	}
+	s.masterPasswordHash = passwordHash
 	s.logger.Info("master password updated")
 	return nil
 }
