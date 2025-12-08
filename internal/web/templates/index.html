@@ -221,6 +221,23 @@
             </div>
         </header>
         
+        <!-- Draft recovery banner -->
+        <div class="draft-banner" x-show="hasDraft" x-cloak>
+            <div class="draft-banner-content">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <span>You have an unsaved draft from <span x-text="draftSavedAt ? new Date(draftSavedAt).toLocaleString() : ''"></span></span>
+            </div>
+            <div class="draft-banner-actions">
+                <button class="btn-secondary" @click="discardDraft()">Discard</button>
+                <button class="btn-primary" @click="restoreDraft()">Restore Draft</button>
+            </div>
+        </div>
+        
         <!-- Content area -->
         <div class="snippet-list" x-show="!showEditor">
             <!-- Loading state -->
@@ -328,6 +345,7 @@
                     class="editor-title-input"
                     x-model="editingSnippet.title"
                     placeholder="Snippet title..."
+                    @input="scheduleAutoSave()"
                 >
                 
                 <div class="flex gap-2">
@@ -470,7 +488,7 @@
                             x-model="editingSnippet.content"
                             placeholder="Paste your code here..."
                             spellcheck="false"
-                            @input="$nextTick(() => highlightAll())"
+                            @input="$nextTick(() => highlightAll()); scheduleAutoSave()"
                         ></textarea>
                         <div class="code-preview">
                             <pre><code :class="'language-' + editingSnippet.language" x-text="editingSnippet.content"></code></pre>

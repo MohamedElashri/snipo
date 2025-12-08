@@ -369,6 +369,61 @@ body {
   margin-left: auto;
 }
 
+/* Draft recovery banner */
+.draft-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  background: var(--snipo-warning-bg, #fef3c7);
+  border-bottom: 1px solid var(--snipo-warning-border, #f59e0b);
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+[data-theme="dark"] .draft-banner {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.draft-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #92400e;
+  font-size: 0.9rem;
+}
+
+[data-theme="dark"] .draft-banner-content {
+  color: #fbbf24;
+}
+
+.draft-banner-content svg {
+  flex-shrink: 0;
+}
+
+.draft-banner-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.draft-banner-actions button {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--pico-muted-border-color);
+  color: inherit;
+  cursor: pointer;
+  border-radius: 0.25rem;
+}
+
+.btn-secondary:hover {
+  background: var(--pico-muted-border-color);
+}
+
 /* Snippet list */
 .snippet-list {
   padding: 1.5rem;

@@ -148,6 +148,11 @@ document.addEventListener('alpine:init', () => {
     showTagModal: false,
     editingFolder: { name: '', parent_id: '' },
     editingTag: { id: null, name: '' },
+    // Draft auto-save
+    hasDraft: false,
+    draftSnippet: null,
+    draftSavedAt: null,
+    autoSaveTimeout: null,
     
     async init() {
       await Promise.all([
@@ -161,6 +166,79 @@ document.addEventListener('alpine:init', () => {
       this.loading = false;
       // Highlight code after initial load
       this.$nextTick(() => this.highlightAll());
+      
+      // Restore state from URL
+      await this.restoreFromUrl();
+      
+      // Handle browser back/forward
+      window.addEventListener('popstate', () => this.restoreFromUrl());
+      
+      // Load draft if exists
+      this.loadDraft();
+    },
+    
+    // URL routing
+    updateUrl(params = {}) {
+      const url = new URL(window.location);
+      
+      // Clear existing params
+      url.searchParams.delete('snippet');
+      url.searchParams.delete('edit');
+      url.searchParams.delete('folder');
+      url.searchParams.delete('tag');
+      url.searchParams.delete('favorites');
+      
+      // Set new params
+      if (params.snippet) url.searchParams.set('snippet', params.snippet);
+      if (params.edit) url.searchParams.set('edit', 'true');
+      if (params.folder) url.searchParams.set('folder', params.folder);
+      if (params.tag) url.searchParams.set('tag', params.tag);
+      if (params.favorites) url.searchParams.set('favorites', 'true');
+      
+      history.pushState({}, '', url);
+    },
+    
+    async restoreFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      
+      const snippetId = params.get('snippet');
+      const isEdit = params.get('edit') === 'true';
+      const folderId = params.get('folder');
+      const tagId = params.get('tag');
+      const favorites = params.get('favorites') === 'true';
+      
+      // Restore filter state
+      if (folderId) {
+        this.filter.folderId = parseInt(folderId);
+        this.filter.tagId = null;
+        this.filter.isFavorite = null;
+        await this.loadSnippets();
+      } else if (tagId) {
+        this.filter.tagId = parseInt(tagId);
+        this.filter.folderId = null;
+        this.filter.isFavorite = null;
+        await this.loadSnippets();
+      } else if (favorites) {
+        this.filter.isFavorite = true;
+        this.filter.tagId = null;
+        this.filter.folderId = null;
+        await this.loadSnippets();
+      }
+      
+      // Restore snippet view/edit state
+      if (snippetId) {
+        const result = await api.get(`/api/v1/snippets/${snippetId}`);
+        if (result && !result.error) {
+          this.editingSnippet = {
+            ...result,
+            tags: (result.tags || []).map(t => t.name),
+            folder_id: result.folders?.[0]?.id || null
+          };
+          this.showEditor = true;
+          this.isEditing = isEdit;
+          this.$nextTick(() => this.highlightAll());
+        }
+      }
     },
     
     async loadFavoritesCount() {
@@ -212,37 +290,42 @@ document.addEventListener('alpine:init', () => {
     },
     
     async filterByTag(tagId) {
-      this.showEditor = false; // Close editor when navigating
+      this.showEditor = false;
       this.filter.tagId = tagId;
       this.filter.folderId = null;
+      this.filter.isFavorite = null;
       this.pagination.page = 1;
       await this.loadSnippets();
+      this.updateUrl({ tag: tagId });
     },
     
     async filterByFolder(folderId) {
-      this.showEditor = false; // Close editor when navigating
+      this.showEditor = false;
       this.filter.folderId = folderId;
       this.filter.tagId = null;
+      this.filter.isFavorite = null;
       this.pagination.page = 1;
       await this.loadSnippets();
+      this.updateUrl({ folder: folderId });
     },
     
     async clearFilters() {
-      this.showEditor = false; // Close editor when navigating
+      this.showEditor = false;
       this.filter = { query: '', tagId: null, folderId: null, language: '', isFavorite: null };
       this.pagination.page = 1;
       await this.loadSnippets();
-      // Update total count when showing all
       this.totalSnippets = this.pagination.total;
+      this.updateUrl({});
     },
     
     async showFavorites() {
-      this.showEditor = false; // Close editor when navigating
+      this.showEditor = false;
       this.filter.isFavorite = true;
       this.filter.tagId = null;
       this.filter.folderId = null;
       this.pagination.page = 1;
       await this.loadSnippets();
+      this.updateUrl({ favorites: true });
     },
     
     newSnippet() {
@@ -258,11 +341,11 @@ document.addEventListener('alpine:init', () => {
         is_favorite: false
       };
       this.showEditor = true;
-      this.isEditing = true; // New snippets go directly to edit mode
+      this.isEditing = true;
+      this.updateUrl({ edit: true });
     },
     
     async viewSnippet(snippet) {
-      // Fetch full snippet and show in preview mode
       const result = await api.get(`/api/v1/snippets/${snippet.id}`);
       if (result) {
         this.editingSnippet = {
@@ -271,19 +354,21 @@ document.addEventListener('alpine:init', () => {
           folder_id: result.folders?.[0]?.id || null
         };
         this.showEditor = true;
-        this.isEditing = false; // Preview mode by default
-        // Trigger syntax highlighting after view opens
+        this.isEditing = false;
+        this.updateUrl({ snippet: snippet.id });
         this.$nextTick(() => this.highlightAll());
       }
     },
     
     startEditing() {
       this.isEditing = true;
+      if (this.editingSnippet?.id) {
+        this.updateUrl({ snippet: this.editingSnippet.id, edit: true });
+      }
       this.$nextTick(() => this.highlightAll());
     },
     
     async editSnippet(snippet) {
-      // Fetch full snippet with tags/folders and go to edit mode
       const result = await api.get(`/api/v1/snippets/${snippet.id}`);
       if (result) {
         this.editingSnippet = {
@@ -292,7 +377,8 @@ document.addEventListener('alpine:init', () => {
           folder_id: result.folders?.[0]?.id || null
         };
         this.showEditor = true;
-        this.isEditing = true; // Edit mode
+        this.isEditing = true;
+        this.updateUrl({ snippet: snippet.id, edit: true });
         // Trigger syntax highlighting after editor opens
         this.$nextTick(() => this.highlightAll());
       }
@@ -328,8 +414,11 @@ document.addEventListener('alpine:init', () => {
         showToast(this.editingSnippet.id ? 'Snippet updated' : 'Snippet created');
         this.showEditor = false;
         this.resetEditingSnippet();
+        this.clearDraft(); // Clear draft on successful save
+        this.updateUrl({}); // Clear URL params
         await this.loadSnippets();
-        await this.loadTags(); // Refresh tags in case new ones were created
+        await this.loadTags();
+        await this.loadFavoritesCount();
       } else if (result?.error) {
         showToast(result.error.message || 'Error saving snippet', 'error');
       }
@@ -338,6 +427,17 @@ document.addEventListener('alpine:init', () => {
     cancelEdit() {
       this.showEditor = false;
       this.resetEditingSnippet();
+      this.clearDraft();
+      // Restore URL to current filter state
+      if (this.filter.folderId) {
+        this.updateUrl({ folder: this.filter.folderId });
+      } else if (this.filter.tagId) {
+        this.updateUrl({ tag: this.filter.tagId });
+      } else if (this.filter.isFavorite) {
+        this.updateUrl({ favorites: true });
+      } else {
+        this.updateUrl({});
+      }
     },
     
     resetEditingSnippet() {
@@ -352,6 +452,80 @@ document.addEventListener('alpine:init', () => {
         is_public: false,
         is_favorite: false
       };
+    },
+    
+    // Draft auto-save functionality
+    saveDraft() {
+      if (!this.isEditing) return;
+      
+      const draft = {
+        snippet: this.editingSnippet,
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem('snipo-draft', JSON.stringify(draft));
+    },
+    
+    loadDraft() {
+      try {
+        const draftJson = localStorage.getItem('snipo-draft');
+        if (!draftJson) return;
+        
+        const draft = JSON.parse(draftJson);
+        if (!draft.snippet) return;
+        
+        // Check if draft is less than 24 hours old
+        const savedAt = new Date(draft.savedAt);
+        const now = new Date();
+        const hoursDiff = (now - savedAt) / (1000 * 60 * 60);
+        
+        if (hoursDiff > 24) {
+          this.clearDraft();
+          return;
+        }
+        
+        // Only restore if we're not already viewing a snippet from URL
+        if (this.showEditor) return;
+        
+        // Show draft recovery prompt
+        if (draft.snippet.content || draft.snippet.title) {
+          this.hasDraft = true;
+          this.draftSnippet = draft.snippet;
+          this.draftSavedAt = savedAt;
+        }
+      } catch (e) {
+        this.clearDraft();
+      }
+    },
+    
+    restoreDraft() {
+      if (this.draftSnippet) {
+        this.editingSnippet = { ...this.draftSnippet };
+        this.showEditor = true;
+        this.isEditing = true;
+        this.hasDraft = false;
+        showToast('Draft restored');
+        this.$nextTick(() => this.highlightAll());
+      }
+    },
+    
+    discardDraft() {
+      this.clearDraft();
+      this.hasDraft = false;
+      this.draftSnippet = null;
+    },
+    
+    clearDraft() {
+      localStorage.removeItem('snipo-draft');
+    },
+    
+    // Auto-save on content change (debounced)
+    scheduleAutoSave() {
+      if (this.autoSaveTimeout) {
+        clearTimeout(this.autoSaveTimeout);
+      }
+      this.autoSaveTimeout = setTimeout(() => {
+        this.saveDraft();
+      }, 2000); // Save after 2 seconds of inactivity
     },
     
     confirmDelete(snippet) {
