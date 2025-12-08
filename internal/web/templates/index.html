@@ -467,7 +467,14 @@
                 
                 <!-- Full code preview -->
                 <div class="preview-code-wrapper">
-                    <div class="preview-code-scroll">
+                    <!-- Rendered markdown view -->
+                    <div class="preview-markdown-scroll" 
+                         x-show="(activeFile?.language || editingSnippet.language) === 'markdown'"
+                         x-html="renderMarkdown(activeFile?.content || editingSnippet.content)">
+                    </div>
+                    <!-- Code view for non-markdown -->
+                    <div class="preview-code-scroll" 
+                         x-show="(activeFile?.language || editingSnippet.language) !== 'markdown'">
                         <pre><code :class="'language-' + (activeFile?.language || editingSnippet.language)" x-text="activeFile?.content || editingSnippet.content"></code></pre>
                     </div>
                 </div>

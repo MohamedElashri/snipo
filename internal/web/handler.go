@@ -13,7 +13,7 @@ import (
 //go:embed templates/*.html
 var templatesFS embed.FS
 
-//go:embed static/css/*.css static/js/*.js static/vendor/css/*.css static/vendor/js/*.js static/vendor/fonts/*.woff2
+//go:embed static/css/*.css static/js/*.js static/vendor/css/*.css static/vendor/js/*.js static/vendor/fonts/*.woff2 static/*.ico static/*.png
 var staticFS embed.FS
 
 // Handler handles web page requests

@@ -266,6 +266,21 @@ document.addEventListener('alpine:init', () => {
       }
     },
     
+    renderMarkdown(content) {
+      // Render markdown content as HTML using marked.js
+      if (!content) return '';
+      if (typeof marked !== 'undefined') {
+        // Configure marked for safe rendering
+        marked.setOptions({
+          breaks: true,
+          gfm: true
+        });
+        return marked.parse(content);
+      }
+      // Fallback: return content as-is if marked is not available
+      return content;
+    },
+    
     setViewMode(mode) {
       this.viewMode = mode;
       localStorage.setItem('snipo-view-mode', mode);
