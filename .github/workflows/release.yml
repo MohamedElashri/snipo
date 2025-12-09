@@ -127,8 +127,8 @@ jobs:
           build-args: |
             VERSION=${{ steps.version.outputs.VERSION }}
             COMMIT=${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Disable cache to ensure fresh builds with latest static files
+          no-cache: true
 
   release:
     name: Create Release
