@@ -10,6 +10,8 @@ const theme = {
     document.documentElement.setAttribute('data-theme', value);
     // Update Prism theme
     this.updatePrismTheme(value);
+    // Update Ace editor theme
+    this.updateAceTheme(value);
   },
   toggle() {
     const current = this.get();
@@ -28,6 +30,19 @@ const theme = {
       } else {
         prismLink.href = '/static/vendor/css/prism.min.css';
       }
+    }
+  },
+  updateAceTheme(themeName) {
+    // Find the Ace editor instance and update its theme
+    if (typeof ace !== 'undefined') {
+      const editors = document.querySelectorAll('.ace_editor');
+      editors.forEach(editorEl => {
+        const editor = ace.edit(editorEl);
+        if (editor) {
+          const aceTheme = themeName === 'dark' ? 'ace/theme/monokai' : 'ace/theme/chrome';
+          editor.setTheme(aceTheme);
+        }
+      });
     }
   }
 };
@@ -111,12 +126,17 @@ document.addEventListener('alpine:init', () => {
       title: '',
       description: '',
       content: '',
-      language: 'javascript',
+      language: 'plaintext',
       tags: [],
       folder_id: null,
       is_public: false,
       is_favorite: false,
-      files: [] // Multi-file support
+      files: [{
+        id: 0,
+        filename: 'snippet.txt',
+        content: '',
+        language: 'plaintext'
+      }]
     },
     activeFileIndex: 0, // Currently active file tab
     filter: {
@@ -510,16 +530,16 @@ document.addEventListener('alpine:init', () => {
         title: '',
         description: '',
         content: '',
-        language: 'javascript',
+        language: 'plaintext',
         tags: [],
         folder_id: null,
         is_public: false,
         is_favorite: false,
         files: [{
           id: 0,
-          filename: 'main.js',
+          filename: 'snippet.txt',
           content: '',
-          language: 'javascript'
+          language: 'plaintext'
         }]
       };
       this.activeFileIndex = 0;
@@ -670,16 +690,16 @@ document.addEventListener('alpine:init', () => {
         title: '',
         description: '',
         content: '',
-        language: 'javascript',
+        language: 'plaintext',
         tags: [],
         folder_id: null,
         is_public: false,
         is_favorite: false,
         files: [{
           id: 0,
-          filename: 'main.js',
+          filename: 'snippet.txt',
           content: '',
-          language: 'javascript'
+          language: 'plaintext'
         }]
       };
       this.activeFileIndex = 0;
@@ -880,8 +900,12 @@ document.addEventListener('alpine:init', () => {
       this.editingSnippet.files.push(newFile);
       this.activeFileIndex = this.editingSnippet.files.length - 1;
       
-      // Focus the filename input after a tick
+      // Update the editor to show the new empty file content
       this.$nextTick(() => {
+        // Update CodeMirror/Ace to show empty content for new file
+        this.updateCodeMirror();
+        
+        // Focus the filename input
         const input = document.querySelector('.filename-input');
         if (input) {
           input.focus();
@@ -890,6 +914,13 @@ document.addEventListener('alpine:init', () => {
       });
       
       this.scheduleAutoSave();
+    },
+    
+    // Auto-resize textarea for description
+    autoResizeTextarea(el) {
+      if (!el) return;
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 80) + 'px';
     },
     
     validateFilename() {
