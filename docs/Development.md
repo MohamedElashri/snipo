@@ -8,27 +8,6 @@ This document covers building, testing, and contributing to Snipo.
 - **Make** (optional, for convenience commands)
 - **Docker** (optional, for containerized builds)
 
-## Project Structure
-
-```
-snipo/
-├── cmd/server/          # Application entrypoint
-├── internal/
-│   ├── api/             # HTTP handlers and routing
-│   │   ├── handlers/    # Request handlers
-│   │   └── middleware/  # Auth, logging, rate limiting
-│   ├── auth/            # Authentication logic
-│   ├── backup/          # Export/import and S3 sync
-│   ├── config/          # Environment configuration
-│   ├── database/        # SQLite operations and migrations
-│   ├── models/          # Data structures
-│   ├── search/          # Full-text search
-│   ├── storage/         # S3 client
-│   └── web/             # Static assets (HTML, CSS, JS)
-├── migrations/          # SQL migration files
-└── docs/                # Documentation
-```
-
 ## Building
 
 ### From Source
@@ -131,8 +110,8 @@ All configuration is via environment variables. See [`.env.example`](../.env.exa
 |----------|---------|-------------|
 | `SNIPO_S3_ENABLED` | `false` | Enable S3 backup |
 | `SNIPO_S3_ENDPOINT` | `s3.amazonaws.com` | S3 endpoint URL |
-| `SNIPO_S3_ACCESS_KEY` | | Access key ID |
-| `SNIPO_S3_SECRET_KEY` | | Secret access key |
+| `SNIPO_S3_ACCESS_KEY` | - | Access key ID |
+| `SNIPO_S3_SECRET_KEY` | - | Secret access key |
 | `SNIPO_S3_BUCKET` | `snipo-backups` | Bucket name |
 | `SNIPO_S3_REGION` | `us-east-1` | AWS region |
 | `SNIPO_S3_SSL` | `true` | Use HTTPS |

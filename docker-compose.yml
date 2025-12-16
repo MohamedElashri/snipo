@@ -11,7 +11,7 @@ services:
       # Required: Set a master password
       - SNIPO_MASTER_PASSWORD=${SNIPO_MASTER_PASSWORD:-<Put_your_master_password_here>}
       # Required: Set a random session secret (generate with: openssl rand -hex 32)
-      - SNIPO_SESSION_SECRET=${SNIPO_SESSION_SECRET:-4c7b774039836c4316774795078ef183d093f2c4eda0796e7cd16913494153a6}
+      - SNIPO_SESSION_SECRET=${SNIPO_SESSION_SECRET:-<generate_with_openssl_rand_hex_32>}
       # Optional: Server configuration
       - SNIPO_HOST=0.0.0.0
       - SNIPO_PORT=8080

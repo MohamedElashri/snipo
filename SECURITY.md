@@ -139,7 +139,7 @@ All frontend assets are served locally from `/static/vendor/`:
 |---------|---------|------|
 | Alpine.js | 3.x | `alpine.min.js` |
 | htmx | 2.x | `htmx.min.js` |
-| CodeMirror | 5.x | `codemirror.min.js` |
+| Ace Editor | 5.x | `ace.js` |
 | Prism.js | 1.x | `prism.min.js` |
 | Pico CSS | 2.x | `pico.min.css` |
 | Fira Code | - | `FiraCode-*.woff2` |
