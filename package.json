@@ -1,0 +1,27 @@
+{
+  "name": "snipo",
+  "version": "1.0.0",
+  "description": "A lightweight, self-hosted snippet manager designed for single-user deployments.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MohamedElashri/snipo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/MohamedElashri/snipo/issues"
+  },
+  "homepage": "https://github.com/MohamedElashri/snipo#readme",
+  "devDependencies": {
+    "eslint": "^9.39.1"
+  }
+}

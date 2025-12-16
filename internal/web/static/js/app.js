@@ -95,6 +95,9 @@ function showToast(message, type = 'success') {
   setTimeout(() => toast.remove(), 5000);
 }
 
+// Cache for loaded Ace modes to prevent duplicate loading
+const aceModeCache = new Set();
+
 // Main app store
 document.addEventListener('alpine:init', () => {
   // Global app state
@@ -337,9 +340,107 @@ document.addEventListener('alpine:init', () => {
       };
       return modeMap[language] || 'ace/mode/text';
     },
+
+    // Load Ace mode dynamically with fallback
+    async loadAceMode(modePath, fallbackMode = 'ace/mode/text') {
+      if (!window.ace || !window.ace.require) {
+        console.warn('Ace editor not available');
+        showToast('Ace editor not available', 'warning');
+        return fallbackMode;
+      }
+
+      // Check cache first
+      if (aceModeCache.has(modePath)) {
+        console.log(`Ace mode ${modePath} already loaded from cache`);
+        return modePath;
+      }
+
+      // Check if mode is already loaded in Ace
+      try {
+        const existingMode = ace.require(modePath);
+        if (existingMode) {
+          aceModeCache.add(modePath);
+          return modePath;
+        }
+      } catch (e) {
+        // Mode not loaded yet
+      }
+
+      // Try to load the mode dynamically
+      try {
+        const mode = await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Mode load timeout'));
+          }, 5000); // 5 second timeout
+
+          ace.require([modePath], (mode) => {
+            clearTimeout(timeout);
+            if (mode) {
+              resolve(mode);
+            } else {
+              reject(new Error('Mode not found'));
+            }
+          });
+        });
+        
+        // Add to cache
+        aceModeCache.add(modePath);
+        console.log(`Successfully loaded Ace mode: ${modePath}`);
+        return modePath;
+      } catch (error) {
+        console.warn(`Failed to load Ace mode ${modePath}:`, error.message);
+        
+        // Show user-friendly error
+        const modeName = modePath.split('/').pop();
+        showToast(`Failed to load ${modeName} syntax highlighting`, 'warning');
+        
+        // Fallback to text mode if the requested mode fails to load
+        if (fallbackMode !== modePath) {
+          console.log(`Falling back to: ${fallbackMode}`);
+          return fallbackMode;
+        }
+        
+        return fallbackMode;
+      }
+    },
+
+    // Set Ace editor mode with lazy loading
+    async setAceEditorMode(editor, modePath) {
+      if (!editor || !editor.session || !editor.session.setMode) {
+        console.error('Invalid Ace editor instance');
+        return;
+      }
+
+      // Show loading state
+      const currentMode = editor.session.getMode().$id;
+      if (currentMode !== modePath) {
+        // Set a temporary mode while loading
+        editor.session.setMode('ace/mode/text');
+        
+        // Show loading indicator in the editor
+        const loadingContent = `// Loading ${modePath.split('/').pop()} mode...`;
+        const currentValue = editor.getValue();
+        editor.setValue(loadingContent, -1);
+        
+        try {
+          // Load the mode dynamically
+          const resolvedMode = await this.loadAceMode(modePath);
+          
+          // Set the loaded mode
+          editor.session.setMode(resolvedMode);
+          
+          // Restore the original content
+          editor.setValue(currentValue, -1);
+          
+        } catch (error) {
+          console.error('Failed to set Ace editor mode:', error);
+          // Keep the fallback mode that was already set
+        }
+      }
+    },
     
     // Initialize or update Ace Editor
-    updateCodeMirror() {
+    async updateCodeMirror() {
       const container = this.$refs.codeEditor;
       if (!container) return;
       
@@ -374,7 +475,8 @@ document.addEventListener('alpine:init', () => {
           
           this.aceEditor = ace.edit(container.id);
           this.aceEditor.setTheme(aceTheme);
-          this.aceEditor.session.setMode(aceMode);
+          // Use lazy loading for the mode
+          await this.setAceEditorMode(this.aceEditor, aceMode);
           this.aceEditor.setValue(content, -1); // -1 moves cursor to start
           
           // Configure editor
@@ -412,7 +514,8 @@ document.addEventListener('alpine:init', () => {
           if (currentValue !== content) {
             this.aceEditor.setValue(content, -1);
           }
-          this.aceEditor.session.setMode(aceMode);
+          // Use lazy loading for the mode
+          await this.setAceEditorMode(this.aceEditor, aceMode);
           this.aceEditor.setTheme(aceTheme);
         } catch (e) {
           console.warn('Ace Editor update error:', e);
@@ -977,7 +1080,7 @@ document.addEventListener('alpine:init', () => {
       this.scheduleAutoSave();
     },
     
-    updateActiveFileLanguage(language) {
+    async updateActiveFileLanguage(language) {
       // Get current content before updating language
       const currentContent = this.aceEditor ? this.aceEditor.getValue() : '';
       
@@ -990,10 +1093,10 @@ document.addEventListener('alpine:init', () => {
         this.editingSnippet.content = currentContent;
       }
       
-      // Update Ace Editor mode
+      // Update Ace Editor mode with lazy loading
       if (this.aceEditor) {
         try {
-          this.aceEditor.session.setMode(this.getAceMode(language));
+          await this.setAceEditorMode(this.aceEditor, this.getAceMode(language));
         } catch (e) {
           console.warn('Ace setMode error:', e);
         }
@@ -1003,7 +1106,7 @@ document.addEventListener('alpine:init', () => {
       this.scheduleAutoSave();
     },
     
-    updateActiveFilename(filename) {
+    async updateActiveFilename(filename) {
       if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
         this.editingSnippet.files[this.activeFileIndex].filename = filename;
         // Auto-detect language from extension
@@ -1012,10 +1115,10 @@ document.addEventListener('alpine:init', () => {
           const currentLang = this.editingSnippet.files[this.activeFileIndex].language;
           if (detectedLang !== currentLang) {
             this.editingSnippet.files[this.activeFileIndex].language = detectedLang;
-            // Update Ace Editor mode
+            // Update Ace Editor mode with lazy loading
             if (this.aceEditor) {
               try {
-                this.aceEditor.session.setMode(this.getAceMode(detectedLang));
+                await this.setAceEditorMode(this.aceEditor, this.getAceMode(detectedLang));
               } catch (e) {
                 console.warn('Ace setMode error:', e);
               }
