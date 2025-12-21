@@ -1472,8 +1472,9 @@ body {
 
 /* Description field */
 .description-field {
-  flex: 0 0 50%;
-  margin-left: 0.5rem;
+  flex: 1 1 100%;
+  width: 100%;
+  margin-left: 0;
   min-width: 120px;
 }
 
@@ -2096,11 +2097,7 @@ body {
   color: white;
 }
 
-/* Override description field to be smaller */
-.description-field {
-  flex: 0 1 200px !important;
-  /* Constrain width more aggressively */
-}
+
 
 /* Refined Action Buttons */
 .btn-action {
