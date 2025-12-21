@@ -561,7 +561,9 @@
 
                     <div class="editor-field-inline compact">
                         <select :value="activeFile?.language || editingSnippet.language"
-                            @change="updateActiveFileLanguage($event.target.value)" title="Language">
+                            @change="updateActiveFileLanguage($event.target.value); $nextTick(() => autoResizeSelect($event.target))"
+                            x-init="$watch('activeFile?.language || editingSnippet.language', () => $nextTick(() => autoResizeSelect($el))); $nextTick(() => autoResizeSelect($el))"
+                            title="Language">
                             <option value="javascript">JavaScript</option>
                             <option value="typescript">TypeScript</option>
                             <option value="python">Python</option>

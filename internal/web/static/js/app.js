@@ -1625,7 +1625,32 @@ document.addEventListener('alpine:init', () => {
       const val = element.value || element.placeholder || '';
       const length = val.length;
       element.style.width = Math.max(15, length + 2) + 'ch';
-    }
+    },
+
+    autoResizeSelect(element) {
+      if (!element) return;
+
+      // Get selected text
+      const selectedOption = element.options[element.selectedIndex];
+      const text = selectedOption ? selectedOption.text : element.value;
+
+      // Create temporary span to measure width
+      const span = document.createElement('span');
+      span.style.font = window.getComputedStyle(element).font;
+      span.style.visibility = 'hidden';
+      span.style.position = 'absolute';
+      span.textContent = text;
+      document.body.appendChild(span);
+
+      // Calculate width: text width + padding-left (0.4rem) + padding-right (1.5rem for arrow) + nice buffer
+      // 1.9rem ~= 30px. Adding 35px buffer.
+      const width = span.offsetWidth + 35;
+      document.body.removeChild(span);
+
+      element.style.width = width + 'px';
+    },
+
+
   }));
 });
 
