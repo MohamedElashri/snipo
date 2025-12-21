@@ -361,3 +361,70 @@ func TestTagRepository_GetTagSnippetCount(t *testing.T) {
 		t.Errorf("expected count 3, got %d", count)
 	}
 }
+
+func TestTagRepository_GetTagSnippetCount_Archived(t *testing.T) {
+	db := testutil.TestDB(t)
+	tagRepo := NewTagRepository(db)
+	snippetRepo := NewSnippetRepository(db)
+	ctx := testutil.TestContext()
+
+	// Create a tag
+	tagInput := &models.TagInput{Name: "archive-count-test", Color: "#000000"}
+	tag, err := tagRepo.Create(ctx, tagInput)
+	if err != nil {
+		t.Fatalf("Create tag failed: %v", err)
+	}
+
+	// Create snippet and assign tag
+	snippet, err := snippetRepo.Create(ctx, &models.SnippetInput{
+		Title:    "Snippet",
+		Content:  "content",
+		Language: "plaintext",
+	})
+	if err != nil {
+		t.Fatalf("Create snippet failed: %v", err)
+	}
+	err = tagRepo.SetSnippetTags(ctx, snippet.ID, []string{"archive-count-test"})
+	if err != nil {
+		t.Fatalf("SetSnippetTags failed: %v", err)
+	}
+
+	// Initial count should be 1
+	count, err := tagRepo.GetTagSnippetCount(ctx, tag.ID)
+	if err != nil {
+		t.Fatalf("GetTagSnippetCount failed: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected count 1, got %d", count)
+	}
+
+	// Archive the snippet
+	_, err = snippetRepo.ToggleArchive(ctx, snippet.ID)
+	if err != nil {
+		t.Fatalf("ToggleArchive failed: %v", err)
+	}
+
+	// Count should now be 0
+	count, err = tagRepo.GetTagSnippetCount(ctx, tag.ID)
+	if err != nil {
+		t.Fatalf("GetTagSnippetCount failed: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("expected count 0 after archiving, got %d", count)
+	}
+
+	// Unarchive
+	_, err = snippetRepo.ToggleArchive(ctx, snippet.ID)
+	if err != nil {
+		t.Fatalf("ToggleArchive failed: %v", err)
+	}
+
+	// Count should be 1 again
+	count, err = tagRepo.GetTagSnippetCount(ctx, tag.ID)
+	if err != nil {
+		t.Fatalf("GetTagSnippetCount failed: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected count 1 after unarchiving, got %d", count)
+	}
+}

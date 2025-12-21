@@ -88,7 +88,7 @@ func (r *TagRepository) List(ctx context.Context) ([]models.Tag, error) {
 		SELECT t.id, t.name, t.color, t.created_at,
 		       (SELECT COUNT(*) FROM snippet_tags st 
 		        INNER JOIN snippets s ON s.id = st.snippet_id 
-		        WHERE st.tag_id = t.id) as snippet_count
+		        WHERE st.tag_id = t.id AND s.is_archived = 0) as snippet_count
 		FROM tags t
 		ORDER BY t.name ASC
 	`
@@ -241,7 +241,9 @@ func (r *TagRepository) SetSnippetTags(ctx context.Context, snippetID string, ta
 func (r *TagRepository) GetTagSnippetCount(ctx context.Context, tagID int64) (int, error) {
 	var count int
 	err := r.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM snippet_tags WHERE tag_id = ?`,
+		`SELECT COUNT(*) FROM snippet_tags st
+		 JOIN snippets s ON s.id = st.snippet_id
+		 WHERE st.tag_id = ? AND s.is_archived = 0`,
 		tagID,
 	).Scan(&count)
 	if err != nil {

@@ -76,7 +76,7 @@ func (r *FolderRepository) List(ctx context.Context) ([]models.Folder, error) {
 		SELECT f.id, f.name, f.parent_id, f.icon, f.sort_order, f.created_at,
 		       (SELECT COUNT(*) FROM snippet_folders sf 
 		        INNER JOIN snippets s ON s.id = sf.snippet_id 
-		        WHERE sf.folder_id = f.id) as snippet_count
+		        WHERE sf.folder_id = f.id AND s.is_archived = 0) as snippet_count
 		FROM folders f
 		ORDER BY f.sort_order ASC, f.name ASC
 	`
@@ -274,7 +274,9 @@ func (r *FolderRepository) checkCircularReference(ctx context.Context, folderID,
 func (r *FolderRepository) GetFolderSnippetCount(ctx context.Context, folderID int64) (int, error) {
 	var count int
 	err := r.db.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM snippet_folders WHERE folder_id = ?`,
+		`SELECT COUNT(*) FROM snippet_folders sf
+		 JOIN snippets s ON s.id = sf.snippet_id
+		 WHERE sf.folder_id = ? AND s.is_archived = 0`,
 		folderID,
 	).Scan(&count)
 	if err != nil {

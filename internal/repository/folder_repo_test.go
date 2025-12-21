@@ -472,3 +472,69 @@ func TestFolderRepository_GetFolderSnippetCount(t *testing.T) {
 		t.Errorf("expected count 5, got %d", count)
 	}
 }
+
+func TestFolderRepository_GetFolderSnippetCount_Archived(t *testing.T) {
+	db := testutil.TestDB(t)
+	folderRepo := NewFolderRepository(db)
+	snippetRepo := NewSnippetRepository(db)
+	ctx := testutil.TestContext()
+
+	// Create a folder
+	folder, err := folderRepo.Create(ctx, &models.FolderInput{Name: "Archive Count Test"})
+	if err != nil {
+		t.Fatalf("Create folder failed: %v", err)
+	}
+
+	// Create a snippet and assign to folder
+	snippet, err := snippetRepo.Create(ctx, &models.SnippetInput{
+		Title:    "Snippet",
+		Content:  "content",
+		Language: "plaintext",
+	})
+	if err != nil {
+		t.Fatalf("Create snippet failed: %v", err)
+	}
+	err = folderRepo.SetSnippetFolder(ctx, snippet.ID, &folder.ID)
+	if err != nil {
+		t.Fatalf("SetSnippetFolder failed: %v", err)
+	}
+
+	// Initial count should be 1
+	count, err := folderRepo.GetFolderSnippetCount(ctx, folder.ID)
+	if err != nil {
+		t.Fatalf("GetFolderSnippetCount failed: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected count 1, got %d", count)
+	}
+
+	// Archive the snippet
+	_, err = snippetRepo.ToggleArchive(ctx, snippet.ID)
+	if err != nil {
+		t.Fatalf("ToggleArchive failed: %v", err)
+	}
+
+	// Count should now be 0
+	count, err = folderRepo.GetFolderSnippetCount(ctx, folder.ID)
+	if err != nil {
+		t.Fatalf("GetFolderSnippetCount failed: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("expected count 0 after archiving, got %d", count)
+	}
+
+	// Unarchive
+	_, err = snippetRepo.ToggleArchive(ctx, snippet.ID)
+	if err != nil {
+		t.Fatalf("ToggleArchive failed: %v", err)
+	}
+
+	// Count should be 1 again
+	count, err = folderRepo.GetFolderSnippetCount(ctx, folder.ID)
+	if err != nil {
+		t.Fatalf("GetFolderSnippetCount failed: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected count 1 after unarchiving, got %d", count)
+	}
+}
