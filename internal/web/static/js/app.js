@@ -59,7 +59,7 @@ const api = {
       credentials: 'include'
     };
     if (data) options.body = JSON.stringify(data);
-    
+
     const response = await fetch(url, options);
     if (response.status === 401) {
       window.location.href = '/login';
@@ -68,7 +68,7 @@ const api = {
     if (response.status === 204) return null;
     return response.json();
   },
-  
+
   get: (url) => api.request('GET', url),
   post: (url, data) => api.request('POST', url, data),
   put: (url, data) => api.request('PUT', url, data),
@@ -79,7 +79,7 @@ const api = {
 function showToast(message, type = 'success') {
   const container = document.getElementById('toast-container');
   if (!container) return;
-  
+
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.innerHTML = `
@@ -103,17 +103,17 @@ document.addEventListener('alpine:init', () => {
     currentView: 'snippets', // snippets, editor, settings
     loading: false,
     darkMode: theme.get() === 'dark',
-    
+
     toggleSidebar() {
       this.sidebarOpen = !this.sidebarOpen;
     },
-    
+
     toggleTheme() {
       theme.toggle();
       this.darkMode = theme.get() === 'dark';
     }
   });
-  
+
   // Snippets data
   Alpine.data('snippetsApp', () => ({
     snippets: [],
@@ -139,6 +139,7 @@ document.addEventListener('alpine:init', () => {
       }]
     },
     activeFileIndex: 0, // Currently active file tab
+    editorHeaderVisible: true, // Toggle for editor toolbar/header
     filter: {
       query: '',
       tagId: null,
@@ -187,7 +188,7 @@ document.addEventListener('alpine:init', () => {
     // Ace Editor instance
     aceEditor: null,
     aceIgnoreChange: false, // Flag to prevent infinite loops
-    
+
     async init() {
       await Promise.all([
         this.loadSnippets(),
@@ -200,47 +201,47 @@ document.addEventListener('alpine:init', () => {
       this.loading = false;
       // Highlight code after initial load
       this.$nextTick(() => this.highlightAll());
-      
+
       // Restore state from URL
       await this.restoreFromUrl();
-      
+
       // Handle browser back/forward
       window.addEventListener('popstate', () => this.restoreFromUrl());
-      
+
       // Load draft if exists
       this.loadDraft();
     },
-    
+
     // URL routing
     updateUrl(params = {}) {
       const url = new URL(window.location);
-      
+
       // Clear existing params
       url.searchParams.delete('snippet');
       url.searchParams.delete('edit');
       url.searchParams.delete('folder');
       url.searchParams.delete('tag');
       url.searchParams.delete('favorites');
-      
+
       // Set new params
       if (params.snippet) url.searchParams.set('snippet', params.snippet);
       if (params.edit) url.searchParams.set('edit', 'true');
       if (params.folder) url.searchParams.set('folder', params.folder);
       if (params.tag) url.searchParams.set('tag', params.tag);
       if (params.favorites) url.searchParams.set('favorites', 'true');
-      
+
       history.pushState({}, '', url);
     },
-    
+
     async restoreFromUrl() {
       const params = new URLSearchParams(window.location.search);
-      
+
       const snippetId = params.get('snippet');
       const isEdit = params.get('edit') === 'true';
       const folderId = params.get('folder');
       const tagId = params.get('tag');
       const favorites = params.get('favorites') === 'true';
-      
+
       // Restore filter state
       if (folderId) {
         this.filter.folderId = parseInt(folderId);
@@ -258,7 +259,7 @@ document.addEventListener('alpine:init', () => {
         this.filter.folderId = null;
         await this.loadSnippets();
       }
-      
+
       // Restore snippet view/edit state
       if (snippetId) {
         const result = await api.get(`/api/v1/snippets/${snippetId}`);
@@ -281,21 +282,21 @@ document.addEventListener('alpine:init', () => {
         }
       }
     },
-    
+
     async loadFavoritesCount() {
       const result = await api.get('/api/v1/snippets?favorite=true&limit=1');
       if (result && result.pagination) {
         this.favoritesCount = result.pagination.total;
       }
     },
-    
+
     highlightAll() {
       // Re-run Prism highlighting on all code blocks
       if (typeof Prism !== 'undefined') {
         Prism.highlightAll();
       }
     },
-    
+
     renderMarkdown(content) {
       // Render markdown content as HTML using marked.js
       if (!content) return '';
@@ -310,7 +311,7 @@ document.addEventListener('alpine:init', () => {
       // Fallback: return content as-is if marked is not available
       return content;
     },
-    
+
     // Ace Editor language mode mapping
     getAceMode(language) {
       const modeMap = {
@@ -338,46 +339,46 @@ document.addEventListener('alpine:init', () => {
       };
       return modeMap[language] || 'ace/mode/text';
     },
-    
+
     // Initialize or update Ace Editor
     updateCodeMirror() {
       const container = this.$refs.codeEditor;
       if (!container) return;
-      
+
       // Get current content and language
       const content = (this.editingSnippet.files && this.editingSnippet.files.length > 0)
         ? (this.activeFile?.content || '')
         : (this.editingSnippet.content || '');
-      
+
       const language = (this.editingSnippet.files && this.editingSnippet.files.length > 0)
         ? (this.activeFile?.language || 'javascript')
         : (this.editingSnippet.language || 'javascript');
-      
+
       const aceMode = this.getAceMode(language);
       const isDark = theme.get() === 'dark';
       const aceTheme = isDark ? 'ace/theme/monokai' : 'ace/theme/chrome';
-      
+
       // If no editor exists, create one
       if (!this.aceEditor) {
         if (typeof ace === 'undefined') {
           console.error('Ace Editor not loaded');
           return;
         }
-        
+
         try {
           // Set base path for Ace to find modes and themes
           ace.config.set('basePath', '/static/vendor/js/ace');
-          
+
           // Ensure container has an ID for Ace
           if (!container.id) {
             container.id = 'ace-editor-' + Date.now();
           }
-          
+
           this.aceEditor = ace.edit(container.id);
           this.aceEditor.setTheme(aceTheme);
           this.aceEditor.session.setMode(aceMode);
           this.aceEditor.setValue(content, -1); // -1 moves cursor to start
-          
+
           // Configure editor
           this.aceEditor.setOptions({
             fontSize: '14px',
@@ -386,12 +387,12 @@ document.addEventListener('alpine:init', () => {
             useSoftTabs: true,
             wrap: true
           });
-          
+
           // Handle changes
           const self = this;
           this.aceEditor.session.on('change', () => {
             if (self.aceIgnoreChange) return;
-            
+
             const value = self.aceEditor.getValue();
             if (self.editingSnippet.files && self.editingSnippet.files.length > 0) {
               self.updateActiveFileContent(value);
@@ -420,7 +421,7 @@ document.addEventListener('alpine:init', () => {
         }
         this.aceIgnoreChange = false;
       }
-      
+
       // Resize after DOM update
       this.$nextTick(() => {
         if (this.aceEditor) {
@@ -428,7 +429,7 @@ document.addEventListener('alpine:init', () => {
         }
       });
     },
-    
+
     // Destroy Ace Editor instance
     destroyCodeMirror() {
       if (this.aceEditor) {
@@ -446,12 +447,12 @@ document.addEventListener('alpine:init', () => {
         this.aceEditor = null;
       }
     },
-    
+
     setViewMode(mode) {
       this.viewMode = mode;
       localStorage.setItem('snipo-view-mode', mode);
     },
-    
+
     async loadSnippets() {
       const params = new URLSearchParams();
       params.set('page', this.pagination.page);
@@ -461,7 +462,7 @@ document.addEventListener('alpine:init', () => {
       if (this.filter.folderId) params.set('folder_id', this.filter.folderId);
       if (this.filter.language) params.set('language', this.filter.language);
       if (this.filter.isFavorite !== null) params.set('favorite', this.filter.isFavorite);
-      
+
       const result = await api.get(`/api/v1/snippets?${params}`);
       if (result) {
         this.snippets = result.data || [];
@@ -470,22 +471,22 @@ document.addEventListener('alpine:init', () => {
         this.$nextTick(() => this.highlightAll());
       }
     },
-    
+
     async loadTags() {
       const result = await api.get('/api/v1/tags');
       if (result) this.tags = result.data || [];
     },
-    
+
     async loadFolders() {
       const result = await api.get('/api/v1/folders?tree=true');
       if (result) this.folders = result.data || [];
     },
-    
+
     async search() {
       this.pagination.page = 1;
       await this.loadSnippets();
     },
-    
+
     async filterByTag(tagId) {
       this.showEditor = false;
       this.filter.tagId = tagId;
@@ -495,7 +496,7 @@ document.addEventListener('alpine:init', () => {
       await this.loadSnippets();
       this.updateUrl({ tag: tagId });
     },
-    
+
     async filterByFolder(folderId) {
       this.showEditor = false;
       this.filter.folderId = folderId;
@@ -505,7 +506,7 @@ document.addEventListener('alpine:init', () => {
       await this.loadSnippets();
       this.updateUrl({ folder: folderId });
     },
-    
+
     async clearFilters() {
       this.showEditor = false;
       this.filter = { query: '', tagId: null, folderId: null, language: '', isFavorite: null };
@@ -514,7 +515,7 @@ document.addEventListener('alpine:init', () => {
       this.totalSnippets = this.pagination.total;
       this.updateUrl({});
     },
-    
+
     async showFavorites() {
       this.showEditor = false;
       this.filter.isFavorite = true;
@@ -524,7 +525,7 @@ document.addEventListener('alpine:init', () => {
       await this.loadSnippets();
       this.updateUrl({ favorites: true });
     },
-    
+
     newSnippet() {
       this.editingSnippet = {
         id: null,
@@ -547,7 +548,7 @@ document.addEventListener('alpine:init', () => {
       this.showEditor = true;
       this.isEditing = true;
       this.updateUrl({ edit: true });
-      
+
       // Update CodeMirror and focus filename input after render
       this.$nextTick(() => {
         this.updateCodeMirror();
@@ -558,7 +559,7 @@ document.addEventListener('alpine:init', () => {
         }
       });
     },
-    
+
     async viewSnippet(snippet) {
       const result = await api.get(`/api/v1/snippets/${snippet.id}`);
       if (result) {
@@ -575,7 +576,7 @@ document.addEventListener('alpine:init', () => {
         this.$nextTick(() => this.highlightAll());
       }
     },
-    
+
     startEditing() {
       this.isEditing = true;
       if (this.editingSnippet?.id) {
@@ -586,7 +587,7 @@ document.addEventListener('alpine:init', () => {
         this.highlightAll();
       });
     },
-    
+
     async editSnippet(snippet) {
       const result = await api.get(`/api/v1/snippets/${snippet.id}`);
       if (result) {
@@ -606,7 +607,7 @@ document.addEventListener('alpine:init', () => {
         });
       }
     },
-    
+
     async saveSnippet() {
       // Convert empty string folder_id to null, and string numbers to integers
       let folderId = this.editingSnippet.folder_id;
@@ -615,7 +616,7 @@ document.addEventListener('alpine:init', () => {
       } else {
         folderId = parseInt(folderId, 10) || null;
       }
-      
+
       // Prepare files array if multi-file
       let files = null;
       if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
@@ -626,11 +627,11 @@ document.addEventListener('alpine:init', () => {
           language: f.language
         }));
       }
-      
+
       // For multi-file snippets, use first file's content/language as primary
       const primaryContent = files && files.length > 0 ? files[0].content : this.editingSnippet.content;
       const primaryLanguage = files && files.length > 0 ? files[0].language : this.editingSnippet.language;
-      
+
       const data = {
         title: this.editingSnippet.title,
         description: this.editingSnippet.description || '',
@@ -641,14 +642,14 @@ document.addEventListener('alpine:init', () => {
         is_public: this.editingSnippet.is_public || false,
         files: files
       };
-      
+
       let result;
       if (this.editingSnippet.id) {
         result = await api.put(`/api/v1/snippets/${this.editingSnippet.id}`, data);
       } else {
         result = await api.post('/api/v1/snippets', data);
       }
-      
+
       if (result && !result.error) {
         showToast(this.editingSnippet.id ? 'Snippet updated' : 'Snippet created');
         this.showEditor = false;
@@ -665,7 +666,7 @@ document.addEventListener('alpine:init', () => {
         showToast(result.error.message || 'Error saving snippet', 'error');
       }
     },
-    
+
     cancelEdit() {
       this.showEditor = false;
       this.isEditing = false;
@@ -684,7 +685,7 @@ document.addEventListener('alpine:init', () => {
         this.updateUrl({});
       }
     },
-    
+
     resetEditingSnippet() {
       this.editingSnippet = {
         id: null,
@@ -705,49 +706,49 @@ document.addEventListener('alpine:init', () => {
       };
       this.activeFileIndex = 0;
     },
-    
+
     // Draft auto-save functionality (single draft only - always latest)
     saveDraft() {
       if (!this.isEditing) return;
-      
+
       // Check if there's content worth saving
-      const hasContent = this.editingSnippet.title || 
-                         this.editingSnippet.content ||
-                         (this.editingSnippet.files && this.editingSnippet.files.some(f => f.content));
+      const hasContent = this.editingSnippet.title ||
+        this.editingSnippet.content ||
+        (this.editingSnippet.files && this.editingSnippet.files.some(f => f.content));
       if (!hasContent) return;
-      
+
       const draft = {
         snippet: { ...this.editingSnippet },
         savedAt: new Date().toISOString()
       };
       localStorage.setItem('snipo-draft', JSON.stringify(draft));
     },
-    
+
     loadDraft() {
       // Only show if we're not already viewing a snippet from URL
       if (this.showEditor) return;
-      
+
       try {
         const draftJson = localStorage.getItem('snipo-draft');
         if (!draftJson) return;
-        
+
         const draft = JSON.parse(draftJson);
         if (!draft.snippet) return;
-        
+
         // Check if draft is less than 24 hours old
         const savedAt = new Date(draft.savedAt);
         const now = new Date();
         const hoursDiff = (now - savedAt) / (1000 * 60 * 60);
-        
+
         if (hoursDiff > 24) {
           this.clearDraft();
           return;
         }
-        
+
         // Check if draft has content
-        const hasContent = draft.snippet.title || 
-                           draft.snippet.content ||
-                           (draft.snippet.files && draft.snippet.files.some(f => f.content));
+        const hasContent = draft.snippet.title ||
+          draft.snippet.content ||
+          (draft.snippet.files && draft.snippet.files.some(f => f.content));
         if (hasContent) {
           this.hasDraft = true;
           this.draftSnippet = draft.snippet;
@@ -757,7 +758,7 @@ document.addEventListener('alpine:init', () => {
         this.clearDraft();
       }
     },
-    
+
     restoreDraft() {
       if (this.draftSnippet) {
         this.editingSnippet = { ...this.draftSnippet };
@@ -773,18 +774,18 @@ document.addEventListener('alpine:init', () => {
         });
       }
     },
-    
+
     discardDraft() {
       this.clearDraft();
       this.hasDraft = false;
       this.draftSnippet = null;
       showToast('Draft discarded');
     },
-    
+
     clearDraft() {
       localStorage.removeItem('snipo-draft');
     },
-    
+
     // Auto-save on content change (debounced)
     scheduleAutoSave() {
       if (this.autoSaveTimeout) {
@@ -794,21 +795,21 @@ document.addEventListener('alpine:init', () => {
         this.saveDraft();
       }, 2000); // Save after 2 seconds of inactivity
     },
-    
+
     confirmDelete(snippet) {
       this.deleteTarget = snippet;
       this.showDeleteModal = true;
     },
-    
+
     async deleteSnippet() {
       if (!this.deleteTarget) return;
-      
+
       await api.delete(`/api/v1/snippets/${this.deleteTarget.id}`);
       showToast('Snippet deleted');
       this.showDeleteModal = false;
       this.showEditor = false;
       this.deleteTarget = null;
-      
+
       // Reload all data to update counts
       await Promise.all([
         this.loadSnippets(),
@@ -816,11 +817,11 @@ document.addEventListener('alpine:init', () => {
         this.loadFolders(),
         this.loadFavoritesCount()
       ]);
-      
+
       // Update total count
       this.totalSnippets = this.snippets.length;
     },
-    
+
     async toggleFavorite(snippet) {
       const result = await api.post(`/api/v1/snippets/${snippet.id}/favorite`);
       if (result) {
@@ -828,7 +829,7 @@ document.addEventListener('alpine:init', () => {
         showToast(result.is_favorite ? 'Added to favorites' : 'Removed from favorites');
       }
     },
-    
+
     async duplicateSnippet(snippet) {
       const result = await api.post(`/api/v1/snippets/${snippet.id}/duplicate`);
       if (result && !result.error) {
@@ -836,7 +837,7 @@ document.addEventListener('alpine:init', () => {
         await this.loadSnippets();
       }
     },
-    
+
     async copyToClipboard(snippet) {
       try {
         await navigator.clipboard.writeText(snippet.content);
@@ -845,7 +846,7 @@ document.addEventListener('alpine:init', () => {
         showToast('Failed to copy', 'error');
       }
     },
-    
+
     async copyShareLink(snippet) {
       if (!snippet?.id || !snippet?.is_public) {
         showToast('Snippet must be public to share', 'warning');
@@ -859,7 +860,7 @@ document.addEventListener('alpine:init', () => {
         showToast('Failed to copy link', 'error');
       }
     },
-    
+
     // Multi-file support
     get activeFile() {
       const files = this.editingSnippet?.files || [];
@@ -874,11 +875,11 @@ document.addEventListener('alpine:init', () => {
       }
       return files[this.activeFileIndex] || files[0];
     },
-    
+
     get hasMultipleFiles() {
       return (this.editingSnippet?.files || []).length > 1;
     },
-    
+
     addFile() {
       if (!this.editingSnippet.files) {
         // Convert legacy single-file to multi-file
@@ -890,7 +891,7 @@ document.addEventListener('alpine:init', () => {
           language: this.editingSnippet.language || 'javascript'
         }];
       }
-      
+
       // Add new file with placeholder name
       const newFile = {
         id: 0,
@@ -900,12 +901,12 @@ document.addEventListener('alpine:init', () => {
       };
       this.editingSnippet.files.push(newFile);
       this.activeFileIndex = this.editingSnippet.files.length - 1;
-      
+
       // Update the editor to show the new empty file content
       this.$nextTick(() => {
         // Update CodeMirror/Ace to show empty content for new file
         this.updateCodeMirror();
-        
+
         // Focus the filename input
         const input = document.querySelector('.filename-input');
         if (input) {
@@ -913,17 +914,17 @@ document.addEventListener('alpine:init', () => {
           input.select();
         }
       });
-      
+
       this.scheduleAutoSave();
     },
-    
+
     // Auto-resize textarea for description
     autoResizeTextarea(el) {
       if (!el) return;
       el.style.height = 'auto';
       el.style.height = Math.min(el.scrollHeight, 80) + 'px';
     },
-    
+
     validateFilename() {
       if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
         const file = this.editingSnippet.files[this.activeFileIndex];
@@ -933,7 +934,7 @@ document.addEventListener('alpine:init', () => {
         }
       }
     },
-    
+
     detectLanguageFromFilename(filename) {
       const ext = filename.split('.').pop()?.toLowerCase();
       const langMap = {
@@ -947,7 +948,7 @@ document.addEventListener('alpine:init', () => {
       };
       return langMap[ext] || null;
     },
-    
+
     removeFile(index) {
       if (!this.editingSnippet.files || this.editingSnippet.files.length <= 1) {
         showToast('Cannot remove the last file', 'warning');
@@ -959,7 +960,7 @@ document.addEventListener('alpine:init', () => {
       }
       this.scheduleAutoSave();
     },
-    
+
     selectFile(index) {
       this.activeFileIndex = index;
       this.$nextTick(() => {
@@ -969,7 +970,7 @@ document.addEventListener('alpine:init', () => {
         this.highlightAll();
       });
     },
-    
+
     updateActiveFileContent(content) {
       if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
         this.editingSnippet.files[this.activeFileIndex].content = content;
@@ -978,11 +979,11 @@ document.addEventListener('alpine:init', () => {
       }
       this.scheduleAutoSave();
     },
-    
+
     updateActiveFileLanguage(language) {
       // Get current content before updating language
       const currentContent = this.aceEditor ? this.aceEditor.getValue() : '';
-      
+
       if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
         this.editingSnippet.files[this.activeFileIndex].language = language;
         // Also update content from editor
@@ -991,7 +992,7 @@ document.addEventListener('alpine:init', () => {
         this.editingSnippet.language = language;
         this.editingSnippet.content = currentContent;
       }
-      
+
       // Update Ace Editor mode
       if (this.aceEditor) {
         try {
@@ -1000,11 +1001,11 @@ document.addEventListener('alpine:init', () => {
           console.warn('Ace setMode error:', e);
         }
       }
-      
+
       this.$nextTick(() => this.highlightAll());
       this.scheduleAutoSave();
     },
-    
+
     updateActiveFilename(filename) {
       if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
         this.editingSnippet.files[this.activeFileIndex].filename = filename;
@@ -1027,7 +1028,7 @@ document.addEventListener('alpine:init', () => {
       }
       this.scheduleAutoSave();
     },
-    
+
     getFileExtension(language) {
       const extMap = {
         'javascript': 'js', 'typescript': 'ts', 'python': 'py', 'go': 'go',
@@ -1038,20 +1039,20 @@ document.addEventListener('alpine:init', () => {
       };
       return extMap[language] || 'txt';
     },
-    
+
     formatDate(dateStr) {
       const date = new Date(dateStr);
       const now = new Date();
       const diff = now - date;
-      
+
       if (diff < 60000) return 'Just now';
       if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
       if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
       if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
-      
+
       return date.toLocaleDateString();
     },
-    
+
     getLanguageColor(lang) {
       const colors = {
         javascript: '#f7df1e',
@@ -1078,22 +1079,22 @@ document.addEventListener('alpine:init', () => {
       };
       return colors[lang] || '#6b7280';
     },
-    
+
     addTag(tag) {
       if (tag && !this.editingSnippet.tags.includes(tag)) {
         this.editingSnippet.tags.push(tag);
       }
     },
-    
+
     removeTag(index) {
       this.editingSnippet.tags.splice(index, 1);
     },
-    
+
     async logout() {
       await api.post('/api/v1/auth/logout');
       window.location.href = '/login';
     },
-    
+
     // Settings functions
     async openSettings() {
       this.showSettings = true;
@@ -1104,38 +1105,38 @@ document.addEventListener('alpine:init', () => {
       this.createdToken = null;
       await this.loadApiTokens();
     },
-    
+
     closeSettings() {
       this.showSettings = false;
       this.createdToken = null;
     },
-    
+
     async loadApiTokens() {
       const result = await api.get('/api/v1/tokens');
       if (result && result.data) {
         this.apiTokens = result.data;
       }
     },
-    
+
     async changePassword() {
       this.passwordError = '';
       this.passwordSuccess = '';
-      
+
       if (this.passwordForm.new !== this.passwordForm.confirm) {
         this.passwordError = 'New passwords do not match';
         return;
       }
-      
+
       if (this.passwordForm.new.length < 6) {
         this.passwordError = 'Password must be at least 6 characters';
         return;
       }
-      
+
       const result = await api.post('/api/v1/auth/change-password', {
         current_password: this.passwordForm.current,
         new_password: this.passwordForm.new
       });
-      
+
       if (result && !result.error) {
         this.passwordSuccess = 'Password changed successfully. Logging out...';
         this.passwordForm = { current: '', new: '', confirm: '' };
@@ -1147,19 +1148,19 @@ document.addEventListener('alpine:init', () => {
         this.passwordError = result?.error?.message || 'Failed to change password';
       }
     },
-    
+
     async createApiToken() {
       if (!this.newToken.name.trim()) {
         showToast('Token name is required', 'error');
         return;
       }
-      
+
       const result = await api.post('/api/v1/tokens', {
         name: this.newToken.name,
         permissions: this.newToken.permissions,
         expires_in_days: parseInt(this.newToken.expires_in_days) || null
       });
-      
+
       if (result && !result.error) {
         this.createdToken = result.token;
         this.newToken = { name: '', permissions: 'read', expires_in_days: 30 };
@@ -1169,10 +1170,10 @@ document.addEventListener('alpine:init', () => {
         showToast(result?.error?.message || 'Failed to create token', 'error');
       }
     },
-    
+
     async deleteApiToken(tokenId) {
       if (!confirm('Are you sure you want to delete this API token?')) return;
-      
+
       const result = await api.delete(`/api/v1/tokens/${tokenId}`);
       if (!result || !result.error) {
         await this.loadApiTokens();
@@ -1181,19 +1182,19 @@ document.addEventListener('alpine:init', () => {
         showToast('Failed to delete token', 'error');
       }
     },
-    
+
     copyToken() {
       if (this.createdToken) {
         navigator.clipboard.writeText(this.createdToken);
         showToast('Token copied to clipboard');
       }
     },
-    
+
     formatTokenDate(dateStr) {
       if (!dateStr) return 'Never';
       return new Date(dateStr).toLocaleDateString();
     },
-    
+
     // Computed: Flatten folders for select dropdown (includes nested with indentation)
     get flattenedFolders() {
       const result = [];
@@ -1212,29 +1213,29 @@ document.addEventListener('alpine:init', () => {
       flatten(this.folders);
       return result;
     },
-    
+
     // Folder management
     showNewFolderModal() {
       this.editingFolder = { name: '', parent_id: '' };
       this.showFolderModal = true;
     },
-    
+
     renameFolder(folder) {
       this.editingFolder = { id: folder.id, name: folder.name, parent_id: folder.parent_id || '' };
       this.showFolderModal = true;
     },
-    
+
     async saveFolder() {
       if (!this.editingFolder.name.trim()) {
         showToast('Folder name is required', 'error');
         return;
       }
-      
+
       const data = {
         name: this.editingFolder.name,
         parent_id: this.editingFolder.parent_id ? parseInt(this.editingFolder.parent_id) : null
       };
-      
+
       let result;
       if (this.editingFolder.id) {
         // Update existing folder
@@ -1243,7 +1244,7 @@ document.addEventListener('alpine:init', () => {
         // Create new folder
         result = await api.post('/api/v1/folders', data);
       }
-      
+
       if (result && !result.error) {
         this.showFolderModal = false;
         await this.loadFolders();
@@ -1252,10 +1253,10 @@ document.addEventListener('alpine:init', () => {
         showToast(result?.error?.message || 'Failed to save folder', 'error');
       }
     },
-    
+
     async deleteFolder(folder) {
       if (!confirm(`Delete folder "${folder.name}"? Snippets in this folder will not be deleted.`)) return;
-      
+
       const result = await api.delete(`/api/v1/folders/${folder.id}`);
       if (!result || !result.error) {
         await this.loadFolders();
@@ -1267,23 +1268,23 @@ document.addEventListener('alpine:init', () => {
         showToast('Failed to delete folder', 'error');
       }
     },
-    
+
     // Tag management
     renameTag(tag) {
       this.editingTag = { id: tag.id, name: tag.name };
       this.showTagModal = true;
     },
-    
+
     async saveTag() {
       if (!this.editingTag.name.trim()) {
         showToast('Tag name is required', 'error');
         return;
       }
-      
+
       const result = await api.put(`/api/v1/tags/${this.editingTag.id}`, {
         name: this.editingTag.name
       });
-      
+
       if (result && !result.error) {
         this.showTagModal = false;
         await this.loadTags();
@@ -1292,10 +1293,10 @@ document.addEventListener('alpine:init', () => {
         showToast(result?.error?.message || 'Failed to rename tag', 'error');
       }
     },
-    
+
     async deleteTag(tag) {
       if (!confirm(`Delete tag "${tag.name}"? This will remove the tag from all snippets.`)) return;
-      
+
       const result = await api.delete(`/api/v1/tags/${tag.id}`);
       if (!result || !result.error) {
         await this.loadTags();
@@ -1307,7 +1308,7 @@ document.addEventListener('alpine:init', () => {
         showToast('Failed to delete tag', 'error');
       }
     },
-    
+
     // Backup functions
     async exportBackup() {
       this.backupLoading = true;
@@ -1318,16 +1319,16 @@ document.addEventListener('alpine:init', () => {
         if (this.backupOptions.password) {
           params.append('password', this.backupOptions.password);
         }
-        
+
         const response = await fetch(`/api/v1/backup/export?${params}`, {
           credentials: 'include'
         });
-        
+
         if (!response.ok) {
           const error = await response.json();
           throw new Error(error.error?.message || 'Export failed');
         }
-        
+
         // Get filename from Content-Disposition header
         const disposition = response.headers.get('Content-Disposition');
         let filename = 'snipo-backup.json';
@@ -1335,7 +1336,7 @@ document.addEventListener('alpine:init', () => {
           const match = disposition.match(/filename="(.+)"/);
           if (match) filename = match[1];
         }
-        
+
         // Download file
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
@@ -1346,23 +1347,23 @@ document.addEventListener('alpine:init', () => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         showToast('Backup downloaded successfully');
       } catch (err) {
         showToast(err.message || 'Failed to export backup', 'error');
       }
       this.backupLoading = false;
     },
-    
+
     async importBackup() {
       if (!this.backupFile) {
         showToast('Please select a backup file', 'error');
         return;
       }
-      
+
       this.backupLoading = true;
       this.importResult = null;
-      
+
       try {
         const formData = new FormData();
         formData.append('file', this.backupFile);
@@ -1370,36 +1371,36 @@ document.addEventListener('alpine:init', () => {
         if (this.importOptions.password) {
           formData.append('password', this.importOptions.password);
         }
-        
+
         const response = await fetch('/api/v1/backup/import', {
           method: 'POST',
           credentials: 'include',
           body: formData
         });
-        
+
         const result = await response.json();
-        
+
         if (!response.ok) {
           throw new Error(result.error?.message || 'Import failed');
         }
-        
+
         this.importResult = result;
         this.backupFile = null;
-        
+
         // Reload data
         await Promise.all([
           this.loadSnippets(),
           this.loadTags(),
           this.loadFolders()
         ]);
-        
+
         showToast('Backup imported successfully');
       } catch (err) {
         showToast(err.message || 'Failed to import backup', 'error');
       }
       this.backupLoading = false;
     },
-    
+
     async loadS3Status() {
       try {
         const result = await api.get('/api/v1/backup/s3/status');
@@ -1413,7 +1414,7 @@ document.addEventListener('alpine:init', () => {
         console.error('Failed to load S3 status:', err);
       }
     },
-    
+
     async loadS3Backups() {
       try {
         const result = await api.get('/api/v1/backup/s3/list');
@@ -1424,7 +1425,7 @@ document.addEventListener('alpine:init', () => {
         console.error('Failed to load S3 backups:', err);
       }
     },
-    
+
     async syncToS3() {
       this.backupLoading = true;
       try {
@@ -1432,7 +1433,7 @@ document.addEventListener('alpine:init', () => {
           format: this.backupOptions.format,
           password: this.backupOptions.password
         });
-        
+
         if (result && !result.error) {
           await this.loadS3Backups();
           showToast('Backup synced to S3 successfully');
@@ -1444,10 +1445,10 @@ document.addEventListener('alpine:init', () => {
       }
       this.backupLoading = false;
     },
-    
+
     async restoreFromS3(key) {
       if (!confirm('Restore from this backup? This will import the backup data.')) return;
-      
+
       this.backupLoading = true;
       try {
         const result = await api.post('/api/v1/backup/s3/restore', {
@@ -1455,7 +1456,7 @@ document.addEventListener('alpine:init', () => {
           strategy: this.importOptions.strategy,
           password: this.importOptions.password
         });
-        
+
         if (result && !result.error) {
           await Promise.all([
             this.loadSnippets(),
@@ -1471,10 +1472,10 @@ document.addEventListener('alpine:init', () => {
       }
       this.backupLoading = false;
     },
-    
+
     async deleteS3Backup(key) {
       if (!confirm('Delete this backup from S3?')) return;
-      
+
       try {
         const result = await api.delete(`/api/v1/backup/s3/delete?key=${encodeURIComponent(key)}`);
         if (!result || !result.error) {
@@ -1487,7 +1488,7 @@ document.addEventListener('alpine:init', () => {
         showToast(err.message || 'Failed to delete backup', 'error');
       }
     },
-    
+
     formatFileSize(bytes) {
       if (bytes === 0) return '0 B';
       const k = 1024;
@@ -1495,23 +1496,23 @@ document.addEventListener('alpine:init', () => {
       const i = Math.floor(Math.log(bytes) / Math.log(k));
       return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     },
-    
+
     formatDate(dateStr) {
       if (!dateStr) return '';
       return new Date(dateStr).toLocaleString();
     }
   }));
-  
+
   // Login form
   Alpine.data('loginForm', () => ({
     password: '',
     error: '',
     loading: false,
-    
+
     async login() {
       this.loading = true;
       this.error = '';
-      
+
       try {
         const response = await fetch('/api/v1/auth/login', {
           method: 'POST',
@@ -1519,9 +1520,9 @@ document.addEventListener('alpine:init', () => {
           credentials: 'include',
           body: JSON.stringify({ password: this.password })
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
           window.location.href = '/';
         } else {
@@ -1530,36 +1531,36 @@ document.addEventListener('alpine:init', () => {
       } catch (err) {
         this.error = 'Connection error';
       }
-      
+
       this.loading = false;
     }
   }));
-  
+
   // Public snippet view
   Alpine.data('publicSnippet', () => ({
     snippet: null,
     loading: true,
     error: false,
     errorMessage: '',
-    
+
     async init() {
       // Get snippet ID from URL path: /s/{id}
       const path = window.location.pathname;
       const match = path.match(/\/s\/([a-zA-Z0-9]+)/);
-      
+
       if (!match) {
         this.error = true;
         this.errorMessage = 'Invalid snippet URL';
         this.loading = false;
         return;
       }
-      
+
       const snippetId = match[1];
-      
+
       try {
         const response = await fetch(`/api/v1/snippets/public/${snippetId}`);
         const result = await response.json();
-        
+
         if (response.ok && result) {
           this.snippet = result;
           this.$nextTick(() => {
@@ -1575,17 +1576,17 @@ document.addEventListener('alpine:init', () => {
         this.error = true;
         this.errorMessage = 'Failed to load snippet';
       }
-      
+
       this.loading = false;
     },
-    
+
     async copyCode() {
       if (this.snippet?.content) {
         await navigator.clipboard.writeText(this.snippet.content);
         showToast('Code copied to clipboard');
       }
     },
-    
+
     getLanguageColor(lang) {
       const colors = {
         javascript: '#f7df1e',
@@ -1612,7 +1613,7 @@ document.addEventListener('alpine:init', () => {
       };
       return colors[lang] || '#6b7280';
     },
-    
+
     formatDate(dateStr) {
       if (!dateStr) return '';
       const date = new Date(dateStr);
@@ -1628,14 +1629,14 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     document.querySelector('.search-input')?.focus();
   }
-  
+
   // Ctrl/Cmd + N: New snippet
   if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
     e.preventDefault();
     const app = Alpine.$data(document.querySelector('[x-data="snippetsApp()"]'));
     if (app) app.newSnippet();
   }
-  
+
   // Escape: Close editor/modal
   if (e.key === 'Escape') {
     const app = Alpine.$data(document.querySelector('[x-data="snippetsApp()"]'));

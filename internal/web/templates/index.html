@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="app-container" x-data="snippetsApp()">
     <!-- Sidebar -->
-    <aside class="sidebar" :class="{ 'open': $store.app.sidebarOpen }">
+    <aside class="sidebar" :class="{ 'open': $store.app.sidebarOpen, 'closed': !$store.app.sidebarOpen }">
         <a href="/" class="sidebar-header" title="Go to Home">
             <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="16 18 22 12 16 6"></polyline>
@@ -9,11 +9,12 @@
             </svg>
             <h1>Snipo</h1>
         </a>
-        
+
         <nav class="sidebar-nav">
             <!-- Quick actions -->
             <div class="sidebar-section">
-                <div class="sidebar-item" @click="clearFilters()" :class="{ 'active': !filter.tagId && !filter.folderId && !filter.isFavorite }">
+                <div class="sidebar-item" @click="clearFilters()"
+                    :class="{ 'active': !filter.tagId && !filter.folderId && !filter.isFavorite }">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="7" height="7"></rect>
                         <rect x="14" y="3" width="7" height="7"></rect>
@@ -23,19 +24,23 @@
                     <span>All Snippets</span>
                     <span class="sidebar-item-count" x-text="totalSnippets"></span>
                 </div>
-                <div class="sidebar-item favorites-item" @click="showFavorites()" :class="{ 'active': filter.isFavorite }">
+                <div class="sidebar-item favorites-item" @click="showFavorites()"
+                    :class="{ 'active': filter.isFavorite }">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="star-icon">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        <polygon
+                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                        </polygon>
                     </svg>
                     <span>Favorites</span>
                     <span class="sidebar-item-count" x-text="favoritesCount"></span>
                 </div>
             </div>
-            
+
             <!-- Folders -->
             <div class="sidebar-section">
                 <div class="sidebar-section-header" @click="foldersCollapsed = !foldersCollapsed">
-                    <svg class="collapse-icon" :class="{ 'collapsed': foldersCollapsed }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="collapse-icon" :class="{ 'collapsed': foldersCollapsed }" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                     <span class="sidebar-section-title">Folders</span>
@@ -49,26 +54,31 @@
                 <div class="sidebar-section-content" x-show="!foldersCollapsed" x-collapse>
                     <template x-for="folder in folders" :key="folder.id">
                         <div>
-                            <div class="sidebar-item folder-item" 
-                                 :class="{ 'active': filter.folderId === folder.id }">
+                            <div class="sidebar-item folder-item" :class="{ 'active': filter.folderId === folder.id }">
                                 <div class="sidebar-item-main" @click="filterByFolder(folder.id)" :title="folder.name">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                        <path
+                                            d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z">
+                                        </path>
                                     </svg>
                                     <span x-text="folder.name"></span>
                                     <span class="sidebar-item-count" x-text="folder.snippet_count || 0"></span>
                                 </div>
                                 <div class="sidebar-item-actions">
                                     <button @click.stop="renameFolder(folder)" title="Rename">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            width="14" height="14">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                         </svg>
                                     </button>
                                     <button @click.stop="deleteFolder(folder)" title="Delete">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            width="14" height="14">
                                             <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            <path
+                                                d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                            </path>
                                         </svg>
                                     </button>
                                 </div>
@@ -76,25 +86,34 @@
                             <!-- Nested folders -->
                             <template x-for="child in folder.children || []" :key="child.id">
                                 <div class="sidebar-item folder-item nested"
-                                     :class="{ 'active': filter.folderId === child.id }">
-                                    <div class="sidebar-item-main" @click="filterByFolder(child.id)" :title="child.name">
+                                    :class="{ 'active': filter.folderId === child.id }">
+                                    <div class="sidebar-item-main" @click="filterByFolder(child.id)"
+                                        :title="child.name">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                            <path
+                                                d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z">
+                                            </path>
                                         </svg>
                                         <span x-text="child.name"></span>
                                         <span class="sidebar-item-count" x-text="child.snippet_count || 0"></span>
                                     </div>
                                     <div class="sidebar-item-actions">
                                         <button @click.stop="renameFolder(child)" title="Rename">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                width="14" height="14">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7">
+                                                </path>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z">
+                                                </path>
                                             </svg>
                                         </button>
                                         <button @click.stop="deleteFolder(child)" title="Delete">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                width="14" height="14">
                                                 <polyline points="3 6 5 6 21 6"></polyline>
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                <path
+                                                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                                </path>
                                             </svg>
                                         </button>
                                     </div>
@@ -104,19 +123,19 @@
                     </template>
                 </div>
             </div>
-            
+
             <!-- Tags -->
             <div class="sidebar-section">
                 <div class="sidebar-section-header" @click="tagsCollapsed = !tagsCollapsed">
-                    <svg class="collapse-icon" :class="{ 'collapsed': tagsCollapsed }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="collapse-icon" :class="{ 'collapsed': tagsCollapsed }" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                     <span class="sidebar-section-title">Tags</span>
                 </div>
                 <div class="sidebar-section-content" x-show="!tagsCollapsed" x-collapse>
                     <template x-for="tag in tags" :key="tag.id">
-                        <div class="sidebar-item" 
-                             :class="{ 'active': filter.tagId === tag.id }">
+                        <div class="sidebar-item" :class="{ 'active': filter.tagId === tag.id }">
                             <div class="sidebar-item-main" @click="filterByTag(tag.id)" :title="tag.name">
                                 <span class="tag-dot" :style="{ background: tag.color }"></span>
                                 <span x-text="tag.name"></span>
@@ -124,15 +143,19 @@
                             </div>
                             <div class="sidebar-item-actions">
                                 <button @click.stop="renameTag(tag)" title="Rename">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        width="14" height="14">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                     </svg>
                                 </button>
                                 <button @click.stop="deleteTag(tag)" title="Delete">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        width="14" height="14">
                                         <polyline points="3 6 5 6 21 6"></polyline>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        <path
+                                            d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                        </path>
                                     </svg>
                                 </button>
                             </div>
@@ -141,7 +164,7 @@
                 </div>
             </div>
         </nav>
-        
+
         <!-- Sidebar footer -->
         <div style="padding: 1rem; border-top: 1px solid var(--sidebar-border);">
             <div class="sidebar-item" @click="logout()" style="color: var(--snipo-danger); cursor: pointer;">
@@ -154,9 +177,9 @@
             </div>
         </div>
     </aside>
-    
+
     <!-- Main content -->
-    <main class="main-content">
+    <main class="main-content" :class="{ 'expanded': !$store.app.sidebarOpen }">
         <!-- Header -->
         <header class="main-header">
             <!-- Mobile menu toggle -->
@@ -167,18 +190,20 @@
                     <line x1="3" y1="18" x2="21" y2="18"></line>
                 </svg>
             </button>
-            
+            <!-- Desktop Sidebar Toggle -->
+            <button class="btn-icon desktop-sidebar-toggle" @click="$store.app.toggleSidebar()" title="Toggle Sidebar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="9" y1="3" x2="9" y2="21"></line>
+                </svg>
+            </button>
+
             <!-- Search -->
             <div class="search-container">
-                <input 
-                    type="search" 
-                    class="search-input" 
-                    placeholder="Search snippets... (Ctrl+K)"
-                    x-model="filter.query"
-                    @input.debounce.300ms="search()"
-                >
+                <input type="search" class="search-input" placeholder="Search snippets... (Ctrl+K)"
+                    x-model="filter.query" @input.debounce.300ms="search()">
             </div>
-            
+
             <!-- Left actions (New snippet) -->
             <div class="header-actions">
                 <button class="btn-icon btn-primary" @click="newSnippet()" title="New Snippet (Ctrl+N)">
@@ -188,12 +213,15 @@
                     </svg>
                 </button>
             </div>
-            
+
             <!-- Right actions (View toggle, Settings, Theme toggle) -->
             <div class="header-actions-right">
+
+
                 <!-- View toggle -->
                 <div class="view-toggle">
-                    <button class="btn-icon" :class="{ 'active': viewMode === 'grid' }" @click="setViewMode('grid')" title="Grid View">
+                    <button class="btn-icon" :class="{ 'active': viewMode === 'grid' }" @click="setViewMode('grid')"
+                        title="Grid View">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="7" height="7"></rect>
                             <rect x="14" y="3" width="7" height="7"></rect>
@@ -201,7 +229,8 @@
                             <rect x="3" y="14" width="7" height="7"></rect>
                         </svg>
                     </button>
-                    <button class="btn-icon" :class="{ 'active': viewMode === 'list' }" @click="setViewMode('list')" title="List View">
+                    <button class="btn-icon" :class="{ 'active': viewMode === 'list' }" @click="setViewMode('list')"
+                        title="List View">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="8" y1="6" x2="21" y2="6"></line>
                             <line x1="8" y1="12" x2="21" y2="12"></line>
@@ -212,19 +241,22 @@
                         </svg>
                     </button>
                 </div>
-                
+
                 <!-- Settings -->
                 <button class="btn-icon" @click="openSettings()" title="Settings">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                        </path>
                     </svg>
                 </button>
-                
+
                 <!-- Theme toggle -->
                 <button class="btn-icon" @click="$store.app.toggleTheme()" title="Toggle theme">
                     <!-- Sun icon (shown in dark mode) -->
-                    <svg x-show="$store.app.darkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg x-show="$store.app.darkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
                         <circle cx="12" cy="12" r="5"></circle>
                         <line x1="12" y1="1" x2="12" y2="3"></line>
                         <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -236,13 +268,14 @@
                         <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                     </svg>
                     <!-- Moon icon (shown in light mode) -->
-                    <svg x-show="!$store.app.darkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg x-show="!$store.app.darkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     </svg>
                 </button>
             </div>
         </header>
-        
+
         <!-- Draft recovery banner (single draft) -->
         <div class="draft-banner" x-show="hasDraft" x-cloak>
             <div class="draft-banner-content">
@@ -253,7 +286,8 @@
                     <line x1="16" y1="17" x2="8" y2="17"></line>
                 </svg>
                 <span>You have an unsaved draft
-                    <strong x-show="draftSnippet && draftSnippet.title" x-text="draftSnippet ? draftSnippet.title : ''"></strong>
+                    <strong x-show="draftSnippet && draftSnippet.title"
+                        x-text="draftSnippet ? draftSnippet.title : ''"></strong>
                 </span>
             </div>
             <div class="draft-banner-actions">
@@ -261,14 +295,14 @@
                 <button class="btn-primary" @click="restoreDraft()">Restore Draft</button>
             </div>
         </div>
-        
+
         <!-- Content area -->
         <div class="snippet-list" x-show="!showEditor">
             <!-- Loading state -->
             <div class="loading" x-show="loading">
                 <div class="spinner"></div>
             </div>
-            
+
             <!-- Empty state -->
             <div class="empty-state" x-show="!loading && snippets.length === 0">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -281,22 +315,25 @@
                     Create Snippet
                 </button>
             </div>
-            
+
             <!-- Snippet grid/list -->
-            <div :class="viewMode === 'list' ? 'snippet-list-view' : 'snippet-grid'" x-show="!loading && snippets.length > 0">
+            <div :class="viewMode === 'list' ? 'snippet-list-view' : 'snippet-grid'"
+                x-show="!loading && snippets.length > 0">
                 <template x-for="snippet in snippets" :key="snippet.id">
                     <article class="snippet-card" @click="viewSnippet(snippet)">
                         <div class="snippet-card-header">
                             <h3 class="snippet-card-title" x-text="snippet.title"></h3>
-                            <span class="snippet-card-language" 
-                                  :style="{ background: getLanguageColor(snippet.language) }"
-                                  x-text="snippet.language"></span>
+                            <span class="snippet-card-language"
+                                :style="{ background: getLanguageColor(snippet.language) }"
+                                x-text="snippet.language"></span>
                         </div>
-                        
+
                         <!-- Show description if exists, otherwise show first 2 lines of code -->
-                        <p class="snippet-card-description" x-show="snippet.description" x-text="snippet.description"></p>
-                        <pre class="snippet-card-preview" x-show="!snippet.description"><code x-text="snippet.content.split('\n').slice(0, 2).join('\n')"></code></pre>
-                        
+                        <p class="snippet-card-description" x-show="snippet.description" x-text="snippet.description">
+                        </p>
+                        <pre class="snippet-card-preview"
+                            x-show="!snippet.description"><code x-text="snippet.content.split('\n').slice(0, 2).join('\n')"></code></pre>
+
                         <div class="snippet-card-footer">
                             <div class="snippet-card-tags">
                                 <template x-for="tag in (snippet.tags || []).slice(0, 3)" :key="tag.id">
@@ -308,15 +345,21 @@
                             </div>
                             <div class="snippet-card-meta">
                                 <span x-show="snippet.is_favorite" title="Favorite">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
-                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
+                                        stroke="currentColor" stroke-width="2">
+                                        <polygon
+                                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                                        </polygon>
                                     </svg>
                                 </span>
                                 <span x-show="snippet.is_public" title="Public">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
                                         <circle cx="12" cy="12" r="10"></circle>
                                         <line x1="2" y1="12" x2="22" y2="12"></line>
-                                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                                        <path
+                                            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                                        </path>
                                     </svg>
                                 </span>
                                 <span x-text="formatDate(snippet.updated_at)"></span>
@@ -325,13 +368,10 @@
                     </article>
                 </template>
             </div>
-            
+
             <!-- Pagination -->
             <div class="flex justify-between items-center mt-4" x-show="pagination.totalPages > 1">
-                <button 
-                    @click="pagination.page--; loadSnippets()"
-                    :disabled="pagination.page <= 1"
-                    class="btn-icon">
+                <button @click="pagination.page--; loadSnippets()" :disabled="pagination.page <= 1" class="btn-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="15 18 9 12 15 6"></polyline>
                     </svg>
@@ -339,9 +379,7 @@
                 <span class="text-sm text-muted">
                     Page <span x-text="pagination.page"></span> of <span x-text="pagination.totalPages"></span>
                 </span>
-                <button 
-                    @click="pagination.page++; loadSnippets()"
-                    :disabled="pagination.page >= pagination.totalPages"
+                <button @click="pagination.page++; loadSnippets()" :disabled="pagination.page >= pagination.totalPages"
                     class="btn-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="9 18 15 12 9 6"></polyline>
@@ -349,35 +387,33 @@
                 </button>
             </div>
         </div>
-        
+
         <!-- Snippet View/Editor -->
         <div class="editor-container" x-show="showEditor" x-cloak>
             <!-- Toolbar -->
-            <div class="editor-toolbar">
+            <div class="editor-toolbar" x-show="editorHeaderVisible">
                 <button class="btn-icon" @click="cancelEdit()" title="Back">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="19" y1="12" x2="5" y2="12"></line>
                         <polyline points="12 19 5 12 12 5"></polyline>
                     </svg>
                 </button>
-                
+
                 <!-- Preview mode: show title as text -->
                 <h2 class="editor-title-display" x-show="!isEditing" x-text="editingSnippet.title || 'Untitled'"></h2>
-                
+
                 <!-- Edit mode: show title input -->
-                <input 
-                    x-show="isEditing"
-                    type="text" 
-                    class="editor-title-input bordered"
-                    x-model="editingSnippet.title"
-                    placeholder="Snippet title..."
-                    @input="scheduleAutoSave()"
-                >
-                
+                <input x-show="isEditing" type="text" class="editor-title-input bordered" x-model="editingSnippet.title"
+                    placeholder="Snippet title..." @input="scheduleAutoSave()">
+
                 <div class="flex gap-2">
-                    <button class="btn-icon" @click="toggleFavorite(editingSnippet)" x-show="editingSnippet?.id" title="Toggle Favorite">
-                        <svg viewBox="0 0 24 24" :fill="editingSnippet?.is_favorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    <button class="btn-icon" @click="toggleFavorite(editingSnippet)" x-show="editingSnippet?.id"
+                        title="Toggle Favorite">
+                        <svg viewBox="0 0 24 24" :fill="editingSnippet?.is_favorite ? 'currentColor' : 'none'"
+                            stroke="currentColor" stroke-width="2">
+                            <polygon
+                                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                            </polygon>
                         </svg>
                     </button>
                     <button class="btn-icon" @click="copyToClipboard(editingSnippet)" title="Copy Code">
@@ -386,50 +422,73 @@
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                         </svg>
                     </button>
-                    <button class="btn-icon" @click="copyShareLink(editingSnippet)" x-show="editingSnippet?.id && editingSnippet?.is_public" title="Copy Share Link">
+                    <button class="btn-icon" @click="copyShareLink(editingSnippet)"
+                        x-show="editingSnippet?.id && editingSnippet?.is_public" title="Copy Share Link">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                         </svg>
                     </button>
-                    <button class="btn-icon" @click="confirmDelete(editingSnippet)" x-show="editingSnippet?.id" title="Delete">
+                    <button class="btn-icon" @click="confirmDelete(editingSnippet)" x-show="editingSnippet?.id"
+                        title="Delete">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                            </path>
                         </svg>
                     </button>
-                    
+
                     <!-- Edit button (preview mode) -->
-                    <button class="btn-primary" x-show="!isEditing" @click="startEditing()" style="padding: 0.5rem 1rem;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="margin-right: 0.25rem;">
+                    <button class="btn-primary" x-show="!isEditing" @click="startEditing()"
+                        style="padding: 0.5rem 1rem;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"
+                            height="16" style="margin-right: 0.25rem;">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
                         Edit
                     </button>
-                    
+
                     <!-- Save button (edit mode) -->
                     <button class="btn-primary" x-show="isEditing" @click="saveSnippet()" style="padding: 0.5rem 1rem;">
                         Save
                     </button>
                 </div>
             </div>
-            
+
             <!-- PREVIEW MODE: Full-width code preview with metadata -->
             <div class="preview-mode" x-show="!isEditing">
                 <!-- Metadata bar -->
                 <div class="preview-metadata">
+                    <!-- Toggle Focus Mode -->
+                    <div class="preview-meta-item">
+                        <button class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"
+                            @click="editorHeaderVisible = !editorHeaderVisible" title="Focus Mode (Toggle Header)"
+                            style="padding: 2px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"
+                                height="16">
+                                <path d="M15 3h6v6"></path>
+                                <path d="M14 10l6.1-6.1"></path>
+                                <path d="M9 21H3v-6"></path>
+                                <path d="M10 14l-6.1 6.1"></path>
+                            </svg>
+                        </button>
+                    </div>
                     <div class="preview-meta-item" x-show="editingSnippet.description">
                         <span class="preview-meta-label">Description</span>
                         <span x-text="editingSnippet.description"></span>
                     </div>
                     <div class="preview-meta-item">
-                        <span class="preview-meta-label" x-text="(editingSnippet.files && editingSnippet.files.length > 0) ? 'File' : 'Language'">Language</span>
-                        <span class="language-badge" :style="{ background: getLanguageColor(activeFile?.language || editingSnippet.language) }" x-text="activeFile?.language || editingSnippet.language"></span>
+                        <span class="preview-meta-label"
+                            x-text="(editingSnippet.files && editingSnippet.files.length > 0) ? 'File' : 'Language'">Language</span>
+                        <span class="language-badge"
+                            :style="{ background: getLanguageColor(activeFile?.language || editingSnippet.language) }"
+                            x-text="activeFile?.language || editingSnippet.language"></span>
                     </div>
                     <div class="preview-meta-item" x-show="editingSnippet.folder_id">
                         <span class="preview-meta-label">Folder</span>
-                        <a href="#" class="folder-link" @click.prevent="filterByFolder(editingSnippet.folder_id)" x-text="flattenedFolders.find(f => f.id == editingSnippet.folder_id)?.name || ''"></a>
+                        <a href="#" class="folder-link" @click.prevent="filterByFolder(editingSnippet.folder_id)"
+                            x-text="flattenedFolders.find(f => f.id == editingSnippet.folder_id)?.name || ''"></a>
                     </div>
                     <div class="preview-meta-item" x-show="editingSnippet.tags?.length > 0">
                         <span class="preview-meta-label">Tags</span>
@@ -443,11 +502,12 @@
                         <span class="tag-badge public-badge">Public</span>
                     </div>
                 </div>
-                
+
                 <!-- File bar for multi-file preview -->
                 <div class="preview-file-bar" x-show="editingSnippet.files && editingSnippet.files.length > 0">
                     <div class="preview-file-current">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
+                            height="14">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                             <polyline points="14 2 14 8 20 8"></polyline>
                         </svg>
@@ -455,39 +515,36 @@
                     </div>
                     <div class="file-tabs-compact" x-show="editingSnippet.files.length > 1">
                         <template x-for="(file, index) in editingSnippet.files" :key="index">
-                            <button class="file-tab-compact" 
-                                    :class="{ 'active': activeFileIndex === index }"
-                                    @click="selectFile(index); $nextTick(() => highlightAll())"
-                                    :title="file.filename">
+                            <button class="file-tab-compact" :class="{ 'active': activeFileIndex === index }"
+                                @click="selectFile(index); $nextTick(() => highlightAll())" :title="file.filename">
                                 <span x-text="file.filename"></span>
                             </button>
                         </template>
                     </div>
                 </div>
-                
+
                 <!-- Full code preview -->
                 <div class="preview-code-wrapper">
                     <!-- Rendered markdown view -->
-                    <div class="preview-markdown-scroll" 
-                         x-show="(activeFile?.language || editingSnippet.language) === 'markdown'"
-                         x-html="renderMarkdown(activeFile?.content || editingSnippet.content)">
+                    <div class="preview-markdown-scroll"
+                        x-show="(activeFile?.language || editingSnippet.language) === 'markdown'"
+                        x-html="renderMarkdown(activeFile?.content || editingSnippet.content)">
                     </div>
                     <!-- Code view for non-markdown -->
-                    <div class="preview-code-scroll" 
-                         x-show="(activeFile?.language || editingSnippet.language) !== 'markdown'">
+                    <div class="preview-code-scroll"
+                        x-show="(activeFile?.language || editingSnippet.language) !== 'markdown'">
                         <pre><code :class="'language-' + (activeFile?.language || editingSnippet.language)" x-text="activeFile?.content || editingSnippet.content"></code></pre>
                     </div>
                 </div>
             </div>
-            
+
             <!-- EDIT MODE: Split view with editor left, preview right, sidebar for metadata -->
             <div class="edit-mode" x-show="isEditing">
                 <!-- Compact metadata bar -->
                 <div class="editor-metadata">
                     <div class="editor-field-inline compact">
-                        <select :value="activeFile?.language || editingSnippet.language" 
-                                @change="updateActiveFileLanguage($event.target.value)"
-                                title="Language">
+                        <select :value="activeFile?.language || editingSnippet.language"
+                            @change="updateActiveFileLanguage($event.target.value)" title="Language">
                             <option value="javascript">JavaScript</option>
                             <option value="typescript">TypeScript</option>
                             <option value="python">Python</option>
@@ -511,7 +568,7 @@
                             <option value="plaintext">Plain Text</option>
                         </select>
                     </div>
-                    
+
                     <div class="editor-field-inline compact">
                         <select x-model="editingSnippet.folder_id" title="Folder">
                             <option value="">No folder</option>
@@ -520,23 +577,29 @@
                             </template>
                         </select>
                     </div>
-                    
+
                     <label class="public-toggle" title="Make snippet publicly accessible">
                         <input type="checkbox" x-model="editingSnippet.is_public">
                         <span>Public</span>
                     </label>
-                    
+
                     <div class="editor-field-inline description-field">
-                        <textarea 
-                            x-model="editingSnippet.description"
-                            placeholder="Description (optional)"
-                            rows="1"
-                            class="description-textarea"
-                            @input="autoResizeTextarea($event.target)"
-                        ></textarea>
+                        <textarea x-model="editingSnippet.description" placeholder="Description (optional)" rows="1"
+                            class="description-textarea" @input="autoResizeTextarea($event.target)"></textarea>
                     </div>
+                    <!-- Toggle Focus Mode -->
+                    <button class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"
+                        @click="editorHeaderVisible = !editorHeaderVisible" title="Focus Mode (Toggle Header)"
+                        style="margin-left: auto;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 3h6v6"></path>
+                            <path d="M14 10l6.1-6.1"></path>
+                            <path d="M9 21H3v-6"></path>
+                            <path d="M10 14l-6.1 6.1"></path>
+                        </svg>
+                    </button>
                 </div>
-                
+
                 <!-- Main edit area: editor + tags sidebar -->
                 <div class="editor-main-row">
                     <!-- Left: Editor area -->
@@ -545,76 +608,68 @@
                         <div class="file-bar">
                             <!-- Current file name (editable) -->
                             <div class="current-file-name">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12"
+                                    height="12">
                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                     <polyline points="14 2 14 8 20 8"></polyline>
                                 </svg>
-                                <input type="text" 
-                                       class="filename-input"
-                                       :value="activeFile?.filename || ''"
-                                       @input="updateActiveFilename($event.target.value)"
-                                       @blur="validateFilename()"
-                                       placeholder="filename.ext"
-                                       x-show="editingSnippet.files && editingSnippet.files.length > 0">
-                                <span class="filename-placeholder" 
-                                      x-show="!editingSnippet.files || editingSnippet.files.length === 0"
-                                      @click="addFile()">+ Add file</span>
+                                <input type="text" class="filename-input" :value="activeFile?.filename || ''"
+                                    @input="updateActiveFilename($event.target.value)" @blur="validateFilename()"
+                                    placeholder="filename.ext"
+                                    x-show="editingSnippet.files && editingSnippet.files.length > 0">
+                                <span class="filename-placeholder"
+                                    x-show="!editingSnippet.files || editingSnippet.files.length === 0"
+                                    @click="addFile()">+ Add file</span>
                             </div>
-                            
+
                             <!-- File tabs (when multiple files) -->
-                            <div class="file-tabs-compact" x-show="editingSnippet.files && editingSnippet.files.length > 1">
+                            <div class="file-tabs-compact"
+                                x-show="editingSnippet.files && editingSnippet.files.length > 1">
                                 <template x-for="(file, index) in editingSnippet.files" :key="index">
-                                    <button class="file-tab-compact" 
-                                            :class="{ 'active': activeFileIndex === index }"
-                                            @click="selectFile(index)"
-                                            :title="file.filename">
+                                    <button class="file-tab-compact" :class="{ 'active': activeFileIndex === index }"
+                                        @click="selectFile(index)" :title="file.filename">
                                         <span x-text="file.filename"></span>
-                                        <span class="file-tab-close-sm" 
-                                              @click.stop="removeFile(index)"
-                                              x-show="editingSnippet.files.length > 1">×</span>
+                                        <span class="file-tab-close-sm" @click.stop="removeFile(index)"
+                                            x-show="editingSnippet.files.length > 1">×</span>
                                     </button>
                                 </template>
                             </div>
-                            
+
                             <!-- Add file button -->
-                            <button class="file-add-btn" @click="addFile()" title="Add file" x-show="editingSnippet.files && editingSnippet.files.length > 0">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                            <button class="file-add-btn" @click="addFile()" title="Add file"
+                                x-show="editingSnippet.files && editingSnippet.files.length > 0">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12"
+                                    height="12">
                                     <line x1="12" y1="5" x2="12" y2="19"></line>
                                     <line x1="5" y1="12" x2="19" y2="12"></line>
                                 </svg>
                             </button>
                         </div>
-                        
+
                         <!-- Code editor (CodeMirror) -->
                         <div class="code-editor-wrapper">
-                            <div id="code-editor" 
-                                 x-ref="codeEditor"
-                                 class="codemirror-container"></div>
+                            <div id="code-editor" x-ref="codeEditor" class="codemirror-container"></div>
                         </div>
                     </div>
-                    
+
                     <!-- Right: Tags sidebar -->
                     <div class="tags-sidebar">
                         <div class="tags-sidebar-header">
                             <label>Tags</label>
                         </div>
-                        
+
                         <!-- Add new tag (moved to top) -->
                         <div class="tag-add-section top">
-                            <input 
-                                type="text"
-                                class="tag-add-input"
-                                placeholder="Add tag..."
+                            <input type="text" class="tag-add-input" placeholder="Add tag..."
                                 @keydown.enter.prevent="addTag($event.target.value); $event.target.value = ''"
-                                list="existing-tags-edit"
-                            >
+                                list="existing-tags-edit">
                             <datalist id="existing-tags-edit">
                                 <template x-for="tag in tags" :key="tag.id">
                                     <option :value="tag.name"></option>
                                 </template>
                             </datalist>
                         </div>
-                        
+
                         <!-- Current tags (vertical list) -->
                         <div class="tags-list">
                             <template x-for="(tag, index) in editingSnippet.tags" :key="index">
@@ -627,12 +682,15 @@
                                 <span class="text-muted text-sm">No tags yet</span>
                             </div>
                         </div>
-                        
+
                         <!-- Existing tags to quickly add -->
-                        <div class="tags-suggestions" x-show="tags.filter(t => !editingSnippet.tags.includes(t.name)).length > 0">
+                        <div class="tags-suggestions"
+                            x-show="tags.filter(t => !editingSnippet.tags.includes(t.name)).length > 0">
                             <label class="tags-suggestions-label">Quick add:</label>
                             <div class="tags-suggestions-list">
-                                <template x-for="tag in tags.filter(t => !editingSnippet.tags.includes(t.name)).slice(0, 12)" :key="tag.id">
+                                <template
+                                    x-for="tag in tags.filter(t => !editingSnippet.tags.includes(t.name)).slice(0, 12)"
+                                    :key="tag.id">
                                     <button class="tag-suggestion" @click="addTag(tag.name)" :title="tag.name">
                                         <span class="tag-dot" :style="{ background: tag.color }"></span>
                                         <span x-text="tag.name"></span>
@@ -645,7 +703,7 @@
             </div>
         </div>
     </main>
-    
+
     <!-- Delete confirmation modal -->
     <div class="modal-backdrop" x-show="showDeleteModal" x-cloak @click.self="showDeleteModal = false">
         <div class="modal">
@@ -664,13 +722,14 @@
             </div>
             <div class="modal-footer">
                 <button @click="showDeleteModal = false">Cancel</button>
-                <button class="btn-primary" style="background: var(--snipo-danger); border-color: var(--snipo-danger);" @click="deleteSnippet()">
+                <button class="btn-primary" style="background: var(--snipo-danger); border-color: var(--snipo-danger);"
+                    @click="deleteSnippet()">
                     Delete
                 </button>
             </div>
         </div>
     </div>
-    
+
     <!-- Settings modal -->
     <div class="modal-backdrop" x-show="showSettings" x-cloak @click.self="closeSettings()">
         <div class="modal settings-modal">
@@ -683,23 +742,28 @@
                     </svg>
                 </button>
             </div>
-            
+
             <!-- Settings tabs -->
             <div class="settings-tabs">
-                <button class="settings-tab" :class="{ active: settingsTab === 'password' }" @click="settingsTab = 'password'">
+                <button class="settings-tab" :class="{ active: settingsTab === 'password' }"
+                    @click="settingsTab = 'password'">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                     </svg>
                     Password
                 </button>
-                <button class="settings-tab" :class="{ active: settingsTab === 'apikeys' }" @click="settingsTab = 'apikeys'">
+                <button class="settings-tab" :class="{ active: settingsTab === 'apikeys' }"
+                    @click="settingsTab = 'apikeys'">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                        <path
+                            d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4">
+                        </path>
                     </svg>
                     API Keys
                 </button>
-                <button class="settings-tab" :class="{ active: settingsTab === 'backup' }" @click="settingsTab = 'backup'; loadS3Status()">
+                <button class="settings-tab" :class="{ active: settingsTab === 'backup' }"
+                    @click="settingsTab = 'backup'; loadS3Status()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="7 10 12 15 17 10"></polyline>
@@ -708,7 +772,7 @@
                     Backup
                 </button>
             </div>
-            
+
             <div class="modal-body">
                 <!-- Password tab -->
                 <div x-show="settingsTab === 'password'">
@@ -725,31 +789,36 @@
                             <label>Confirm New Password</label>
                             <input type="password" x-model="passwordForm.confirm" required>
                         </div>
-                        
-                        <p x-show="passwordError" class="text-sm" style="color: var(--snipo-danger);" x-text="passwordError"></p>
-                        <p x-show="passwordSuccess" class="text-sm" style="color: var(--snipo-success);" x-text="passwordSuccess"></p>
-                        
+
+                        <p x-show="passwordError" class="text-sm" style="color: var(--snipo-danger);"
+                            x-text="passwordError"></p>
+                        <p x-show="passwordSuccess" class="text-sm" style="color: var(--snipo-success);"
+                            x-text="passwordSuccess"></p>
+
                         <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">
                             Change Password
                         </button>
                     </form>
                 </div>
-                
+
                 <!-- API Keys tab -->
                 <div x-show="settingsTab === 'apikeys'">
                     <!-- Create new token -->
                     <div class="api-token-form">
                         <h4 style="margin-bottom: 1rem;">Create New API Token</h4>
-                        
+
                         <!-- Show created token -->
                         <div x-show="createdToken" class="created-token-box">
-                            <p class="text-sm" style="margin-bottom: 0.5rem;"><strong>Token created!</strong> Copy it now - it won't be shown again.</p>
+                            <p class="text-sm" style="margin-bottom: 0.5rem;"><strong>Token created!</strong> Copy it
+                                now - it won't be shown again.</p>
                             <div style="display: flex; gap: 0.5rem;">
-                                <input type="text" :value="createdToken" readonly style="font-family: var(--font-mono); font-size: 0.8rem;">
-                                <button class="btn-primary" @click="copyToken()" style="white-space: nowrap;">Copy</button>
+                                <input type="text" :value="createdToken" readonly
+                                    style="font-family: var(--font-mono); font-size: 0.8rem;">
+                                <button class="btn-primary" @click="copyToken()"
+                                    style="white-space: nowrap;">Copy</button>
                             </div>
                         </div>
-                        
+
                         <div x-show="!createdToken">
                             <div class="editor-field">
                                 <label>Token Name</label>
@@ -766,7 +835,8 @@
                                 </div>
                                 <div class="editor-field">
                                     <label>Expires In (days)</label>
-                                    <input type="number" x-model="newToken.expires_in_days" min="1" max="365" placeholder="30">
+                                    <input type="number" x-model="newToken.expires_in_days" min="1" max="365"
+                                        placeholder="30">
                                 </div>
                             </div>
                             <button class="btn-primary" @click="createApiToken()" style="width: 100%;">
@@ -774,15 +844,15 @@
                             </button>
                         </div>
                     </div>
-                    
+
                     <!-- Existing tokens -->
                     <div class="api-tokens-list" style="margin-top: 1.5rem;">
                         <h4 style="margin-bottom: 1rem;">Existing Tokens</h4>
-                        
+
                         <div x-show="apiTokens.length === 0" class="text-sm text-muted">
                             No API tokens yet.
                         </div>
-                        
+
                         <template x-for="token in apiTokens" :key="token.id">
                             <div class="api-token-item">
                                 <div class="api-token-info">
@@ -790,21 +860,25 @@
                                     <div class="api-token-meta">
                                         <span class="api-token-permission" x-text="token.permissions"></span>
                                         <span>Created: <span x-text="formatTokenDate(token.created_at)"></span></span>
-                                        <span x-show="token.expires_at">Expires: <span x-text="formatTokenDate(token.expires_at)"></span></span>
-                                        <span x-show="token.last_used_at">Last used: <span x-text="formatTokenDate(token.last_used_at)"></span></span>
+                                        <span x-show="token.expires_at">Expires: <span
+                                                x-text="formatTokenDate(token.expires_at)"></span></span>
+                                        <span x-show="token.last_used_at">Last used: <span
+                                                x-text="formatTokenDate(token.last_used_at)"></span></span>
                                     </div>
                                 </div>
                                 <button class="btn-icon danger" @click="deleteApiToken(token.id)" title="Delete token">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="3 6 5 6 21 6"></polyline>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        <path
+                                            d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                        </path>
                                     </svg>
                                 </button>
                             </div>
                         </template>
                     </div>
                 </div>
-                
+
                 <!-- Backup tab -->
                 <div x-show="settingsTab === 'backup'">
                     <!-- Export Section -->
@@ -813,7 +887,7 @@
                         <p class="text-sm text-muted" style="margin-bottom: 1rem;">
                             Download a complete backup of all your snippets, tags, and folders.
                         </p>
-                        
+
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                             <div class="editor-field">
                                 <label>Format</label>
@@ -827,25 +901,26 @@
                                 <input type="password" x-model="backupOptions.password" placeholder="Encrypt backup">
                             </div>
                         </div>
-                        
-                        <button class="btn-primary" @click="exportBackup()" :disabled="backupLoading" style="width: 100%;">
+
+                        <button class="btn-primary" @click="exportBackup()" :disabled="backupLoading"
+                            style="width: 100%;">
                             <span x-show="!backupLoading">Download Backup</span>
                             <span x-show="backupLoading">Exporting...</span>
                         </button>
                     </div>
-                    
+
                     <!-- Import Section -->
                     <div class="backup-section" style="margin-top: 2rem;">
                         <h4 style="margin-bottom: 1rem;">Import Backup</h4>
                         <p class="text-sm text-muted" style="margin-bottom: 1rem;">
                             Restore snippets from a backup file.
                         </p>
-                        
+
                         <div class="editor-field">
                             <label>Backup File</label>
                             <input type="file" @change="backupFile = $event.target.files[0]" accept=".json,.zip,.enc">
                         </div>
-                        
+
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                             <div class="editor-field">
                                 <label>Import Strategy</label>
@@ -857,16 +932,19 @@
                             </div>
                             <div class="editor-field">
                                 <label>Password (if encrypted)</label>
-                                <input type="password" x-model="importOptions.password" placeholder="Decryption password">
+                                <input type="password" x-model="importOptions.password"
+                                    placeholder="Decryption password">
                             </div>
                         </div>
-                        
-                        <button class="btn-primary" @click="importBackup()" :disabled="backupLoading || !backupFile" style="width: 100%;">
+
+                        <button class="btn-primary" @click="importBackup()" :disabled="backupLoading || !backupFile"
+                            style="width: 100%;">
                             <span x-show="!backupLoading">Import Backup</span>
                             <span x-show="backupLoading">Importing...</span>
                         </button>
-                        
-                        <div x-show="importResult" class="import-result" style="margin-top: 1rem; padding: 1rem; background: var(--snipo-bg-tertiary); border-radius: 8px;">
+
+                        <div x-show="importResult" class="import-result"
+                            style="margin-top: 1rem; padding: 1rem; background: var(--snipo-bg-tertiary); border-radius: 8px;">
                             <p class="text-sm"><strong>Import Complete:</strong></p>
                             <ul class="text-sm" style="margin: 0.5rem 0 0 1rem;">
                                 <li x-text="'Snippets: ' + (importResult?.snippets_imported || 0)"></li>
@@ -875,19 +953,21 @@
                             </ul>
                         </div>
                     </div>
-                    
+
                     <!-- S3 Section -->
-                    <div class="backup-section" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--snipo-border);">
+                    <div class="backup-section"
+                        style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--snipo-border);">
                         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
                             <h4>S3 Cloud Backup</h4>
                             <span x-show="s3Status.enabled" class="badge badge-success">Enabled</span>
                             <span x-show="!s3Status.enabled" class="badge badge-muted">Not Configured</span>
                         </div>
-                        
+
                         <template x-if="!s3Status.enabled">
                             <p class="text-sm text-muted">
                                 S3 backup is not configured. Set the following environment variables to enable:
-                                <code style="display: block; margin-top: 0.5rem; padding: 0.5rem; background: var(--snipo-bg-tertiary); border-radius: 4px; font-size: 0.75rem;">
+                                <code
+                                    style="display: block; margin-top: 0.5rem; padding: 0.5rem; background: var(--snipo-bg-tertiary); border-radius: 4px; font-size: 0.75rem;">
                                     SNIPO_S3_ENABLED=true<br>
                                     SNIPO_S3_ENDPOINT=s3.amazonaws.com<br>
                                     SNIPO_S3_ACCESS_KEY=key<br>
@@ -896,11 +976,12 @@
                                 </code>
                             </p>
                         </template>
-                        
+
                         <template x-if="s3Status.enabled">
                             <div>
                                 <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                                    <button class="btn-primary" @click="syncToS3()" :disabled="backupLoading" style="flex: 1;">
+                                    <button class="btn-primary" @click="syncToS3()" :disabled="backupLoading"
+                                        style="flex: 1;">
                                         <span x-show="!backupLoading">Sync to S3</span>
                                         <span x-show="backupLoading">Syncing...</span>
                                     </button>
@@ -908,7 +989,7 @@
                                         Refresh List
                                     </button>
                                 </div>
-                                
+
                                 <div class="s3-backups-list">
                                     <h5 style="margin-bottom: 0.5rem;">Available Backups</h5>
                                     <div x-show="s3Backups.length === 0" class="text-sm text-muted">
@@ -917,23 +998,31 @@
                                     <template x-for="backup in s3Backups" :key="backup.key">
                                         <div class="s3-backup-item">
                                             <div class="s3-backup-info">
-                                                <div class="s3-backup-name" x-text="backup.key.replace('backups/', '')"></div>
+                                                <div class="s3-backup-name" x-text="backup.key.replace('backups/', '')">
+                                                </div>
                                                 <div class="s3-backup-meta text-sm text-muted">
                                                     <span x-text="formatFileSize(backup.size)"></span> •
                                                     <span x-text="formatDate(backup.last_modified)"></span>
                                                 </div>
                                             </div>
                                             <div style="display: flex; gap: 0.5rem;">
-                                                <button class="btn-icon" @click="restoreFromS3(backup.key)" title="Restore">
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                                                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                                                <button class="btn-icon" @click="restoreFromS3(backup.key)"
+                                                    title="Restore">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                        stroke-width="2" width="16" height="16">
+                                                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8">
+                                                        </path>
                                                         <path d="M3 3v5h5"></path>
                                                     </svg>
                                                 </button>
-                                                <button class="btn-icon danger" @click="deleteS3Backup(backup.key)" title="Delete">
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                                <button class="btn-icon danger" @click="deleteS3Backup(backup.key)"
+                                                    title="Delete">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                        stroke-width="2" width="16" height="16">
                                                         <polyline points="3 6 5 6 21 6"></polyline>
-                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                        <path
+                                                            d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                                        </path>
                                                     </svg>
                                                 </button>
                                             </div>
@@ -947,7 +1036,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- New Folder modal -->
     <div class="modal-backdrop" x-show="showFolderModal" x-cloak @click.self="showFolderModal = false">
         <div class="modal" style="max-width: 400px;">
@@ -981,7 +1070,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Rename Tag modal -->
     <div class="modal-backdrop" x-show="showTagModal" x-cloak @click.self="showTagModal = false">
         <div class="modal" style="max-width: 400px;">
@@ -1009,10 +1098,14 @@
 </div>
 
 <style>
-    [x-cloak] { display: none !important; }
-    
+    [x-cloak] {
+        display: none !important;
+    }
+
     @media (max-width: 768px) {
-        #menu-toggle { display: flex !important; }
+        #menu-toggle {
+            display: flex !important;
+        }
     }
 </style>
 {{end}}

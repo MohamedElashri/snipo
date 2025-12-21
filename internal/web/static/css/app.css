@@ -1991,3 +1991,35 @@ body {
 .font-mono {
   font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
 }
+
+/* Layout Toggles */
+.sidebar.closed {
+  transform: translateX(-100%);
+}
+
+.main-content.expanded {
+  margin-left: 0;
+}
+
+.btn-focus {
+  color: var(--snipo-primary);
+  border-color: var(--snipo-primary);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.btn-focus:hover {
+  background: var(--snipo-primary);
+  color: white;
+}
+
+/* Override description field to be smaller */
+.description-field {
+  flex: 0 1 300px !important;
+  /* Constrain width, but allow shrinking */
+}
+
+@media (max-width: 768px) {
+  .desktop-sidebar-toggle {
+    display: none !important;
+  }
+}
