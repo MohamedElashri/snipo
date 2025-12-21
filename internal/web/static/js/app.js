@@ -313,7 +313,7 @@ document.addEventListener('alpine:init', () => {
           this.isEditing = isEdit;
           this.$nextTick(() => {
             if (isEdit) {
-              this.updateCodeMirror();
+              this.updateAceEditor();
             }
             this.highlightAll();
           });
@@ -379,7 +379,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     // Initialize or update Ace Editor
-    updateCodeMirror() {
+    updateAceEditor() {
       const container = this.$refs.codeEditor;
       if (!container) return;
 
@@ -468,7 +468,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     // Destroy Ace Editor instance
-    destroyCodeMirror() {
+    destroyAceEditor() {
       if (this.aceEditor) {
         try {
           this.aceEditor.destroy();
@@ -644,9 +644,9 @@ document.addEventListener('alpine:init', () => {
       this.isEditing = true;
       this.updateUrl({ edit: true });
 
-      // Update CodeMirror and focus filename input after render
+      // Update Ace Editor and focus filename input after render
       this.$nextTick(() => {
-        this.updateCodeMirror();
+        this.updateAceEditor();
         const input = document.querySelector('.filename-input');
         if (input) {
           input.focus();
@@ -678,7 +678,7 @@ document.addEventListener('alpine:init', () => {
         this.updateUrl({ snippet: this.editingSnippet.id, edit: true });
       }
       this.$nextTick(() => {
-        this.updateCodeMirror();
+        this.updateAceEditor();
         this.highlightAll();
       });
     },
@@ -711,7 +711,7 @@ document.addEventListener('alpine:init', () => {
         this.isEditing = true;
         this.updateUrl({ snippet: snippet.id, edit: true });
         this.$nextTick(() => {
-          this.updateCodeMirror();
+          this.updateAceEditor();
           this.highlightAll();
         });
       }
@@ -763,8 +763,8 @@ document.addEventListener('alpine:init', () => {
         showToast(this.editingSnippet.id ? 'Snippet updated' : 'Snippet created');
         this.showEditor = false;
         this.isEditing = false;
-        // Destroy CodeMirror when leaving editor
-        this.destroyCodeMirror();
+        // Destroy Ace Editor when leaving editor
+        this.destroyAceEditor();
         this.resetEditingSnippet();
         this.clearDraft(); // Clear draft on successful save
         this.updateUrl({}); // Clear URL params
@@ -779,8 +779,8 @@ document.addEventListener('alpine:init', () => {
     cancelEdit() {
       this.showEditor = false;
       this.isEditing = false;
-      // Destroy CodeMirror when leaving editor
-      this.destroyCodeMirror();
+      // Destroy Ace Editor when leaving editor
+      this.destroyAceEditor();
       this.resetEditingSnippet();
       this.clearDraft();
       // Restore URL to current filter state
@@ -878,7 +878,7 @@ document.addEventListener('alpine:init', () => {
         this.clearDraft();
         showToast('Draft restored');
         this.$nextTick(() => {
-          this.updateCodeMirror();
+          this.updateAceEditor();
           this.highlightAll();
         });
       }

@@ -1193,7 +1193,6 @@ body {
 }
 
 /* Ace Editor Container */
-.codemirror-container,
 .ace-editor-container {
   position: absolute;
   top: 0;
