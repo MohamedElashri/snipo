@@ -633,10 +633,26 @@
                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                     <polyline points="14 2 14 8 20 8"></polyline>
                                 </svg>
-                                <input type="text" class="filename-input" :value="activeFile?.filename || ''"
-                                    @input="updateActiveFilename($event.target.value)" @blur="validateFilename()"
-                                    placeholder="filename.ext"
+                                <!-- Filename with double-click edit -->
+                                <div class="filename-container" x-data="{ isRenaming: false }"
                                     x-show="editingSnippet.files && editingSnippet.files.length > 0">
+
+                                    <!-- Display Mode -->
+                                    <span class="filename-display" x-show="!isRenaming"
+                                        @dblclick="isRenaming = true; $nextTick(() => $refs.filenameInput.focus())"
+                                        x-text="activeFile?.filename || 'New File'">
+                                    </span>
+
+                                    <!-- Edit Mode -->
+                                    <input type="text" class="filename-input" x-ref="filenameInput" x-show="isRenaming"
+                                        :value="activeFile?.filename || ''"
+                                        @input="updateActiveFilename($event.target.value); autoResizeInput($event.target)"
+                                        @blur="validateFilename(); isRenaming = false"
+                                        @keydown.enter="$event.target.blur()"
+                                        @keydown.escape="isRenaming = false; $event.target.value = activeFile?.filename || ''"
+                                        x-init="$watch('isRenaming', val => { if(val) $nextTick(() => autoResizeInput($el)) })"
+                                        placeholder="filename.ext">
+                                </div>
                                 <span class="filename-placeholder"
                                     x-show="!editingSnippet.files || editingSnippet.files.length === 0"
                                     @click="addFile()">+ Add file</span>

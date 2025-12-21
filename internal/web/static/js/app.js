@@ -1624,7 +1624,7 @@ document.addEventListener('alpine:init', () => {
       if (!element) return;
       const val = element.value || element.placeholder || '';
       const length = val.length;
-      element.style.width = Math.max(15, length + 2) + 'ch';
+      element.style.width = Math.max(10, Math.ceil(length * 1.5)) + 'ch';
     },
 
     autoResizeSelect(element) {
