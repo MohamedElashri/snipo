@@ -50,12 +50,15 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	tokenRepo := repository.NewTokenRepository(cfg.DB)
 	fileRepo := repository.NewSnippetFileRepository(cfg.DB)
 	settingsRepo := repository.NewSettingsRepository(cfg.DB)
+	historyRepo := repository.NewHistoryRepository(cfg.DB)
 
 	// Create services
 	snippetService := services.NewSnippetService(snippetRepo, cfg.Logger).
 		WithTagRepo(tagRepo).
 		WithFolderRepo(folderRepo).
 		WithFileRepo(fileRepo).
+		WithHistoryRepo(historyRepo).
+		WithSettingsRepo(settingsRepo).
 		WithMaxFiles(cfg.MaxFilesPerSnippet)
 
 	// Create backup service
@@ -135,6 +138,10 @@ func NewRouter(cfg RouterConfig) http.Handler {
 				r.Post("/favorite", snippetHandler.ToggleFavorite)
 				r.Post("/archive", snippetHandler.ToggleArchive)
 				r.Post("/duplicate", snippetHandler.Duplicate)
+				
+				// History routes
+				r.Get("/history", snippetHandler.GetHistory)
+				r.Post("/history/{history_id}/restore", snippetHandler.RestoreFromHistory)
 			})
 		})
 

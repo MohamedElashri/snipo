@@ -203,3 +203,31 @@ type S3RestoreResult struct {
 	StartedAt  time.Time `json:"started_at"`
 	FinishedAt time.Time `json:"finished_at"`
 }
+
+// SnippetHistory represents a historical version of a snippet
+type SnippetHistory struct {
+	ID          int64              `json:"id"`
+	SnippetID   string             `json:"snippet_id"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	Content     string             `json:"content"`
+	Language    string             `json:"language"`
+	IsFavorite  bool               `json:"is_favorite"`
+	IsPublic    bool               `json:"is_public"`
+	IsArchived  bool               `json:"is_archived"`
+	ChangeType  string             `json:"change_type"` // 'create', 'update', 'delete'
+	CreatedAt   time.Time          `json:"created_at"`
+	Files       []SnippetFileHistory `json:"files,omitempty"`
+}
+
+// SnippetFileHistory represents a historical version of a snippet file
+type SnippetFileHistory struct {
+	ID         int64     `json:"id"`
+	HistoryID  int64     `json:"history_id"`
+	SnippetID  string    `json:"snippet_id"`
+	Filename   string    `json:"filename"`
+	Content    string    `json:"content"`
+	Language   string    `json:"language"`
+	SortOrder  int       `json:"sort_order"`
+	CreatedAt  time.Time `json:"created_at"`
+}

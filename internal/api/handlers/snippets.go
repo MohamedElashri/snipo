@@ -298,3 +298,65 @@ func (h *SnippetHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 
 	OK(w, snippet)
 }
+
+// GetHistory handles GET /api/v1/snippets/{id}/history
+func (h *SnippetHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		Error(w, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
+		return
+	}
+
+	// Parse limit from query parameter
+	limit := 50 // default
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 200 {
+			limit = l
+		}
+	}
+
+	history, err := h.service.GetHistory(r.Context(), id, limit)
+	if err != nil {
+		if errors.Is(err, services.ErrSnippetNotFound) {
+			NotFound(w, "Snippet not found")
+			return
+		}
+		InternalError(w)
+		return
+	}
+
+	OK(w, map[string]interface{}{"data": history, "count": len(history)})
+}
+
+// RestoreFromHistory handles POST /api/v1/snippets/{id}/history/{history_id}/restore
+func (h *SnippetHandler) RestoreFromHistory(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		Error(w, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
+		return
+	}
+
+	historyIDStr := chi.URLParam(r, "history_id")
+	if historyIDStr == "" {
+		Error(w, http.StatusBadRequest, "MISSING_HISTORY_ID", "History ID is required")
+		return
+	}
+
+	historyID, err := strconv.ParseInt(historyIDStr, 10, 64)
+	if err != nil || historyID <= 0 {
+		Error(w, http.StatusBadRequest, "INVALID_HISTORY_ID", "Invalid history ID")
+		return
+	}
+
+	snippet, err := h.service.RestoreFromHistory(r.Context(), id, historyID)
+	if err != nil {
+		if errors.Is(err, services.ErrSnippetNotFound) {
+			NotFound(w, "Snippet not found")
+			return
+		}
+		Error(w, http.StatusBadRequest, "RESTORE_FAILED", err.Error())
+		return
+	}
+
+	OK(w, snippet)
+}

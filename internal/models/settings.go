@@ -15,6 +15,7 @@ type Settings struct {
 	S3Region                string    `json:"s3_region"`
 	BackupEncryptionEnabled bool      `json:"backup_encryption_enabled"`
 	ArchiveEnabled          bool      `json:"archive_enabled"`
+	HistoryEnabled          bool      `json:"history_enabled"`
 	CreatedAt               time.Time `json:"created_at"`
 	UpdatedAt               time.Time `json:"updated_at"`
 }
@@ -33,4 +34,5 @@ type SettingsInput struct {
 	S3SecretAccessKey       string `json:"s3_secret_access_key,omitempty"` // Optional, only for updates
 	BackupEncryptionEnabled bool   `json:"backup_encryption_enabled"`
 	ArchiveEnabled          bool   `json:"archive_enabled"`
+	HistoryEnabled          bool   `json:"history_enabled"`
 }

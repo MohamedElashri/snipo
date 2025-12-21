@@ -218,7 +218,16 @@ document.addEventListener('alpine:init', () => {
     importResult: null,
     s3Status: { enabled: false },
     s3Backups: [],
-    settings: { archive_enabled: false }, // Application settings
+    settings: { archive_enabled: false, history_enabled: true }, // Application settings
+    // History state
+    showHistory: false,
+    history: [],
+    historyLoading: false,
+    expandedHistory: null,
+    showHistoryDetail: false,
+    viewingHistoryEntry: null,
+    showRestoreConfirm: false,
+    restoringHistoryEntry: null,
     // Ace Editor instance
     aceEditor: null,
     aceIgnoreChange: false, // Flag to prevent infinite loops
@@ -1448,6 +1457,142 @@ document.addEventListener('alpine:init', () => {
         navigator.clipboard.writeText(this.createdToken);
         showToast('Token copied to clipboard');
       }
+    },
+
+    // History functions
+    async openHistory(snippet) {
+      if (!snippet || !snippet.id) return;
+      
+      this.showHistory = true;
+      this.history = [];
+      this.historyLoading = true;
+      this.expandedHistory = null;
+
+      try {
+        const result = await api.get(`/api/v1/snippets/${snippet.id}/history?limit=50`);
+        if (result && result.data) {
+          this.history = result.data;
+        }
+      } catch (error) {
+        console.error('Failed to load history:', error);
+        showToast('Failed to load history', 'error');
+      } finally {
+        this.historyLoading = false;
+      }
+    },
+
+    closeHistory() {
+      this.showHistory = false;
+      this.history = [];
+      this.expandedHistory = null;
+    },
+
+    viewHistoryDetail(historyEntry) {
+      if (!historyEntry) return;
+      this.viewingHistoryEntry = { ...historyEntry, is_current: this.history.indexOf(historyEntry) === 0 };
+      this.showHistoryDetail = true;
+    },
+
+    closeHistoryDetail() {
+      this.showHistoryDetail = false;
+      this.viewingHistoryEntry = null;
+    },
+
+    copyHistoryContent(content) {
+      if (!content) return;
+      navigator.clipboard.writeText(content)
+        .then(() => showToast('Content copied to clipboard'))
+        .catch(() => showToast('Failed to copy content', 'error'));
+    },
+
+    confirmRestoreHistory(historyEntry) {
+      if (!historyEntry || !historyEntry.snippet_id || !historyEntry.id) {
+        showToast('Invalid history entry', 'error');
+        return;
+      }
+
+      // Check if trying to restore the current version
+      if (this.history.indexOf(historyEntry) === 0) {
+        showToast('This is already the current version', 'info');
+        return;
+      }
+
+      this.restoringHistoryEntry = historyEntry;
+      this.showRestoreConfirm = true;
+    },
+
+    async executeRestore() {
+      const historyEntry = this.restoringHistoryEntry;
+      if (!historyEntry) return;
+
+      // Validate snippet still exists
+      if (this.editingSnippet && this.editingSnippet.id !== historyEntry.snippet_id) {
+        showToast('Cannot restore: snippet mismatch', 'error');
+        this.showRestoreConfirm = false;
+        return;
+      }
+
+      this.showRestoreConfirm = false;
+
+      try {
+        const result = await api.post(
+          `/api/v1/snippets/${historyEntry.snippet_id}/history/${historyEntry.id}/restore`
+        );
+        
+        if (result) {
+          showToast('Snippet successfully restored from history');
+          
+          // Close all history modals
+          this.closeHistoryDetail();
+          this.closeHistory();
+          
+          // Reload the snippet to show restored version
+          if (this.editingSnippet && this.editingSnippet.id === historyEntry.snippet_id) {
+            await this.loadSnippet(historyEntry.snippet_id);
+          }
+          
+          // Reload snippet list
+          await this.loadSnippets();
+        } else {
+          throw new Error('No response from server');
+        }
+      } catch (error) {
+        console.error('Failed to restore history:', error);
+        
+        // Handle specific error cases
+        if (error.message && error.message.includes('404')) {
+          showToast('Snippet or history entry not found', 'error');
+        } else if (error.message && error.message.includes('403')) {
+          showToast('Permission denied', 'error');
+        } else if (error.message && error.message.includes('network')) {
+          showToast('Network error - please check your connection', 'error');
+        } else {
+          showToast('Failed to restore from history', 'error');
+        }
+      } finally {
+        this.restoringHistoryEntry = null;
+      }
+    },
+
+    toggleHistoryPreview(historyId) {
+      this.expandedHistory = this.expandedHistory === historyId ? null : historyId;
+    },
+
+    formatDate(dateStr) {
+      if (!dateStr) return 'Unknown';
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+      if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+      if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+      
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
     },
 
     formatTokenDate(dateStr) {

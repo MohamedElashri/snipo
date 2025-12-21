@@ -467,6 +467,17 @@
                         <span x-text="editingSnippet?.is_archived ? 'Unarchive' : 'Archive'"></span>
                     </button>
 
+                    <!-- History button -->
+                    <button class="btn-action" @click="openHistory(editingSnippet)"
+                        x-show="editingSnippet?.id && settings.history_enabled" title="View History">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3v5h5"></path>
+                            <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path>
+                            <polyline points="12 7 12 12 15 15"></polyline>
+                        </svg>
+                        <span>History</span>
+                    </button>
+
                     <button class="btn-action danger" @click="confirmDelete(editingSnippet)" x-show="editingSnippet?.id"
                         title="Delete">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -872,6 +883,13 @@
                         <p class="text-sm text-muted" style="margin-top: 0.25rem;">Allow snippets to be archived instead
                             of permanently deleted.</p>
                     </div>
+                    <div class="editor-field" style="margin-top: 1rem;">
+                        <label class="checkbox-label">
+                            <input type="checkbox" x-model="settings.history_enabled" @change="updateSettings()">
+                            <span>Enable Modification History</span>
+                        </label>
+                        <p class="text-sm text-muted" style="margin-top: 0.25rem;">Track all changes to snippets. Previous versions can be viewed and restored at any time.</p>
+                    </div>
                 </div>
 
                 <!-- Password tab -->
@@ -1192,6 +1210,192 @@
             <div class="modal-footer">
                 <button @click="showTagModal = false">Cancel</button>
                 <button class="btn-primary" @click="saveTag()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History modal -->
+    <div class="modal-backdrop" x-show="showHistory" x-cloak @click.self="closeHistory()">
+        <div class="modal" style="max-width: 900px; max-height: 80vh;">
+            <div class="modal-header">
+                <h3>Snippet History</h3>
+                <button class="btn-icon" @click="closeHistory()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" style="overflow-y: auto; max-height: calc(80vh - 120px);">
+                <p class="text-sm text-muted" x-show="!historyLoading && history.length === 0">
+                    No history available for this snippet yet.
+                </p>
+                <p class="text-sm text-muted" x-show="historyLoading">
+                    Loading history...
+                </p>
+                <div class="history-list" x-show="!historyLoading && history.length > 0">
+                    <template x-for="(entry, index) in history" :key="entry.id">
+                        <div class="history-entry">
+                            <div class="history-entry-header">
+                                <div>
+                                    <div class="history-entry-title" x-text="entry.title || 'Untitled'"></div>
+                                    <div class="history-entry-meta">
+                                        <span x-text="formatDate(entry.created_at)"></span>
+                                        <span x-show="entry.change_type === 'create'" class="badge">Created</span>
+                                        <span x-show="entry.change_type === 'update'" class="badge">Updated</span>
+                                        <span x-show="index === 0" class="badge badge-current">Current</span>
+                                    </div>
+                                </div>
+                                <div class="history-entry-actions">
+                                    <button class="btn-sm" @click="viewHistoryDetail(entry)">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </svg>
+                                        View Full
+                                    </button>
+                                    <button class="btn-sm btn-primary" @click="confirmRestoreHistory(entry)"
+                                        x-show="index > 0">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                            <polyline points="1 4 1 10 7 10"></polyline>
+                                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                                        </svg>
+                                        Restore
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Detail modal -->
+    <div class="modal-backdrop" x-show="showHistoryDetail" x-cloak @click.self="closeHistoryDetail()">
+        <div class="modal" style="max-width: 1000px; max-height: 85vh;">
+            <div class="modal-header">
+                <div>
+                    <h3 x-text="viewingHistoryEntry?.title || 'Untitled'"></h3>
+                    <p class="text-sm text-muted" style="margin-top: 0.25rem;">
+                        <span x-text="formatDate(viewingHistoryEntry?.created_at)"></span>
+                        <span x-show="viewingHistoryEntry?.change_type === 'create'"> • Created</span>
+                        <span x-show="viewingHistoryEntry?.change_type === 'update'"> • Updated</span>
+                    </p>
+                </div>
+                <button class="btn-icon" @click="closeHistoryDetail()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" style="overflow-y: auto; max-height: calc(85vh - 150px);">
+                <div class="history-detail-section" x-show="viewingHistoryEntry?.description">
+                    <h4>Description</h4>
+                    <p x-text="viewingHistoryEntry?.description"></p>
+                </div>
+
+                <!-- Single file/content view -->
+                <div class="history-detail-section" x-show="!viewingHistoryEntry?.files || viewingHistoryEntry?.files.length === 0">
+                    <h4>Content</h4>
+                    <div class="history-detail-content">
+                        <div class="history-detail-file-header">
+                            <span class="history-file-language" x-text="viewingHistoryEntry?.language || 'plaintext'"></span>
+                            <button class="btn-sm" @click="copyHistoryContent(viewingHistoryEntry?.content)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                Copy
+                            </button>
+                        </div>
+                        <pre class="history-detail-code"><code x-text="viewingHistoryEntry?.content"></code></pre>
+                    </div>
+                </div>
+
+                <!-- Multiple files view -->
+                <div class="history-detail-section" x-show="viewingHistoryEntry?.files && viewingHistoryEntry?.files.length > 0">
+                    <h4>Files (<span x-text="viewingHistoryEntry?.files.length"></span>)</h4>
+                    <template x-for="(file, idx) in viewingHistoryEntry?.files" :key="file.id">
+                        <div class="history-detail-content" style="margin-bottom: 1rem;">
+                            <div class="history-detail-file-header">
+                                <div>
+                                    <span class="history-file-name" x-text="file.filename"></span>
+                                    <span class="history-file-language" x-text="file.language"></span>
+                                </div>
+                                <button class="btn-sm" @click="copyHistoryContent(file.content)">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                    Copy
+                                </button>
+                            </div>
+                            <pre class="history-detail-code"><code x-text="file.content"></code></pre>
+                        </div>
+                    </template>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button @click="closeHistoryDetail()">Close</button>
+                <button class="btn-primary" @click="confirmRestoreHistory(viewingHistoryEntry)"
+                    x-show="viewingHistoryEntry && !viewingHistoryEntry.is_current">
+                    Restore This Version
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restore Confirmation modal -->
+    <div class="modal-backdrop" x-show="showRestoreConfirm" x-cloak @click.self="showRestoreConfirm = false">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Confirm Restore</h3>
+                <button class="btn-icon" @click="showRestoreConfirm = false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="restore-warning">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48" style="color: var(--snipo-warning);">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                </div>
+                <h4 style="text-align: center; margin: 1rem 0;">Restore Previous Version?</h4>
+                <p style="text-align: center; color: var(--snipo-text-secondary); margin-bottom: 1rem;">
+                    This will restore the snippet to:
+                </p>
+                <div class="restore-info">
+                    <div class="restore-info-item">
+                        <strong>Title:</strong> <span x-text="restoringHistoryEntry?.title"></span>
+                    </div>
+                    <div class="restore-info-item">
+                        <strong>Version from:</strong> <span x-text="formatDate(restoringHistoryEntry?.created_at)"></span>
+                    </div>
+                    <div class="restore-info-item" x-show="restoringHistoryEntry?.files && restoringHistoryEntry.files.length > 0">
+                        <strong>Files:</strong> <span x-text="restoringHistoryEntry?.files.length"></span>
+                    </div>
+                </div>
+                <div class="restore-notice">
+                    <strong>Important:</strong> The current version will be saved to history before restoring.
+                    You can always restore back to it later.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button @click="showRestoreConfirm = false">Cancel</button>
+                <button class="btn-primary" @click="executeRestore()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <polyline points="1 4 1 10 7 10"></polyline>
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                    </svg>
+                    Restore Now
+                </button>
             </div>
         </div>
     </div>

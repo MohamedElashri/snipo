@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 
 	"github.com/MohamedElashri/snipo/internal/models"
@@ -23,6 +24,8 @@ type SnippetService struct {
 	tagRepo            *repository.TagRepository
 	folderRepo         *repository.FolderRepository
 	fileRepo           *repository.SnippetFileRepository
+	historyRepo        *repository.HistoryRepository
+	settingsRepo       *repository.SettingsRepository
 	logger             *slog.Logger
 	maxFilesPerSnippet int
 }
@@ -54,10 +57,60 @@ func (s *SnippetService) WithFileRepo(fileRepo *repository.SnippetFileRepository
 	return s
 }
 
+// WithHistoryRepo adds history repository to the service
+func (s *SnippetService) WithHistoryRepo(historyRepo *repository.HistoryRepository) *SnippetService {
+	s.historyRepo = historyRepo
+	return s
+}
+
+// WithSettingsRepo adds settings repository to the service
+func (s *SnippetService) WithSettingsRepo(settingsRepo *repository.SettingsRepository) *SnippetService {
+	s.settingsRepo = settingsRepo
+	return s
+}
+
 // WithMaxFiles sets the maximum files per snippet
 func (s *SnippetService) WithMaxFiles(max int) *SnippetService {
 	s.maxFilesPerSnippet = max
 	return s
+}
+
+// isHistoryEnabled checks if history tracking is enabled in settings
+func (s *SnippetService) isHistoryEnabled(ctx context.Context) bool {
+	if s.historyRepo == nil || s.settingsRepo == nil {
+		return false
+	}
+
+	settings, err := s.settingsRepo.Get(ctx)
+	if err != nil {
+		s.logger.Warn("failed to get settings for history check", "error", err)
+		return false
+	}
+
+	return settings.HistoryEnabled
+}
+
+// saveHistory saves a snapshot of the current snippet to history
+func (s *SnippetService) saveHistory(ctx context.Context, snippet *models.Snippet, changeType string) error {
+	if !s.isHistoryEnabled(ctx) {
+		return nil
+	}
+
+	// Create history entry
+	historyID, err := s.historyRepo.CreateHistory(ctx, snippet, changeType)
+	if err != nil {
+		s.logger.Warn("failed to create snippet history", "id", snippet.ID, "error", err)
+		return err
+	}
+
+	// Save files if present
+	if len(snippet.Files) > 0 {
+		if err := s.historyRepo.CreateFileHistory(ctx, historyID, snippet.Files); err != nil {
+			s.logger.Warn("failed to create file history", "id", snippet.ID, "error", err)
+		}
+	}
+
+	return nil
 }
 
 // Create creates a new snippet
@@ -108,6 +161,11 @@ func (s *SnippetService) Create(ctx context.Context, input *models.SnippetInput)
 		} else {
 			snippet.Files = createdFiles
 		}
+	}
+
+	// Save to history if enabled
+	if err := s.saveHistory(ctx, snippet, "create"); err != nil {
+		s.logger.Warn("failed to save creation to history", "id", snippet.ID, "error", err)
 	}
 
 	s.logger.Info("snippet created", "id", snippet.ID, "title", snippet.Title)
@@ -181,13 +239,24 @@ func (s *SnippetService) Update(ctx context.Context, id string, input *models.Sn
 		return nil, errs
 	}
 
-	// Check if snippet exists
+	// Check if snippet exists and get current state for history
 	existing, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	if existing == nil {
 		return nil, ErrSnippetNotFound
+	}
+
+	// Fetch existing files for history
+	if s.fileRepo != nil {
+		files, _ := s.fileRepo.GetBySnippetID(ctx, id)
+		existing.Files = files
+	}
+
+	// Save current state to history before updating
+	if err := s.saveHistory(ctx, existing, "update"); err != nil {
+		s.logger.Warn("failed to save pre-update state to history", "id", id, "error", err)
 	}
 
 	snippet, err := s.repo.Update(ctx, id, input)
@@ -336,4 +405,119 @@ func (s *SnippetService) Duplicate(ctx context.Context, id string) (*models.Snip
 	}
 
 	return s.repo.Create(ctx, input)
+}
+
+// GetHistory retrieves the modification history for a snippet
+func (s *SnippetService) GetHistory(ctx context.Context, id string, limit int) ([]models.SnippetHistory, error) {
+	if s.historyRepo == nil {
+		return nil, fmt.Errorf("history repository not configured")
+	}
+
+	// Check if snippet exists
+	snippet, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if snippet == nil {
+		return nil, ErrSnippetNotFound
+	}
+
+	history, err := s.historyRepo.GetSnippetHistory(ctx, id, limit)
+	if err != nil {
+		s.logger.Error("failed to get snippet history", "id", id, "error", err)
+		return nil, err
+	}
+
+	return history, nil
+}
+
+// RestoreFromHistory restores a snippet from a specific history entry
+func (s *SnippetService) RestoreFromHistory(ctx context.Context, snippetID string, historyID int64) (*models.Snippet, error) {
+	if s.historyRepo == nil {
+		return nil, fmt.Errorf("history repository not configured")
+	}
+
+	// Get the history entry
+	historyEntry, err := s.historyRepo.GetHistoryByID(ctx, historyID)
+	if err != nil {
+		return nil, err
+	}
+	if historyEntry == nil {
+		return nil, fmt.Errorf("history entry not found")
+	}
+
+	// Verify the history entry belongs to the correct snippet
+	if historyEntry.SnippetID != snippetID {
+		return nil, fmt.Errorf("history entry does not belong to this snippet")
+	}
+
+	// Get current snippet for history before restore
+	existing, err := s.repo.GetByID(ctx, snippetID)
+	if err != nil {
+		return nil, err
+	}
+	if existing == nil {
+		return nil, ErrSnippetNotFound
+	}
+
+	// Fetch existing files for history
+	if s.fileRepo != nil {
+		files, _ := s.fileRepo.GetBySnippetID(ctx, snippetID)
+		existing.Files = files
+	}
+
+	// Save current state before restoring
+	if err := s.saveHistory(ctx, existing, "update"); err != nil {
+		s.logger.Warn("failed to save pre-restore state", "id", snippetID, "error", err)
+	}
+
+	// Create input from history entry
+	input := &models.SnippetInput{
+		Title:       historyEntry.Title,
+		Description: historyEntry.Description,
+		Content:     historyEntry.Content,
+		Language:    historyEntry.Language,
+		IsPublic:    historyEntry.IsPublic,
+		IsArchived:  historyEntry.IsArchived,
+	}
+
+	// Restore the snippet
+	snippet, err := s.repo.Update(ctx, snippetID, input)
+	if err != nil {
+		s.logger.Error("failed to restore snippet from history", "id", snippetID, "history_id", historyID, "error", err)
+		return nil, err
+	}
+
+	// Restore files if present
+	if s.fileRepo != nil && len(historyEntry.Files) > 0 {
+		// Convert history files to snippet file inputs
+		fileInputs := make([]models.SnippetFileInput, len(historyEntry.Files))
+		for i, hf := range historyEntry.Files {
+			fileInputs[i] = models.SnippetFileInput{
+				Filename: hf.Filename,
+				Content:  hf.Content,
+				Language: hf.Language,
+			}
+		}
+
+		restoredFiles, err := s.fileRepo.SyncFiles(ctx, snippetID, fileInputs)
+		if err != nil {
+			s.logger.Warn("failed to restore snippet files", "id", snippetID, "error", err)
+		} else {
+			snippet.Files = restoredFiles
+		}
+	}
+
+	// Fetch tags and folders
+	if s.tagRepo != nil {
+		tags, _ := s.tagRepo.GetSnippetTags(ctx, snippetID)
+		snippet.Tags = tags
+	}
+	if s.folderRepo != nil {
+		folders, _ := s.folderRepo.GetSnippetFolders(ctx, snippetID)
+		snippet.Folders = folders
+	}
+
+	s.logger.Info("snippet restored from history", "id", snippetID, "history_id", historyID)
+	return snippet, nil
 }

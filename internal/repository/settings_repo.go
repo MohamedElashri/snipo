@@ -23,7 +23,7 @@ func (r *SettingsRepository) Get(ctx context.Context) (*models.Settings, error) 
 	query := `
 		SELECT id, app_name, custom_css, theme, default_language, 
 		       s3_enabled, s3_endpoint, s3_bucket, s3_region, 
-		       backup_encryption_enabled, archive_enabled, created_at, updated_at
+		       backup_encryption_enabled, archive_enabled, history_enabled, created_at, updated_at
 		FROM settings
 		WHERE id = 1
 	`
@@ -41,6 +41,7 @@ func (r *SettingsRepository) Get(ctx context.Context) (*models.Settings, error) 
 		&settings.S3Region,
 		&settings.BackupEncryptionEnabled,
 		&settings.ArchiveEnabled,
+		&settings.HistoryEnabled,
 		&settings.CreatedAt,
 		&settings.UpdatedAt,
 	)
@@ -54,31 +55,15 @@ func (r *SettingsRepository) Get(ctx context.Context) (*models.Settings, error) 
 
 // Update updates application settings
 func (r *SettingsRepository) Update(ctx context.Context, input *models.SettingsInput) (*models.Settings, error) {
-	// First get existing settings to preserve fields if needed
-	// But here we assume input covers what we want to update
-	// Note: S3 secrets are environment variables usually, but stored in DB here?
-	// The schema has s3_endpoint but not secret key. Wait.
-	// Looking at schema:
-	// s3_endpoint, s3_bucket, s3_region.
-	// Where are keys?
-	// Config.go loads keys from ENV.
-	// Schema doesn't store keys.
-	// `internal/config/config.go` says:
-	// cfg.S3.AccessKeyID = os.Getenv("SNIPO_S3_ACCESS_KEY")
-	// But `settings` table has s3 related columns.
-	// "s3_endpoint TEXT DEFAULT '', s3_bucket TEXT DEFAULT '', s3_region TEXT DEFAULT 'us-east-1'"
-	// It seems the app might be moving to DB-based settings or supports both?
-	// Creating the repo based on the table schema.
-
 	query := `
 		UPDATE settings
 		SET app_name = ?, custom_css = ?, theme = ?, default_language = ?,
 		    s3_enabled = ?, s3_endpoint = ?, s3_bucket = ?, s3_region = ?,
-		    backup_encryption_enabled = ?, archive_enabled = ?, updated_at = CURRENT_TIMESTAMP
+		    backup_encryption_enabled = ?, archive_enabled = ?, history_enabled = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE id = 1
 		RETURNING id, app_name, custom_css, theme, default_language,
 		          s3_enabled, s3_endpoint, s3_bucket, s3_region,
-		          backup_encryption_enabled, archive_enabled, created_at, updated_at
+		          backup_encryption_enabled, archive_enabled, history_enabled, created_at, updated_at
 	`
 
 	settings := &models.Settings{}
@@ -93,6 +78,7 @@ func (r *SettingsRepository) Update(ctx context.Context, input *models.SettingsI
 		input.S3Region,
 		input.BackupEncryptionEnabled,
 		input.ArchiveEnabled,
+		input.HistoryEnabled,
 	).Scan(
 		&settings.ID,
 		&settings.AppName,
@@ -105,6 +91,7 @@ func (r *SettingsRepository) Update(ctx context.Context, input *models.SettingsI
 		&settings.S3Region,
 		&settings.BackupEncryptionEnabled,
 		&settings.ArchiveEnabled,
+		&settings.HistoryEnabled,
 		&settings.CreatedAt,
 		&settings.UpdatedAt,
 	)
