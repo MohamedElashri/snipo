@@ -115,6 +115,29 @@ document.addEventListener('alpine:init', () => {
   });
 
   // Snippets data
+  // Expose helpers globally to avoid Alpine scope issues
+  window.autoResizeInput = function (element) {
+    if (!element) return;
+    const val = element.value || element.placeholder || '';
+    const length = val.length;
+    element.style.width = Math.max(10, Math.ceil(length * 1.5)) + 'ch';
+  };
+
+  window.autoResizeSelect = function (element) {
+    if (!element) return;
+    const selectedOption = element.options[element.selectedIndex];
+    const text = selectedOption ? selectedOption.text : element.value;
+    const span = document.createElement('span');
+    span.style.font = window.getComputedStyle(element).font;
+    span.style.visibility = 'hidden';
+    span.style.position = 'absolute';
+    span.textContent = text;
+    document.body.appendChild(span);
+    const width = span.offsetWidth + 35;
+    document.body.removeChild(span);
+    element.style.width = width + 'px';
+  };
+
   Alpine.data('snippetsApp', () => ({
     snippets: [],
     tags: [],
@@ -140,6 +163,15 @@ document.addEventListener('alpine:init', () => {
     },
     activeFileIndex: 0, // Currently active file tab
     editorHeaderVisible: true, // Toggle for editor toolbar/header
+    
+    // File Manager State - Single source of truth for file operations
+    fileManagerState: {
+      operationInProgress: false,  // Lock flag to prevent concurrent operations
+      editorDirty: false,           // Track if editor has unsaved changes
+      lastSyncedContent: '',        // Last content synced from editor to file
+      pendingOperation: null        // Queue for operations during locks
+    },
+    
     filter: {
       query: '',
       tagId: null,
@@ -410,10 +442,9 @@ document.addEventListener('alpine:init', () => {
         // Editor exists - update content and mode
         this.aceIgnoreChange = true;
         try {
-          const currentValue = this.aceEditor.getValue();
-          if (currentValue !== content) {
-            this.aceEditor.setValue(content, -1);
-          }
+          // Always update the content to ensure it's in sync
+          // Don't rely on the equality check as it can miss reactive updates
+          this.aceEditor.setValue(content, -1);
           this.aceEditor.session.setMode(aceMode);
           this.aceEditor.setTheme(aceTheme);
         } catch (e) {
@@ -861,7 +892,93 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
-    // Multi-file support
+    // ============================================================================
+    // FILE MANAGER - Core file operation system
+    // ============================================================================
+    
+    /**
+     * Safely sync editor content to the current file
+     * This is the ONLY way content should be saved from editor to file
+     */
+    _syncEditorToFile() {
+      if (!this.aceEditor || !this.editingSnippet.files || !this.editingSnippet.files[this.activeFileIndex]) {
+        return;
+      }
+      
+      const currentContent = this.aceEditor.getValue();
+      this.editingSnippet.files[this.activeFileIndex].content = currentContent;
+      this.fileManagerState.lastSyncedContent = currentContent;
+      this.fileManagerState.editorDirty = false;
+    },
+
+    /**
+     * Safely load file content into the editor
+     * This is the ONLY way content should be loaded from file to editor
+     */
+    _loadFileToEditor(fileIndex) {
+      if (!this.aceEditor || !this.editingSnippet.files || !this.editingSnippet.files[fileIndex]) {
+        return;
+      }
+
+      const file = this.editingSnippet.files[fileIndex];
+      const content = file.content || '';
+      
+      // Disable change handler during load
+      this.aceIgnoreChange = true;
+      try {
+        this.aceEditor.setValue(content, -1);
+        this.aceEditor.session.setMode(this.getAceMode(file.language));
+        this.fileManagerState.lastSyncedContent = content;
+        this.fileManagerState.editorDirty = false;
+      } finally {
+        this.aceIgnoreChange = false;
+      }
+    },
+
+    /**
+     * Begin a file operation transaction
+     * Locks the file manager and syncs current state
+     */
+    _beginFileOperation() {
+      if (this.fileManagerState.operationInProgress) {
+        console.warn('File operation already in progress');
+        return false;
+      }
+      
+      // Lock the system
+      this.fileManagerState.operationInProgress = true;
+      
+      // Sync current editor content to file before any operation
+      this._syncEditorToFile();
+      
+      return true;
+    },
+
+    /**
+     * Complete a file operation transaction
+     * Unlocks the file manager and loads new state
+     */
+    _endFileOperation(newFileIndex) {
+      if (!this.fileManagerState.operationInProgress) {
+        return;
+      }
+
+      // Update active index
+      this.activeFileIndex = newFileIndex;
+      
+      // Load new file into editor
+      this.$nextTick(() => {
+        this._loadFileToEditor(newFileIndex);
+        
+        // Unlock the system
+        this.fileManagerState.operationInProgress = false;
+      });
+    },
+
+    // ============================================================================
+    // Multi-file support - Refactored to use File Manager
+    // ============================================================================
+    
     get activeFile() {
       const files = this.editingSnippet?.files || [];
       if (files.length === 0) {
@@ -880,40 +997,58 @@ document.addEventListener('alpine:init', () => {
       return (this.editingSnippet?.files || []).length > 1;
     },
 
+    syncCurrentContent() {
+      // Legacy method - now delegates to file manager
+      this._syncEditorToFile();
+    },
+
     addFile() {
-      if (!this.editingSnippet.files) {
-        // Convert legacy single-file to multi-file
-        const ext = this.getFileExtension(this.editingSnippet.language);
-        this.editingSnippet.files = [{
-          id: 0,
-          filename: 'main.' + ext,
-          content: this.editingSnippet.content || '',
-          language: this.editingSnippet.language || 'javascript'
-        }];
+      // Begin transaction
+      if (!this._beginFileOperation()) {
+        return;
       }
 
-      // Add new file with placeholder name
-      const newFile = {
-        id: 0,
-        filename: 'newfile.txt',
-        content: '',
-        language: 'plaintext'
-      };
-      this.editingSnippet.files.push(newFile);
-      this.activeFileIndex = this.editingSnippet.files.length - 1;
-
-      // Update the editor to show the new empty file content
-      this.$nextTick(() => {
-        // Update CodeMirror/Ace to show empty content for new file
-        this.updateCodeMirror();
-
-        // Focus the filename input
-        const input = document.querySelector('.filename-input');
-        if (input) {
-          input.focus();
-          input.select();
+      try {
+        if (!this.editingSnippet.files) {
+          // Convert legacy single-file to multi-file
+          // Content is already synced by _beginFileOperation
+          const ext = this.getFileExtension(this.editingSnippet.language);
+          this.editingSnippet.files = [{
+            id: 0,
+            filename: 'main.' + ext,
+            content: this.editingSnippet.content || '',
+            language: this.editingSnippet.language || 'javascript'
+          }];
         }
-      });
+
+        // Add new file with placeholder name
+        const newFile = {
+          id: 0,
+          filename: 'newfile.txt',
+          content: '',
+          language: 'plaintext'
+        };
+        this.editingSnippet.files.push(newFile);
+        
+        const newIndex = this.editingSnippet.files.length - 1;
+        
+        // End transaction and switch to new file
+        this._endFileOperation(newIndex);
+
+        // Focus the filename input after render
+        setTimeout(() => {
+          const inputs = document.querySelectorAll('.filename-input');
+          if (inputs.length > 0) {
+            const lastInput = inputs[inputs.length - 1];
+            lastInput.focus();
+            lastInput.select();
+          }
+        }, 100);
+
+      } catch (error) {
+        console.error('Error adding file:', error);
+        this.fileManagerState.operationInProgress = false;
+      }
 
       this.scheduleAutoSave();
     },
@@ -954,26 +1089,70 @@ document.addEventListener('alpine:init', () => {
         showToast('Cannot remove the last file', 'warning');
         return;
       }
-      this.editingSnippet.files.splice(index, 1);
-      if (this.activeFileIndex >= this.editingSnippet.files.length) {
-        this.activeFileIndex = this.editingSnippet.files.length - 1;
+
+      // Begin transaction
+      if (!this._beginFileOperation()) {
+        return;
       }
+
+      try {
+        // Determine which file will become active after removal
+        let newActiveIndex;
+        if (index === this.activeFileIndex) {
+          // We're removing the active file, switch to the previous file or first if none before
+          newActiveIndex = Math.max(0, index - 1);
+        } else if (index < this.activeFileIndex) {
+          // If we're removing a file before the active one, shift index down
+          newActiveIndex = this.activeFileIndex - 1;
+        } else {
+          // Removing a file after the active one, index stays the same
+          newActiveIndex = this.activeFileIndex;
+        }
+
+        // Remove the file from array
+        this.editingSnippet.files.splice(index, 1);
+
+        // End transaction and switch to new active file
+        this._endFileOperation(newActiveIndex);
+
+      } catch (error) {
+        console.error('Error removing file:', error);
+        this.fileManagerState.operationInProgress = false;
+      }
+
       this.scheduleAutoSave();
     },
 
     selectFile(index) {
-      this.activeFileIndex = index;
-      this.$nextTick(() => {
-        if (this.isEditing) {
-          this.updateCodeMirror();
-        }
-        this.highlightAll();
-      });
+      // Begin transaction
+      if (!this._beginFileOperation()) {
+        return;
+      }
+
+      try {
+        // End transaction and switch to selected file
+        this._endFileOperation(index);
+        
+        // Highlight code after switch
+        this.$nextTick(() => {
+          this.highlightAll();
+        });
+      } catch (error) {
+        console.error('Error selecting file:', error);
+        this.fileManagerState.operationInProgress = false;
+      }
     },
 
     updateActiveFileContent(content) {
+      // This is called by the editor change handler
+      // Only update if not in the middle of an operation
+      if (this.fileManagerState.operationInProgress) {
+        return;
+      }
+
       if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
         this.editingSnippet.files[this.activeFileIndex].content = content;
+        this.fileManagerState.editorDirty = true;
       } else {
         this.editingSnippet.content = content;
       }
@@ -981,7 +1160,10 @@ document.addEventListener('alpine:init', () => {
     },
 
     updateActiveFileLanguage(language) {
-      // Get current content before updating language
+      // Sync current content first
+      this._syncEditorToFile();
+      
+      // Get current content
       const currentContent = this.aceEditor ? this.aceEditor.getValue() : '';
 
       if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
@@ -1620,39 +1802,15 @@ document.addEventListener('alpine:init', () => {
       return date.toLocaleDateString();
     },
 
-    autoResizeInput(element) {
-      if (!element) return;
-      const val = element.value || element.placeholder || '';
-      const length = val.length;
-      element.style.width = Math.max(10, Math.ceil(length * 1.5)) + 'ch';
-    },
-
-    autoResizeSelect(element) {
-      if (!element) return;
-
-      // Get selected text
-      const selectedOption = element.options[element.selectedIndex];
-      const text = selectedOption ? selectedOption.text : element.value;
-
-      // Create temporary span to measure width
-      const span = document.createElement('span');
-      span.style.font = window.getComputedStyle(element).font;
-      span.style.visibility = 'hidden';
-      span.style.position = 'absolute';
-      span.textContent = text;
-      document.body.appendChild(span);
-
-      // Calculate width: text width + padding-left (0.4rem) + padding-right (1.5rem for arrow) + nice buffer
-      // 1.9rem ~= 30px. Adding 35px buffer.
-      const width = span.offsetWidth + 35;
-      document.body.removeChild(span);
-
-      element.style.width = width + 'px';
-    },
-
+    // Expose helpers globally to avoid Alpine scope issues
+    // Proxies to global functions for component access
+    autoResizeInput(element) { window.autoResizeInput(element); },
+    autoResizeSelect(element) { window.autoResizeSelect(element); }
 
   }));
 });
+
+
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
