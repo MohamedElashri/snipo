@@ -1,7 +1,7 @@
 {{define "content"}}
 <div class="app-container" x-data="snippetsApp()">
     <!-- Sidebar -->
-    <aside class="sidebar" :class="{ 'open': $store.app.sidebarOpen }">
+    <aside class="sidebar" :class="{ 'open': $store.app.sidebarOpen, 'closed': !$store.app.sidebarOpen }">
         <a href="/" class="sidebar-header" title="Go to Home">
             <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="16 18 22 12 16 6"></polyline>
@@ -188,7 +188,7 @@
     </aside>
 
     <!-- Main content -->
-    <main class="main-content">
+    <main class="main-content" :class="{ 'expanded': !$store.app.sidebarOpen }">
         <!-- Header -->
         <header class="main-header">
             <!-- Mobile menu toggle -->
@@ -197,6 +197,13 @@
                     <line x1="3" y1="12" x2="21" y2="12"></line>
                     <line x1="3" y1="6" x2="21" y2="6"></line>
                     <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <!-- Desktop Sidebar Toggle -->
+            <button class="btn-icon desktop-sidebar-toggle" @click="$store.app.toggleSidebar()" title="Toggle Sidebar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="9" y1="3" x2="9" y2="21"></line>
                 </svg>
             </button>
 
@@ -218,6 +225,8 @@
 
             <!-- Right actions (View toggle, Settings, Theme toggle) -->
             <div class="header-actions-right">
+
+
                 <!-- View toggle -->
                 <div class="view-toggle">
                     <button class="btn-icon" :class="{ 'active': viewMode === 'grid' }" @click="setViewMode('grid')"
@@ -391,7 +400,7 @@
         <!-- Snippet View/Editor -->
         <div class="editor-container" x-show="showEditor" x-cloak>
             <!-- Toolbar -->
-            <div class="editor-toolbar">
+            <div class="editor-toolbar" x-show="editorHeaderVisible">
                 <button class="btn-icon" @click="cancelEdit()" title="Back">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -402,12 +411,15 @@
                 <!-- Preview mode: show title as text -->
                 <h2 class="editor-title-display" x-show="!isEditing" x-text="editingSnippet.title || 'Untitled'"></h2>
 
-                <!-- Edit mode: show title input -->
-                <input x-show="isEditing" type="text" class="editor-title-input bordered" x-model="editingSnippet.title"
-                    placeholder="Snippet title..." @input="scheduleAutoSave()">
+                <!-- Edit mode: show title input (as textarea for dynamic resize) -->
+                <div class="editor-title-wrapper" x-show="isEditing">
+                    <textarea class="editor-title-input" x-model="editingSnippet.title" placeholder="Snippet title..."
+                        rows="1" @input="scheduleAutoSave(); autoResizeTextarea($event.target)"
+                        x-init="$watch('isEditing', (v) => { if(v) $nextTick(() => autoResizeTextarea($el)) })"></textarea>
+                </div>
 
                 <div class="flex gap-2">
-                    <button class="btn-icon" @click="toggleFavorite(editingSnippet)" x-show="editingSnippet?.id"
+                    <button class="btn-action" @click="toggleFavorite(editingSnippet)" x-show="editingSnippet?.id"
                         title="Toggle Favorite">
                         <svg viewBox="0 0 24 24" :fill="editingSnippet?.is_favorite ? 'currentColor' : 'none'"
                             stroke="currentColor" stroke-width="2">
@@ -415,23 +427,26 @@
                                 points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
                             </polygon>
                         </svg>
+                        <span x-text="editingSnippet?.is_favorite ? 'Favorited' : 'Favorite'"></span>
                     </button>
-                    <button class="btn-icon" @click="copyToClipboard(editingSnippet)" title="Copy Code">
+                    <button class="btn-action" @click="copyToClipboard(editingSnippet)" title="Copy Code">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                         </svg>
+                        <span>Copy</span>
                     </button>
-                    <button class="btn-icon" @click="copyShareLink(editingSnippet)"
+                    <button class="btn-action" @click="copyShareLink(editingSnippet)"
                         x-show="editingSnippet?.id && editingSnippet?.is_public" title="Copy Share Link">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                         </svg>
+                        <span>Share</span>
                     </button>
 
                     <!-- Archive button -->
-                    <button class="btn-icon" @click="toggleArchive(editingSnippet)"
+                    <button class="btn-action" @click="toggleArchive(editingSnippet)"
                         x-show="editingSnippet?.id && settings.archive_enabled"
                         :title="editingSnippet?.is_archived ? 'Unarchive' : 'Archive'">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -449,31 +464,46 @@
                             <line x1="9" y1="13" x2="12" y2="10"></line>
                             <line x1="15" y1="13" x2="12" y2="10"></line>
                         </svg>
+                        <span x-text="editingSnippet?.is_archived ? 'Unarchive' : 'Archive'"></span>
                     </button>
 
-                    <button class="btn-icon" @click="confirmDelete(editingSnippet)" x-show="editingSnippet?.id"
+                    <button class="btn-action danger" @click="confirmDelete(editingSnippet)" x-show="editingSnippet?.id"
                         title="Delete">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="3 6 5 6 21 6"></polyline>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
                             </path>
                         </svg>
+                        <span>Delete</span>
                     </button>
 
                     <!-- Edit button (preview mode) -->
-                    <button class="btn-primary" x-show="!isEditing" @click="startEditing()"
-                        style="padding: 0.5rem 1rem;">
+                    <button class="btn-action primary" x-show="!isEditing" @click="startEditing()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"
-                            height="16" style="margin-right: 0.25rem;">
+                            height="16">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
-                        Edit
+                        <span>Edit</span>
                     </button>
 
                     <!-- Save button (edit mode) -->
-                    <button class="btn-primary" x-show="isEditing" @click="saveSnippet()" style="padding: 0.5rem 1rem;">
-                        Save
+                    <button class="btn-action primary" x-show="isEditing" @click="saveSnippet()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                        <span>Save</span>
+                    </button>
+
+                    <!-- Close/Cancel button (edit mode) -->
+                    <button class="btn-action" x-show="isEditing" @click="cancelEditing()" title="Close and discard changes">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        <span>Close</span>
                     </button>
                 </div>
             </div>
@@ -482,6 +512,7 @@
             <div class="preview-mode" x-show="!isEditing">
                 <!-- Metadata bar -->
                 <div class="preview-metadata">
+
                     <div class="preview-meta-item" x-show="editingSnippet.description">
                         <span class="preview-meta-label">Description</span>
                         <span x-text="editingSnippet.description"></span>
@@ -508,6 +539,20 @@
                     </div>
                     <div class="preview-meta-item" x-show="editingSnippet.is_public">
                         <span class="tag-badge public-badge">Public</span>
+                    </div>
+                    <!-- Toggle Focus Mode (Moved to end) -->
+                    <div class="preview-meta-item" style="margin-left: auto;">
+                        <button class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"
+                            @click="editorHeaderVisible = !editorHeaderVisible" title="Focus Mode (Toggle Header)"
+                            style="padding: 2px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"
+                                height="16">
+                                <path d="M15 3h6v6"></path>
+                                <path d="M14 10l6.1-6.1"></path>
+                                <path d="M9 21H3v-6"></path>
+                                <path d="M10 14l-6.1 6.1"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -550,9 +595,18 @@
             <div class="edit-mode" x-show="isEditing">
                 <!-- Compact metadata bar -->
                 <div class="editor-metadata">
+                    <div class="editor-field-inline description-field">
+                        <span class="editor-label">Description</span>
+                        <textarea x-model="editingSnippet.description" placeholder="Description (optional)" rows="1"
+                            class="description-textarea" @input="autoResizeTextarea($event.target)"></textarea>
+                    </div>
+
                     <div class="editor-field-inline compact">
+                        <span class="editor-label">Language</span>
                         <select :value="activeFile?.language || editingSnippet.language"
-                            @change="updateActiveFileLanguage($event.target.value)" title="Language">
+                            @change="updateActiveFileLanguage($event.target.value); $nextTick(() => autoResizeSelect($event.target))"
+                            x-init="$watch('activeFile?.language || editingSnippet.language', () => $nextTick(() => autoResizeSelect($el))); $nextTick(() => autoResizeSelect($el))"
+                            title="Language">
                             <option value="javascript">JavaScript</option>
                             <option value="typescript">TypeScript</option>
                             <option value="python">Python</option>
@@ -578,6 +632,7 @@
                     </div>
 
                     <div class="editor-field-inline compact">
+                        <span class="editor-label">Folder</span>
                         <select x-model="editingSnippet.folder_id" title="Folder">
                             <option value="">No folder</option>
                             <template x-for="folder in flattenedFolders" :key="folder.id">
@@ -586,15 +641,24 @@
                         </select>
                     </div>
 
-                    <label class="public-toggle" title="Make snippet publicly accessible">
+                    <label class="public-toggle-switch" title="Make snippet publicly accessible">
                         <input type="checkbox" x-model="editingSnippet.is_public">
+                        <div class="public-switch-track">
+                            <div class="public-switch-thumb"></div>
+                        </div>
                         <span>Public</span>
                     </label>
 
-                    <div class="editor-field-inline description-field">
-                        <textarea x-model="editingSnippet.description" placeholder="Description (optional)" rows="1"
-                            class="description-textarea" @input="autoResizeTextarea($event.target)"></textarea>
-                    </div>
+                    <button class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"
+                        @click="editorHeaderVisible = !editorHeaderVisible" title="Focus Mode (Toggle Header)"
+                        style="margin-left: auto;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 3h6v6"></path>
+                            <path d="M14 10l6.1-6.1"></path>
+                            <path d="M9 21H3v-6"></path>
+                            <path d="M10 14l-6.1 6.1"></path>
+                        </svg>
+                    </button>
                 </div>
 
                 <!-- Main edit area: editor + tags sidebar -->
@@ -610,10 +674,26 @@
                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                     <polyline points="14 2 14 8 20 8"></polyline>
                                 </svg>
-                                <input type="text" class="filename-input" :value="activeFile?.filename || ''"
-                                    @input="updateActiveFilename($event.target.value)" @blur="validateFilename()"
-                                    placeholder="filename.ext"
+                                <!-- Filename with double-click edit -->
+                                <div class="filename-container" x-data="{ isRenaming: false }"
                                     x-show="editingSnippet.files && editingSnippet.files.length > 0">
+
+                                    <!-- Display Mode -->
+                                    <span class="filename-display" x-show="!isRenaming"
+                                        @dblclick="isRenaming = true; $nextTick(() => $refs.filenameInput.focus())"
+                                        x-text="activeFile?.filename || 'New File'">
+                                    </span>
+
+                                    <!-- Edit Mode -->
+                                    <input type="text" class="filename-input" x-ref="filenameInput" x-show="isRenaming"
+                                        :value="activeFile?.filename || ''"
+                                        @input="updateActiveFilename($event.target.value); autoResizeInput($event.target)"
+                                        @blur="validateFilename(); isRenaming = false"
+                                        @keydown.enter="$event.target.blur()"
+                                        @keydown.escape="isRenaming = false; $event.target.value = activeFile?.filename || ''"
+                                        x-init="$watch('isRenaming', val => { if(val) $nextTick(() => autoResizeInput($el)) })"
+                                        placeholder="filename.ext">
+                                </div>
                                 <span class="filename-placeholder"
                                     x-show="!editingSnippet.files || editingSnippet.files.length === 0"
                                     @click="addFile()">+ Add file</span>

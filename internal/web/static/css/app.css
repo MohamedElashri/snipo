@@ -8,16 +8,15 @@
   --snipo-success: #22c55e;
   --snipo-warning: #f59e0b;
   --snipo-danger: #ef4444;
-  
+
   /* Sidebar */
-  --sidebar-width: 260px;
-  
+  --sidebar-width: 220px;
+
   /* Fonts */
   --font-sans: 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'Fira Code', 'Monaco', 'Consolas', monospace;
+  --font-mono: 'Fira Code', 'JetBrains Mono', 'Monaco', 'Consolas', 'Source Code Pro', 'Menlo', monospace;
 }
 
-/* Apply Noto Sans to body */
 body {
   font-family: var(--font-sans);
 }
@@ -26,18 +25,18 @@ body {
 [data-theme="light"] {
   --pico-primary: var(--snipo-primary);
   --pico-primary-hover: var(--snipo-primary-hover);
-  
+
   --sidebar-bg: #f1f5f9;
   --sidebar-text: #1e293b;
   --sidebar-hover: #e2e8f0;
   --sidebar-border: #cbd5e1;
-  
+
   --editor-bg: #f8fafc;
   --editor-text: #1e293b;
   --editor-line-numbers: #94a3b8;
-  
+
   --card-preview-bg: #f1f5f9;
-  
+
   /* Icon colors for light mode */
   --icon-color: #475569;
   --icon-hover: #1e293b;
@@ -50,28 +49,28 @@ body {
 [data-theme="dark"] {
   --pico-primary: #818cf8;
   --pico-primary-hover: #6366f1;
-  
+
   /* Sidebar - Darker, more contrast */
   --sidebar-bg: #0d1117;
   --sidebar-text: #c9d1d9;
   --sidebar-hover: #161b22;
   --sidebar-border: #30363d;
-  
+
   /* Editor - Match Monokai for proper syntax colors */
   --editor-bg: #1e1e1e;
   --editor-text: #d4d4d4;
   --editor-line-numbers: #6e7681;
-  
+
   /* Cards */
   --card-preview-bg: #161b22;
-  
+
   /* Icon colors for dark mode */
   --icon-color: #8b949e;
   --icon-hover: #c9d1d9;
   --icon-active: #818cf8;
   --icon-favorite: #f0c14b;
   --icon-danger: #f85149;
-  
+
   /* Additional dark mode overrides */
   --pico-background-color: #0d1117;
   --pico-card-background-color: #161b22;
@@ -187,7 +186,7 @@ body {
 
 .sidebar-add-btn:hover {
   opacity: 1;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-add-btn svg {
@@ -218,7 +217,7 @@ body {
   text-decoration: none;
   cursor: pointer;
   transition: background 0.15s;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .sidebar-item:hover {
@@ -249,7 +248,7 @@ body {
 .sidebar-item-count {
   margin-left: auto;
   font-size: 0.75rem;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
 }
@@ -298,11 +297,11 @@ body {
 
 .sidebar-item-actions button:hover {
   opacity: 1;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .sidebar-item.active .sidebar-item-actions button:hover {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Folder tree */
@@ -356,7 +355,7 @@ body {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1rem;
   background: var(--pico-background-color);
   border-bottom: 1px solid var(--pico-muted-border-color);
   position: sticky;
@@ -558,7 +557,7 @@ body {
 
 .snippet-card:hover {
   border-color: var(--snipo-primary);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .snippet-card-header {
@@ -571,7 +570,7 @@ body {
 
 .snippet-card-title {
   font-weight: 500;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   margin: 0;
   color: var(--pico-color);
   overflow: hidden;
@@ -658,19 +657,38 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   background: var(--pico-card-background-color);
   border-bottom: 1px solid var(--pico-muted-border-color);
 }
 
-.editor-title-input {
+.editor-title-wrapper {
   flex: 1;
-  font-size: 1rem;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.editor-title-input {
+  width: 100%;
+  font-size: 0.9rem;
   font-weight: 600;
-  border: none;
+  border: 2px solid var(--pico-muted-border-color);
+  /* Bold clear border */
+  border-radius: 0.25rem;
   background: transparent;
-  padding: 0.2rem 0;
+  padding: 0.4rem 0.5rem;
+  /* Added padding for better visual inside border */
   margin: 0;
+  resize: none;
+  overflow: hidden;
+  line-height: 1.6;
+  min-height: 24px;
+}
+
+.editor-title-input:focus {
+  border-color: var(--snipo-primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
 }
 
 .editor-title-input.bordered {
@@ -767,42 +785,61 @@ body {
   background: var(--snipo-success);
 }
 
-/* File bar for multi-file snippets */
 .file-bar {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.5rem;
+  gap: 0.5rem;
+  padding: 0 0.5rem;
+  height: 60px;
   background: var(--pico-card-background-color);
   border-bottom: 1px solid var(--pico-muted-border-color);
   flex-shrink: 0;
-  min-height: 32px;
 }
 
 .current-file-name {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
   flex-shrink: 0;
 }
 
 .current-file-name svg {
   color: var(--pico-muted-color);
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
 }
 
+.filename-input,
+.file-tab-compact,
+.filename-placeholder,
+.file-add-btn {
+  height: 30px;
+  /* Increased from 28px */
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  transition: all 0.15s;
+}
+
 .filename-input {
-  background: var(--pico-background-color);
+  /* Dynamic width handled by JS, but set min-width */
+  min-width: 60px;
+  padding: 0 0.5rem;
+  background: transparent;
   border: 1px solid transparent;
   border-radius: 0.25rem;
-  padding: 0.2rem 0.5rem;
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  font-weight: 500;
   color: var(--pico-color);
-  width: 160px;
+  font-weight: 500;
+  line-height: 1;
+  /* Reset line-height to compact */
+  min-height: 30px !important;
+  /* Force override */
+  height: 30px !important;
+  max-height: 30px !important;
   margin: 0;
-  transition: all 0.15s;
 }
 
 .filename-input:hover {
@@ -810,50 +847,67 @@ body {
 }
 
 .filename-input:focus {
-  outline: none;
   background: var(--pico-background-color);
   border-color: var(--snipo-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
 
 .filename-placeholder {
   color: var(--pico-muted-color);
-  font-size: 0.75rem;
   cursor: pointer;
-  padding: 0.2rem 0.5rem;
+  padding: 0 0.5rem;
   border: 1px dashed var(--pico-muted-border-color);
   border-radius: 0.25rem;
-  transition: all 0.15s;
 }
 
-.filename-placeholder:hover {
-  border-color: var(--snipo-primary);
-  color: var(--snipo-primary);
-  background: rgba(99, 102, 241, 0.05);
+.filename-container {
+  display: flex;
+  align-items: center;
+}
+
+.filename-display {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  /* Slightly bolder for readability */
+  color: var(--pico-color);
+  padding: 0 0.5rem;
+  height: 30px;
+  /* Match new standard height */
+  display: flex;
+  align-items: center;
+  cursor: text;
+  /* Suggests editability */
+  border: 1px solid transparent;
+  /* Reserve space for border to prevent layout jump */
+  border-radius: 0.25rem;
+  white-space: nowrap;
+}
+
+.filename-display:hover {
+  background: var(--pico-muted-border-color);
+  opacity: 0.9;
 }
 
 .file-tabs-compact {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.35rem;
   flex: 1;
   overflow-x: auto;
   min-width: 0;
+  align-items: center;
 }
 
 .file-tab-compact {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.2rem 0.5rem;
+  gap: 0.35rem;
+  padding: 0 0.5rem;
   background: transparent;
   border: 1px solid var(--pico-muted-border-color);
   border-radius: 0.25rem;
   cursor: pointer;
-  font-size: 0.7rem;
-  font-family: var(--font-mono);
   color: var(--pico-muted-color);
   white-space: nowrap;
-  transition: all 0.15s;
 }
 
 .file-tab-compact:hover {
@@ -877,7 +931,7 @@ body {
   font-size: 0.9rem;
   line-height: 1;
   opacity: 0.6;
-  margin-left: 0.125rem;
+  padding: 0 0.1rem;
 }
 
 .file-tab-close-sm:hover {
@@ -885,22 +939,26 @@ body {
 }
 
 .file-add-btn {
-  display: flex;
-  align-items: center;
   justify-content: center;
-  padding: 0.25rem;
+  width: 24px;
+  /* Slightly wider for touch/click target */
+  padding: 0;
   background: transparent;
   border: 1px dashed var(--pico-muted-border-color);
   border-radius: 0.25rem;
   cursor: pointer;
   color: var(--pico-muted-color);
-  transition: all 0.15s;
   flex-shrink: 0;
 }
 
 .file-add-btn:hover {
   border-color: var(--snipo-primary);
   color: var(--snipo-primary);
+}
+
+.file-add-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* Preview file bar */
@@ -990,10 +1048,25 @@ body {
   margin-top: 0;
 }
 
-.preview-markdown-scroll h1 { font-size: 2rem; border-bottom: 1px solid var(--pico-muted-border-color); padding-bottom: 0.5rem; }
-.preview-markdown-scroll h2 { font-size: 1.5rem; border-bottom: 1px solid var(--pico-muted-border-color); padding-bottom: 0.3rem; }
-.preview-markdown-scroll h3 { font-size: 1.25rem; }
-.preview-markdown-scroll h4 { font-size: 1rem; }
+.preview-markdown-scroll h1 {
+  font-size: 2rem;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  padding-bottom: 0.5rem;
+}
+
+.preview-markdown-scroll h2 {
+  font-size: 1.5rem;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  padding-bottom: 0.3rem;
+}
+
+.preview-markdown-scroll h3 {
+  font-size: 1.25rem;
+}
+
+.preview-markdown-scroll h4 {
+  font-size: 1rem;
+}
 
 .preview-markdown-scroll p {
   margin-bottom: 1rem;
@@ -1097,6 +1170,10 @@ body {
   flex: 1;
   display: flex;
   overflow: hidden;
+  position: relative;
+  /* Create stacking context */
+  z-index: 1;
+  /* Lower than metadata */
 }
 
 .editor-left {
@@ -1345,11 +1422,15 @@ body {
 .editor-metadata {
   display: flex;
   gap: 0.5rem;
-  padding: 0.35rem 0.5rem;
+  padding: 0.5rem;
   background: var(--pico-card-background-color);
   border-bottom: 1px solid var(--pico-muted-border-color);
   flex-wrap: wrap;
   align-items: center;
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .editor-metadata-left {
@@ -1391,9 +1472,20 @@ body {
 
 /* Description field */
 .description-field {
-  flex: 1;
-  margin-left: 0.5rem;
+  flex: 1 1 100%;
+  width: 100%;
+  margin-left: 0;
   min-width: 120px;
+}
+
+.editor-label {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--pico-muted-color);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  margin-right: 0.4rem;
 }
 
 .description-textarea {
@@ -1407,7 +1499,15 @@ body {
 }
 
 .editor-field-inline.compact select {
-  min-width: 80px;
+  min-width: 60px;
+  padding-right: 1.5rem;
+  text-overflow: ellipsis;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.25rem center;
+  background-size: 14px;
 }
 
 .tags-field {
@@ -1542,7 +1642,7 @@ body {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1622,7 +1722,9 @@ body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Toast notifications */
@@ -1641,20 +1743,35 @@ body {
   border: 1px solid var(--pico-muted-border-color);
   border-radius: 0.5rem;
   padding: 0.75rem 1rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
   gap: 0.5rem;
   animation: slideIn 0.3s ease;
 }
 
-.toast.success { border-left: 3px solid var(--snipo-success); }
-.toast.error { border-left: 3px solid var(--snipo-danger); }
-.toast.warning { border-left: 3px solid var(--snipo-warning); }
+.toast.success {
+  border-left: 3px solid var(--snipo-success);
+}
+
+.toast.error {
+  border-left: 3px solid var(--snipo-danger);
+}
+
+.toast.warning {
+  border-left: 3px solid var(--snipo-warning);
+}
 
 @keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 /* Settings modal */
@@ -1706,7 +1823,7 @@ body {
 }
 
 .created-token-box input {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   border: none;
   color: white;
 }
@@ -1753,23 +1870,23 @@ body {
   .sidebar {
     transform: translateX(-100%);
   }
-  
+
   .sidebar.open {
     transform: translateX(0);
   }
-  
+
   .main-content {
     margin-left: 0;
   }
-  
+
   .snippet-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .editor-sidebar {
     display: none;
   }
-  
+
   .editor-sidebar.open {
     display: block;
     position: fixed;
@@ -1795,7 +1912,7 @@ body {
   background: var(--pico-card-background-color);
   border-radius: 0.5rem;
   padding: 2rem;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
 
 .login-header {
@@ -1904,17 +2021,172 @@ body {
 }
 
 /* Utility classes */
-.hidden { display: none !important; }
-.flex { display: flex; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.gap-1 { gap: 0.25rem; }
-.gap-2 { gap: 0.5rem; }
-.gap-4 { gap: 1rem; }
-.mt-2 { margin-top: 0.5rem; }
-.mt-4 { margin-top: 1rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-4 { margin-bottom: 1rem; }
-.text-sm { font-size: 0.875rem; }
-.text-muted { color: var(--pico-muted-color); }
-.font-mono { font-family: 'Fira Code', 'Monaco', 'Consolas', monospace; }
+.hidden {
+  display: none !important;
+}
+
+.flex {
+  display: flex;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-1 {
+  gap: 0.25rem;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-muted {
+  color: var(--pico-muted-color);
+}
+
+.font-mono {
+  font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+}
+
+/* Layout Toggles */
+.sidebar.closed {
+  transform: translateX(-100%);
+}
+
+.main-content.expanded {
+  margin-left: 0;
+}
+
+.btn-focus {
+  color: var(--snipo-primary);
+  border-color: var(--snipo-primary);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.btn-focus:hover {
+  background: var(--snipo-primary);
+  color: white;
+}
+
+
+
+/* Refined Action Buttons */
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  height: 28px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 0.25rem;
+  border: 1px solid var(--pico-muted-border-color);
+  background: transparent;
+  color: var(--pico-muted-color);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-action:hover {
+  background: var(--pico-muted-border-color);
+  color: var(--pico-color);
+}
+
+.btn-action.primary {
+  background: var(--snipo-primary);
+  border-color: var(--snipo-primary);
+  color: white;
+}
+
+.btn-action.primary:hover {
+  background: var(--snipo-primary-hover);
+}
+
+.btn-action.danger:hover {
+  border-color: var(--snipo-danger);
+  color: var(--snipo-danger);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.btn-action svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Better Public Toggle */
+.public-toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--pico-muted-color);
+}
+
+.public-switch-track {
+  width: 32px;
+  height: 18px;
+  background: var(--pico-muted-border-color);
+  border-radius: 999px;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.public-switch-thumb {
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.public-toggle-switch input {
+  display: none;
+}
+
+.public-toggle-switch input:checked+.public-switch-track {
+  background: var(--snipo-success);
+}
+
+.public-toggle-switch input:checked+.public-switch-track .public-switch-thumb {
+  transform: translateX(14px);
+}
+
+@media (max-width: 768px) {
+  .desktop-sidebar-toggle {
+    display: none !important;
+  }
+}
