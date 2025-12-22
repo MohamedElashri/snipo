@@ -42,8 +42,13 @@
   margin: 0;
   resize: none;
   overflow: hidden;
-  line-height: 1.6;
-  min-height: 24px;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.8;
+  min-height: 36px;
+  max-height: 120px;
+  box-sizing: border-box;
 }
 
 .editor-title-input:focus {
