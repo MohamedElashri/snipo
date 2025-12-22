@@ -74,6 +74,7 @@ export function initSnippetsApp(Alpine) {
     favoritesCount: 0,
     loading: true,
     viewMode: localStorage.getItem('snipo-view-mode') || 'grid',
+    sortBy: localStorage.getItem('snipo-sort-by') || 'updated_at',
     showEditor: false,
     isEditing: false,
     showDeleteModal: false,
@@ -110,6 +111,17 @@ export function initSnippetsApp(Alpine) {
       const params = new URLSearchParams();
       params.set('page', this.pagination.page);
       params.set('limit', this.pagination.limit);
+      
+      // Handle sorting
+      if (this.sortBy) {
+        if (this.sortBy === 'title_desc') {
+          params.set('sort', 'title');
+          params.set('order', 'desc');
+        } else {
+          params.set('sort', this.sortBy);
+        }
+      }
+      
       if (this.filter.query) params.set('q', this.filter.query);
       if (this.filter.tagId) params.set('tag_id', this.filter.tagId);
       if (this.filter.folderId) params.set('folder_id', this.filter.folderId);
@@ -204,6 +216,13 @@ export function initSnippetsApp(Alpine) {
     setViewMode(mode) {
       this.viewMode = mode;
       localStorage.setItem('snipo-view-mode', mode);
+    },
+
+    async setSortBy(sort) {
+      this.sortBy = sort;
+      localStorage.setItem('snipo-sort-by', sort);
+      this.pagination.page = 1;
+      await this.loadSnippets();
     },
 
     async logout() {
