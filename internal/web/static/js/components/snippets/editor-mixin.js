@@ -323,9 +323,7 @@ export const editorMixin = {
       const isDark = theme.get() === 'dark';
       aceTheme = isDark ? 'ace/theme/monokai' : 'ace/theme/chrome';
     } else {
-      // Convert underscores to hyphens for Ace theme names
-      const themeName = editorTheme.replace(/_/g, '-');
-      aceTheme = `ace/theme/${themeName}`;
+      aceTheme = `ace/theme/${editorTheme}`;
     }
 
     if (!this.aceEditor) {

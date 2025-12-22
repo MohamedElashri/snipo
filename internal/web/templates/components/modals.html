@@ -399,8 +399,22 @@
                             <label>Editor Theme</label>
                             <select x-model="settings.editor_theme" @change="updateSettings(); applyEditorSettings()">
                                 <option value="auto">Auto (Follow App Theme)</option>
-                                <option value="chrome">Chrome (Light)</option>
-                                <option value="monokai">Monokai (Dark)</option>
+                                <optgroup label="Light Themes">
+                                    <option value="chrome">Chrome</option>
+                                    <option value="clouds">Clouds</option>
+                                    <option value="github">GitHub</option>
+                                    <option value="kuroir">Kuroir</option>
+                                    <option value="textmate">TextMate</option>
+                                    <option value="xcode">Xcode</option>
+                                </optgroup>
+                                <optgroup label="Dark Themes">
+                                    <option value="ambiance">Ambiance</option>
+                                    <option value="chaos">Chaos</option>
+                                    <option value="cobalt">Cobalt</option>
+                                    <option value="dracula">Dracula</option>
+                                    <option value="monokai">Monokai</option>
+                                    <option value="twilight">Twilight</option>
+                                </optgroup>
                             </select>
                         </div>
                     </div>
