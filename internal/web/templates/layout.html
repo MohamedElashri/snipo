@@ -21,8 +21,8 @@
     <!-- Fonts (local) -->
     <link rel="stylesheet" href="/static/vendor/css/fonts.css">
     
-    <!-- Custom styles -->
-    <link rel="stylesheet" href="/static/css/app.css">
+    <!-- Custom styles - Modular CSS structure -->
+    <link rel="stylesheet" href="/static/css/main.css">
     
     <!-- Initialize theme before page renders to prevent flash -->
     <script>
@@ -66,8 +66,8 @@
     <script src="/static/vendor/js/prism-markdown.min.js"></script>
     <script src="/static/vendor/js/prism-cuda.min.js"></script>
     
-    <!-- App JS (must load before Alpine, defer ensures execution order) -->
-    <script defer src="/static/js/app.js"></script>
+    <!-- App JS - Modular structure with ES6 modules -->
+    <script type="module" src="/static/js/main.js"></script>
     
     <!-- Alpine.js with collapse plugin (load last after app.js) -->
     <script defer src="/static/vendor/js/alpine-collapse.min.js"></script>

@@ -1,0 +1,54 @@
+/* Layout - Base app container and responsive structure */
+
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.main-content.expanded {
+  margin-left: 0;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+
+  .snippet-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .desktop-sidebar-toggle {
+    display: none !important;
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+  }
+
+  .desktop-sidebar-toggle {
+    display: none !important;
+  }
+}

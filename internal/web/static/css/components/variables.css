@@ -1,0 +1,80 @@
+/* Variables - Color scheme, fonts, and theme definitions */
+
+:root {
+  /* Color scheme */
+  --snipo-primary: #6366f1;
+  --snipo-primary-hover: #4f46e5;
+  --snipo-secondary: #64748b;
+  --snipo-success: #22c55e;
+  --snipo-warning: #f59e0b;
+  --snipo-danger: #ef4444;
+
+  /* Sidebar */
+  --sidebar-width: 220px;
+
+  /* Fonts */
+  --font-sans: 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Fira Code', 'JetBrains Mono', 'Monaco', 'Consolas', 'Source Code Pro', 'Menlo', monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+/* Light mode */
+[data-theme="light"] {
+  --pico-primary: var(--snipo-primary);
+  --pico-primary-hover: var(--snipo-primary-hover);
+
+  --sidebar-bg: #f1f5f9;
+  --sidebar-text: #1e293b;
+  --sidebar-hover: #e2e8f0;
+  --sidebar-border: #cbd5e1;
+
+  --editor-bg: #f8fafc;
+  --editor-text: #1e293b;
+  --editor-line-numbers: #94a3b8;
+
+  --card-preview-bg: #f1f5f9;
+
+  /* Icon colors for light mode */
+  --icon-color: #475569;
+  --icon-hover: #1e293b;
+  --icon-active: var(--snipo-primary);
+  --icon-favorite: #eab308;
+  --icon-danger: #dc2626;
+}
+
+/* Dark mode - Modern dark theme */
+[data-theme="dark"] {
+  --pico-primary: #818cf8;
+  --pico-primary-hover: #6366f1;
+
+  /* Sidebar - Darker, more contrast */
+  --sidebar-bg: #0d1117;
+  --sidebar-text: #c9d1d9;
+  --sidebar-hover: #161b22;
+  --sidebar-border: #30363d;
+
+  /* Editor - Match Monokai for proper syntax colors */
+  --editor-bg: #1e1e1e;
+  --editor-text: #d4d4d4;
+  --editor-line-numbers: #6e7681;
+
+  /* Cards */
+  --card-preview-bg: #161b22;
+
+  /* Icon colors for dark mode */
+  --icon-color: #8b949e;
+  --icon-hover: #c9d1d9;
+  --icon-active: #818cf8;
+  --icon-favorite: #f0c14b;
+  --icon-danger: #f85149;
+
+  /* Additional dark mode overrides */
+  --pico-background-color: #0d1117;
+  --pico-card-background-color: #161b22;
+  --pico-muted-border-color: #30363d;
+  --pico-color: #c9d1d9;
+  --pico-muted-color: #8b949e;
+}

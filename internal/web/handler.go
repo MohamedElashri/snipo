@@ -10,10 +10,10 @@ import (
 	"github.com/MohamedElashri/snipo/internal/auth"
 )
 
-//go:embed templates/*.html
+//go:embed templates/*.html templates/components/*.html
 var templatesFS embed.FS
 
-//go:embed static/css/*.css static/js/*.js static/vendor/css/*.css static/vendor/js/*.js static/vendor/js/ace/*.js static/vendor/fonts/*.woff2 static/*.ico static/*.png
+//go:embed static/css/*.css static/css/components/*.css static/js/*.js static/js/modules/*.js static/js/stores/*.js static/js/components/*.js static/js/components/snippets/*.js static/js/utils/*.js static/vendor/css/*.css static/vendor/js/*.js static/vendor/js/ace/*.js static/vendor/fonts/*.woff2 static/*.ico static/*.png
 var staticFS embed.FS
 
 // Handler handles web page requests
@@ -24,8 +24,8 @@ type Handler struct {
 
 // NewHandler creates a new web handler
 func NewHandler(authService *auth.Service) (*Handler, error) {
-	// Parse templates
-	tmpl, err := template.ParseFS(templatesFS, "templates/*.html")
+	// Parse templates including components
+	tmpl, err := template.ParseFS(templatesFS, "templates/*.html", "templates/components/*.html")
 	if err != nil {
 		return nil, err
 	}
@@ -81,10 +81,11 @@ func (h *Handler) PublicSnippet(w http.ResponseWriter, r *http.Request) {
 
 // render renders a template with layout
 func (h *Handler) render(w http.ResponseWriter, layout, content string, data interface{}) {
-	// Create a new template that combines layout and content
+	// Create a new template that combines layout, content, and components
 	tmpl, err := template.ParseFS(templatesFS,
 		filepath.Join("templates", layout),
 		filepath.Join("templates", content),
+		"templates/components/*.html",
 	)
 	if err != nil {
 		http.Error(w, "Template parse error: "+err.Error(), http.StatusInternalServerError)
