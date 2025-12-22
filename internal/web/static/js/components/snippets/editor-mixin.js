@@ -315,8 +315,16 @@ export const editorMixin = {
       : (this.editingSnippet.language || 'javascript');
 
     const aceMode = getAceMode(language);
-    const isDark = theme.get() === 'dark';
-    const aceTheme = isDark ? 'ace/theme/monokai' : 'ace/theme/chrome';
+    
+    // Determine theme based on settings
+    let aceTheme = 'ace/theme/chrome';
+    const editorTheme = this.settings?.editor_theme || 'auto';
+    if (editorTheme === 'auto') {
+      const isDark = theme.get() === 'dark';
+      aceTheme = isDark ? 'ace/theme/monokai' : 'ace/theme/chrome';
+    } else {
+      aceTheme = `ace/theme/${editorTheme}`;
+    }
 
     if (!this.aceEditor) {
       if (typeof ace === 'undefined') {
@@ -336,13 +344,8 @@ export const editorMixin = {
         this.aceEditor.session.setMode(aceMode);
         this.aceEditor.setValue(content, -1);
 
-        this.aceEditor.setOptions({
-          fontSize: '14px',
-          showPrintMargin: false,
-          tabSize: 2,
-          useSoftTabs: true,
-          wrap: true
-        });
+        // Apply settings from database
+        this.applyEditorSettings();
 
         const self = this;
         this.aceEditor.session.on('change', () => {
@@ -378,6 +381,42 @@ export const editorMixin = {
         this.aceEditor.resize();
       }
     });
+  },
+
+  applyEditorSettings() {
+    if (!this.aceEditor || !this.settings) return;
+
+    try {
+      const settings = this.settings;
+      
+      // Apply visual settings
+      this.aceEditor.setOptions({
+        fontSize: `${settings.editor_font_size || 14}px`,
+        showPrintMargin: settings.editor_show_print_margin || false,
+        showGutter: settings.editor_show_gutter !== false,
+        displayIndentGuides: settings.editor_show_indent_guides !== false,
+        highlightActiveLine: settings.editor_highlight_active_line !== false,
+        tabSize: settings.editor_tab_size || 2,
+        useSoftTabs: settings.editor_use_soft_tabs !== false,
+        wrap: settings.editor_word_wrap !== false,
+        enableBasicAutocompletion: true,
+        enableLiveAutocompletion: settings.editor_enable_live_autocompletion !== false,
+        enableSnippets: settings.editor_enable_snippets !== false
+      });
+
+      // Update theme if needed
+      const editorTheme = settings.editor_theme || 'auto';
+      let aceTheme = 'ace/theme/chrome';
+      if (editorTheme === 'auto') {
+        const isDark = theme.get() === 'dark';
+        aceTheme = isDark ? 'ace/theme/monokai' : 'ace/theme/chrome';
+      } else {
+        aceTheme = `ace/theme/${editorTheme}`;
+      }
+      this.aceEditor.setTheme(aceTheme);
+    } catch (e) {
+      console.warn('Failed to apply editor settings:', e);
+    }
   },
 
   destroyAceEditor() {

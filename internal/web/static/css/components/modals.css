@@ -55,9 +55,10 @@
 }
 
 .modal-body {
-  padding: 1.5rem;
+  padding: 1.25rem;
   overflow-y: auto;
   flex: 1;
+  font-size: 0.9rem;
 }
 
 .modal-footer {
@@ -87,7 +88,7 @@
 
 /* Settings modal */
 .settings-modal {
-  max-width: 600px;
+  max-width: 800px;
   width: 90%;
 }
 
@@ -100,14 +101,14 @@
 .settings-tab {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  gap: 0.4rem;
+  padding: 0.65rem 0.85rem;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
   color: var(--icon-color);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   transition: color 0.15s, border-color 0.15s;
 }
 

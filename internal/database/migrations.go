@@ -229,6 +229,22 @@ CREATE INDEX IF NOT EXISTS idx_snippet_files_history_snippet_id ON snippet_files
 ALTER TABLE settings ADD COLUMN history_enabled INTEGER DEFAULT 1;
 `
 
+// Migration 5: Add editor settings
+const addEditorSettingsSQL = `
+-- Add editor-related settings columns
+ALTER TABLE settings ADD COLUMN editor_font_size INTEGER DEFAULT 14;
+ALTER TABLE settings ADD COLUMN editor_tab_size INTEGER DEFAULT 2;
+ALTER TABLE settings ADD COLUMN editor_theme TEXT DEFAULT 'auto';
+ALTER TABLE settings ADD COLUMN editor_word_wrap INTEGER DEFAULT 1;
+ALTER TABLE settings ADD COLUMN editor_show_print_margin INTEGER DEFAULT 0;
+ALTER TABLE settings ADD COLUMN editor_show_gutter INTEGER DEFAULT 1;
+ALTER TABLE settings ADD COLUMN editor_show_indent_guides INTEGER DEFAULT 1;
+ALTER TABLE settings ADD COLUMN editor_highlight_active_line INTEGER DEFAULT 1;
+ALTER TABLE settings ADD COLUMN editor_use_soft_tabs INTEGER DEFAULT 1;
+ALTER TABLE settings ADD COLUMN editor_enable_snippets INTEGER DEFAULT 1;
+ALTER TABLE settings ADD COLUMN editor_enable_live_autocompletion INTEGER DEFAULT 1;
+`
+
 // getMigrations returns all available migrations in order
 func getMigrations() []Migration {
 	return []Migration{
@@ -236,5 +252,6 @@ func getMigrations() []Migration {
 		{Version: 2, Name: "add_snippet_files", SQL: addSnippetFilesSQL},
 		{Version: 3, Name: "add_archiving", SQL: addArchivingSQL},
 		{Version: 4, Name: "add_history", SQL: addHistorySQL},
+		{Version: 5, Name: "add_editor_settings", SQL: addEditorSettingsSQL},
 	}
 }

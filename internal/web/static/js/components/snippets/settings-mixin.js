@@ -22,6 +22,15 @@ export const settingsMixin = {
     await this.loadApiTokens();
   },
 
+  openEditorSettings() {
+    this.showSettings = true;
+    this.settingsTab = 'editor';
+    this.passwordForm = { current: '', new: '', confirm: '' };
+    this.passwordError = '';
+    this.passwordSuccess = '';
+    this.createdToken = null;
+  },
+
   closeSettings() {
     this.showSettings = false;
     this.createdToken = null;
@@ -114,6 +123,12 @@ export const settingsMixin = {
     const result = await api.put('/api/v1/settings', this.settings);
     if (result) {
       this.settings = result;
+      // Cache settings for theme updates
+      try {
+        sessionStorage.setItem('snipo-settings', JSON.stringify(result));
+      } catch (e) {
+        // Ignore storage errors
+      }
       showToast('Settings updated');
     }
   }

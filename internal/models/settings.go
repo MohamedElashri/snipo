@@ -16,6 +16,17 @@ type Settings struct {
 	BackupEncryptionEnabled bool      `json:"backup_encryption_enabled"`
 	ArchiveEnabled          bool      `json:"archive_enabled"`
 	HistoryEnabled          bool      `json:"history_enabled"`
+	EditorFontSize          int       `json:"editor_font_size"`
+	EditorTabSize           int       `json:"editor_tab_size"`
+	EditorTheme             string    `json:"editor_theme"`
+	EditorWordWrap          bool      `json:"editor_word_wrap"`
+	EditorShowPrintMargin   bool      `json:"editor_show_print_margin"`
+	EditorShowGutter        bool      `json:"editor_show_gutter"`
+	EditorShowIndentGuides  bool      `json:"editor_show_indent_guides"`
+	EditorHighlightActiveLine bool    `json:"editor_highlight_active_line"`
+	EditorUseSoftTabs       bool      `json:"editor_use_soft_tabs"`
+	EditorEnableSnippets    bool      `json:"editor_enable_snippets"`
+	EditorEnableLiveAutocompletion bool `json:"editor_enable_live_autocompletion"`
 	CreatedAt               time.Time `json:"created_at"`
 	UpdatedAt               time.Time `json:"updated_at"`
 }
@@ -35,4 +46,15 @@ type SettingsInput struct {
 	BackupEncryptionEnabled bool   `json:"backup_encryption_enabled"`
 	ArchiveEnabled          bool   `json:"archive_enabled"`
 	HistoryEnabled          bool   `json:"history_enabled"`
+	EditorFontSize          int    `json:"editor_font_size"`
+	EditorTabSize           int    `json:"editor_tab_size"`
+	EditorTheme             string `json:"editor_theme"`
+	EditorWordWrap          bool   `json:"editor_word_wrap"`
+	EditorShowPrintMargin   bool   `json:"editor_show_print_margin"`
+	EditorShowGutter        bool   `json:"editor_show_gutter"`
+	EditorShowIndentGuides  bool   `json:"editor_show_indent_guides"`
+	EditorHighlightActiveLine bool `json:"editor_highlight_active_line"`
+	EditorUseSoftTabs       bool   `json:"editor_use_soft_tabs"`
+	EditorEnableSnippets    bool   `json:"editor_enable_snippets"`
+	EditorEnableLiveAutocompletion bool `json:"editor_enable_live_autocompletion"`
 }

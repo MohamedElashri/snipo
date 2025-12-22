@@ -39,8 +39,24 @@ export const theme = {
       editors.forEach(editorEl => {
         const editor = ace.edit(editorEl);
         if (editor) {
-          const aceTheme = themeName === 'dark' ? 'ace/theme/monokai' : 'ace/theme/chrome';
-          editor.setTheme(aceTheme);
+          // Check if there's a stored editor theme preference
+          try {
+            const settingsStr = sessionStorage.getItem('snipo-settings');
+            const settings = settingsStr ? JSON.parse(settingsStr) : null;
+            const editorTheme = settings?.editor_theme || 'auto';
+            
+            let aceTheme = 'ace/theme/chrome';
+            if (editorTheme === 'auto') {
+              aceTheme = themeName === 'dark' ? 'ace/theme/monokai' : 'ace/theme/chrome';
+            } else {
+              aceTheme = `ace/theme/${editorTheme}`;
+            }
+            editor.setTheme(aceTheme);
+          } catch (e) {
+            // Fallback to default behavior
+            const aceTheme = themeName === 'dark' ? 'ace/theme/monokai' : 'ace/theme/chrome';
+            editor.setTheme(aceTheme);
+          }
         }
       });
     }

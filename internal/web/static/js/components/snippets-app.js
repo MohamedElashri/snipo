@@ -149,7 +149,15 @@ export function initSnippetsApp(Alpine) {
 
     async loadSettings() {
       const result = await api.get('/api/v1/settings');
-      if (result) this.settings = result;
+      if (result) {
+        this.settings = result;
+        // Cache settings for theme updates
+        try {
+          sessionStorage.setItem('snipo-settings', JSON.stringify(result));
+        } catch (e) {
+          // Ignore storage errors
+        }
+      }
     },
 
     async loadFavoritesCount() {
