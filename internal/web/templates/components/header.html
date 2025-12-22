@@ -35,6 +35,48 @@
 
     <!-- Right actions (View toggle, Settings, Theme toggle) -->
     <div class="header-actions-right">
+        <!-- Sort dropdown -->
+        <div class="sort-dropdown" x-data="{ open: false }" @click.away="open = false">
+            <button class="btn-icon" @click="open = !open" title="Sort by">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="4" y1="6" x2="16" y2="6"></line>
+                    <line x1="4" y1="12" x2="13" y2="12"></line>
+                    <line x1="4" y1="18" x2="10" y2="18"></line>
+                    <polygon points="15 9 20 14 15 19"></polygon>
+                </svg>
+            </button>
+            <div class="dropdown-menu" x-show="open" x-cloak x-transition>
+                <button @click="setSortBy('updated_at'); open = false" 
+                        :class="{ 'active': sortBy === 'updated_at' }">
+                    <span>Last Modified</span>
+                    <svg x-show="sortBy === 'updated_at'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </button>
+                <button @click="setSortBy('created_at'); open = false" 
+                        :class="{ 'active': sortBy === 'created_at' }">
+                    <span>Date Created</span>
+                    <svg x-show="sortBy === 'created_at'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </button>
+                <button @click="setSortBy('title'); open = false" 
+                        :class="{ 'active': sortBy === 'title' }">
+                    <span>Title (A-Z)</span>
+                    <svg x-show="sortBy === 'title'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </button>
+                <button @click="setSortBy('title_desc'); open = false" 
+                        :class="{ 'active': sortBy === 'title_desc' }">
+                    <span>Title (Z-A)</span>
+                    <svg x-show="sortBy === 'title_desc'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
         <!-- View toggle -->
         <div class="view-toggle">
             <button class="btn-icon" :class="{ 'active': viewMode === 'grid' }" @click="setViewMode('grid')"

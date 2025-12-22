@@ -61,6 +61,53 @@
   height: 14px;
 }
 
+/* Sort dropdown */
+.sort-dropdown {
+  position: relative;
+}
+
+.sort-dropdown .dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 180px;
+  background: var(--pico-background-color);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  padding: 0.5rem;
+  z-index: 100;
+}
+
+.sort-dropdown .dropdown-menu button {
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  background: transparent;
+  border: none;
+  color: var(--pico-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  transition: background-color 0.2s;
+}
+
+.sort-dropdown .dropdown-menu button:hover {
+  background: var(--pico-muted-color);
+}
+
+.sort-dropdown .dropdown-menu button.active {
+  background: var(--snipo-primary);
+  color: white;
+}
+
+.sort-dropdown .dropdown-menu button span {
+  font-size: 0.575rem;
+}
+
 /* Draft recovery banner */
 .draft-banner {
   display: flex;
