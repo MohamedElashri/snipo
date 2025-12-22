@@ -56,7 +56,8 @@ func (r *SettingsRepository) Get(ctx context.Context) (*models.Settings, error) 
 		&settings.EditorHighlightActiveLine,
 		&settings.EditorUseSoftTabs,
 		&settings.EditorEnableSnippets,
-		&settings.EditorEnableLiveAutocompletion,		&settings.MarkdownFontSize,		&settings.MarkdownFontSize,
+		&settings.EditorEnableLiveAutocompletion,
+		&settings.MarkdownFontSize,
 		&settings.CreatedAt,
 		&settings.UpdatedAt,
 	)
