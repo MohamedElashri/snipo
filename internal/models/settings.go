@@ -27,6 +27,7 @@ type Settings struct {
 	EditorUseSoftTabs       bool      `json:"editor_use_soft_tabs"`
 	EditorEnableSnippets    bool      `json:"editor_enable_snippets"`
 	EditorEnableLiveAutocompletion bool `json:"editor_enable_live_autocompletion"`
+	MarkdownFontSize        int       `json:"markdown_font_size"`
 	CreatedAt               time.Time `json:"created_at"`
 	UpdatedAt               time.Time `json:"updated_at"`
 }
@@ -57,4 +58,5 @@ type SettingsInput struct {
 	EditorUseSoftTabs       bool   `json:"editor_use_soft_tabs"`
 	EditorEnableSnippets    bool   `json:"editor_enable_snippets"`
 	EditorEnableLiveAutocompletion bool `json:"editor_enable_live_autocompletion"`
+	MarkdownFontSize        int    `json:"markdown_font_size"`
 }

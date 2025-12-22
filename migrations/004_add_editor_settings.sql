@@ -13,3 +13,4 @@ ALTER TABLE settings ADD COLUMN editor_highlight_active_line INTEGER DEFAULT 1;
 ALTER TABLE settings ADD COLUMN editor_use_soft_tabs INTEGER DEFAULT 1;
 ALTER TABLE settings ADD COLUMN editor_enable_snippets INTEGER DEFAULT 1;
 ALTER TABLE settings ADD COLUMN editor_enable_live_autocompletion INTEGER DEFAULT 1;
+ALTER TABLE settings ADD COLUMN markdown_font_size INTEGER DEFAULT 14;

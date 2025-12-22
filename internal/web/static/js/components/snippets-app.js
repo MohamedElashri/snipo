@@ -157,6 +157,8 @@ export function initSnippetsApp(Alpine) {
         } catch (e) {
           // Ignore storage errors
         }
+        // Apply markdown font size
+        this.applyMarkdownFontSize();
       }
     },
 

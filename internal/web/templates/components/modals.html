@@ -396,6 +396,24 @@
                         </div>
 
                         <div class="editor-field">
+                            <label>Markdown Preview Font Size</label>
+                            <select x-model.number="settings.markdown_font_size" @change="updateSettings(); applyMarkdownFontSize()">
+                                <option value="10">10px</option>
+                                <option value="11">11px</option>
+                                <option value="12">12px</option>
+                                <option value="13">13px</option>
+                                <option value="14">14px (Default)</option>
+                                <option value="15">15px</option>
+                                <option value="16">16px</option>
+                                <option value="18">18px</option>
+                                <option value="20">20px</option>
+                                <option value="22">22px</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="editor-field">
                             <label>Editor Theme</label>
                             <select x-model="settings.editor_theme" @change="updateSettings(); applyEditorSettings()">
                                 <option value="auto">Auto (Follow App Theme)</option>

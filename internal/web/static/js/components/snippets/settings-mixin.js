@@ -131,5 +131,12 @@ export const settingsMixin = {
       }
       showToast('Settings updated');
     }
+  },
+
+  applyMarkdownFontSize() {
+    if (!this.settings) return;
+    
+    const fontSize = this.settings.markdown_font_size || 14;
+    document.documentElement.style.setProperty('--markdown-font-size', `${fontSize}px`);
   }
 };

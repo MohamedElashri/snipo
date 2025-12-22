@@ -368,6 +368,7 @@
   overflow: auto;
   padding: 1.5rem 2rem;
   background: var(--pico-card-background-color);
+  font-size: var(--markdown-font-size, 14px);
 }
 
 .preview-markdown-scroll h1,
@@ -388,23 +389,31 @@
 }
 
 .preview-markdown-scroll h1 {
-  font-size: 2rem;
+  font-size: 1.75em;
   border-bottom: 1px solid var(--pico-muted-border-color);
   padding-bottom: 0.5rem;
 }
 
 .preview-markdown-scroll h2 {
-  font-size: 1.5rem;
+  font-size: 1.5em;
   border-bottom: 1px solid var(--pico-muted-border-color);
   padding-bottom: 0.3rem;
 }
 
 .preview-markdown-scroll h3 {
-  font-size: 1.25rem;
+  font-size: 1.25em;
 }
 
 .preview-markdown-scroll h4 {
-  font-size: 1rem;
+  font-size: 1.1em;
+}
+
+.preview-markdown-scroll h5 {
+  font-size: 1em;
+}
+
+.preview-markdown-scroll h6 {
+  font-size: 0.9em;
 }
 
 .preview-markdown-scroll p {
@@ -453,7 +462,7 @@
 .preview-markdown-scroll pre code {
   padding: 0;
   background: transparent;
-  font-size: 0.85rem;
+  font-size: 0.9em;
   line-height: 1.5;
 }
 
