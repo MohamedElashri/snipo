@@ -1,0 +1,140 @@
+/* Buttons - Button styles and variants */
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  border: 1px solid var(--pico-muted-border-color);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  color: var(--icon-color);
+}
+
+.btn-icon:hover {
+  background: var(--pico-muted-border-color);
+  color: var(--icon-hover);
+}
+
+.btn-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.btn-icon.favorite svg {
+  color: var(--icon-favorite);
+}
+
+.btn-icon.danger:hover {
+  color: var(--icon-danger);
+}
+
+.btn-primary {
+  background: var(--snipo-primary);
+  border-color: var(--snipo-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--snipo-primary-hover);
+  border-color: var(--snipo-primary-hover);
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--pico-muted-border-color);
+  color: inherit;
+  cursor: pointer;
+  border-radius: 0.25rem;
+}
+
+.btn-secondary:hover {
+  background: var(--pico-muted-border-color);
+}
+
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  height: 28px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 0.25rem;
+  border: 1px solid var(--pico-muted-border-color);
+  background: transparent;
+  color: var(--pico-muted-color);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-action:hover {
+  background: var(--pico-muted-border-color);
+  color: var(--pico-color);
+}
+
+.btn-action.primary {
+  background: var(--snipo-primary);
+  border-color: var(--snipo-primary);
+  color: white;
+}
+
+.btn-action.primary:hover {
+  background: var(--snipo-primary-hover);
+}
+
+.btn-action.danger:hover {
+  border-color: var(--snipo-danger);
+  color: var(--snipo-danger);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.btn-action svg {
+  width: 14px;
+  height: 14px;
+}
+
+.btn-sm {
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.75rem !important;
+}
+
+.btn-danger {
+  background: var(--snipo-danger);
+  color: white;
+  border: none;
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
+.btn-success {
+  background: var(--snipo-success);
+  color: white;
+  border: none;
+}
+
+.btn-success:hover {
+  opacity: 0.9;
+}
+
+.btn-focus {
+  color: var(--snipo-primary);
+  border-color: var(--snipo-primary);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.btn-focus:hover {
+  background: var(--snipo-primary);
+  color: white;
+}
+
+.btn-group {
+  display: flex;
+  gap: 0.5rem;
+}

@@ -1,0 +1,177 @@
+/* Modals - Modal dialog styles */
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.modal {
+  background: var(--pico-card-background-color);
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 500px;
+  width: 90%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  color: var(--pico-muted-color);
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: var(--pico-color);
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--pico-muted-border-color);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+/* Settings modal */
+.settings-modal {
+  max-width: 600px;
+  width: 90%;
+}
+
+.settings-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  padding: 0 1rem;
+}
+
+.settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  color: var(--icon-color);
+  font-size: 0.9rem;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.settings-tab:hover {
+  color: var(--icon-hover);
+}
+
+.settings-tab.active {
+  color: var(--snipo-primary);
+  border-bottom-color: var(--snipo-primary);
+}
+
+.settings-tab svg {
+  width: 16px;
+  height: 16px;
+}
+
+.created-token-box {
+  background: var(--snipo-success);
+  color: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.created-token-box input {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+}
+
+.api-token-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 0.375rem;
+  margin-bottom: 0.5rem;
+}
+
+.api-token-info {
+  flex: 1;
+}
+
+.api-token-name {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.api-token-meta {
+  font-size: 0.75rem;
+  color: var(--pico-muted-color);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.api-token-permission {
+  background: var(--snipo-primary);
+  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}

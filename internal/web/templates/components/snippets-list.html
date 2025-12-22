@@ -1,0 +1,93 @@
+{{define "snippets-list"}}
+<!-- Content area -->
+<div class="snippet-list" x-show="!showEditor">
+    <!-- Loading state -->
+    <div class="loading" x-show="loading">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" x-show="!loading && snippets.length === 0">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+        </svg>
+        <h3>No snippets yet</h3>
+        <p>Create your first snippet to get started</p>
+        <button class="btn-primary mt-4" @click="newSnippet()">
+            Create Snippet
+        </button>
+    </div>
+
+    <!-- Snippet grid/list -->
+    <div :class="viewMode === 'list' ? 'snippet-list-view' : 'snippet-grid'"
+        x-show="!loading && snippets.length > 0">
+        <template x-for="snippet in snippets" :key="snippet.id">
+            <article class="snippet-card" @click="viewSnippet(snippet)">
+                <div class="snippet-card-header">
+                    <h3 class="snippet-card-title" x-text="snippet.title"></h3>
+                    <span class="snippet-card-language"
+                        :style="{ background: getLanguageColor(snippet.language) }"
+                        x-text="snippet.language"></span>
+                </div>
+
+                <!-- Show description if exists, otherwise show first 2 lines of code -->
+                <p class="snippet-card-description" x-show="snippet.description" x-text="snippet.description">
+                </p>
+                <pre class="snippet-card-preview"
+                    x-show="!snippet.description"><code x-text="snippet.content.split('\n').slice(0, 2).join('\n')"></code></pre>
+
+                <div class="snippet-card-footer">
+                    <div class="snippet-card-tags">
+                        <template x-for="tag in (snippet.tags || []).slice(0, 3)" :key="tag.id">
+                            <span class="tag">
+                                <span class="tag-dot" :style="{ background: tag.color }"></span>
+                                <span x-text="tag.name"></span>
+                            </span>
+                        </template>
+                    </div>
+                    <div class="snippet-card-meta">
+                        <span x-show="snippet.is_favorite" title="Favorite">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
+                                stroke="currentColor" stroke-width="2">
+                                <polygon
+                                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                                </polygon>
+                            </svg>
+                        </span>
+                        <span x-show="snippet.is_public" title="Public">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="2" y1="12" x2="22" y2="12"></line>
+                                <path
+                                    d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                                </path>
+                            </svg>
+                        </span>
+                        <span x-text="formatDate(snippet.updated_at)"></span>
+                    </div>
+                </div>
+            </article>
+        </template>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex justify-between items-center mt-4" x-show="pagination.totalPages > 1">
+        <button @click="pagination.page--; loadSnippets()" :disabled="pagination.page <= 1" class="btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+        </button>
+        <span class="text-sm text-muted">
+            Page <span x-text="pagination.page"></span> of <span x-text="pagination.totalPages"></span>
+        </span>
+        <button @click="pagination.page++; loadSnippets()" :disabled="pagination.page >= pagination.totalPages"
+            class="btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+        </button>
+    </div>
+</div>
+{{end}}

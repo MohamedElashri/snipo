@@ -1,0 +1,609 @@
+/* Utilities - Helper classes */
+
+/* Flexbox utilities */
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+/* Gap utilities */
+.gap-0\.5 {
+  gap: 0.5rem;
+}
+
+.gap-1 {
+  gap: 1rem;
+}
+
+.gap-2 {
+  gap: 2rem;
+}
+
+/* Margin utilities */
+.m-0 {
+  margin: 0;
+}
+
+.mt-0 {
+  margin-top: 0;
+}
+
+.mb-0 {
+  margin-bottom: 0;
+}
+
+.mb-1 {
+  margin-bottom: 1rem;
+}
+
+.mb-2 {
+  margin-bottom: 2rem;
+}
+
+/* Padding utilities */
+.p-0 {
+  padding: 0;
+}
+
+.p-1 {
+  padding: 1rem;
+}
+
+.p-2 {
+  padding: 2rem;
+}
+
+/* Text utilities */
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-muted {
+  color: var(--pico-muted-color);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Display utilities */
+.hidden {
+  display: none;
+}
+
+.block {
+  display: block;
+}
+
+.inline-block {
+  display: inline-block;
+}
+
+/* Width utilities */
+.w-full {
+  width: 100%;
+}
+
+/* Overflow utilities */
+.overflow-hidden {
+  overflow: hidden;
+}
+
+.overflow-auto {
+  overflow: auto;
+}
+
+/* Cursor utilities */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Opacity utilities */
+.opacity-50 {
+  opacity: 0.5;
+}
+
+.opacity-70 {
+  opacity: 0.7;
+}
+
+/* Position utilities */
+.relative {
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.fixed {
+  position: fixed;
+}
+
+/* Z-index utilities */
+.z-10 {
+  z-index: 10;
+}
+
+.z-50 {
+  z-index: 50;
+}
+
+.z-100 {
+  z-index: 100;
+}
+
+/* Border utilities */
+.border-none {
+  border: none;
+}
+
+.border-b {
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+/* Background utilities */
+.bg-transparent {
+  background: transparent;
+}
+
+/* Flex utilities */
+.flex-1 {
+  flex: 1;
+}
+
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+/* Animation utilities */
+.transition {
+  transition: all 0.15s ease;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--pico-muted-border-color);
+  border-top-color: var(--snipo-primary);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--pico-muted-color);
+}
+
+.empty-state svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* Error state */
+.error-message {
+  padding: 0.75rem 1rem;
+  background: var(--snipo-danger-bg, rgba(239, 68, 68, 0.1));
+  border: 1px solid var(--snipo-danger, #ef4444);
+  border-radius: 0.375rem;
+  color: var(--snipo-danger);
+  font-size: 0.875rem;
+}
+
+/* Success message */
+.success-message {
+  padding: 0.75rem 1rem;
+  background: var(--snipo-success-bg, rgba(34, 197, 94, 0.1));
+  border: 1px solid var(--snipo-success, #22c55e);
+  border-radius: 0.375rem;
+  color: var(--snipo-success);
+  font-size: 0.875rem;
+}
+
+/* Warning message */
+.warning-message {
+  padding: 0.75rem 1rem;
+  background: var(--snipo-warning-bg, #fef3c7);
+  border: 1px solid var(--snipo-warning-border, #f59e0b);
+  border-radius: 0.375rem;
+  color: #92400e;
+  font-size: 0.875rem;
+}
+
+[data-theme="dark"] .warning-message {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: var(--pico-muted-border-color);
+  margin: 1rem 0;
+}
+
+/* No scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* History styles */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.history-entry {
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.history-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--pico-card-background-color);
+  gap: 1rem;
+}
+
+.history-entry-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.history-entry-meta {
+  font-size: 0.875rem;
+  color: var(--pico-muted-color);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.history-entry-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.history-entry-preview {
+  padding: 1rem;
+  border-top: 1px solid var(--pico-muted-border-color);
+}
+
+.history-preview-section {
+  margin-bottom: 1rem;
+}
+
+.history-preview-section:last-child {
+  margin-bottom: 0;
+}
+
+.history-code-preview {
+  background: var(--editor-bg);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 4px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+}
+
+.badge-current {
+  background: var(--snipo-success);
+}
+
+/* History detail view */
+.history-detail-section {
+  margin-bottom: 1.5rem;
+}
+
+.history-detail-section h4 {
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+  color: var(--pico-muted-color);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.history-detail-content {
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.history-detail-file-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--pico-card-background-color);
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.history-file-name {
+  font-weight: 600;
+  margin-right: 0.75rem;
+}
+
+.history-file-language {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--snipo-primary);
+  color: white;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+}
+
+.history-detail-code {
+  margin: 0;
+  padding: 1rem;
+  background: var(--editor-bg);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* Restore confirmation */
+.restore-warning {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.restore-info {
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.restore-info-item {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.restore-info-item:last-child {
+  border-bottom: none;
+}
+
+.restore-notice {
+  background: var(--snipo-warning-bg, #fef3c7);
+  border: 1px solid var(--snipo-warning, #f59e0b);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--pico-color);
+}
+
+[data-theme="dark"] .restore-notice {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+/* Backup styles */
+.backup-section {
+  padding: 0;
+}
+
+.s3-backup-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: var(--pico-card-background-color);
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.s3-backup-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.s3-backup-name {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.s3-backup-meta {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+/* Badge styles */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.badge-success {
+  background: rgba(34, 197, 94, 0.2);
+  color: var(--snipo-success);
+}
+
+.badge-muted {
+  background: rgba(100, 116, 139, 0.2);
+  color: var(--snipo-secondary);
+}
+
+/* Toast notifications */
+.toast-container {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toast {
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: slideIn 0.3s ease;
+}
+
+.toast.success {
+  border-left: 3px solid var(--snipo-success);
+}
+
+.toast.error {
+  border-left: 3px solid var(--snipo-danger);
+}
+
+.toast.warning {
+  border-left: 3px solid var(--snipo-warning);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Login page */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--pico-card-background-color);
+  border-radius: 0.5rem;
+  padding: 2rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-header h1 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.login-header p {
+  color: var(--pico-muted-color);
+  margin: 0;
+}
+
+/* GitHub link */
+.github-link {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 2rem;
+  color: var(--pico-muted-color);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.github-link:hover {
+  color: var(--pico-color);
+  border-color: var(--snipo-primary);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+  transform: translateY(-2px);
+}
+
+.github-link svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s ease;
+}
+
+.github-link:hover svg {
+  transform: scale(1.1);
+}

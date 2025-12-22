@@ -1,0 +1,609 @@
+{{define "modals"}}
+<!-- Delete confirmation modal -->
+<div class="modal-backdrop" x-show="showDeleteModal" x-cloak @click.self="showDeleteModal = false">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Delete Snippet</h3>
+            <button class="btn-icon" @click="showDeleteModal = false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete "<span x-text="deleteTarget?.title"></span>"?</p>
+            <p class="text-sm text-muted">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button @click="showDeleteModal = false">Cancel</button>
+            <button class="btn-primary" style="background: var(--snipo-danger); border-color: var(--snipo-danger);"
+                @click="deleteSnippet()">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Settings modal -->
+<div class="modal-backdrop" x-show="showSettings" x-cloak @click.self="closeSettings()">
+    <div class="modal settings-modal">
+        <div class="modal-header">
+            <h3>Settings</h3>
+            <button class="btn-icon" @click="closeSettings()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Settings tabs -->
+        <div class="settings-tabs">
+            <button class="settings-tab" :class="{ active: settingsTab === 'general' }"
+                @click="settingsTab = 'general'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                    </path>
+                </svg>
+                General
+            </button>
+            <button class="settings-tab" :class="{ active: settingsTab === 'password' }"
+                @click="settingsTab = 'password'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Password
+            </button>
+            <button class="settings-tab" :class="{ active: settingsTab === 'apikeys' }"
+                @click="settingsTab = 'apikeys'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <path
+                        d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4">
+                    </path>
+                </svg>
+                API Keys
+            </button>
+            <button class="settings-tab" :class="{ active: settingsTab === 'backup' }"
+                @click="settingsTab = 'backup'; loadS3Status()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Backup
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <!-- General tab -->
+            <div x-show="settingsTab === 'general'">
+                <h4 style="margin-bottom: 1rem;">General Settings</h4>
+                <div class="editor-field">
+                    <label class="checkbox-label">
+                        <input type="checkbox" x-model="settings.archive_enabled" @change="updateSettings()">
+                        <span>Enable Snippet Archiving</span>
+                    </label>
+                    <p class="text-sm text-muted" style="margin-top: 0.25rem;">Allow snippets to be archived instead
+                        of permanently deleted.</p>
+                </div>
+                <div class="editor-field" style="margin-top: 1rem;">
+                    <label class="checkbox-label">
+                        <input type="checkbox" x-model="settings.history_enabled" @change="updateSettings()">
+                        <span>Enable Modification History</span>
+                    </label>
+                    <p class="text-sm text-muted" style="margin-top: 0.25rem;">Track all changes to snippets. Previous versions can be viewed and restored at any time.</p>
+                </div>
+            </div>
+
+            <!-- Password tab -->
+            <div x-show="settingsTab === 'password'">
+                <form @submit.prevent="changePassword()">
+                    <div class="editor-field">
+                        <label>Current Password</label>
+                        <input type="password" x-model="passwordForm.current" required>
+                    </div>
+                    <div class="editor-field">
+                        <label>New Password</label>
+                        <input type="password" x-model="passwordForm.new" required minlength="6">
+                    </div>
+                    <div class="editor-field">
+                        <label>Confirm New Password</label>
+                        <input type="password" x-model="passwordForm.confirm" required>
+                    </div>
+
+                    <p x-show="passwordError" class="text-sm" style="color: var(--snipo-danger);"
+                        x-text="passwordError"></p>
+                    <p x-show="passwordSuccess" class="text-sm" style="color: var(--snipo-success);"
+                        x-text="passwordSuccess"></p>
+
+                    <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">
+                        Change Password
+                    </button>
+                </form>
+            </div>
+
+            <!-- API Keys tab -->
+            <div x-show="settingsTab === 'apikeys'">
+                <!-- Create new token -->
+                <div class="api-token-form">
+                    <h4 style="margin-bottom: 1rem;">Create New API Token</h4>
+
+                    <!-- Show created token -->
+                    <div x-show="createdToken" class="created-token-box">
+                        <p class="text-sm" style="margin-bottom: 0.5rem;"><strong>Token created!</strong> Copy it
+                            now - it won't be shown again.</p>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" :value="createdToken" readonly
+                                style="font-family: var(--font-mono); font-size: 0.8rem;">
+                            <button class="btn-primary" @click="copyToken()"
+                                style="white-space: nowrap;">Copy</button>
+                        </div>
+                    </div>
+
+                    <div x-show="!createdToken">
+                        <div class="editor-field">
+                            <label>Token Name</label>
+                            <input type="text" x-model="newToken.name" placeholder="e.g., CLI Access">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="editor-field">
+                                <label>Permissions</label>
+                                <select x-model="newToken.permissions">
+                                    <option value="read">Read Only</option>
+                                    <option value="write">Read & Write</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div class="editor-field">
+                                <label>Expires In (days)</label>
+                                <input type="number" x-model="newToken.expires_in_days" min="1" max="365"
+                                    placeholder="30">
+                            </div>
+                        </div>
+                        <button class="btn-primary" @click="createApiToken()" style="width: 100%;">
+                            Create Token
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Existing tokens -->
+                <div class="api-tokens-list" style="margin-top: 1.5rem;">
+                    <h4 style="margin-bottom: 1rem;">Existing Tokens</h4>
+
+                    <div x-show="apiTokens.length === 0" class="text-sm text-muted">
+                        No API tokens yet.
+                    </div>
+
+                    <template x-for="token in apiTokens" :key="token.id">
+                        <div class="api-token-item">
+                            <div class="api-token-info">
+                                <div class="api-token-name" x-text="token.name"></div>
+                                <div class="api-token-meta">
+                                    <span class="api-token-permission" x-text="token.permissions"></span>
+                                    <span>Created: <span x-text="formatTokenDate(token.created_at)"></span></span>
+                                    <span x-show="token.expires_at">Expires: <span
+                                            x-text="formatTokenDate(token.expires_at)"></span></span>
+                                    <span x-show="token.last_used_at">Last used: <span
+                                            x-text="formatTokenDate(token.last_used_at)"></span></span>
+                                </div>
+                            </div>
+                            <button class="btn-icon danger" @click="deleteApiToken(token.id)" title="Delete token">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path
+                                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                    </path>
+                                </svg>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Backup tab -->
+            <div x-show="settingsTab === 'backup'">
+                <!-- Export Section -->
+                <div class="backup-section">
+                    <h4 style="margin-bottom: 1rem;">Export Backup</h4>
+                    <p class="text-sm text-muted" style="margin-bottom: 1rem;">
+                        Download a complete backup of all your snippets, tags, and folders.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="editor-field">
+                            <label>Format</label>
+                            <select x-model="backupOptions.format">
+                                <option value="json">JSON</option>
+                                <option value="zip">ZIP Archive</option>
+                            </select>
+                        </div>
+                        <div class="editor-field">
+                            <label>Password (optional)</label>
+                            <input type="password" x-model="backupOptions.password" placeholder="Encrypt backup">
+                        </div>
+                    </div>
+
+                    <button class="btn-primary" @click="exportBackup()" :disabled="backupLoading"
+                        style="width: 100%;">
+                        <span x-show="!backupLoading">Download Backup</span>
+                        <span x-show="backupLoading">Exporting...</span>
+                    </button>
+                </div>
+
+                <!-- Import Section -->
+                <div class="backup-section" style="margin-top: 2rem;">
+                    <h4 style="margin-bottom: 1rem;">Import Backup</h4>
+                    <p class="text-sm text-muted" style="margin-bottom: 1rem;">
+                        Restore snippets from a backup file.
+                    </p>
+
+                    <div class="editor-field">
+                        <label>Backup File</label>
+                        <input type="file" @change="backupFile = $event.target.files[0]" accept=".json,.zip,.enc">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="editor-field">
+                            <label>Import Strategy</label>
+                            <select x-model="importOptions.strategy">
+                                <option value="merge">Merge (add new)</option>
+                                <option value="skip">Skip existing</option>
+                                <option value="replace">Replace all</option>
+                            </select>
+                        </div>
+                        <div class="editor-field">
+                            <label>Password (if encrypted)</label>
+                            <input type="password" x-model="importOptions.password"
+                                placeholder="Decryption password">
+                        </div>
+                    </div>
+
+                    <button class="btn-primary" @click="importBackup()" :disabled="backupLoading || !backupFile"
+                        style="width: 100%;">
+                        <span x-show="!backupLoading">Import Backup</span>
+                        <span x-show="backupLoading">Importing...</span>
+                    </button>
+
+                    <div x-show="importResult" class="import-result"
+                        style="margin-top: 1rem; padding: 1rem; background: var(--snipo-bg-tertiary); border-radius: 8px;">
+                        <p class="text-sm"><strong>Import Complete:</strong></p>
+                        <ul class="text-sm" style="margin: 0.5rem 0 0 1rem;">
+                            <li x-text="'Snippets: ' + (importResult?.snippets_imported || 0)"></li>
+                            <li x-text="'Tags: ' + (importResult?.tags_imported || 0)"></li>
+                            <li x-text="'Folders: ' + (importResult?.folders_imported || 0)"></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- S3 Section -->
+                <div class="backup-section"
+                    style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--snipo-border);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                        <h4>S3 Cloud Backup</h4>
+                        <span x-show="s3Status.enabled" class="badge badge-success">Enabled</span>
+                        <span x-show="!s3Status.enabled" class="badge badge-muted">Not Configured</span>
+                    </div>
+
+                    <template x-if="!s3Status.enabled">
+                        <p class="text-sm text-muted">
+                            S3 backup is not configured. Set the following environment variables to enable:
+                            <code
+                                style="display: block; margin-top: 0.5rem; padding: 0.5rem; background: var(--snipo-bg-tertiary); border-radius: 4px; font-size: 0.75rem;">
+                                SNIPO_S3_ENABLED=true<br>
+                                SNIPO_S3_ENDPOINT=s3.amazonaws.com<br>
+                                SNIPO_S3_ACCESS_KEY=key<br>
+                                SNIPO_S3_SECRET_KEY=secret<br>
+                                SNIPO_S3_BUCKET=bucket
+                            </code>
+                        </p>
+                    </template>
+
+                    <template x-if="s3Status.enabled">
+                        <div>
+                            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                                <button class="btn-primary" @click="syncToS3()" :disabled="backupLoading"
+                                    style="flex: 1;">
+                                    <span x-show="!backupLoading">Sync to S3</span>
+                                    <span x-show="backupLoading">Syncing...</span>
+                                </button>
+                                <button @click="loadS3Backups()" :disabled="backupLoading" style="flex: 1;">
+                                    Refresh List
+                                </button>
+                            </div>
+
+                            <div class="s3-backups-list">
+                                <h5 style="margin-bottom: 0.5rem;">Available Backups</h5>
+                                <div x-show="s3Backups.length === 0" class="text-sm text-muted">
+                                    No backups in S3 yet.
+                                </div>
+                                <template x-for="backup in s3Backups" :key="backup.key">
+                                    <div class="s3-backup-item">
+                                        <div class="s3-backup-info">
+                                            <div class="s3-backup-name" x-text="backup.key.replace('backups/', '')">
+                                            </div>
+                                            <div class="s3-backup-meta text-sm text-muted">
+                                                <span x-text="formatFileSize(backup.size)"></span> •
+                                                <span x-text="formatDate(backup.last_modified)"></span>
+                                            </div>
+                                        </div>
+                                        <div style="display: flex; gap: 0.5rem;">
+                                            <button class="btn-icon" @click="restoreFromS3(backup.key)"
+                                                title="Restore">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2" width="16" height="16">
+                                                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8">
+                                                    </path>
+                                                    <path d="M3 3v5h5"></path>
+                                                </svg>
+                                            </button>
+                                            <button class="btn-icon danger" @click="deleteS3Backup(backup.key)"
+                                                title="Delete">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                    stroke-width="2" width="16" height="16">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path
+                                                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                                    </path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Folder modal -->
+<div class="modal-backdrop" x-show="showFolderModal" x-cloak @click.self="showFolderModal = false">
+    <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3 x-text="editingFolder?.id ? 'Rename Folder' : 'New Folder'"></h3>
+            <button class="btn-icon" @click="showFolderModal = false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="editor-field">
+                <label>Folder Name</label>
+                <input type="text" x-model="editingFolder.name" @keydown.enter="saveFolder()" autofocus>
+            </div>
+            <div class="editor-field" x-show="!editingFolder?.id">
+                <label>Parent Folder (optional)</label>
+                <select x-model="editingFolder.parent_id">
+                    <option value="">No parent</option>
+                    <template x-for="folder in folders" :key="folder.id">
+                        <option :value="folder.id" x-text="folder.name"></option>
+                    </template>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button @click="showFolderModal = false">Cancel</button>
+            <button class="btn-primary" @click="saveFolder()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Rename Tag modal -->
+<div class="modal-backdrop" x-show="showTagModal" x-cloak @click.self="showTagModal = false">
+    <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3>Rename Tag</h3>
+            <button class="btn-icon" @click="showTagModal = false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="editor-field">
+                <label>Tag Name</label>
+                <input type="text" x-model="editingTag.name" @keydown.enter="saveTag()" autofocus>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button @click="showTagModal = false">Cancel</button>
+            <button class="btn-primary" @click="saveTag()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- History modal -->
+<div class="modal-backdrop" x-show="showHistory" x-cloak @click.self="closeHistory()">
+    <div class="modal" style="max-width: 900px; max-height: 80vh;">
+        <div class="modal-header">
+            <h3>Snippet History</h3>
+            <button class="btn-icon" @click="closeHistory()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body" style="overflow-y: auto; max-height: calc(80vh - 120px);">
+            <p class="text-sm text-muted" x-show="!historyLoading && history.length === 0">
+                No history available for this snippet yet.
+            </p>
+            <p class="text-sm text-muted" x-show="historyLoading">
+                Loading history...
+            </p>
+            <div class="history-list" x-show="!historyLoading && history.length > 0">
+                <template x-for="(entry, index) in history" :key="entry.id">
+                    <div class="history-entry">
+                        <div class="history-entry-header">
+                            <div>
+                                <div class="history-entry-title" x-text="entry.title || 'Untitled'"></div>
+                                <div class="history-entry-meta">
+                                    <span x-text="formatDate(entry.created_at)"></span>
+                                    <span x-show="entry.change_type === 'create'" class="badge">Created</span>
+                                    <span x-show="entry.change_type === 'update'" class="badge">Updated</span>
+                                    <span x-show="index === 0" class="badge badge-current">Current</span>
+                                </div>
+                            </div>
+                            <div class="history-entry-actions">
+                                <button class="btn-sm" @click="viewHistoryDetail(entry)">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                    View Full
+                                </button>
+                                <button class="btn-sm btn-primary" @click="confirmRestoreHistory(entry)"
+                                    x-show="index > 0">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                        <polyline points="1 4 1 10 7 10"></polyline>
+                                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                                    </svg>
+                                    Restore
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- History Detail modal -->
+<div class="modal-backdrop" x-show="showHistoryDetail" x-cloak @click.self="closeHistoryDetail()">
+    <div class="modal" style="max-width: 1000px; max-height: 85vh;">
+        <div class="modal-header">
+            <div>
+                <h3 x-text="viewingHistoryEntry?.title || 'Untitled'"></h3>
+                <p class="text-sm text-muted" style="margin-top: 0.25rem;">
+                    <span x-text="formatDate(viewingHistoryEntry?.created_at)"></span>
+                    <span x-show="viewingHistoryEntry?.change_type === 'create'"> • Created</span>
+                    <span x-show="viewingHistoryEntry?.change_type === 'update'"> • Updated</span>
+                </p>
+            </div>
+            <button class="btn-icon" @click="closeHistoryDetail()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body" style="overflow-y: auto; max-height: calc(85vh - 150px);">
+            <div class="history-detail-section" x-show="viewingHistoryEntry?.description">
+                <h4>Description</h4>
+                <p x-text="viewingHistoryEntry?.description"></p>
+            </div>
+
+            <!-- Single file/content view -->
+            <div class="history-detail-section" x-show="!viewingHistoryEntry?.files || viewingHistoryEntry?.files.length === 0">
+                <h4>Content</h4>
+                <div class="history-detail-content">
+                    <div class="history-detail-file-header">
+                        <span class="history-file-language" x-text="viewingHistoryEntry?.language || 'plaintext'"></span>
+                        <button class="btn-sm" @click="copyHistoryContent(viewingHistoryEntry?.content)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            Copy
+                        </button>
+                    </div>
+                    <pre class="history-detail-code"><code x-text="viewingHistoryEntry?.content"></code></pre>
+                </div>
+            </div>
+
+            <!-- Multiple files view -->
+            <div class="history-detail-section" x-show="viewingHistoryEntry?.files && viewingHistoryEntry?.files.length > 0">
+                <h4>Files (<span x-text="viewingHistoryEntry?.files.length"></span>)</h4>
+                <template x-for="(file, idx) in viewingHistoryEntry?.files" :key="file.id">
+                    <div class="history-detail-content" style="margin-bottom: 1rem;">
+                        <div class="history-detail-file-header">
+                            <div>
+                                <span class="history-file-name" x-text="file.filename"></span>
+                                <span class="history-file-language" x-text="file.language"></span>
+                            </div>
+                            <button class="btn-sm" @click="copyHistoryContent(file.content)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                Copy
+                            </button>
+                        </div>
+                        <pre class="history-detail-code"><code x-text="file.content"></code></pre>
+                    </div>
+                </template>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button @click="closeHistoryDetail()">Close</button>
+            <button class="btn-primary" @click="confirmRestoreHistory(viewingHistoryEntry)"
+                x-show="viewingHistoryEntry && !viewingHistoryEntry.is_current">
+                Restore This Version
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Restore Confirmation modal -->
+<div class="modal-backdrop" x-show="showRestoreConfirm" x-cloak @click.self="showRestoreConfirm = false">
+    <div class="modal" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3>Confirm Restore</h3>
+            <button class="btn-icon" @click="showRestoreConfirm = false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="restore-warning">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48" style="color: var(--snipo-warning);">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+            <h4 style="text-align: center; margin: 1rem 0;">Restore Previous Version?</h4>
+            <p style="text-align: center; color: var(--snipo-text-secondary); margin-bottom: 1rem;">
+                This will restore the snippet to:
+            </p>
+            <div class="restore-info">
+                <div class="restore-info-item">
+                    <strong>Title:</strong> <span x-text="restoringHistoryEntry?.title"></span>
+                </div>
+                <div class="restore-info-item">
+                    <strong>Version from:</strong> <span x-text="formatDate(restoringHistoryEntry?.created_at)"></span>
+                </div>
+                <div class="restore-info-item" x-show="restoringHistoryEntry?.files && restoringHistoryEntry.files.length > 0">
+                    <strong>Files:</strong> <span x-text="restoringHistoryEntry?.files.length"></span>
+                </div>
+            </div>
+            <div class="restore-notice">
+                <strong>Important:</strong> The current version will be saved to history before restoring.
+                You can always restore back to it later.
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button @click="showRestoreConfirm = false">Cancel</button>
+            <button class="btn-primary" @click="executeRestore()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                Restore Now
+            </button>
+        </div>
+    </div>
+</div>
+{{end}}
