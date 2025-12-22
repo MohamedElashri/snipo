@@ -37,6 +37,13 @@ body {
 
   --card-preview-bg: #f1f5f9;
 
+  /* Override Pico defaults for light mode */
+  --pico-color: #1e293b;
+  --pico-muted-color: #e2e8f0;
+  --pico-background-color: #ffffff;
+  --pico-card-background-color: #f8fafc;
+  --pico-muted-border-color: #cbd5e1;
+
   /* Icon colors for light mode */
   --icon-color: #475569;
   --icon-hover: #1e293b;

@@ -1,5 +1,10 @@
 /* Utilities - Helper classes */
 
+/* Alpine.js x-cloak */
+[x-cloak] {
+  display: none !important;
+}
+
 /* Flexbox utilities */
 .flex {
   display: flex;
