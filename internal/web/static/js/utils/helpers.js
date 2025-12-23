@@ -78,6 +78,8 @@ export function getLanguageColor(lang) {
     json: '#292929',
     yaml: '#cb171e',
     markdown: '#083fa1',
+    tex: '#3d6117',
+    bibtex: '#778899',
     plaintext: '#6b7280'
   };
   return colors[lang] || '#6b7280';

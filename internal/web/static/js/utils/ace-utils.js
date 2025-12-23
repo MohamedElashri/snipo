@@ -24,6 +24,8 @@ export function getAceMode(language) {
     'json': 'ace/mode/json',
     'yaml': 'ace/mode/yaml',
     'markdown': 'ace/mode/markdown',
+    'tex': 'ace/mode/tex',
+    'bibtex': 'ace/mode/tex',
     'plaintext': 'ace/mode/text'
   };
   return modeMap[language] || 'ace/mode/text';
@@ -36,7 +38,8 @@ export function getFileExtension(language) {
     'rust': 'rs', 'java': 'java', 'csharp': 'cs', 'cpp': 'cpp', 'cuda': 'cu',
     'ruby': 'rb', 'php': 'php', 'swift': 'swift', 'kotlin': 'kt',
     'html': 'html', 'css': 'css', 'sql': 'sql', 'bash': 'sh',
-    'json': 'json', 'yaml': 'yaml', 'markdown': 'md', 'plaintext': 'txt'
+    'json': 'json', 'yaml': 'yaml', 'markdown': 'md', 'tex': 'tex',
+    'bibtex': 'bib', 'plaintext': 'txt'
   };
   return extMap[language] || 'txt';
 }
@@ -51,7 +54,7 @@ export function detectLanguageFromFilename(filename) {
     'rb': 'ruby', 'php': 'php', 'swift': 'swift', 'kt': 'kotlin',
     'html': 'html', 'css': 'css', 'sql': 'sql', 'sh': 'bash',
     'json': 'json', 'yaml': 'yaml', 'yml': 'yaml', 'md': 'markdown',
-    'txt': 'plaintext'
+    'tex': 'tex', 'bib': 'bibtex', 'txt': 'plaintext'
   };
   return langMap[ext] || null;
 }
