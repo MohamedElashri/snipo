@@ -1,6 +1,7 @@
 {{define "sidebar"}}
 <!-- Sidebar -->
-<aside class="sidebar" :class="{ 'open': $store.app.sidebarOpen, 'closed': !$store.app.sidebarOpen }">
+<aside class="sidebar" :class="{ 'open': $store.app.sidebarOpen, 'closed': !$store.app.sidebarOpen }" x-init="initSidebarResize()">
+    <div class="sidebar-resize-handle" @mousedown="startSidebarResize($event)"></div>
     <a href="/" class="sidebar-header" title="Go to Home">
         <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="16 18 22 12 16 6"></polyline>
