@@ -79,18 +79,19 @@ func (h *SnippetHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.service.List(r.Context(), filter)
 	if err != nil {
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, result)
+	// Use SuccessList to include pagination metadata
+	SuccessList(w, r, result.Data, result.Pagination.Page, result.Pagination.Limit, result.Pagination.Total)
 }
 
 // Create handles POST /api/v1/snippets
 func (h *SnippetHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var input models.SnippetInput
 	if err := DecodeJSON(r, &input); err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
+		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
 
@@ -99,84 +100,84 @@ func (h *SnippetHandler) Create(w http.ResponseWriter, r *http.Request) {
 		// Check if it's a validation error
 		var validationErrs validation.ValidationErrors
 		if errors.As(err, &validationErrs) {
-			ValidationErrors(w, validationErrs)
+			ValidationErrors(w, r, validationErrs)
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	Created(w, snippet)
+	Created(w, r, snippet)
 }
 
 // Get handles GET /api/v1/snippets/{id}
 func (h *SnippetHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		Error(w, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
+		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
 	}
 
 	snippet, err := h.service.GetByID(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, services.ErrSnippetNotFound) {
-			NotFound(w, "Snippet not found")
+			NotFound(w, r, "Snippet not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, snippet)
+	OK(w, r, snippet)
 }
 
 // Update handles PUT /api/v1/snippets/{id}
 func (h *SnippetHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		Error(w, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
+		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
 	}
 
 	var input models.SnippetInput
 	if err := DecodeJSON(r, &input); err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
+		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
 
 	snippet, err := h.service.Update(r.Context(), id, &input)
 	if err != nil {
 		if errors.Is(err, services.ErrSnippetNotFound) {
-			NotFound(w, "Snippet not found")
+			NotFound(w, r, "Snippet not found")
 			return
 		}
 		var validationErrs validation.ValidationErrors
 		if errors.As(err, &validationErrs) {
-			ValidationErrors(w, validationErrs)
+			ValidationErrors(w, r, validationErrs)
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, snippet)
+	OK(w, r, snippet)
 }
 
 // Delete handles DELETE /api/v1/snippets/{id}
 func (h *SnippetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		Error(w, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
+		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
 	}
 
 	err := h.service.Delete(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, services.ErrSnippetNotFound) {
-			NotFound(w, "Snippet not found")
+			NotFound(w, r, "Snippet not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
@@ -187,70 +188,70 @@ func (h *SnippetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *SnippetHandler) ToggleFavorite(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		Error(w, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
+		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
 	}
 
 	snippet, err := h.service.ToggleFavorite(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, services.ErrSnippetNotFound) {
-			NotFound(w, "Snippet not found")
+			NotFound(w, r, "Snippet not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, snippet)
+	OK(w, r, snippet)
 }
 
 // ToggleArchive handles POST /api/v1/snippets/{id}/archive
 func (h *SnippetHandler) ToggleArchive(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		Error(w, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
+		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
 	}
 
 	snippet, err := h.service.ToggleArchive(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, services.ErrSnippetNotFound) {
-			NotFound(w, "Snippet not found")
+			NotFound(w, r, "Snippet not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, snippet)
+	OK(w, r, snippet)
 }
 
 // Duplicate handles POST /api/v1/snippets/{id}/duplicate
 func (h *SnippetHandler) Duplicate(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		Error(w, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
+		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
 	}
 
 	snippet, err := h.service.Duplicate(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, services.ErrSnippetNotFound) {
-			NotFound(w, "Snippet not found")
+			NotFound(w, r, "Snippet not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	Created(w, snippet)
+	Created(w, r, snippet)
 }
 
 // Search handles GET /api/v1/snippets/search
 func (h *SnippetHandler) Search(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	if query == "" {
-		OK(w, map[string]interface{}{"data": []models.Snippet{}})
+		OK(w, r, []models.Snippet{})
 		return
 	}
 
@@ -263,39 +264,39 @@ func (h *SnippetHandler) Search(w http.ResponseWriter, r *http.Request) {
 
 	snippets, err := h.service.Search(r.Context(), query, limit)
 	if err != nil {
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, map[string]interface{}{"data": snippets})
+	OK(w, r, snippets)
 }
 
 // GetPublic handles GET /api/v1/snippets/public/{id}
 func (h *SnippetHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		Error(w, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
+		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
 	}
 
 	snippet, err := h.service.GetByIDPublic(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, services.ErrSnippetNotFound) {
-			NotFound(w, "Snippet not found")
+			NotFound(w, r, "Snippet not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, snippet)
+	OK(w, r, snippet)
 }
 
 // GetHistory handles GET /api/v1/snippets/{id}/history
 func (h *SnippetHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		Error(w, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
+		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
 	}
 
@@ -310,45 +311,45 @@ func (h *SnippetHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 	history, err := h.service.GetHistory(r.Context(), id, limit)
 	if err != nil {
 		if errors.Is(err, services.ErrSnippetNotFound) {
-			NotFound(w, "Snippet not found")
+			NotFound(w, r, "Snippet not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, map[string]interface{}{"data": history, "count": len(history)})
+	OK(w, r, map[string]interface{}{"data": history, "count": len(history)})
 }
 
 // RestoreFromHistory handles POST /api/v1/snippets/{id}/history/{history_id}/restore
 func (h *SnippetHandler) RestoreFromHistory(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		Error(w, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
+		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
 	}
 
 	historyIDStr := chi.URLParam(r, "history_id")
 	if historyIDStr == "" {
-		Error(w, http.StatusBadRequest, "MISSING_HISTORY_ID", "History ID is required")
+		Error(w, r, http.StatusBadRequest, "MISSING_HISTORY_ID", "History ID is required")
 		return
 	}
 
 	historyID, err := strconv.ParseInt(historyIDStr, 10, 64)
 	if err != nil || historyID <= 0 {
-		Error(w, http.StatusBadRequest, "INVALID_HISTORY_ID", "Invalid history ID")
+		Error(w, r, http.StatusBadRequest, "INVALID_HISTORY_ID", "Invalid history ID")
 		return
 	}
 
 	snippet, err := h.service.RestoreFromHistory(r.Context(), id, historyID)
 	if err != nil {
 		if errors.Is(err, services.ErrSnippetNotFound) {
-			NotFound(w, "Snippet not found")
+			NotFound(w, r, "Snippet not found")
 			return
 		}
-		Error(w, http.StatusBadRequest, "RESTORE_FAILED", err.Error())
+		Error(w, r, http.StatusBadRequest, "RESTORE_FAILED", err.Error())
 		return
 	}
 
-	OK(w, snippet)
+	OK(w, r, snippet)
 }

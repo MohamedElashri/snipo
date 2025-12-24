@@ -37,7 +37,7 @@ func (h *FolderHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
@@ -51,25 +51,25 @@ func (h *FolderHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	OK(w, map[string]interface{}{"data": folders})
+	OK(w, r, folders)
 }
 
 // Create handles POST /api/v1/folders
 func (h *FolderHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var input models.FolderInput
 	if err := DecodeJSON(r, &input); err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
+		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
 
 	// Validate input
 	if input.Name == "" {
-		ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name is required"}})
+		ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name is required"}})
 		return
 	}
 
 	if len(input.Name) > 100 {
-		ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name must be 100 characters or less"}})
+		ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name must be 100 characters or less"}})
 		return
 	}
 
@@ -78,38 +78,38 @@ func (h *FolderHandler) Create(w http.ResponseWriter, r *http.Request) {
 		_, err := h.repo.GetByID(r.Context(), *input.ParentID)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "parent_id", Message: "Parent folder not found"}})
+				ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "parent_id", Message: "Parent folder not found"}})
 				return
 			}
-			InternalError(w)
+			InternalError(w, r)
 			return
 		}
 	}
 
 	folder, err := h.repo.Create(r.Context(), &input)
 	if err != nil {
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	Created(w, folder)
+	Created(w, r, folder)
 }
 
 // Get handles GET /api/v1/folders/{id}
 func (h *FolderHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid folder ID")
+		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid folder ID")
 		return
 	}
 
 	folder, err := h.repo.GetByID(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			NotFound(w, "Folder not found")
+			NotFound(w, r, "Folder not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
@@ -119,48 +119,48 @@ func (h *FolderHandler) Get(w http.ResponseWriter, r *http.Request) {
 		folder.SnippetCount = count
 	}
 
-	OK(w, folder)
+	OK(w, r, folder)
 }
 
 // Update handles PUT /api/v1/folders/{id}
 func (h *FolderHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid folder ID")
+		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid folder ID")
 		return
 	}
 
 	var input models.FolderInput
 	if err := DecodeJSON(r, &input); err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
+		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
 
 	// Validate input
 	if input.Name == "" {
-		ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name is required"}})
+		ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name is required"}})
 		return
 	}
 
 	if len(input.Name) > 100 {
-		ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name must be 100 characters or less"}})
+		ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name must be 100 characters or less"}})
 		return
 	}
 
 	// Validate parent exists if provided and not self-referencing
 	if input.ParentID != nil {
 		if *input.ParentID == id {
-			ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "parent_id", Message: "Folder cannot be its own parent"}})
+			ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "parent_id", Message: "Folder cannot be its own parent"}})
 			return
 		}
 
 		_, err := h.repo.GetByID(r.Context(), *input.ParentID)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "parent_id", Message: "Parent folder not found"}})
+				ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "parent_id", Message: "Parent folder not found"}})
 				return
 			}
-			InternalError(w)
+			InternalError(w, r)
 			return
 		}
 	}
@@ -168,31 +168,31 @@ func (h *FolderHandler) Update(w http.ResponseWriter, r *http.Request) {
 	folder, err := h.repo.Update(r.Context(), id, &input)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			NotFound(w, "Folder not found")
+			NotFound(w, r, "Folder not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, folder)
+	OK(w, r, folder)
 }
 
 // Delete handles DELETE /api/v1/folders/{id}
 func (h *FolderHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid folder ID")
+		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid folder ID")
 		return
 	}
 
 	err = h.repo.Delete(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			NotFound(w, "Folder not found")
+			NotFound(w, r, "Folder not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
@@ -208,19 +208,19 @@ type MoveRequest struct {
 func (h *FolderHandler) Move(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid folder ID")
+		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid folder ID")
 		return
 	}
 
 	var req MoveRequest
 	if err := DecodeJSON(r, &req); err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
+		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
 
 	// Validate not moving to self
 	if req.ParentID != nil && *req.ParentID == id {
-		ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "parent_id", Message: "Folder cannot be its own parent"}})
+		ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "parent_id", Message: "Folder cannot be its own parent"}})
 		return
 	}
 
@@ -229,10 +229,10 @@ func (h *FolderHandler) Move(w http.ResponseWriter, r *http.Request) {
 		_, err := h.repo.GetByID(r.Context(), *req.ParentID)
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
-				ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "parent_id", Message: "Parent folder not found"}})
+				ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "parent_id", Message: "Parent folder not found"}})
 				return
 			}
-			InternalError(w)
+			InternalError(w, r)
 			return
 		}
 	}
@@ -240,17 +240,17 @@ func (h *FolderHandler) Move(w http.ResponseWriter, r *http.Request) {
 	folder, err := h.repo.Move(r.Context(), id, req.ParentID)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			NotFound(w, "Folder not found")
+			NotFound(w, r, "Folder not found")
 			return
 		}
 		// Check for circular reference error
 		if err.Error() == "cannot move folder: would create circular reference" {
-			ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "parent_id", Message: "Cannot move folder: would create circular reference"}})
+			ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "parent_id", Message: "Cannot move folder: would create circular reference"}})
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, folder)
+	OK(w, r, folder)
 }

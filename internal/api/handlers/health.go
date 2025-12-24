@@ -77,7 +77,7 @@ func (h *HealthHandler) Health(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if status == "healthy" {
-		OK(w, response)
+		OK(w, r, response)
 	} else {
 		JSON(w, http.StatusServiceUnavailable, response)
 	}

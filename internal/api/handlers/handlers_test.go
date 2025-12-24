@@ -7,14 +7,49 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
+	"github.com/MohamedElashri/snipo/internal/api/middleware"
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
 	"github.com/MohamedElashri/snipo/internal/services"
 	"github.com/MohamedElashri/snipo/internal/testutil"
 )
+
+// Test response wrapper structs for new API envelope format
+type testAPIResponse struct {
+	Data interface{} `json:"data"`
+	Meta *testMeta   `json:"meta,omitempty"`
+}
+
+type testMeta struct {
+	RequestID string    `json:"request_id"`
+	Timestamp time.Time `json:"timestamp"`
+	Version   string    `json:"version"`
+}
+
+type testListResponse struct {
+	Data       interface{}       `json:"data"`
+	Pagination *testPagination   `json:"pagination,omitempty"`
+	Meta       *testMeta         `json:"meta,omitempty"`
+}
+
+type testPagination struct {
+	Page       int                  `json:"page"`
+	Limit      int                  `json:"limit"`
+	Total      int                  `json:"total"`
+	TotalPages int                  `json:"total_pages"`
+	Links      *testPaginationLinks `json:"links,omitempty"`
+}
+
+type testPaginationLinks struct {
+	Self string  `json:"self"`
+	Next *string `json:"next"`
+	Prev *string `json:"prev"`
+}
 
 // withChiURLParams adds chi URL params to a request context
 func withChiURLParams(r *http.Request, params map[string]string) *http.Request {
@@ -23,6 +58,13 @@ func withChiURLParams(r *http.Request, params map[string]string) *http.Request {
 		rctx.URLParams.Add(key, val)
 	}
 	return r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
+}
+
+// withRequestID adds a request ID to the context for testing
+func withRequestID(r *http.Request) *http.Request {
+	requestID := uuid.New().String()
+	ctx := context.WithValue(r.Context(), middleware.ContextKeyRequestID, requestID)
+	return r.WithContext(ctx)
 }
 
 // setupSnippetHandler creates a snippet handler with test database
@@ -55,6 +97,7 @@ func TestSnippetHandler_Create(t *testing.T) {
 	body, _ := json.Marshal(input)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/snippets", bytes.NewReader(body))
+	req = withRequestID(req)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -64,9 +107,27 @@ func TestSnippetHandler_Create(t *testing.T) {
 		t.Errorf("expected status %d, got %d: %s", http.StatusCreated, w.Code, w.Body.String())
 	}
 
-	var response models.Snippet
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+	var envelope testAPIResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	// Check meta fields
+	if envelope.Meta == nil {
+		t.Fatal("expected meta to be present")
+	}
+	if envelope.Meta.RequestID == "" {
+		t.Error("expected request_id to be set")
+	}
+	if envelope.Meta.Version != "1.0" {
+		t.Errorf("expected version '1.0', got %q", envelope.Meta.Version)
+	}
+
+	// Unmarshal data field
+	dataBytes, _ := json.Marshal(envelope.Data)
+	var response models.Snippet
+	if err := json.Unmarshal(dataBytes, &response); err != nil {
+		t.Fatalf("failed to unmarshal data: %v", err)
 	}
 
 	if response.ID == "" {
@@ -129,6 +190,7 @@ func TestSnippetHandler_Get(t *testing.T) {
 	// Create request with chi URL param
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/snippets/"+snippet.ID, nil)
 	req = withChiURLParams(req, map[string]string{"id": snippet.ID})
+	req = withRequestID(req)
 
 	w := httptest.NewRecorder()
 	handler.Get(w, req)
@@ -137,9 +199,16 @@ func TestSnippetHandler_Get(t *testing.T) {
 		t.Errorf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
-	var response models.Snippet
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+	var envelope testAPIResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	// Unmarshal data field
+	dataBytes, _ := json.Marshal(envelope.Data)
+	var response models.Snippet
+	if err := json.Unmarshal(dataBytes, &response); err != nil {
+		t.Fatalf("failed to unmarshal data: %v", err)
 	}
 
 	if response.ID != snippet.ID {
@@ -178,6 +247,7 @@ func TestSnippetHandler_List(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/snippets", nil)
+	req = withRequestID(req)
 	w := httptest.NewRecorder()
 
 	handler.List(w, req)
@@ -186,16 +256,28 @@ func TestSnippetHandler_List(t *testing.T) {
 		t.Errorf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
-	var response models.SnippetListResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+	var envelope testListResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
 
-	if len(response.Data) != 3 {
-		t.Errorf("expected 3 snippets, got %d", len(response.Data))
+	// Check pagination
+	if envelope.Pagination == nil {
+		t.Fatal("expected pagination to be present")
 	}
-	if response.Pagination.Total != 3 {
-		t.Errorf("expected total 3, got %d", response.Pagination.Total)
+	if envelope.Pagination.Total != 3 {
+		t.Errorf("expected total 3, got %d", envelope.Pagination.Total)
+	}
+
+	// Unmarshal data field
+	dataBytes, _ := json.Marshal(envelope.Data)
+	var snippets []models.Snippet
+	if err := json.Unmarshal(dataBytes, &snippets); err != nil {
+		t.Fatalf("failed to unmarshal data: %v", err)
+	}
+
+	if len(snippets) != 3 {
+		t.Errorf("expected 3 snippets, got %d", len(snippets))
 	}
 }
 
@@ -216,6 +298,7 @@ func TestSnippetHandler_List_WithPagination(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/snippets?page=1&limit=3", nil)
+	req = withRequestID(req)
 	w := httptest.NewRecorder()
 
 	handler.List(w, req)
@@ -224,19 +307,48 @@ func TestSnippetHandler_List_WithPagination(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response models.SnippetListResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+	var envelope testListResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
 
-	if len(response.Data) != 3 {
-		t.Errorf("expected 3 snippets on page, got %d", len(response.Data))
+	// Check pagination metadata
+	if envelope.Pagination == nil {
+		t.Fatal("expected pagination to be present")
 	}
-	if response.Pagination.Total != 10 {
-		t.Errorf("expected total 10, got %d", response.Pagination.Total)
+	if envelope.Pagination.Total != 10 {
+		t.Errorf("expected total 10, got %d", envelope.Pagination.Total)
 	}
-	if response.Pagination.TotalPages != 4 {
-		t.Errorf("expected 4 total pages, got %d", response.Pagination.TotalPages)
+	if envelope.Pagination.TotalPages != 4 {
+		t.Errorf("expected 4 total pages, got %d", envelope.Pagination.TotalPages)
+	}
+	if envelope.Pagination.Page != 1 {
+		t.Errorf("expected page 1, got %d", envelope.Pagination.Page)
+	}
+	if envelope.Pagination.Limit != 3 {
+		t.Errorf("expected limit 3, got %d", envelope.Pagination.Limit)
+	}
+
+	// Check navigation links
+	if envelope.Pagination.Links == nil {
+		t.Fatal("expected pagination links to be present")
+	}
+	if envelope.Pagination.Links.Next == nil {
+		t.Error("expected next link to be present")
+	}
+	if envelope.Pagination.Links.Prev != nil {
+		t.Error("expected prev link to be nil on first page")
+	}
+
+	// Unmarshal data field
+	dataBytes, _ := json.Marshal(envelope.Data)
+	var snippets []models.Snippet
+	if err := json.Unmarshal(dataBytes, &snippets); err != nil {
+		t.Fatalf("failed to unmarshal data: %v", err)
+	}
+
+	if len(snippets) != 3 {
+		t.Errorf("expected 3 snippets on page, got %d", len(snippets))
 	}
 }
 
@@ -265,6 +377,7 @@ func TestSnippetHandler_Update(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/snippets/"+snippet.ID, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req = withChiURLParams(req, map[string]string{"id": snippet.ID})
+	req = withRequestID(req)
 
 	w := httptest.NewRecorder()
 	handler.Update(w, req)
@@ -273,9 +386,16 @@ func TestSnippetHandler_Update(t *testing.T) {
 		t.Errorf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
-	var response models.Snippet
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+	var envelope testAPIResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	// Unmarshal data field
+	dataBytes, _ := json.Marshal(envelope.Data)
+	var response models.Snippet
+	if err := json.Unmarshal(dataBytes, &response); err != nil {
+		t.Fatalf("failed to unmarshal data: %v", err)
 	}
 
 	if response.Title != "Updated" {
@@ -330,6 +450,7 @@ func TestSnippetHandler_ToggleFavorite(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/snippets/"+snippet.ID+"/favorite", nil)
 	req = withChiURLParams(req, map[string]string{"id": snippet.ID})
+	req = withRequestID(req)
 
 	w := httptest.NewRecorder()
 	handler.ToggleFavorite(w, req)
@@ -338,9 +459,16 @@ func TestSnippetHandler_ToggleFavorite(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response models.Snippet
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+	var envelope testAPIResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	// Unmarshal data field
+	dataBytes, _ := json.Marshal(envelope.Data)
+	var response models.Snippet
+	if err := json.Unmarshal(dataBytes, &response); err != nil {
+		t.Fatalf("failed to unmarshal data: %v", err)
 	}
 
 	if !response.IsFavorite {
@@ -372,6 +500,7 @@ func TestSnippetHandler_Search(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/snippets/search?q=hello", nil)
+	req = withRequestID(req)
 	w := httptest.NewRecorder()
 
 	handler.Search(w, req)
@@ -380,13 +509,20 @@ func TestSnippetHandler_Search(t *testing.T) {
 		t.Errorf("expected status %d, got %d: %s", http.StatusOK, w.Code, w.Body.String())
 	}
 
-	var response map[string][]models.Snippet
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+	var envelope testAPIResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
 
-	if len(response["data"]) != 1 {
-		t.Errorf("expected 1 result for 'hello', got %d", len(response["data"]))
+	// Unmarshal data field
+	dataBytes, _ := json.Marshal(envelope.Data)
+	var snippets []models.Snippet
+	if err := json.Unmarshal(dataBytes, &snippets); err != nil {
+		t.Fatalf("failed to unmarshal data: %v", err)
+	}
+
+	if len(snippets) != 1 {
+		t.Errorf("expected 1 result for 'hello', got %d", len(snippets))
 	}
 }
 
@@ -410,6 +546,7 @@ func TestTagHandler_Create(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/tags", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req = withRequestID(req)
 	w := httptest.NewRecorder()
 
 	handler.Create(w, req)
@@ -418,9 +555,16 @@ func TestTagHandler_Create(t *testing.T) {
 		t.Errorf("expected status %d, got %d: %s", http.StatusCreated, w.Code, w.Body.String())
 	}
 
-	var response models.Tag
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+	var envelope testAPIResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	// Unmarshal data field
+	dataBytes, _ := json.Marshal(envelope.Data)
+	var response models.Tag
+	if err := json.Unmarshal(dataBytes, &response); err != nil {
+		t.Fatalf("failed to unmarshal data: %v", err)
 	}
 
 	if response.Name != "golang" {
@@ -441,6 +585,7 @@ func TestTagHandler_List(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/tags", nil)
+	req = withRequestID(req)
 	w := httptest.NewRecorder()
 
 	handler.List(w, req)
@@ -449,13 +594,20 @@ func TestTagHandler_List(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string][]models.Tag
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+	var envelope testAPIResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
 
-	if len(response["data"]) != 3 {
-		t.Errorf("expected 3 tags, got %d", len(response["data"]))
+	// Unmarshal data field
+	dataBytes, _ := json.Marshal(envelope.Data)
+	var tags []models.Tag
+	if err := json.Unmarshal(dataBytes, &tags); err != nil {
+		t.Fatalf("failed to unmarshal data: %v", err)
+	}
+
+	if len(tags) != 3 {
+		t.Errorf("expected 3 tags, got %d", len(tags))
 	}
 }
 
@@ -478,6 +630,7 @@ func TestFolderHandler_Create(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/folders", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
+	req = withRequestID(req)
 	w := httptest.NewRecorder()
 
 	handler.Create(w, req)
@@ -486,9 +639,16 @@ func TestFolderHandler_Create(t *testing.T) {
 		t.Errorf("expected status %d, got %d: %s", http.StatusCreated, w.Code, w.Body.String())
 	}
 
-	var response models.Folder
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+	var envelope testAPIResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	// Unmarshal data field
+	dataBytes, _ := json.Marshal(envelope.Data)
+	var response models.Folder
+	if err := json.Unmarshal(dataBytes, &response); err != nil {
+		t.Fatalf("failed to unmarshal data: %v", err)
 	}
 
 	if response.Name != "Projects" {
@@ -509,6 +669,7 @@ func TestFolderHandler_List(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/folders", nil)
+	req = withRequestID(req)
 	w := httptest.NewRecorder()
 
 	handler.List(w, req)
@@ -517,13 +678,20 @@ func TestFolderHandler_List(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string][]models.Folder
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+	var envelope testAPIResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
 
-	if len(response["data"]) != 3 {
-		t.Errorf("expected 3 folders, got %d", len(response["data"]))
+	// Unmarshal data field
+	dataBytes, _ := json.Marshal(envelope.Data)
+	var folders []models.Folder
+	if err := json.Unmarshal(dataBytes, &folders); err != nil {
+		t.Fatalf("failed to unmarshal data: %v", err)
+	}
+
+	if len(folders) != 3 {
+		t.Errorf("expected 3 folders, got %d", len(folders))
 	}
 }
 
@@ -542,6 +710,7 @@ func TestFolderHandler_ListTree(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/folders?tree=true", nil)
+	req = withRequestID(req)
 	w := httptest.NewRecorder()
 
 	handler.List(w, req)
@@ -550,14 +719,21 @@ func TestFolderHandler_ListTree(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string][]models.Folder
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+	var envelope testAPIResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
 	}
 
+	// Unmarshal data field
+	dataBytes, _ := json.Marshal(envelope.Data)
+	var folders []models.Folder
+	if err := json.Unmarshal(dataBytes, &folders); err != nil {
+		t.Fatalf("failed to unmarshal data: %v", err)
+	}
+
 	// Should have 1 root folder with 1 child
-	if len(response["data"]) != 1 {
-		t.Errorf("expected 1 root folder, got %d", len(response["data"]))
+	if len(folders) != 1 {
+		t.Errorf("expected 1 root folder, got %d", len(folders))
 	}
 }
 
@@ -586,6 +762,7 @@ func TestHealthHandler_Health(t *testing.T) {
 	handler := NewHealthHandler(db, "1.0.0", "abc123")
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req = withRequestID(req)
 	w := httptest.NewRecorder()
 
 	handler.Health(w, req)
@@ -594,9 +771,21 @@ func TestHealthHandler_Health(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	var response map[string]interface{}
-	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+	var envelope testAPIResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
 		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	// Check meta fields
+	if envelope.Meta == nil {
+		t.Fatal("expected meta to be present")
+	}
+
+	// Unmarshal data field
+	dataBytes, _ := json.Marshal(envelope.Data)
+	var response map[string]interface{}
+	if err := json.Unmarshal(dataBytes, &response); err != nil {
+		t.Fatalf("failed to unmarshal data: %v", err)
 	}
 
 	if response["status"] != "healthy" {

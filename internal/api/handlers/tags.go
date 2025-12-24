@@ -26,7 +26,7 @@ func NewTagHandler(repo *repository.TagRepository) *TagHandler {
 func (h *TagHandler) List(w http.ResponseWriter, r *http.Request) {
 	tags, err := h.repo.List(r.Context())
 	if err != nil {
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
@@ -38,25 +38,25 @@ func (h *TagHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	OK(w, map[string]interface{}{"data": tags})
+	OK(w, r, tags)
 }
 
 // Create handles POST /api/v1/tags
 func (h *TagHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var input models.TagInput
 	if err := DecodeJSON(r, &input); err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
+		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
 
 	// Validate input
 	if input.Name == "" {
-		ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name is required"}})
+		ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name is required"}})
 		return
 	}
 
 	if len(input.Name) > 50 {
-		ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name must be 50 characters or less"}})
+		ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name must be 50 characters or less"}})
 		return
 	}
 
@@ -68,34 +68,34 @@ func (h *TagHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// Check if tag already exists
 	existing, err := h.repo.GetByName(r.Context(), input.Name)
 	if err == nil && existing != nil {
-		Error(w, http.StatusConflict, "TAG_EXISTS", "A tag with this name already exists")
+		Error(w, r, http.StatusConflict, "TAG_EXISTS", "A tag with this name already exists")
 		return
 	}
 
 	tag, err := h.repo.Create(r.Context(), &input)
 	if err != nil {
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	Created(w, tag)
+	Created(w, r, tag)
 }
 
 // Get handles GET /api/v1/tags/{id}
 func (h *TagHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid tag ID")
+		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid tag ID")
 		return
 	}
 
 	tag, err := h.repo.GetByID(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			NotFound(w, "Tag not found")
+			NotFound(w, r, "Tag not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
@@ -105,38 +105,38 @@ func (h *TagHandler) Get(w http.ResponseWriter, r *http.Request) {
 		tag.SnippetCount = count
 	}
 
-	OK(w, tag)
+	OK(w, r, tag)
 }
 
 // Update handles PUT /api/v1/tags/{id}
 func (h *TagHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid tag ID")
+		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid tag ID")
 		return
 	}
 
 	var input models.TagInput
 	if err := DecodeJSON(r, &input); err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
+		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
 
 	// Validate input
 	if input.Name == "" {
-		ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name is required"}})
+		ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name is required"}})
 		return
 	}
 
 	if len(input.Name) > 50 {
-		ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name must be 50 characters or less"}})
+		ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name must be 50 characters or less"}})
 		return
 	}
 
 	// Check if another tag with same name exists
 	existing, err := h.repo.GetByName(r.Context(), input.Name)
 	if err == nil && existing != nil && existing.ID != id {
-		Error(w, http.StatusConflict, "TAG_EXISTS", "A tag with this name already exists")
+		Error(w, r, http.StatusConflict, "TAG_EXISTS", "A tag with this name already exists")
 		return
 	}
 
@@ -148,31 +148,31 @@ func (h *TagHandler) Update(w http.ResponseWriter, r *http.Request) {
 	tag, err := h.repo.Update(r.Context(), id, &input)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			NotFound(w, "Tag not found")
+			NotFound(w, r, "Tag not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, tag)
+	OK(w, r, tag)
 }
 
 // Delete handles DELETE /api/v1/tags/{id}
 func (h *TagHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid tag ID")
+		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid tag ID")
 		return
 	}
 
 	err = h.repo.Delete(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			NotFound(w, "Tag not found")
+			NotFound(w, r, "Tag not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 

@@ -37,7 +37,7 @@ func (h *BackupHandler) Export(w http.ResponseWriter, r *http.Request) {
 
 	content, filename, err := h.backupSvc.Export(r.Context(), opts)
 	if err != nil {
-		Error(w, http.StatusInternalServerError, "BACKUP_FAILED", err.Error())
+		Error(w, r, http.StatusInternalServerError, "BACKUP_FAILED", err.Error())
 		return
 	}
 
@@ -61,13 +61,13 @@ func (h *BackupHandler) Export(w http.ResponseWriter, r *http.Request) {
 func (h *BackupHandler) Import(w http.ResponseWriter, r *http.Request) {
 	// Parse multipart form (max 50MB)
 	if err := r.ParseMultipartForm(50 << 20); err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_REQUEST", "Failed to parse form data")
+		Error(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Failed to parse form data")
 		return
 	}
 
 	file, _, err := r.FormFile("file")
 	if err != nil {
-		Error(w, http.StatusBadRequest, "MISSING_FILE", "No backup file provided")
+		Error(w, r, http.StatusBadRequest, "MISSING_FILE", "No backup file provided")
 		return
 	}
 	defer func() {
@@ -78,7 +78,7 @@ func (h *BackupHandler) Import(w http.ResponseWriter, r *http.Request) {
 
 	content, err := io.ReadAll(file)
 	if err != nil {
-		Error(w, http.StatusBadRequest, "READ_ERROR", "Failed to read backup file")
+		Error(w, r, http.StatusBadRequest, "READ_ERROR", "Failed to read backup file")
 		return
 	}
 
@@ -94,25 +94,25 @@ func (h *BackupHandler) Import(w http.ResponseWriter, r *http.Request) {
 	result, err := h.backupSvc.Import(r.Context(), content, opts)
 	if err != nil {
 		if err == services.ErrDecryptionFailed {
-			Error(w, http.StatusBadRequest, "DECRYPTION_FAILED", "Failed to decrypt backup - wrong password?")
+			Error(w, r, http.StatusBadRequest, "DECRYPTION_FAILED", "Failed to decrypt backup - wrong password?")
 			return
 		}
 		if err == services.ErrInvalidBackupFormat {
-			Error(w, http.StatusBadRequest, "INVALID_FORMAT", "Invalid backup file format")
+			Error(w, r, http.StatusBadRequest, "INVALID_FORMAT", "Invalid backup file format")
 			return
 		}
-		Error(w, http.StatusInternalServerError, "IMPORT_FAILED", err.Error())
+		Error(w, r, http.StatusInternalServerError, "IMPORT_FAILED", err.Error())
 		return
 	}
 
-	OK(w, result)
+	OK(w, r, result)
 }
 
 // S3Sync handles POST /api/v1/backup/s3/sync
 // Body: { "format": "json|zip", "password": "optional" }
 func (h *BackupHandler) S3Sync(w http.ResponseWriter, r *http.Request) {
 	if h.s3SyncSvc == nil {
-		Error(w, http.StatusServiceUnavailable, "S3_NOT_CONFIGURED", "S3 storage is not configured")
+		Error(w, r, http.StatusServiceUnavailable, "S3_NOT_CONFIGURED", "S3 storage is not configured")
 		return
 	}
 
@@ -124,27 +124,27 @@ func (h *BackupHandler) S3Sync(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.s3SyncSvc.SyncToS3(r.Context(), opts)
 	if err != nil {
-		Error(w, http.StatusInternalServerError, "SYNC_FAILED", err.Error())
+		Error(w, r, http.StatusInternalServerError, "SYNC_FAILED", err.Error())
 		return
 	}
 
-	OK(w, result)
+	OK(w, r, result)
 }
 
 // S3List handles GET /api/v1/backup/s3/list
 func (h *BackupHandler) S3List(w http.ResponseWriter, r *http.Request) {
 	if h.s3SyncSvc == nil {
-		Error(w, http.StatusServiceUnavailable, "S3_NOT_CONFIGURED", "S3 storage is not configured")
+		Error(w, r, http.StatusServiceUnavailable, "S3_NOT_CONFIGURED", "S3 storage is not configured")
 		return
 	}
 
 	backups, err := h.s3SyncSvc.ListBackups(r.Context())
 	if err != nil {
-		Error(w, http.StatusInternalServerError, "LIST_FAILED", err.Error())
+		Error(w, r, http.StatusInternalServerError, "LIST_FAILED", err.Error())
 		return
 	}
 
-	OK(w, map[string]interface{}{
+	OK(w, r, map[string]interface{}{
 		"backups": backups,
 	})
 }
@@ -153,7 +153,7 @@ func (h *BackupHandler) S3List(w http.ResponseWriter, r *http.Request) {
 // Body: { "key": "backups/snipo-backup-xxx.json", "strategy": "replace|merge|skip", "password": "optional" }
 func (h *BackupHandler) S3Restore(w http.ResponseWriter, r *http.Request) {
 	if h.s3SyncSvc == nil {
-		Error(w, http.StatusServiceUnavailable, "S3_NOT_CONFIGURED", "S3 storage is not configured")
+		Error(w, r, http.StatusServiceUnavailable, "S3_NOT_CONFIGURED", "S3 storage is not configured")
 		return
 	}
 
@@ -164,12 +164,12 @@ func (h *BackupHandler) S3Restore(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := DecodeJSON(r, &req); err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body")
+		Error(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body")
 		return
 	}
 
 	if req.Key == "" {
-		Error(w, http.StatusBadRequest, "MISSING_KEY", "Backup key is required")
+		Error(w, r, http.StatusBadRequest, "MISSING_KEY", "Backup key is required")
 		return
 	}
 
@@ -184,32 +184,32 @@ func (h *BackupHandler) S3Restore(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.s3SyncSvc.RestoreFromS3(r.Context(), req.Key, opts)
 	if err != nil {
-		Error(w, http.StatusInternalServerError, "RESTORE_FAILED", err.Error())
+		Error(w, r, http.StatusInternalServerError, "RESTORE_FAILED", err.Error())
 		return
 	}
 
-	OK(w, result)
+	OK(w, r, result)
 }
 
 // S3Delete handles DELETE /api/v1/backup/s3/{key}
 func (h *BackupHandler) S3Delete(w http.ResponseWriter, r *http.Request) {
 	if h.s3SyncSvc == nil {
-		Error(w, http.StatusServiceUnavailable, "S3_NOT_CONFIGURED", "S3 storage is not configured")
+		Error(w, r, http.StatusServiceUnavailable, "S3_NOT_CONFIGURED", "S3 storage is not configured")
 		return
 	}
 
 	key := r.URL.Query().Get("key")
 	if key == "" {
-		Error(w, http.StatusBadRequest, "MISSING_KEY", "Backup key is required")
+		Error(w, r, http.StatusBadRequest, "MISSING_KEY", "Backup key is required")
 		return
 	}
 
 	if err := h.s3SyncSvc.DeleteBackup(r.Context(), key); err != nil {
-		Error(w, http.StatusInternalServerError, "DELETE_FAILED", err.Error())
+		Error(w, r, http.StatusInternalServerError, "DELETE_FAILED", err.Error())
 		return
 	}
 
-	OK(w, map[string]string{
+	OK(w, r, map[string]string{
 		"message": "Backup deleted successfully",
 	})
 }
@@ -220,5 +220,5 @@ func (h *BackupHandler) S3Status(w http.ResponseWriter, r *http.Request) {
 		"enabled": h.s3SyncSvc != nil,
 	}
 
-	OK(w, status)
+	OK(w, r, status)
 }

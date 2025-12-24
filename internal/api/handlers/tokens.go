@@ -27,11 +27,11 @@ func NewTokenHandler(repo *repository.TokenRepository) *TokenHandler {
 func (h *TokenHandler) List(w http.ResponseWriter, r *http.Request) {
 	tokens, err := h.repo.List(r.Context())
 	if err != nil {
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, map[string]interface{}{"data": tokens})
+	OK(w, r, map[string]interface{}{"data": tokens})
 }
 
 // Create handles POST /api/v1/tokens
@@ -39,73 +39,73 @@ func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var input models.APITokenInput
 	if err := DecodeJSON(r, &input); err != nil {
 		// Provide more detailed error message for debugging
-		Error(w, http.StatusBadRequest, "INVALID_JSON", fmt.Sprintf("Invalid JSON payload: %v", err))
+		Error(w, r, http.StatusBadRequest, "INVALID_JSON", fmt.Sprintf("Invalid JSON payload: %v", err))
 		return
 	}
 
 	// Validate input
 	if input.Name == "" {
-		ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name is required"}})
+		ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name is required"}})
 		return
 	}
 
 	if len(input.Name) > 100 {
-		ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name must be 100 characters or less"}})
+		ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "name", Message: "Name must be 100 characters or less"}})
 		return
 	}
 
 	// Validate permissions
 	if input.Permissions != "" && input.Permissions != "read" && input.Permissions != "write" && input.Permissions != "admin" {
-		ValidationErrors(w, validation.ValidationErrors{validation.ValidationError{Field: "permissions", Message: "Permissions must be 'read', 'write', or 'admin'"}})
+		ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "permissions", Message: "Permissions must be 'read', 'write', or 'admin'"}})
 		return
 	}
 
 	token, err := h.repo.Create(r.Context(), &input)
 	if err != nil {
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
 	// Return the token with the plain text token (only time it's shown)
-	Created(w, token)
+	Created(w, r, token)
 }
 
 // Get handles GET /api/v1/tokens/{id}
 func (h *TokenHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid token ID")
+		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid token ID")
 		return
 	}
 
 	token, err := h.repo.GetByID(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			NotFound(w, "Token not found")
+			NotFound(w, r, "Token not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, token)
+	OK(w, r, token)
 }
 
 // Delete handles DELETE /api/v1/tokens/{id}
 func (h *TokenHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_ID", "Invalid token ID")
+		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid token ID")
 		return
 	}
 
 	err = h.repo.Delete(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			NotFound(w, "Token not found")
+			NotFound(w, r, "Token not found")
 			return
 		}
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 

@@ -33,12 +33,12 @@ type LoginResponse struct {
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := DecodeJSON(r, &req); err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
+		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
 
 	if req.Password == "" {
-		Error(w, http.StatusBadRequest, "MISSING_PASSWORD", "Password is required")
+		Error(w, r, http.StatusBadRequest, "MISSING_PASSWORD", "Password is required")
 		return
 	}
 
@@ -49,27 +49,27 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	valid, delay := h.authService.VerifyPasswordWithDelay(req.Password, clientIP)
 	if delay > 0 {
 		w.Header().Set("Retry-After", fmt.Sprintf("%d", int(delay.Seconds())+1))
-		Error(w, http.StatusTooManyRequests, "RATE_LIMITED",
+		Error(w, r, http.StatusTooManyRequests, "RATE_LIMITED",
 			fmt.Sprintf("Too many failed attempts. Please wait %d seconds.", int(delay.Seconds())+1))
 		return
 	}
 
 	if !valid {
-		Error(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", "Invalid password")
+		Error(w, r, http.StatusUnauthorized, "INVALID_CREDENTIALS", "Invalid password")
 		return
 	}
 
 	// Create session
 	token, err := h.authService.CreateSession()
 	if err != nil {
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
 	// Set session cookie
 	h.authService.SetSessionCookie(w, token)
 
-	OK(w, LoginResponse{
+	OK(w, r, LoginResponse{
 		Success: true,
 		Message: "Login successful",
 	})
@@ -107,7 +107,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	h.authService.ClearSessionCookie(w)
 
-	OK(w, LoginResponse{
+	OK(w, r, LoginResponse{
 		Success: true,
 		Message: "Logout successful",
 	})
@@ -117,11 +117,11 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) Check(w http.ResponseWriter, r *http.Request) {
 	token := auth.GetSessionFromRequest(r)
 	if token == "" || !h.authService.ValidateSession(token) {
-		Unauthorized(w)
+		Unauthorized(w, r)
 		return
 	}
 
-	OK(w, map[string]bool{"authenticated": true})
+	OK(w, r, map[string]bool{"authenticated": true})
 }
 
 // ChangePasswordRequest represents a password change request
@@ -134,33 +134,33 @@ type ChangePasswordRequest struct {
 func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	var req ChangePasswordRequest
 	if err := DecodeJSON(r, &req); err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
+		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")
 		return
 	}
 
 	if req.CurrentPassword == "" || req.NewPassword == "" {
-		Error(w, http.StatusBadRequest, "MISSING_FIELDS", "Current and new password are required")
+		Error(w, r, http.StatusBadRequest, "MISSING_FIELDS", "Current and new password are required")
 		return
 	}
 
 	if len(req.NewPassword) < 12 {
-		Error(w, http.StatusBadRequest, "PASSWORD_TOO_SHORT", "Password must be at least 12 characters")
+		Error(w, r, http.StatusBadRequest, "PASSWORD_TOO_SHORT", "Password must be at least 12 characters")
 		return
 	}
 
 	// Verify current password
 	if !h.authService.VerifyPassword(req.CurrentPassword) {
-		Error(w, http.StatusUnauthorized, "INVALID_PASSWORD", "Current password is incorrect")
+		Error(w, r, http.StatusUnauthorized, "INVALID_PASSWORD", "Current password is incorrect")
 		return
 	}
 
 	// Update password
 	if err := h.authService.UpdatePassword(req.NewPassword); err != nil {
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, map[string]interface{}{
+	OK(w, r, map[string]interface{}{
 		"success": true,
 		"message": "Password changed successfully",
 	})

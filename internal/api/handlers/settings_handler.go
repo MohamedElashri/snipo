@@ -22,18 +22,18 @@ func NewSettingsHandler(repo *repository.SettingsRepository) *SettingsHandler {
 func (h *SettingsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	settings, err := h.repo.Get(r.Context())
 	if err != nil {
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, settings)
+	OK(w, r, settings)
 }
 
 // Update updates application settings
 func (h *SettingsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var input models.SettingsInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		Error(w, http.StatusBadRequest, "INVALID_JSON", "Invalid request body")
+		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid request body")
 		return
 	}
 
@@ -41,9 +41,9 @@ func (h *SettingsHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	updated, err := h.repo.Update(r.Context(), &input)
 	if err != nil {
-		InternalError(w)
+		InternalError(w, r)
 		return
 	}
 
-	OK(w, updated)
+	OK(w, r, updated)
 }
