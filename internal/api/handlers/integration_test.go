@@ -40,10 +40,14 @@ func TestIntegration_SnippetCRUDFlow(t *testing.T) {
 	}
 
 	var createEnvelope testAPIResponse
-	json.Unmarshal(w.Body.Bytes(), &createEnvelope)
+	if err := json.Unmarshal(w.Body.Bytes(), &createEnvelope); err != nil {
+		t.Fatalf("Failed to parse create response: %v", err)
+	}
 	dataBytes, _ := json.Marshal(createEnvelope.Data)
 	var createdSnippet models.Snippet
-	json.Unmarshal(dataBytes, &createdSnippet)
+	if err := json.Unmarshal(dataBytes, &createdSnippet); err != nil {
+		t.Fatalf("Failed to parse created snippet: %v", err)
+	}
 	snippetID := createdSnippet.ID
 
 	// Verify creation
@@ -65,10 +69,14 @@ func TestIntegration_SnippetCRUDFlow(t *testing.T) {
 	}
 
 	var getEnvelope testAPIResponse
-	json.Unmarshal(w.Body.Bytes(), &getEnvelope)
+	if err := json.Unmarshal(w.Body.Bytes(), &getEnvelope); err != nil {
+		t.Fatalf("Failed to parse get response: %v", err)
+	}
 	dataBytes, _ = json.Marshal(getEnvelope.Data)
 	var fetchedSnippet models.Snippet
-	json.Unmarshal(dataBytes, &fetchedSnippet)
+	if err := json.Unmarshal(dataBytes, &fetchedSnippet); err != nil {
+		t.Fatalf("Failed to parse fetched snippet: %v", err)
+	}
 
 	if fetchedSnippet.ID != snippetID {
 		t.Errorf("Expected ID %s, got %s", snippetID, fetchedSnippet.ID)
@@ -116,7 +124,9 @@ func TestIntegration_SnippetCRUDFlow(t *testing.T) {
 	}
 
 	var listEnvelope testListResponse
-	json.Unmarshal(w.Body.Bytes(), &listEnvelope)
+	if err := json.Unmarshal(w.Body.Bytes(), &listEnvelope); err != nil {
+		t.Fatalf("Failed to parse list response: %v", err)
+	}
 
 	// Verify pagination
 	if listEnvelope.Pagination == nil {
@@ -251,10 +261,14 @@ func TestIntegration_TagsAndFolders(t *testing.T) {
 	}
 
 	var folderEnvelope testAPIResponse
-	json.Unmarshal(w.Body.Bytes(), &folderEnvelope)
+	if err := json.Unmarshal(w.Body.Bytes(), &folderEnvelope); err != nil {
+		t.Fatalf("Failed to parse folder response: %v", err)
+	}
 	dataBytes, _ := json.Marshal(folderEnvelope.Data)
 	var folder models.Folder
-	json.Unmarshal(dataBytes, &folder)
+	if err := json.Unmarshal(dataBytes, &folder); err != nil {
+		t.Fatalf("Failed to parse folder data: %v", err)
+	}
 
 	// Create snippet with tag and folder
 	t.Log("Creating snippet with tag and folder...")
@@ -277,10 +291,14 @@ func TestIntegration_TagsAndFolders(t *testing.T) {
 	}
 
 	var snippetEnvelope testAPIResponse
-	json.Unmarshal(w.Body.Bytes(), &snippetEnvelope)
+	if err := json.Unmarshal(w.Body.Bytes(), &snippetEnvelope); err != nil {
+		t.Fatalf("Failed to parse snippet response: %v", err)
+	}
 	dataBytes, _ = json.Marshal(snippetEnvelope.Data)
 	var snippet models.Snippet
-	json.Unmarshal(dataBytes, &snippet)
+	if err := json.Unmarshal(dataBytes, &snippet); err != nil {
+		t.Fatalf("Failed to parse snippet data: %v", err)
+	}
 
 	// Verify tags
 	if len(snippet.Tags) != 1 || snippet.Tags[0].Name != "golang" {
@@ -328,10 +346,14 @@ func TestIntegration_SearchFunctionality(t *testing.T) {
 	}
 
 	var searchEnvelope testListResponse
-	json.Unmarshal(w.Body.Bytes(), &searchEnvelope)
+	if err := json.Unmarshal(w.Body.Bytes(), &searchEnvelope); err != nil {
+		t.Fatalf("Failed to parse search response: %v", err)
+	}
 	dataBytes, _ := json.Marshal(searchEnvelope.Data)
 	var results []models.Snippet
-	json.Unmarshal(dataBytes, &results)
+	if err := json.Unmarshal(dataBytes, &results); err != nil {
+		t.Fatalf("Failed to parse search results: %v", err)
+	}
 
 	if len(results) == 0 {
 		t.Error("Expected search results, got none")

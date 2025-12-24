@@ -89,7 +89,10 @@ func TestSecurity_XSSPrevention(t *testing.T) {
 			// Frontend should handle escaping for display
 			if w.Code == http.StatusCreated {
 				var response testAPIResponse
-				json.Unmarshal(w.Body.Bytes(), &response)
+				if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+					t.Errorf("Failed to parse response: %v", err)
+					return
+				}
 
 				// Verify response is valid JSON (not breaking parser)
 				if response.Data == nil {
@@ -265,7 +268,7 @@ func TestSecurity_NullByteInjection(t *testing.T) {
 	}
 
 	for _, attempt := range nullByteAttempts {
-		t.Run(fmt.Sprintf("nullbyte"), func(t *testing.T) {
+		t.Run("nullbyte", func(t *testing.T) {
 			input := models.SnippetInput{
 				Title:    attempt,
 				Content:  attempt,

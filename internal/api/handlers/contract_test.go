@@ -46,7 +46,9 @@ func TestContract_SnippetCreateResponse(t *testing.T) {
 	// Validate snippet data
 	dataBytes, _ := json.Marshal(response.Data)
 	var snippet models.Snippet
-	json.Unmarshal(dataBytes, &snippet)
+	if err := json.Unmarshal(dataBytes, &snippet); err != nil {
+		t.Fatalf("Failed to unmarshal snippet data: %v", err)
+	}
 
 	if snippet.ID == "" {
 		t.Error("Expected snippet ID to be present")
@@ -73,11 +75,14 @@ func TestContract_SnippetListResponse(t *testing.T) {
 	handler, repo := setupSnippetHandler(t)
 
 	// Create a test snippet first
-	repo.Create(context.Background(), &models.SnippetInput{
+	_, err := repo.Create(context.Background(), &models.SnippetInput{
 		Title:    "List Test",
 		Content:  "test",
 		Language: "go",
 	})
+	if err != nil {
+		t.Fatalf("Failed to create test snippet: %v", err)
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/snippets?page=1&limit=10", nil)
 	req = withRequestID(req)
