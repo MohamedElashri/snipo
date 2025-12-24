@@ -318,7 +318,7 @@ func (h *SnippetHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	OK(w, r, map[string]interface{}{"data": history, "count": len(history)})
+	OK(w, r, history)
 }
 
 // RestoreFromHistory handles POST /api/v1/snippets/{id}/history/{history_id}/restore

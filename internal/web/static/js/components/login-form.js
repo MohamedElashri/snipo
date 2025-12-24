@@ -17,12 +17,20 @@ export function initLoginForm(Alpine) {
           body: JSON.stringify({ password: this.password })
         });
 
-        const result = await response.json();
+        const json = await response.json();
 
+        // Handle error response format: { error: { code, message } }
+        if (json.error) {
+          this.error = json.error.message || 'Invalid password';
+          return;
+        }
+
+        // Handle success response format: { data: { success, message }, meta }
+        const result = json.data || json;
         if (result.success) {
           window.location.href = '/';
         } else {
-          this.error = result.error?.message || 'Invalid password';
+          this.error = result.message || 'Invalid password';
         }
       } catch (err) {
         this.error = 'Connection error';

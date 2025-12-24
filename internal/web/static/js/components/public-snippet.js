@@ -24,10 +24,18 @@ export function initPublicSnippet(Alpine) {
 
       try {
         const response = await fetch(`/api/v1/snippets/public/${snippetId}`);
-        const result = await response.json();
+        const json = await response.json();
 
-        if (response.ok && result) {
-          this.snippet = result;
+        // Handle error response format: { error: { code, message } }
+        if (json.error) {
+          this.error = true;
+          this.errorMessage = json.error.message || 'This snippet is not available or not public';
+          return;
+        }
+
+        // Handle success response format: { data: {...}, meta }
+        if (response.ok && json.data) {
+          this.snippet = json.data;
           this.$nextTick(() => {
             if (typeof Prism !== 'undefined') {
               Prism.highlightAll();
@@ -35,7 +43,7 @@ export function initPublicSnippet(Alpine) {
           });
         } else {
           this.error = true;
-          this.errorMessage = result.error?.message || 'This snippet is not available or not public';
+          this.errorMessage = 'This snippet is not available or not public';
         }
       } catch (err) {
         this.error = true;

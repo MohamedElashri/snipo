@@ -38,8 +38,8 @@ export const settingsMixin = {
 
   async loadApiTokens() {
     const result = await api.get('/api/v1/tokens');
-    if (result && result.data) {
-      this.apiTokens = result.data;
+    if (result) {
+      this.apiTokens = result;
     }
   },
 

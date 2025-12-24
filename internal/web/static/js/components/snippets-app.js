@@ -139,12 +139,12 @@ export function initSnippetsApp(Alpine) {
 
     async loadTags() {
       const result = await api.get('/api/v1/tags');
-      if (result) this.tags = result.data || [];
+      if (result) this.tags = result || [];
     },
 
     async loadFolders() {
       const result = await api.get('/api/v1/folders?tree=true');
-      if (result) this.folders = result.data || [];
+      if (result) this.folders = result || [];
     },
 
     async loadSettings() {

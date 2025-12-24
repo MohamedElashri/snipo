@@ -116,8 +116,8 @@ export const backupMixin = {
   async loadS3Backups() {
     try {
       const result = await api.get('/api/v1/backup/s3/list');
-      if (result && result.backups) {
-        this.s3Backups = result.backups;
+      if (result) {
+        this.s3Backups = result;
       }
     } catch (err) {
       console.error('Failed to load S3 backups:', err);

@@ -144,9 +144,7 @@ func (h *BackupHandler) S3List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	OK(w, r, map[string]interface{}{
-		"backups": backups,
-	})
+	OK(w, r, backups)
 }
 
 // S3Restore handles POST /api/v1/backup/s3/restore

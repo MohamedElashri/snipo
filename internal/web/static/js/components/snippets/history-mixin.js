@@ -22,8 +22,8 @@ export const historyMixin = {
 
     try {
       const result = await api.get(`/api/v1/snippets/${snippet.id}/history?limit=50`);
-      if (result && result.data) {
-        this.history = result.data;
+      if (result) {
+        this.history = result;
       }
     } catch (error) {
       console.error('Failed to load history:', error);
