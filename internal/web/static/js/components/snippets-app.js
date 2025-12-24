@@ -159,6 +159,10 @@ export function initSnippetsApp(Alpine) {
         }
         // Apply markdown font size
         this.applyMarkdownFontSize();
+        // Apply custom CSS if it exists
+        if (result.custom_css) {
+          theme.applyCustomCSS(result.custom_css);
+        }
       }
     },
 

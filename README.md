@@ -104,6 +104,15 @@ API documentation:
 
 See [Development Guide](docs/Development.md#security) for detailed security configuration.
 
+## Customization
+
+Snipo supports extensive visual customization through custom CSS. Users can personalize the interface by:
+- Overriding color schemes and CSS variables
+- Customizing component styles (sidebar, editor, modals)
+- Creating unique themes and visual effects
+
+Access via **Settings → Appearance → Custom CSS**. See the [Customization Guide](docs/customization.md) for detailed documentation, examples, and best practices.
+
 ## Development
 
 See the [Development Guide](docs/Development.md) for build instructions, testing, and contribution guidelines.

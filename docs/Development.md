@@ -377,3 +377,14 @@ Each release includes:
 | `Ctrl+K` / `Cmd+K` | Focus search |
 | `Ctrl+N` / `Cmd+N` | New snippet |
 | `Escape` | Close editor/modal |
+
+## Customization
+
+Snipo supports extensive visual customization through custom CSS. See [customization.md](customization.md) for a complete guide on:
+
+- Overriding CSS variables for colors and spacing
+- Customizing component styles (sidebar, editor, modals)
+- Creating custom themes
+- Best practices and examples
+
+Users can add custom CSS through **Settings → Appearance → Custom CSS**.

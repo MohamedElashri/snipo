@@ -138,6 +138,69 @@
                     </select>
                     <p class="text-sm text-muted" style="margin-top: 0.25rem;">Adjust the font size for markdown file previews.</p>
                 </div>
+
+                <div class="editor-field" style="margin-top: 1.5rem;">
+                    <label>
+                        Custom CSS
+                        <span class="text-sm text-muted" style="font-weight: normal; margin-left: 0.5rem;">
+                            (Advanced)
+                        </span>
+                    </label>
+                    <textarea 
+                        x-model="settings.custom_css" 
+                        @input="customCssChanged = true"
+                        placeholder="/* Add your custom CSS here */"
+                        rows="10"
+                        style="font-family: var(--font-mono); font-size: 13px; resize: vertical; min-height: 150px;"
+                    ></textarea>
+                    <div style="margin-top: 0.5rem;">
+                        <p class="text-sm text-muted" style="margin-bottom: 0.5rem;">
+                            Override default styles with custom CSS. Changes apply immediately after saving.
+                        </p>
+                        <details style="margin-top: 0.75rem;">
+                            <summary class="text-sm" style="cursor: pointer; user-select: none; font-weight: 500;">
+                                <span style="color: var(--snipo-accent);">📖 View CSS Customization Guide</span>
+                            </summary>
+                            <div style="margin-top: 0.75rem; padding: 1rem; background: var(--snipo-bg-secondary); border-radius: 8px;">
+                                <p class="text-sm" style="margin-bottom: 0.75rem;"><strong>Available CSS Variables:</strong></p>
+                                <pre class="text-sm" style="margin: 0; padding: 0.75rem; background: var(--snipo-bg-primary); border-radius: 4px; overflow-x: auto; font-size: 12px;">--snipo-primary: Main theme color
+--snipo-accent: Accent/highlight color
+--snipo-bg-primary: Primary background
+--snipo-bg-secondary: Secondary background
+--snipo-text-primary: Primary text color
+--snipo-text-secondary: Secondary text color
+--snipo-border: Border color
+--snipo-danger: Error/delete color
+--snipo-success: Success color</pre>
+                                <p class="text-sm" style="margin-top: 0.75rem; margin-bottom: 0.5rem;"><strong>Example - Change accent color:</strong></p>
+                                <pre class="text-sm" style="margin: 0; padding: 0.75rem; background: var(--snipo-bg-primary); border-radius: 4px; overflow-x: auto; font-size: 12px;">:root {
+  --snipo-accent: #ff6b6b;
+}</pre>
+                                <p class="text-sm" style="margin-top: 0.75rem; margin-bottom: 0.5rem;"><strong>Example - Custom sidebar styling:</strong></p>
+                                <pre class="text-sm" style="margin: 0; padding: 0.75rem; background: var(--snipo-bg-primary); border-radius: 4px; overflow-x: auto; font-size: 12px;">.sidebar {
+  background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.snippet-item:hover {
+  background: rgba(255, 107, 107, 0.1);
+}</pre>
+                                <p class="text-sm text-muted" style="margin-top: 0.75rem;">
+                                    💡 <strong>Tip:</strong> Use browser DevTools (F12) to inspect elements and find class names.
+                                    See <a href="https://github.com/MohamedElashri/snipo/blob/main/docs/customization.md" target="_blank" style="color: var(--snipo-accent);">full documentation</a> for more examples.
+                                </p>
+                            </div>
+                        </details>
+                    </div>
+                    <button 
+                        @click="saveAndApplyCustomCSS()" 
+                        class="btn-primary" 
+                        style="margin-top: 0.75rem; width: 100%;"
+                        :disabled="!customCssChanged"
+                    >
+                        <span x-show="!customCssChanged">Custom CSS Saved</span>
+                        <span x-show="customCssChanged">Save and Apply Custom CSS</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Password tab -->

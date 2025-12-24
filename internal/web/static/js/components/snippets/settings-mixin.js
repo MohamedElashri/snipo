@@ -1,6 +1,7 @@
 // Settings mixin
 import { api } from '../../modules/api.js';
 import { showToast } from '../../modules/toast.js';
+import { theme } from '../../modules/theme.js';
 
 export const settingsMixin = {
   showSettings: false,
@@ -11,6 +12,7 @@ export const settingsMixin = {
   passwordForm: { current: '', new: '', confirm: '' },
   passwordError: '',
   passwordSuccess: '',
+  customCssChanged: false,
 
   async openSettings() {
     this.showSettings = true;
@@ -19,6 +21,7 @@ export const settingsMixin = {
     this.passwordError = '';
     this.passwordSuccess = '';
     this.createdToken = null;
+    this.customCssChanged = false;
     await this.loadApiTokens();
   },
 
@@ -29,11 +32,13 @@ export const settingsMixin = {
     this.passwordError = '';
     this.passwordSuccess = '';
     this.createdToken = null;
+    this.customCssChanged = false;
   },
 
   closeSettings() {
     this.showSettings = false;
     this.createdToken = null;
+    this.customCssChanged = false;
   },
 
   async loadApiTokens() {
@@ -130,6 +135,44 @@ export const settingsMixin = {
         // Ignore storage errors
       }
       showToast('Settings updated');
+    }
+  },
+
+  async saveAndApplyCustomCSS() {
+    // Validate custom CSS
+    const validation = theme.validateCustomCSS(this.settings.custom_css);
+    
+    if (!validation.valid) {
+      showToast('Invalid CSS: ' + validation.warnings.join(', '), 'error');
+      return;
+    }
+
+    // Show warnings if any
+    if (validation.warnings.length > 0) {
+      const proceed = confirm(
+        'CSS validation warnings:\n\n' + 
+        validation.warnings.join('\n') + 
+        '\n\nDo you want to proceed anyway?'
+      );
+      if (!proceed) return;
+    }
+
+    // Save settings
+    const result = await api.put('/api/v1/settings', this.settings);
+    if (result) {
+      this.settings = result;
+      // Cache settings
+      try {
+        sessionStorage.setItem('snipo-settings', JSON.stringify(result));
+      } catch (e) {
+        // Ignore storage errors
+      }
+      
+      // Apply custom CSS immediately
+      theme.applyCustomCSS(this.settings.custom_css);
+      this.customCssChanged = false;
+      
+      showToast('Custom CSS saved and applied successfully');
     }
   },
 
