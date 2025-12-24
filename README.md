@@ -29,6 +29,18 @@ EOF
 docker compose up -d
 ```
 
+Or using Docker directly:
+
+```bash
+docker run -d \
+  -p 8080:8080 \
+  -v snipo-data:/app/data \
+  -e SNIPO_MASTER_PASSWORD=your-secure-password \
+  -e SNIPO_SESSION_SECRET=$(openssl rand -hex 32) \
+  --name snipo \
+  ghcr.io/mohamedelashri/snipo:latest
+```
+
 Access at http://localhost:8080
 
 ### Binary
