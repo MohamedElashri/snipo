@@ -12,6 +12,85 @@ info:
     - **API Key**: `X-API-Key: <key>` header
     
     API tokens can be created via the Settings page or `/api/v1/tokens` endpoint.
+    
+    ### Token Permissions
+    
+    API tokens have permission levels that control access:
+    - **read**: Can only access GET endpoints (view snippets, tags, folders)
+    - **write**: Can create, update, and delete snippets, tags, and folders
+    - **admin**: Full access including token management, settings, and backups
+    
+    Session-based auth (web UI) has full admin access by default.
+    
+    ## Rate Limiting
+    
+    API endpoints are rate-limited based on permission level:
+    - **Read operations**: 1000 requests/hour (configurable via `SNIPO_RATE_LIMIT_READ`)
+    - **Write operations**: 500 requests/hour (configurable via `SNIPO_RATE_LIMIT_WRITE`)
+    - **Admin operations**: 100 requests/hour (configurable via `SNIPO_RATE_LIMIT_ADMIN`)
+    
+    Rate limit information is included in response headers:
+    - `X-RateLimit-Limit`: Maximum requests per window
+    - `X-RateLimit-Remaining`: Requests remaining in current window
+    - `X-RateLimit-Reset`: Unix timestamp when the limit resets
+    - `Retry-After`: Seconds to wait before retrying (when limit exceeded)
+    
+    ## Response Format
+    
+    All API responses use a standardized envelope format:
+    
+    **Single Resource:**
+    ```json
+    {
+      "data": {...},
+      "meta": {
+        "request_id": "uuid",
+        "timestamp": "2024-12-24T10:30:00Z",
+        "version": "1.0"
+      }
+    }
+    ```
+    
+    **List with Pagination:**
+    ```json
+    {
+      "data": [...],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 150,
+        "total_pages": 8,
+        "links": {
+          "self": "/api/v1/snippets?page=1&limit=20",
+          "next": "/api/v1/snippets?page=2&limit=20",
+          "prev": null
+        }
+      },
+      "meta": {
+        "request_id": "uuid",
+        "timestamp": "2024-12-24T10:30:00Z",
+        "version": "1.0"
+      }
+    }
+    ```
+    
+    ## Request Tracking
+    
+    Every request is assigned a unique `request_id` (UUID v4) for tracking and debugging.
+    The ID is returned in:
+    - Response header: `X-Request-ID`
+    - Response body: `meta.request_id`
+    
+    ## Configuration
+    
+    The API supports configuration via environment variables:
+    - `SNIPO_ALLOWED_ORIGINS`: CORS allowed origins (comma-separated)
+    - `SNIPO_RATE_LIMIT_READ/WRITE/ADMIN`: Custom rate limits
+    - `SNIPO_ENABLE_PUBLIC_SNIPPETS`: Enable/disable public snippet sharing
+    - `SNIPO_ENABLE_API_TOKENS`: Enable/disable API token creation
+    - `SNIPO_ENABLE_BACKUP_RESTORE`: Enable/disable backup/restore features
+    
+    Feature flags are exposed via `/health` endpoint.
   version: 1.0.0
   license:
     name: GPL-3.0
@@ -39,6 +118,10 @@ tags:
     description: API token management
   - name: Backup
     description: Backup and restore operations
+  - name: Settings
+    description: Application settings management (admin only)
+  - name: Documentation
+    description: API documentation and specifications
 
 paths:
   /ping:
@@ -235,11 +318,82 @@ paths:
             default: desc
       responses:
         '200':
-          description: List of snippets
+          description: List of snippets with pagination
+          headers:
+            X-Request-ID:
+              description: Unique request identifier
+              schema:
+                type: string
+                format: uuid
+            X-API-Version:
+              description: API version
+              schema:
+                type: string
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SnippetListResponse'
+              examples:
+                paginated_list:
+                  summary: Paginated list of snippets
+                  value:
+                    data:
+                      - id: 1
+                        title: "HTTP Server in Go"
+                        language: "go"
+                        is_public: false
+                        is_archived: false
+                        folder_id: 2
+                        tags: ["golang", "http", "server"]
+                        created_at: "2024-12-20T10:00:00Z"
+                        updated_at: "2024-12-20T10:00:00Z"
+                      - id: 2
+                        title: "Database Query Helper"
+                        language: "python"
+                        is_public: true
+                        is_archived: false
+                        folder_id: 2
+                        tags: ["python", "database"]
+                        created_at: "2024-12-21T14:30:00Z"
+                        updated_at: "2024-12-21T14:30:00Z"
+                    pagination:
+                      page: 1
+                      limit: 20
+                      total: 45
+                      total_pages: 3
+                      links:
+                        self: "/api/v1/snippets?page=1&limit=20"
+                        next: "/api/v1/snippets?page=2&limit=20"
+                        prev: null
+                    meta:
+                      request_id: "550e8400-e29b-41d4-a716-446655440000"
+                      timestamp: "2024-12-24T10:30:00Z"
+                      version: "1.0"
+                filtered_by_tag:
+                  summary: Filtered by tag
+                  value:
+                    data:
+                      - id: 1
+                        title: "HTTP Server in Go"
+                        language: "go"
+                        is_public: false
+                        is_archived: false
+                        tags: ["golang", "http", "server"]
+                        created_at: "2024-12-20T10:00:00Z"
+                        updated_at: "2024-12-20T10:00:00Z"
+                    pagination:
+                      page: 1
+                      limit: 20
+                      total: 1
+                      total_pages: 1
+                      links:
+                        self: "/api/v1/snippets?tag=golang&page=1&limit=20"
+                        next: null
+                        prev: null
+                    meta:
+                      request_id: "550e8400-e29b-41d4-a716-446655440001"
+                      timestamp: "2024-12-24T10:31:00Z"
+                      version: "1.0"
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -258,19 +412,126 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SnippetInput'
+            examples:
+              basic:
+                summary: Basic snippet
+                value:
+                  title: "Hello World"
+                  content: |
+                    package main
+                    
+                    import "fmt"
+                    
+                    func main() {
+                        fmt.Println("Hello, World!")
+                    }
+                  language: "go"
+                  description: "Simple Go hello world program"
+              with_tags_and_folder:
+                summary: Snippet with tags and folder
+                value:
+                  title: "Database Connection Pool"
+                  content: |
+                    import psycopg2.pool
+                    
+                    pool = psycopg2.pool.SimpleConnectionPool(
+                        minconn=1,
+                        maxconn=20,
+                        host='localhost',
+                        database='mydb',
+                        user='user',
+                        password='pass'
+                    )
+                  language: "python"
+                  description: "PostgreSQL connection pool setup"
+                  tags: ["database", "postgresql", "python"]
+                  folder_id: 5
+                  is_public: false
       responses:
         '201':
-          description: Snippet created
+          description: Snippet created successfully
+          headers:
+            X-Request-ID:
+              description: Unique request identifier
+              schema:
+                type: string
+                format: uuid
+            X-API-Version:
+              description: API version
+              schema:
+                type: string
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Snippet'
+                $ref: '#/components/schemas/APIResponse'
+              examples:
+                success:
+                  summary: Successful creation
+                  value:
+                    data:
+                      id: 42
+                      title: "Hello World"
+                      content: |
+                        package main
+                        
+                        import "fmt"
+                        
+                        func main() {
+                            fmt.Println("Hello, World!")
+                        }
+                      language: "go"
+                      description: "Simple Go hello world program"
+                      is_public: false
+                      is_archived: false
+                      folder_id: null
+                      tags: []
+                      created_at: "2024-12-24T10:30:00Z"
+                      updated_at: "2024-12-24T10:30:00Z"
+                    meta:
+                      request_id: "550e8400-e29b-41d4-a716-446655440000"
+                      timestamp: "2024-12-24T10:30:00Z"
+                      version: "1.0"
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: "INVALID_REQUEST"
+                  message: "Request body is required"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '422':
-          $ref: '#/components/responses/ValidationError'
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              examples:
+                empty_title:
+                  summary: Empty title validation error
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "title"
+                          message: "Title must not be empty"
+                multiple_errors:
+                  summary: Multiple validation errors
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "title"
+                          message: "Title must not be empty"
+                        - field: "language"
+                          message: "Unsupported language: 'invalid_lang'"
+                        - field: "folder_id"
+                          message: "Folder with ID 999 not found"
 
   /api/v1/snippets/search:
     get:
@@ -474,6 +735,160 @@ paths:
                 $ref: '#/components/schemas/Snippet'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/snippets/{id}/archive:
+    post:
+      tags: [Snippets]
+      summary: Archive snippet
+      description: |
+        Archive a snippet (hide from main list).
+        Requires write or admin permission.
+      operationId: archiveSnippet
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Snippet ID
+      responses:
+        '200':
+          description: Snippet archived successfully
+          headers:
+            X-Request-ID:
+              schema:
+                type: string
+                format: uuid
+              description: Unique request identifier
+            X-API-Version:
+              schema:
+                type: string
+              description: API version
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Snippet'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/snippets/{id}/history:
+    get:
+      tags: [Snippets]
+      summary: Get snippet history
+      description: |
+        Retrieve version history for a snippet.
+        Requires read, write, or admin permission.
+      operationId: getSnippetHistory
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Snippet ID
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+          description: Maximum number of history entries to return
+      responses:
+        '200':
+          description: Snippet history retrieved successfully
+          headers:
+            X-Request-ID:
+              schema:
+                type: string
+                format: uuid
+            X-API-Version:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/HistoryEntry'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/snippets/{id}/history/{history_id}/restore:
+    post:
+      tags: [Snippets]
+      summary: Restore from history
+      description: |
+        Restore a snippet to a previous version from history.
+        Requires write or admin permission.
+      operationId: restoreSnippetHistory
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Snippet ID
+        - name: history_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: History entry ID to restore from
+      responses:
+        '200':
+          description: Snippet restored successfully
+          headers:
+            X-Request-ID:
+              schema:
+                type: string
+                format: uuid
+            X-API-Version:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Snippet'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -1181,69 +1596,492 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/v1/settings:
+    get:
+      tags: [Settings]
+      summary: Get settings
+      description: |
+        Get application settings including theme, editor preferences, and S3 configuration.
+        Requires admin permission.
+      operationId: getSettings
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      responses:
+        '200':
+          description: Settings retrieved successfully
+          headers:
+            X-Request-ID:
+              schema:
+                type: string
+                format: uuid
+            X-API-Version:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Settings'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    put:
+      tags: [Settings]
+      summary: Update settings
+      description: |
+        Update application settings.
+        Requires admin permission.
+        All fields are validated.
+      operationId: updateSettings
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsInput'
+            examples:
+              theme_update:
+                summary: Update theme settings
+                value:
+                  theme: "dark"
+                  editor_theme: "monokai"
+              font_update:
+                summary: Update font sizes
+                value:
+                  font_size: 14
+                  tab_size: 2
+                  markdown_font_size: 16
+              feature_toggle:
+                summary: Enable/disable features
+                value:
+                  archive_enabled: true
+                  history_enabled: true
+              full_update:
+                summary: Update multiple settings
+                value:
+                  theme: "dark"
+                  editor_theme: "tomorrow_night"
+                  font_size: 16
+                  tab_size: 4
+                  markdown_font_size: 18
+                  archive_enabled: true
+                  history_enabled: true
+      responses:
+        '200':
+          description: Settings updated successfully
+          headers:
+            X-Request-ID:
+              schema:
+                type: string
+                format: uuid
+              description: Unique request identifier
+            X-API-Version:
+              schema:
+                type: string
+              description: API version
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Settings'
+                  meta:
+                    $ref: '#/components/schemas/Meta'
+              examples:
+                success:
+                  summary: Successful settings update
+                  value:
+                    data:
+                      id: 1
+                      theme: "dark"
+                      editor_theme: "tomorrow_night"
+                      font_size: 16
+                      tab_size: 4
+                      markdown_font_size: 18
+                      archive_enabled: true
+                      history_enabled: true
+                      created_at: "2024-01-01T00:00:00Z"
+                      updated_at: "2024-12-24T10:35:00Z"
+                    meta:
+                      request_id: "550e8400-e29b-41d4-a716-446655440005"
+                      timestamp: "2024-12-24T10:35:00Z"
+                      version: "1.0"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              examples:
+                invalid_theme:
+                  summary: Invalid theme value
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "theme"
+                          message: "Theme must be 'light' or 'dark'"
+                invalid_font_size:
+                  summary: Font size out of range
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "font_size"
+                          message: "Font size must be between 8 and 32"
+                invalid_editor_theme:
+                  summary: Unsupported editor theme
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "editor_theme"
+                          message: "Unsupported editor theme: 'invalid_theme'"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: "ADMIN_REQUIRED"
+                  message: "This operation requires admin-level permissions"
+
+  /api/v1/openapi.json:
+    get:
+      tags: [Documentation]
+      summary: Get OpenAPI specification
+      description: |
+        Returns the OpenAPI 3.1 specification for this API.
+        This endpoint is publicly accessible (no authentication required).
+      operationId: getOpenAPISpec
+      responses:
+        '200':
+          description: OpenAPI specification
+          content:
+            application/yaml:
+              schema:
+                type: object
+                description: OpenAPI 3.1 specification
+
 components:
   securitySchemes:
     sessionCookie:
       type: apiKey
       in: cookie
       name: snipo_session
+      description: |
+        Session-based authentication for web UI.
+        Full admin access (equivalent to admin permission level).
     bearerAuth:
       type: http
       scheme: bearer
+      description: |
+        API token authentication using Bearer token.
+        Permission level depends on token configuration:
+        - **read**: GET endpoints only
+        - **write**: GET, POST, PUT, DELETE for snippets, tags, folders
+        - **admin**: Full access including tokens, settings, backups
     apiKey:
       type: apiKey
       in: header
       name: X-API-Key
+      description: |
+        API key authentication (alternative to Bearer token).
+        Permission level depends on token configuration (read/write/admin).
 
   schemas:
     Error:
       type: object
+      description: |
+        Standard error response format. All errors include a code and message.
+        
+        **Common Error Codes:**
+        
+        **Authentication Errors (401):**
+        - `UNAUTHORIZED`: Missing or invalid authentication credentials
+        - `INVALID_TOKEN`: API token is invalid or expired
+        - `SESSION_EXPIRED`: Session has expired, login required
+        
+        **Authorization Errors (403):**
+        - `FORBIDDEN`: Insufficient permissions for this operation
+        - `READ_ONLY_TOKEN`: Token has read-only permissions, write access required
+        - `ADMIN_REQUIRED`: Operation requires admin-level permissions
+        
+        **Resource Errors (404):**
+        - `NOT_FOUND`: Requested resource does not exist
+        - `SNIPPET_NOT_FOUND`: Snippet with specified ID not found
+        - `FOLDER_NOT_FOUND`: Folder with specified ID not found
+        - `TAG_NOT_FOUND`: Tag with specified ID not found
+        - `TOKEN_NOT_FOUND`: API token with specified ID not found
+        - `HISTORY_NOT_FOUND`: History version not found
+        
+        **Rate Limiting (429):**
+        - `RATE_LIMIT_EXCEEDED`: Too many requests, please slow down
+          - Response includes `Retry-After` header with seconds to wait
+          - Default limits: 100 req/min (authenticated), 20 req/min (public)
+        
+        **Server Errors (500):**
+        - `INTERNAL_ERROR`: Unexpected server error occurred
+        - `DATABASE_ERROR`: Database operation failed
+        - `S3_ERROR`: S3 storage operation failed
       properties:
         error:
           type: object
           properties:
             code:
               type: string
+              description: Machine-readable error code (see description for full list)
+              example: "UNAUTHORIZED"
             message:
               type: string
+              description: Human-readable error message
+              example: "Authentication required"
+      example:
+        error:
+          code: "FORBIDDEN"
+          message: "Insufficient permissions to perform this action"
 
     ValidationError:
       type: object
+      description: |
+        Validation error response with detailed field-level errors.
+        Returned when request data fails validation rules.
+        
+        **Validation Error Codes:**
+        - `VALIDATION_ERROR`: Generic validation failure
+        - `INVALID_TITLE`: Title validation failed (empty, too long, invalid format)
+        - `INVALID_LANGUAGE`: Unsupported programming language specified
+        - `INVALID_THEME`: Invalid theme value (must be 'light' or 'dark')
+        - `INVALID_FONT_SIZE`: Font size out of range (8-32)
+        - `INVALID_TAB_SIZE`: Tab size out of range (1-8)
+        - `INVALID_EDITOR_THEME`: Unsupported editor theme specified
+        - `INVALID_PAGE`: Page number must be >= 1
+        - `INVALID_LIMIT`: Limit must be between 1 and 100
+        - `INVALID_SORT`: Invalid sort field or direction
+        - `INVALID_FILTER`: Invalid filter parameter or combination
+        - `DUPLICATE_NAME`: Resource with this name already exists
+        
+        **Field-Level Validation Rules:**
+        
+        *Snippet Fields:*
+        - `title`: Required, 1-500 characters, no leading/trailing whitespace
+        - `content`: Optional, max 1MB
+        - `language`: Optional, must be supported language
+        - `description`: Optional, max 5000 characters
+        - `folder_id`: Optional, must exist if provided
+        - `tags`: Optional array, each tag 1-50 characters
+        
+        *Settings Fields:*
+        - `theme`: Must be 'light' or 'dark'
+        - `editor_theme`: Must be supported Ace editor theme
+        - `font_size`: Integer between 8 and 32
+        - `tab_size`: Integer between 1 and 8
+        - `markdown_font_size`: Integer between 8 and 32
+        
+        *Tag/Folder Fields:*
+        - `name`: Required, 1-100 characters, unique within scope
+        - `description`: Optional, max 500 characters
+        
+        *Token Fields:*
+        - `name`: Required, 1-100 characters
+        - `permission`: Must be 'read', 'write', or 'admin'
+        - `expires_at`: Optional, must be future date
       properties:
         error:
           type: object
           properties:
             code:
               type: string
-              example: VALIDATION_ERROR
+              description: Error code (typically VALIDATION_ERROR)
+              example: "VALIDATION_ERROR"
             message:
               type: string
-              example: Validation failed
+              description: Human-readable error summary
+              example: "Validation failed"
             details:
               type: array
+              description: Array of field-specific validation errors
               items:
                 type: object
                 properties:
                   field:
                     type: string
+                    description: Name of the field that failed validation
+                    example: "title"
                   message:
                     type: string
+                    description: Specific validation error for this field
+                    example: "Title must not be empty"
+      example:
+        error:
+          code: "VALIDATION_ERROR"
+          message: "Validation failed"
+          details:
+            - field: "title"
+              message: "Title must not be empty"
+            - field: "font_size"
+              message: "Font size must be between 8 and 32"
+
+    # Standard Response Envelope
+    Meta:
+      type: object
+      description: Metadata included in all API responses
+      properties:
+        request_id:
+          type: string
+          format: uuid
+          description: Unique request identifier for tracking and debugging
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        timestamp:
+          type: string
+          format: date-time
+          description: UTC timestamp of the response
+          example: "2024-12-24T10:30:00Z"
+        version:
+          type: string
+          description: API version
+          example: "1.0"
+
+    PaginationLinks:
+      type: object
+      description: Navigation links for paginated responses
+      properties:
+        self:
+          type: string
+          description: Link to current page
+          example: "/api/v1/snippets?page=1&limit=20"
+        next:
+          type: string
+          nullable: true
+          description: Link to next page (null if on last page)
+          example: "/api/v1/snippets?page=2&limit=20"
+        prev:
+          type: string
+          nullable: true
+          description: Link to previous page (null if on first page)
+          example: null
+
+    Pagination:
+      type: object
+      description: Pagination metadata for list responses
+      properties:
+        page:
+          type: integer
+          description: Current page number (1-indexed)
+          example: 1
+        limit:
+          type: integer
+          description: Number of items per page
+          example: 20
+        total:
+          type: integer
+          description: Total number of items
+          example: 150
+        total_pages:
+          type: integer
+          description: Total number of pages
+          example: 8
+        links:
+          $ref: '#/components/schemas/PaginationLinks'
+
+    APIResponse:
+      type: object
+      description: Standard envelope for single resource responses
+      properties:
+        data:
+          type: object
+          description: The response payload
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ListResponse:
+      type: object
+      description: Standard envelope for list responses with pagination
+      properties:
+        data:
+          type: array
+          items: {}
+          description: Array of items
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    # Feature Flags
+    FeatureFlags:
+      type: object
+      description: Enabled features in the API
+      properties:
+        public_snippets:
+          type: boolean
+          description: Whether public snippet sharing is enabled
+        s3_sync:
+          type: boolean
+          description: Whether S3 sync is enabled
+        api_tokens:
+          type: boolean
+          description: Whether API token creation is enabled
+        backup_restore:
+          type: boolean
+          description: Whether backup/restore is enabled
 
     HealthResponse:
       type: object
       properties:
         status:
           type: string
-          example: ok
+          example: healthy
         version:
           type: string
           example: 1.0.0
         commit:
           type: string
           example: abc1234
-        database:
+        uptime:
           type: string
-          example: ok
+          example: "24h30m15s"
+        checks:
+          type: object
+          properties:
+            database:
+              type: string
+              example: healthy
+        memory:
+          type: object
+          properties:
+            alloc_mb:
+              type: integer
+            total_alloc_mb:
+              type: integer
+            sys_mb:
+              type: integer
+            num_gc:
+              type: integer
+        features:
+          $ref: '#/components/schemas/FeatureFlags'
+        timestamp:
+          type: string
+          format: date-time
 
     LoginRequest:
       type: object
@@ -1584,6 +2422,110 @@ components:
         finished_at:
           type: string
           format: date-time
+
+    # Settings Schemas
+    Settings:
+      type: object
+      properties:
+        theme:
+          type: string
+          enum: [light, dark]
+          example: dark
+        editor_theme:
+          type: string
+          description: Ace editor theme (40+ supported themes)
+          example: tomorrow_night
+        font_size:
+          type: integer
+          minimum: 8
+          maximum: 32
+          description: Editor font size in pixels (0 = default)
+          example: 14
+        tab_size:
+          type: integer
+          minimum: 1
+          maximum: 8
+          description: Tab size in spaces (0 = default)
+          example: 4
+        markdown_font_size:
+          type: integer
+          minimum: 8
+          maximum: 32
+          description: Markdown preview font size (0 = default)
+          example: 16
+        archive_enabled:
+          type: boolean
+          description: Whether archive feature is enabled
+        history_enabled:
+          type: boolean
+          description: Whether history tracking is enabled
+
+    SettingsInput:
+      type: object
+      description: Settings update input with validation constraints
+      properties:
+        theme:
+          type: string
+          enum: [light, dark]
+          description: UI theme
+        editor_theme:
+          type: string
+          description: |
+            Ace editor theme. Supported values include:
+            ambiance, chaos, chrome, clouds, clouds_midnight, cobalt, crimson_editor,
+            dawn, dracula, dreamweaver, eclipse, github, gob, gruvbox, idle_fingers,
+            iplastic, katzenmilch, kr_theme, kuroir, merbivore, merbivore_soft,
+            mono_industrial, monokai, nord_dark, pastel_on_dark, solarized_dark,
+            solarized_light, sqlserver, terminal, textmate, tomorrow, tomorrow_night,
+            tomorrow_night_blue, tomorrow_night_bright, tomorrow_night_eighties,
+            twilight, vibrant_ink, xcode, and more.
+        font_size:
+          type: integer
+          minimum: 8
+          maximum: 32
+          description: Editor font size (0 = use default)
+        tab_size:
+          type: integer
+          minimum: 1
+          maximum: 8
+          description: Tab size (0 = use default)
+        markdown_font_size:
+          type: integer
+          minimum: 8
+          maximum: 32
+          description: Markdown font size (0 = use default)
+        archive_enabled:
+          type: boolean
+        history_enabled:
+          type: boolean
+
+    # History Schema
+    HistoryEntry:
+      type: object
+      description: Snippet version history entry
+      properties:
+        id:
+          type: string
+          description: History entry ID
+        snippet_id:
+          type: string
+          description: Associated snippet ID
+        title:
+          type: string
+          description: Snippet title at this version
+        content:
+          type: string
+          description: Snippet content at this version
+        language:
+          type: string
+          description: Language at this version
+        description:
+          type: string
+          description: Description at this version
+        created_at:
+          type: string
+          format: date-time
+          description: When this version was created
 
   responses:
     BadRequest:
