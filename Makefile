@@ -1,4 +1,4 @@
-.PHONY: all build run test test-coverage test-short coverage coverage-func lint clean docker docker-run docker-stop dev migrate migrate-down
+.PHONY: all build run test test-coverage test-short coverage coverage-func lint clean docker docker-multiarch docker-run docker-stop dev migrate migrate-down
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -44,6 +44,14 @@ docker:
 	docker build -t snipo:$(VERSION) \
 		--build-arg VERSION=$(VERSION) \
 		--build-arg COMMIT=$(COMMIT) .
+
+docker-multiarch:
+	docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT=$(COMMIT) \
+		-t snipo:$(VERSION) \
+		--load .
 
 docker-run:
 	docker compose up -d

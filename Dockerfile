@@ -21,8 +21,12 @@ COPY . .
 ARG VERSION=dev
 ARG COMMIT=unknown
 
+# Build arguments for target platform (automatically set by Docker Buildx)
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+
 # Build the binary with optimizations
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
     -ldflags="-w -s -X main.Version=${VERSION} -X main.Commit=${COMMIT}" \
     -o /snipo \
     ./cmd/server
