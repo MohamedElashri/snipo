@@ -36,9 +36,11 @@ func main() {
 			os.Exit(0)
 		case "health":
 			checkHealth()
+		case "hash-password":
+			hashPassword()
 		default:
 			fmt.Printf("Unknown command: %s\n", os.Args[1])
-			fmt.Println("Available commands: serve, migrate, version, health")
+			fmt.Println("Available commands: serve, migrate, version, health, hash-password")
 			os.Exit(1)
 		}
 	} else {
@@ -62,8 +64,17 @@ func runServer() {
 	// Configure proxy trust setting
 	middleware.TrustProxy = cfg.Server.TrustProxy
 
-	// Warn if session secret was auto-generated
-	if cfg.Auth.SessionSecretGenerated {
+	// Security warnings
+	if cfg.Auth.Disabled {
+		logger.Warn("⚠️  ⚠️  ⚠️  CRITICAL SECURITY WARNING ⚠️  ⚠️  ⚠️")
+		logger.Warn("Authentication is COMPLETELY DISABLED (SNIPO_DISABLE_AUTH=true)")
+		logger.Warn("ALL requests will be accepted WITHOUT any verification")
+		logger.Warn("This should ONLY be used:",
+			"use_case_1", "Behind a trusted authentication proxy (Authelia, Authentik, OAuth2 Proxy)",
+			"use_case_2", "In a completely trusted local environment with no network access",
+			"use_case_3", "For development/testing purposes only")
+		logger.Warn("⚠️  NEVER expose this configuration directly to the internet ⚠️")
+	} else if cfg.Auth.SessionSecretGenerated {
 		logger.Warn("SECURITY WARNING: SNIPO_SESSION_SECRET not set - using auto-generated secret",
 			"recommendation", "Set SNIPO_SESSION_SECRET environment variable for production. Generate with: openssl rand -hex 32")
 	}
@@ -94,12 +105,19 @@ func runServer() {
 	}
 
 	// Create auth service
+	// Use pre-hashed password if available, otherwise use plain password
+	masterPasswordForAuth := cfg.Auth.MasterPasswordHash
+	if masterPasswordForAuth == "" {
+		masterPasswordForAuth = cfg.Auth.MasterPassword
+	}
+	
 	authService := auth.NewService(
 		db.DB,
-		cfg.Auth.MasterPassword,
+		masterPasswordForAuth,
 		cfg.Auth.SessionSecret,
 		cfg.Auth.SessionDuration,
 		logger,
+		cfg.Auth.Disabled,
 	)
 
 	// Start session cleanup goroutine
@@ -211,6 +229,39 @@ func checkHealth() {
 		os.Exit(1)
 	}
 	os.Exit(0)
+}
+
+func hashPassword() {
+	// Check if password is provided as argument
+	var password string
+	if len(os.Args) > 2 {
+		password = os.Args[2]
+	} else {
+		// Prompt for password
+		fmt.Print("Enter password to hash: ")
+		if _, err := fmt.Scanln(&password); err != nil {
+			fmt.Printf("Error reading password: %v\n", err)
+			os.Exit(1)
+		}
+	}
+	
+	if password == "" {
+		fmt.Println("Error: Password cannot be empty")
+		os.Exit(1)
+	}
+	
+	// Generate hash using auth package
+	hash, err := auth.HashPassword(password)
+	if err != nil {
+		fmt.Printf("Error hashing password: %v\n", err)
+		os.Exit(1)
+	}
+	
+	fmt.Println("\nGenerated Argon2id password hash:")
+	fmt.Println(hash)
+	fmt.Println("\nAdd this to your environment or .env file:")
+	fmt.Printf("SNIPO_MASTER_PASSWORD_HASH=%s\n", hash)
+	fmt.Println("\nNote: Remove SNIPO_MASTER_PASSWORD if you're using SNIPO_MASTER_PASSWORD_HASH")
 }
 
 func setupLogger() *slog.Logger {

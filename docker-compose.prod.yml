@@ -1,5 +1,13 @@
 # Production Docker Compose with enhanced security and resource limits
 # Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# SECURITY BEST PRACTICES FOR PRODUCTION:
+# 1. Use SNIPO_MASTER_PASSWORD_HASH instead of SNIPO_MASTER_PASSWORD
+#    Generate with: docker run --rm ghcr.io/mohamedelashri/snipo:latest hash-password
+# 2. Store secrets in Docker secrets or a secrets manager (not in plain .env files)
+# 3. Enable network isolation (uncomment networks section below)
+# 4. Use a reverse proxy with HTTPS (nginx, traefik, caddy)
+# 5. Regularly update the image and rotate passwords
 
 services:
   snipo:
