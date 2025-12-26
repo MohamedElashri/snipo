@@ -381,7 +381,11 @@ func (h *SnippetHandler) GetPublicFile(w http.ResponseWriter, r *http.Request) {
 	
 	// Write the file content
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(targetFile.Content))
+	if _, err := w.Write([]byte(targetFile.Content)); err != nil {
+		// Log the error but don't return as headers are already sent
+		// This is best effort - connection may have been closed
+		return
+	}
 }
 
 // GetHistory handles GET /api/v1/snippets/{id}/history
