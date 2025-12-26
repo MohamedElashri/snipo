@@ -48,6 +48,7 @@ type Service struct {
 	sessionDuration    time.Duration
 	logger             *slog.Logger
 	failedAttempts     *FailedLoginTracker
+	authDisabled       bool // If true, authentication is completely bypassed
 }
 
 // FailedLoginTracker tracks failed login attempts per IP for progressive delays
@@ -135,23 +136,31 @@ func (t *FailedLoginTracker) cleanup() {
 // NewService creates a new authentication service
 // The master password is hashed at startup using Argon2id for secure storage in memory
 // If a pre-hashed password is provided, it's used directly without re-hashing
-func NewService(db *sql.DB, masterPassword, sessionSecret string, sessionDuration time.Duration, logger *slog.Logger) *Service {
+// If authDisabled is true, authentication is completely bypassed (use with external auth)
+func NewService(db *sql.DB, masterPassword, sessionSecret string, sessionDuration time.Duration, logger *slog.Logger, authDisabled bool) *Service {
 	var passwordHash string
 	
-	// Check if password is already hashed (Argon2id format)
-	if strings.HasPrefix(masterPassword, "$argon2id$") {
-		passwordHash = masterPassword
-		logger.Info("using pre-hashed master password (Argon2id)")
+	// If auth is disabled, skip all password processing
+	if authDisabled {
+		logger.Warn("⚠️  AUTHENTICATION DISABLED - All requests will be accepted without verification",
+			"security_risk", "high",
+			"recommendation", "Only use this behind a trusted authentication proxy (e.g., Authelia, Authentik) or in secure local environments")
 	} else {
-		// Hash the master password at startup so plaintext is never stored in memory
-		var err error
-		passwordHash, err = HashPassword(masterPassword)
-		if err != nil {
-			logger.Error("failed to hash master password", "error", err)
-			// Fall back to plaintext comparison if hashing fails (should never happen)
+		// Check if password is already hashed (Argon2id format)
+		if strings.HasPrefix(masterPassword, "$argon2id$") {
 			passwordHash = masterPassword
+			logger.Info("using pre-hashed master password (Argon2id)")
 		} else {
-			logger.Info("master password hashed with Argon2id")
+			// Hash the master password at startup so plaintext is never stored in memory
+			var err error
+			passwordHash, err = HashPassword(masterPassword)
+			if err != nil {
+				logger.Error("failed to hash master password", "error", err)
+				// Fall back to plaintext comparison if hashing fails (should never happen)
+				passwordHash = masterPassword
+			} else {
+				logger.Info("master password hashed with Argon2id")
+			}
 		}
 	}
 
@@ -162,11 +171,21 @@ func NewService(db *sql.DB, masterPassword, sessionSecret string, sessionDuratio
 		sessionDuration:    sessionDuration,
 		logger:             logger,
 		failedAttempts:     NewFailedLoginTracker(),
+		authDisabled:       authDisabled,
 	}
+}
+
+// IsAuthDisabled returns whether authentication is disabled
+func (s *Service) IsAuthDisabled() bool {
+	return s.authDisabled
 }
 
 // VerifyPassword checks if the provided password matches the master password
 func (s *Service) VerifyPassword(password string) bool {
+	// If auth is disabled, always return true
+	if s.authDisabled {
+		return true
+	}
 	return VerifyPasswordHash(password, s.masterPasswordHash)
 }
 

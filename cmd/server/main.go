@@ -64,8 +64,17 @@ func runServer() {
 	// Configure proxy trust setting
 	middleware.TrustProxy = cfg.Server.TrustProxy
 
-	// Warn if session secret was auto-generated
-	if cfg.Auth.SessionSecretGenerated {
+	// Security warnings
+	if cfg.Auth.Disabled {
+		logger.Warn("⚠️  ⚠️  ⚠️  CRITICAL SECURITY WARNING ⚠️  ⚠️  ⚠️")
+		logger.Warn("Authentication is COMPLETELY DISABLED (SNIPO_DISABLE_AUTH=true)")
+		logger.Warn("ALL requests will be accepted WITHOUT any verification")
+		logger.Warn("This should ONLY be used:",
+			"use_case_1", "Behind a trusted authentication proxy (Authelia, Authentik, OAuth2 Proxy)",
+			"use_case_2", "In a completely trusted local environment with no network access",
+			"use_case_3", "For development/testing purposes only")
+		logger.Warn("⚠️  NEVER expose this configuration directly to the internet ⚠️")
+	} else if cfg.Auth.SessionSecretGenerated {
 		logger.Warn("SECURITY WARNING: SNIPO_SESSION_SECRET not set - using auto-generated secret",
 			"recommendation", "Set SNIPO_SESSION_SECRET environment variable for production. Generate with: openssl rand -hex 32")
 	}
@@ -108,6 +117,7 @@ func runServer() {
 		cfg.Auth.SessionSecret,
 		cfg.Auth.SessionDuration,
 		logger,
+		cfg.Auth.Disabled,
 	)
 
 	// Start session cleanup goroutine
@@ -229,7 +239,10 @@ func hashPassword() {
 	} else {
 		// Prompt for password
 		fmt.Print("Enter password to hash: ")
-		fmt.Scanln(&password)
+		if _, err := fmt.Scanln(&password); err != nil {
+			fmt.Printf("Error reading password: %v\n", err)
+			os.Exit(1)
+		}
 	}
 	
 	if password == "" {

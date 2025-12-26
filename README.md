@@ -64,11 +64,12 @@ export SNIPO_SESSION_SECRET=$(openssl rand -hex 32)
 |----------|----------|---------|-------------|
 | `SNIPO_MASTER_PASSWORD` | Yes* | - | Login password (plain text) |
 | `SNIPO_MASTER_PASSWORD_HASH` | Yes* | - | Pre-hashed password (Argon2id) - **recommended** |
+| `SNIPO_DISABLE_AUTH` | No | `false` | Disable authentication entirely |
 | `SNIPO_SESSION_SECRET` | Yes | - | Session signing key (32+ chars) |
 | `SNIPO_PORT` | No | `8080` | Server port |
 | `SNIPO_DB_PATH` | No | `./data/snipo.db` | SQLite database path |
 
-*Either `SNIPO_MASTER_PASSWORD` or `SNIPO_MASTER_PASSWORD_HASH` is required. Using the hash is recommended for security.
+*Either `SNIPO_MASTER_PASSWORD` or `SNIPO_MASTER_PASSWORD_HASH` is required (unless `SNIPO_DISABLE_AUTH=true`). Using the hash is recommended for security.
 
 ### API Configuration
 
@@ -114,6 +115,28 @@ environment:
 - Backward compatible - plain text passwords still work
 
 See [SECURITY.md](SECURITY.md) for detailed password security practices.
+
+### Disabling Authentication
+
+⚠️ **WARNING: Use with extreme caution!**
+
+You can disable Snipo's built-in authentication when deploying behind an external authentication layer:
+
+```bash
+SNIPO_DISABLE_AUTH=true
+```
+
+**Only use this when:**
+- Behind a trusted authentication proxy (Authelia, Authentik, OAuth2 Proxy, Cloudflare Access)
+- In a completely isolated local environment with no network access
+- For development/testing purposes
+
+**Never use this when:**
+- Directly exposed to the internet
+- In untrusted networks
+- Without understanding the security implications
+
+See [SECURITY.md](SECURITY.md#disabling-authentication) for detailed guidance and best practices.
 
 ## API
 

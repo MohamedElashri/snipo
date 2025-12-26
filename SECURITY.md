@@ -117,6 +117,127 @@ SNIPO_MASTER_PASSWORD_HASH=$argon2id$...
 - Use secrets management (Docker Secrets, Vault) in production
 - Protect config files with appropriate permissions (e.g., `chmod 600 .env`)
 
+## Disabling Authentication
+
+⚠️ **CRITICAL SECURITY CONSIDERATION**
+
+Snipo supports disabling built-in authentication via `SNIPO_DISABLE_AUTH=true`. This should **ONLY** be used in specific, well-understood scenarios.
+
+### When to Disable Authentication
+
+**Acceptable Use Cases:**
+
+1. **Behind Authentication Proxy** - When using external authentication layers:
+   - [Authelia](https://www.authelia.com/)
+   - [OAuth2 Proxy](https://oauth2-proxy.github.io/oauth2-proxy/)
+   - [Cloudflare Access](https://www.cloudflare.com/products/zero-trust/access/)
+   - NGINX with `auth_request`
+   - Traefik with ForwardAuth
+   - etc.
+
+2. **Isolated Local Environment** - Completely offline, no network access
+
+3. **Development/Testing** - Local development only, never in production
+
+**Configuration:**
+
+```bash
+# In .env or environment
+SNIPO_DISABLE_AUTH=true
+
+# Password variables are ignored when auth is disabled
+# SNIPO_MASTER_PASSWORD not required
+# SNIPO_MASTER_PASSWORD_HASH not required
+```
+
+**Security Implications:**
+
+- All authentication checks are bypassed
+- No login required
+- All API endpoints are accessible without credentials
+- No rate limiting on authentication
+- **Complete trust** in external authentication layer
+- Direct exposure to internet is **extremely dangerous**
+
+### Deployment Examples
+
+**Example 1: Docker with Authelia**
+
+```yaml
+services:
+  authelia:
+    image: authelia/authelia:latest
+    volumes:
+      - ./authelia-config:/config
+    networks:
+      - auth-network
+
+  snipo:
+    image: ghcr.io/mohamedelashri/snipo:latest
+    environment:
+      - SNIPO_DISABLE_AUTH=true  # Auth handled by Authelia
+    networks:
+      - auth-network
+    # Snipo is NOT exposed directly to internet
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - auth-network
+```
+
+**Example 2: Nginx with auth_request**
+
+```nginx
+location /auth {
+    internal;
+    proxy_pass http://authelia:9091/api/verify;
+    proxy_set_header X-Original-URL $scheme://$http_host$request_uri;
+}
+
+location / {
+    auth_request /auth;
+    proxy_pass http://snipo:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+}
+```
+
+### Security Checklist for Disabled Auth
+
+When using `SNIPO_DISABLE_AUTH=true`, verify:
+
+- [ ] External authentication layer is properly configured
+- [ ] Snipo is **NOT** directly accessible from the internet
+- [ ] All traffic passes through authentication proxy
+- [ ] Authentication proxy is configured with strict policies
+- [ ] Network isolation is in place (Docker networks, VPNs)
+- [ ] Logs are monitored for unauthorized access attempts
+- [ ] Backup authentication layer exists (defense in depth)
+- [ ] Regular security audits of authentication setup
+
+### Reverting to Standard Authentication
+
+To re-enable authentication:
+
+```bash
+# 1. Remove or set to false
+SNIPO_DISABLE_AUTH=false
+# or just remove the variable entirely
+
+# 2. Set password
+SNIPO_MASTER_PASSWORD_HASH=$argon2id$...
+# or
+SNIPO_MASTER_PASSWORD=your-secure-password
+
+# 3. Restart
+docker compose restart snipo
+```
+
 ### Reverse Proxy Configuration
 
 If deploying behind a reverse proxy:
@@ -226,6 +347,7 @@ curl -o internal/web/static/vendor/js/alpine.min.js \
 
 ## Security Checklist
 
+### Standard Deployment
 - [ ] Use hashed password (`SNIPO_MASTER_PASSWORD_HASH`) instead of plain text
 - [ ] Set strong master password (12+ characters, mixed case, numbers, symbols)
 - [ ] Generate random session secret with `openssl rand -hex 32`
@@ -237,6 +359,15 @@ curl -o internal/web/static/vendor/js/alpine.min.js \
 - [ ] Use secrets management in production (Docker Secrets, Vault, etc.)
 - [ ] Regular backups with encryption enabled
 - [ ] Keep dependencies updated
+
+### When Using Disabled Auth (`SNIPO_DISABLE_AUTH=true`)
+- [ ] Authentication proxy is properly configured and tested
+- [ ] Snipo is NOT directly accessible from internet
+- [ ] Network isolation is enforced (Docker networks, firewalls)
+- [ ] All traffic must pass through authentication layer
+- [ ] Monitoring and logging are in place
+- [ ] Regular security audits of authentication setup
+- [ ] Understand and accept the security implications
 
 ## Reporting Security Issues
 

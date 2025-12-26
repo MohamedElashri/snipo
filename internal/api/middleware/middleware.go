@@ -172,6 +172,12 @@ func RequireAuth(authService *auth.Service) func(http.Handler) http.Handler {
 func RequireAuthWithTokenRepo(authService *auth.Service, tokenRepo *repository.TokenRepository) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// If authentication is disabled, allow all requests
+			if authService.IsAuthDisabled() {
+				next.ServeHTTP(w, r)
+				return
+			}
+			
 			// First, check for API token in header
 			if tokenRepo != nil {
 				// Check Authorization header (Bearer token)

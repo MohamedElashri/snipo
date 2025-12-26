@@ -49,11 +49,14 @@ type PageData struct {
 
 // Index serves the main application page
 func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
-	// Check authentication
-	token := auth.GetSessionFromRequest(r)
-	if token == "" || !h.authService.ValidateSession(token) {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
+	// Skip authentication check if auth is disabled
+	if !h.authService.IsAuthDisabled() {
+		// Check authentication
+		token := auth.GetSessionFromRequest(r)
+		if token == "" || !h.authService.ValidateSession(token) {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
 	}
 
 	data := PageData{Title: "Snippets"}
@@ -62,6 +65,12 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 
 // Login serves the login page
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	// If auth is disabled, redirect to home
+	if h.authService.IsAuthDisabled() {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
 	// If already authenticated, redirect to home
 	token := auth.GetSessionFromRequest(r)
 	if token != "" && h.authService.ValidateSession(token) {

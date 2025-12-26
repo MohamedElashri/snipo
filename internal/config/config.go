@@ -44,6 +44,7 @@ type DatabaseConfig struct {
 type AuthConfig struct {
 	MasterPassword         string
 	MasterPasswordHash     string // Pre-hashed password (Argon2id format)
+	Disabled               bool   // Disable authentication entirely (use with external auth like Authelia)
 	SessionSecret          string
 	SessionSecretGenerated bool // True if session secret was auto-generated (not recommended for production)
 	SessionDuration        time.Duration
@@ -103,22 +104,32 @@ func Load() (*Config, error) {
 	cfg.Database.JournalMode = getEnv("SNIPO_DB_JOURNAL", "WAL")
 	cfg.Database.SynchronousMode = getEnv("SNIPO_DB_SYNC", "NORMAL")
 
-	// Auth - Support both plain text password and pre-hashed password
-	cfg.Auth.MasterPassword = os.Getenv("SNIPO_MASTER_PASSWORD")
-	cfg.Auth.MasterPasswordHash = os.Getenv("SNIPO_MASTER_PASSWORD_HASH")
+	// Auth - Check if authentication is disabled
+	cfg.Auth.Disabled = getEnvBool("SNIPO_DISABLE_AUTH", false)
 	
-	// At least one password method must be provided
-	if cfg.Auth.MasterPassword == "" && cfg.Auth.MasterPasswordHash == "" {
-		return nil, errors.New("either SNIPO_MASTER_PASSWORD or SNIPO_MASTER_PASSWORD_HASH is required")
-	}
-	
-	// If both are provided, prefer the hash
-	if cfg.Auth.MasterPasswordHash != "" {
-		// Validate hash format (basic check for Argon2id format)
-		if !strings.HasPrefix(cfg.Auth.MasterPasswordHash, "$argon2id$") {
-			return nil, errors.New("SNIPO_MASTER_PASSWORD_HASH must be in Argon2id format ($argon2id$...)")
+	// If auth is disabled, skip password requirements
+	if cfg.Auth.Disabled {
+		// Clear any password config when disabled
+		cfg.Auth.MasterPassword = ""
+		cfg.Auth.MasterPasswordHash = ""
+	} else {
+		// Auth enabled - Support both plain text password and pre-hashed password
+		cfg.Auth.MasterPassword = os.Getenv("SNIPO_MASTER_PASSWORD")
+		cfg.Auth.MasterPasswordHash = os.Getenv("SNIPO_MASTER_PASSWORD_HASH")
+		
+		// At least one password method must be provided when auth is enabled
+		if cfg.Auth.MasterPassword == "" && cfg.Auth.MasterPasswordHash == "" {
+			return nil, errors.New("either SNIPO_MASTER_PASSWORD or SNIPO_MASTER_PASSWORD_HASH is required (or set SNIPO_DISABLE_AUTH=true)")
 		}
-		cfg.Auth.MasterPassword = "" // Clear plain text if hash is provided
+		
+		// If both are provided, prefer the hash
+		if cfg.Auth.MasterPasswordHash != "" {
+			// Validate hash format (basic check for Argon2id format)
+			if !strings.HasPrefix(cfg.Auth.MasterPasswordHash, "$argon2id$") {
+				return nil, errors.New("SNIPO_MASTER_PASSWORD_HASH must be in Argon2id format ($argon2id$...)")
+			}
+			cfg.Auth.MasterPassword = "" // Clear plain text if hash is provided
+		}
 	}
 
 	sessionSecret := os.Getenv("SNIPO_SESSION_SECRET")
