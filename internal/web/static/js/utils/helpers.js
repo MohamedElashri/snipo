@@ -92,6 +92,18 @@ export function highlightAll() {
   }
 }
 
+// Highlight code manually for a specific language
+export function highlightCode(code, language) {
+  if (!code) return '';
+  if (typeof Prism !== 'undefined' && Prism.languages[language]) {
+    return Prism.highlight(code, Prism.languages[language], language);
+  }
+  // Fallback: escape HTML entities manually
+  const div = document.createElement('div');
+  div.textContent = code;
+  return div.innerHTML;
+}
+
 // Render markdown
 export function renderMarkdown(content) {
   if (!content) return '';
@@ -109,3 +121,4 @@ export function renderMarkdown(content) {
 window.autoResizeInput = autoResizeInput;
 window.autoResizeSelect = autoResizeSelect;
 window.autoResizeTextarea = autoResizeTextarea;
+window.highlightCode = highlightCode;

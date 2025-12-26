@@ -3,6 +3,7 @@ import { api } from '../modules/api.js';
 import { showToast } from '../modules/toast.js';
 import { 
   highlightAll, 
+  highlightCode,
   renderMarkdown, 
   formatDate, 
   formatFileSize,
@@ -388,6 +389,7 @@ export function initSnippetsApp(Alpine) {
 
     // Utility methods exposed to component
     highlightAll,
+    highlightCode,
     renderMarkdown,
     formatDate,
     formatFileSize,

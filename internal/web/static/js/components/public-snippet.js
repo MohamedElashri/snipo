@@ -1,6 +1,6 @@
 // Public snippet view component
 import { showToast } from '../modules/toast.js';
-import { getLanguageColor } from '../utils/helpers.js';
+import { getLanguageColor, highlightCode } from '../utils/helpers.js';
 
 // Sanitize filename by replacing spaces with underscores
 function sanitizeFilename(filename) {
@@ -189,6 +189,7 @@ export function initPublicSnippet(Alpine) {
     },
 
     getLanguageColor,
+    highlightCode,
 
     formatDate(dateStr) {
       if (!dateStr) return '';
