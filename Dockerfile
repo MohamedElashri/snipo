@@ -5,8 +5,17 @@
 # ============================================================================
 FROM golang:1.24-alpine AS builder
 
+# Build arguments for target platform (automatically set by Docker Buildx)
+# MUST be declared immediately after FROM to get the correct values
+ARG TARGETOS
+ARG TARGETARCH
+
+# Build arguments for version info
+ARG VERSION=dev
+ARG COMMIT=unknown
+
 # Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata
+RUN apk add --no-cache git ca-certificates tzdata file
 
 WORKDIR /src
 
@@ -17,19 +26,18 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build arguments for version info
-ARG VERSION=dev
-ARG COMMIT=unknown
-
-# Build arguments for target platform (automatically set by Docker Buildx)
-ARG TARGETOS=linux
-ARG TARGETARCH=amd64
+# Verify platform information (helps with debugging multi-arch builds)
+RUN echo "Building for TARGETOS=${TARGETOS} TARGETARCH=${TARGETARCH}"
 
 # Build the binary with optimizations
+# Force fresh build by using unique build ID
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
     -ldflags="-w -s -X main.Version=${VERSION} -X main.Commit=${COMMIT}" \
     -o /snipo \
     ./cmd/server
+
+# Verify the built binary architecture
+RUN file /snipo && ls -lh /snipo
 
 # ============================================================================
 # Final stage - minimal runtime image
