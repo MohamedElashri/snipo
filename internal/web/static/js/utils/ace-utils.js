@@ -45,7 +45,26 @@ export function getFileExtension(language) {
 }
 
 // Detect language from filename
-export function detectLanguageFromFilename(filename) {
+export function detectLanguageFromFilename(filename, options = {}) {
+  const { isOnlyFile = false } = options;
+  
+  // List of common documentation filenames that should be ignored
+  // unless they're the only file or explicitly requested
+  const docFiles = [
+    'README.md', 'readme.md', 'Readme.md',
+    'LICENSE', 'LICENSE.md', 'license', 'license.md',
+    'CHANGELOG.md', 'changelog.md', 'Changelog.md',
+    'CONTRIBUTING.md', 'contributing.md',
+    'CODE_OF_CONDUCT.md', 'code_of_conduct.md',
+    'SECURITY.md', 'security.md'
+  ];
+  
+  // If this is a documentation file and not the only file, return null
+  // to prevent it from affecting the default language detection
+  if (!isOnlyFile && docFiles.includes(filename)) {
+    return null;
+  }
+  
   const ext = filename.split('.').pop()?.toLowerCase();
   const langMap = {
     'js': 'javascript', 'ts': 'typescript', 'py': 'python', 'go': 'go',
