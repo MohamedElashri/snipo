@@ -277,6 +277,59 @@ Searches for "api" in Python snippets with tag 1.
 
 **In-app help:** Click the `?` icon next to the search bar for interactive documentation.
 
+## Public Snippets
+
+Share code snippets publicly with granular file-level access.
+
+### Making Snippets Public
+
+**From Editor:**
+1. Open or create a snippet
+2. Toggle the "Public" switch in the editor header
+3. Share the generated URL: `https://localhost:8080/s/{snippet-id}`
+
+**From Preview Page:**
+- Click the globe icon in the header to toggle public/private status
+- Requires authentication to change visibility
+
+### Accessing Public Snippets
+
+**Web Interface:**
+- Multi-file snippets display with file tabs
+- Switch between files using the tab interface
+- Download individual files with the download button
+- Copy file URLs for direct access
+
+**Direct File Access (wget/curl):**
+
+For single-file snippets:
+```bash
+# Download the file
+curl -O https://localhost:8080/api/v1/snippets/public/{snippet-id}/files/{filename}
+
+# Or with wget
+wget https://localhost:8080/api/v1/snippets/public/{snippet-id}/files/{filename}
+```
+
+For multi-file snippets:
+```bash
+# Download specific file
+curl -O https://localhost:8080/api/v1/snippets/public/abc123/files/config.yaml
+
+# Download all files using the file URLs from the web interface
+curl -O https://localhost:8080/api/v1/snippets/public/abc123/files/main.go
+curl -O https://localhost:8080/api/v1/snippets/public/abc123/files/README.md
+```
+
+**URL Format:**
+- Snippet preview: `/s/{snippet-id}`
+- Individual file (raw): `/api/v1/snippets/public/{snippet-id}/files/{filename}`
+
+**Permissions:**
+- Public snippets are accessible without authentication
+- View count is tracked automatically
+- Files are returned as plain text with proper Content-Disposition headers
+
 ## Security
 
 **Container Security:**

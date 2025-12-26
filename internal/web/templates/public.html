@@ -40,6 +40,24 @@
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                     </svg>
                 </button>
+                <button x-show="isAuthenticated" class="btn-icon" @click="togglePublic()" :title="snippet.is_public ? 'Make Private' : 'Make Public'">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <template x-if="snippet.is_public">
+                            <g>
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M2 12h20"></path>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                            </g>
+                        </template>
+                        <template x-if="!snippet.is_public">
+                            <g>
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <line x1="3" y1="3" x2="21" y2="21"></line>
+                            </g>
+                        </template>
+                    </svg>
+                </button>
                 <a href="/" class="btn-primary" style="padding: 0.5rem 1rem; text-decoration: none;">
                     Open Snipo
                 </a>
@@ -62,9 +80,44 @@
             </div>
         </div>
         
+        <!-- File tabs and actions -->
+        <div class="public-files-tabs">
+            <!-- File tabs (only for multi-file snippets) -->
+            <div class="file-tabs" x-show="hasMultipleFiles()">
+                <template x-for="(file, index) in getFiles()" :key="file.id || index">
+                    <button 
+                        class="file-tab" 
+                        :class="{ 'active': activeFileIndex === index }"
+                        @click="activeFileIndex = index">
+                        <span x-text="file.filename"></span>
+                    </button>
+                </template>
+            </div>
+            <!-- Single file info (only for single-file snippets) -->
+            <div class="file-info" x-show="!hasMultipleFiles()">
+                <span class="file-name" x-text="getCurrentFilename()"></span>
+            </div>
+            <!-- File actions (always visible) -->
+            <div class="file-actions">
+                <button class="btn-icon-small" @click="downloadFile()" title="Download file">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </button>
+                <button class="btn-icon-small" @click="copyFileUrl()" title="Copy file URL">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
         <!-- Code -->
         <div class="public-code">
-            <pre><code :class="'language-' + snippet.language" x-text="snippet.content"></code></pre>
+            <pre><code :class="'language-' + getCurrentLanguage()" x-text="getCurrentContent()"></code></pre>
         </div>
         
         <!-- Footer -->
@@ -155,6 +208,88 @@
         color: var(--pico-muted-color);
         font-size: 0.85rem;
         margin-left: auto;
+    }
+    
+    .public-files-tabs {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem 1rem;
+        background: var(--pico-card-background-color);
+        border-bottom: 1px solid var(--pico-muted-border-color);
+        overflow-x: auto;
+    }
+    
+    .file-tabs {
+        display: flex;
+        gap: 0.25rem;
+        flex: 1;
+        overflow-x: auto;
+    }
+    
+    .file-info {
+        display: flex;
+        align-items: center;
+        flex: 1;
+    }
+    
+    .file-name {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+        color: var(--pico-muted-color);
+        font-family: var(--font-mono);
+    }
+    
+    .file-tab {
+        padding: 0.5rem 1rem;
+        background: transparent;
+        border: 1px solid var(--pico-muted-border-color);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        transition: all 0.2s;
+        color: var(--pico-contrast) !important;
+    }
+    
+    .file-tab:hover {
+        background: var(--pico-secondary-background);
+        color: var(--pico-contrast) !important;
+    }
+    
+    .file-tab.active {
+        background: var(--snipo-primary);
+        color: white !important;
+        border-color: var(--snipo-primary);
+    }
+    
+    .file-actions {
+        display: flex;
+        gap: 0.25rem;
+    }
+    
+    .btn-icon-small {
+        padding: 0.35rem;
+        background: transparent;
+        border: 1px solid var(--pico-muted-border-color);
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        color: var(--pico-contrast) !important;
+    }
+    
+    .btn-icon-small svg {
+        stroke: currentColor;
+    }
+    
+    .btn-icon-small:hover {
+        background: var(--pico-secondary-background);
+        border-color: var(--snipo-primary);
+        color: var(--snipo-primary) !important;
     }
     
     .public-code {

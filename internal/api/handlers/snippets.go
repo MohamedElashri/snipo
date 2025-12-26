@@ -313,6 +313,77 @@ func (h *SnippetHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 	OK(w, r, snippet)
 }
 
+// GetPublicFile handles GET /api/v1/snippets/public/{id}/files/{filename}
+// Returns raw file content for downloading individual files from public snippets
+func (h *SnippetHandler) GetPublicFile(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
+		return
+	}
+
+	filename := chi.URLParam(r, "filename")
+	if filename == "" {
+		Error(w, r, http.StatusBadRequest, "MISSING_FILENAME", "Filename is required")
+		return
+	}
+
+	// Get the public snippet (this also checks if it's public and increments view count)
+	snippet, err := h.service.GetByIDPublic(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, services.ErrSnippetNotFound) {
+			NotFound(w, r, "File not found")
+			return
+		}
+		InternalError(w, r)
+		return
+	}
+
+	// Find the requested file
+	var targetFile *models.SnippetFile
+	for i := range snippet.Files {
+		if snippet.Files[i].Filename == filename {
+			targetFile = &snippet.Files[i]
+			break
+		}
+	}
+
+	// If not found, try with sanitized filename (to handle legacy files with spaces)
+	if targetFile == nil {
+		sanitizedFilename := validation.SanitizeFilename(filename)
+		for i := range snippet.Files {
+			if validation.SanitizeFilename(snippet.Files[i].Filename) == sanitizedFilename {
+				targetFile = &snippet.Files[i]
+				break
+			}
+		}
+	}
+
+	// If not found in files array, check if it's the legacy single-file content
+	if targetFile == nil && len(snippet.Files) == 0 {
+		// For legacy single-file snippets, use the main content
+		targetFile = &models.SnippetFile{
+			Filename: filename,
+			Content:  snippet.Content,
+			Language: snippet.Language,
+		}
+	}
+
+	if targetFile == nil {
+		NotFound(w, r, "File not found in snippet")
+		return
+	}
+
+	// Set appropriate headers for raw file download
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Content-Disposition", "inline; filename=\""+filename+"\"")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	
+	// Write the file content
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(targetFile.Content))
+}
+
 // GetHistory handles GET /api/v1/snippets/{id}/history
 func (h *SnippetHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
