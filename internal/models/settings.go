@@ -16,6 +16,7 @@ type Settings struct {
 	BackupEncryptionEnabled bool      `json:"backup_encryption_enabled"`
 	ArchiveEnabled          bool      `json:"archive_enabled"`
 	HistoryEnabled          bool      `json:"history_enabled"`
+	DisableLogin            bool      `json:"disable_login"`
 	EditorFontSize          int       `json:"editor_font_size"`
 	EditorTabSize           int       `json:"editor_tab_size"`
 	EditorTheme             string    `json:"editor_theme"`
@@ -47,6 +48,7 @@ type SettingsInput struct {
 	BackupEncryptionEnabled bool   `json:"backup_encryption_enabled"`
 	ArchiveEnabled          bool   `json:"archive_enabled"`
 	HistoryEnabled          bool   `json:"history_enabled"`
+	DisableLogin            bool   `json:"disable_login"`
 	EditorFontSize          int    `json:"editor_font_size"`
 	EditorTabSize           int    `json:"editor_tab_size"`
 	EditorTheme             string `json:"editor_theme"`

@@ -110,7 +110,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	snippetHandler := handlers.NewSnippetHandler(snippetService)
 	tagHandler := handlers.NewTagHandler(tagRepo)
 	folderHandler := handlers.NewFolderHandler(folderRepo)
-	tokenHandler := handlers.NewTokenHandler(tokenRepo)
+	tokenHandler := handlers.NewTokenHandler(tokenRepo, settingsRepo, cfg.AuthService)
 	authHandler := handlers.NewAuthHandler(cfg.AuthService)
 	
 	// Create health handler with feature flags
@@ -149,7 +149,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	// Protected routes (auth required + rate limiting)
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.RequireAuthWithTokenRepo(cfg.AuthService, tokenRepo))
+		r.Use(middleware.RequireAuthWithSettings(cfg.AuthService, tokenRepo, settingsRepo))
 
 		// Auth management (protected, requires any auth)
 		r.Post("/api/v1/auth/change-password", authHandler.ChangePassword)
@@ -237,7 +237,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	})
 
 	// Web UI routes
-	webHandler, err := web.NewHandler(cfg.AuthService)
+	webHandler, err := web.NewHandler(cfg.AuthService, settingsRepo)
 	if err != nil {
 		cfg.Logger.Error("failed to create web handler", "error", err)
 	} else {

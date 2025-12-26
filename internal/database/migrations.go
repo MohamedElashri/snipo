@@ -246,6 +246,21 @@ ALTER TABLE settings ADD COLUMN editor_enable_live_autocompletion INTEGER DEFAUL
 ALTER TABLE settings ADD COLUMN markdown_font_size INTEGER DEFAULT 14;
 `
 
+// Migration 6: Add markdown settings (kept for backward compatibility)
+const addMarkdownSettingsSQL = `
+-- This migration was already applied in some databases
+-- Keeping it as a no-op for backward compatibility
+SELECT 1;
+`
+
+// Migration 7: Add disable_login setting
+const addDisableLoginSQL = `
+-- Add disable_login column to settings table
+-- This allows users to disable the login page while keeping password protection
+-- for administrative operations like API token creation
+ALTER TABLE settings ADD COLUMN disable_login INTEGER DEFAULT 0 NOT NULL;
+`
+
 // getMigrations returns all available migrations in order
 func getMigrations() []Migration {
 	return []Migration{
@@ -254,5 +269,7 @@ func getMigrations() []Migration {
 		{Version: 3, Name: "add_archiving", SQL: addArchivingSQL},
 		{Version: 4, Name: "add_history", SQL: addHistorySQL},
 		{Version: 5, Name: "add_editor_settings", SQL: addEditorSettingsSQL},
+		{Version: 6, Name: "add_markdown_settings", SQL: addMarkdownSettingsSQL},
+		{Version: 7, Name: "add_disable_login", SQL: addDisableLoginSQL},
 	}
 }
