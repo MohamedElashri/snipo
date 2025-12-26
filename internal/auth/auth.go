@@ -134,15 +134,25 @@ func (t *FailedLoginTracker) cleanup() {
 
 // NewService creates a new authentication service
 // The master password is hashed at startup using Argon2id for secure storage in memory
+// If a pre-hashed password is provided, it's used directly without re-hashing
 func NewService(db *sql.DB, masterPassword, sessionSecret string, sessionDuration time.Duration, logger *slog.Logger) *Service {
-	// Hash the master password at startup so plaintext is never stored in memory
-	passwordHash, err := HashPassword(masterPassword)
-	if err != nil {
-		logger.Error("failed to hash master password", "error", err)
-		// Fall back to plaintext comparison if hashing fails (should never happen)
+	var passwordHash string
+	
+	// Check if password is already hashed (Argon2id format)
+	if strings.HasPrefix(masterPassword, "$argon2id$") {
 		passwordHash = masterPassword
+		logger.Info("using pre-hashed master password (Argon2id)")
 	} else {
-		logger.Info("master password hashed with Argon2id")
+		// Hash the master password at startup so plaintext is never stored in memory
+		var err error
+		passwordHash, err = HashPassword(masterPassword)
+		if err != nil {
+			logger.Error("failed to hash master password", "error", err)
+			// Fall back to plaintext comparison if hashing fails (should never happen)
+			passwordHash = masterPassword
+		} else {
+			logger.Info("master password hashed with Argon2id")
+		}
 	}
 
 	return &Service{

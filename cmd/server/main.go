@@ -36,9 +36,11 @@ func main() {
 			os.Exit(0)
 		case "health":
 			checkHealth()
+		case "hash-password":
+			hashPassword()
 		default:
 			fmt.Printf("Unknown command: %s\n", os.Args[1])
-			fmt.Println("Available commands: serve, migrate, version, health")
+			fmt.Println("Available commands: serve, migrate, version, health, hash-password")
 			os.Exit(1)
 		}
 	} else {
@@ -94,9 +96,15 @@ func runServer() {
 	}
 
 	// Create auth service
+	// Use pre-hashed password if available, otherwise use plain password
+	masterPasswordForAuth := cfg.Auth.MasterPasswordHash
+	if masterPasswordForAuth == "" {
+		masterPasswordForAuth = cfg.Auth.MasterPassword
+	}
+	
 	authService := auth.NewService(
 		db.DB,
-		cfg.Auth.MasterPassword,
+		masterPasswordForAuth,
 		cfg.Auth.SessionSecret,
 		cfg.Auth.SessionDuration,
 		logger,
@@ -211,6 +219,36 @@ func checkHealth() {
 		os.Exit(1)
 	}
 	os.Exit(0)
+}
+
+func hashPassword() {
+	// Check if password is provided as argument
+	var password string
+	if len(os.Args) > 2 {
+		password = os.Args[2]
+	} else {
+		// Prompt for password
+		fmt.Print("Enter password to hash: ")
+		fmt.Scanln(&password)
+	}
+	
+	if password == "" {
+		fmt.Println("Error: Password cannot be empty")
+		os.Exit(1)
+	}
+	
+	// Generate hash using auth package
+	hash, err := auth.HashPassword(password)
+	if err != nil {
+		fmt.Printf("Error hashing password: %v\n", err)
+		os.Exit(1)
+	}
+	
+	fmt.Println("\nGenerated Argon2id password hash:")
+	fmt.Println(hash)
+	fmt.Println("\nAdd this to your environment or .env file:")
+	fmt.Printf("SNIPO_MASTER_PASSWORD_HASH=%s\n", hash)
+	fmt.Println("\nNote: Remove SNIPO_MASTER_PASSWORD if you're using SNIPO_MASTER_PASSWORD_HASH")
 }
 
 func setupLogger() *slog.Logger {

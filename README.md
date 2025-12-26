@@ -62,10 +62,13 @@ export SNIPO_SESSION_SECRET=$(openssl rand -hex 32)
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `SNIPO_MASTER_PASSWORD` | Yes | - | Login password |
+| `SNIPO_MASTER_PASSWORD` | Yes* | - | Login password (plain text) |
+| `SNIPO_MASTER_PASSWORD_HASH` | Yes* | - | Pre-hashed password (Argon2id) - **recommended** |
 | `SNIPO_SESSION_SECRET` | Yes | - | Session signing key (32+ chars) |
 | `SNIPO_PORT` | No | `8080` | Server port |
 | `SNIPO_DB_PATH` | No | `./data/snipo.db` | SQLite database path |
+
+*Either `SNIPO_MASTER_PASSWORD` or `SNIPO_MASTER_PASSWORD_HASH` is required. Using the hash is recommended for security.
 
 ### API Configuration
 
@@ -80,6 +83,37 @@ export SNIPO_SESSION_SECRET=$(openssl rand -hex 32)
 | `SNIPO_ENABLE_BACKUP_RESTORE` | `true` | Enable backup/restore |
 
 See [`.env.example`](.env.example) for all available options including S3 backup configuration.
+
+### Password Security
+
+For enhanced security, use a pre-hashed password instead of plain text:
+
+```bash
+# Generate a password hash
+./snipo hash-password your-secure-password
+
+# Or with Docker
+docker run --rm ghcr.io/mohamedelashri/snipo:latest hash-password your-secure-password
+```
+
+Then use the generated hash:
+
+```bash
+# In .env file
+SNIPO_MASTER_PASSWORD_HASH=$argon2id$base64salt$base64hash
+
+# Or in docker-compose.yml
+environment:
+  - SNIPO_MASTER_PASSWORD_HASH=$argon2id$base64salt$base64hash
+```
+
+**Benefits of using hashed passwords:**
+- Password never appears in plain text in config files
+- Safer for version control (if you encrypt/secure the hash)
+- Prevents accidental password exposure in logs or process listings
+- Backward compatible - plain text passwords still work
+
+See [SECURITY.md](SECURITY.md) for detailed password security practices.
 
 ## API
 

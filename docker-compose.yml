@@ -26,7 +26,10 @@ services:
     # User mapping (runs as UID 1000 inside container)
     user: "1000:1000"
     environment:
-      # Required: Set a master password
+      # Authentication: Use either hashed password (recommended) or plain password
+      # Generate hash with: docker run --rm ghcr.io/mohamedelashri/snipo:latest hash-password your-password
+      # SNIPO_MASTER_PASSWORD_HASH=${SNIPO_MASTER_PASSWORD_HASH}
+      # OR use plain password (backward compatible, less secure)
       - SNIPO_MASTER_PASSWORD=${SNIPO_MASTER_PASSWORD:-<Put_your_master_password_here>}
       # Required: Set a random session secret (generate with: openssl rand -hex 32)
       - SNIPO_SESSION_SECRET=${SNIPO_SESSION_SECRET:-<generate_with_openssl_rand_hex_32>}

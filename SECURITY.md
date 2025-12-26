@@ -47,7 +47,11 @@ Snipo is designed as a **local-first, self-hosted** application. The security mo
 ### Environment Variables
 
 ```bash
-# REQUIRED: Strong master password (12+ characters recommended)
+# OPTION 1 (Recommended): Use pre-hashed password
+# Generate hash with: ./snipo hash-password your-password
+SNIPO_MASTER_PASSWORD_HASH=$argon2id$base64salt$base64hash
+
+# OPTION 2: Plain text password (backward compatible, less secure)
 SNIPO_MASTER_PASSWORD=your-very-secure-password-here
 
 # REQUIRED: Random session secret (generate with: openssl rand -hex 32)
@@ -60,6 +64,58 @@ SNIPO_RATE_WINDOW=1m
 # Only enable if behind a trusted reverse proxy (nginx, traefik, etc.)
 SNIPO_TRUST_PROXY=false
 ```
+
+**Password Security Best Practices:**
+
+1. **Use hashed passwords** - Generate with `./snipo hash-password` and set `SNIPO_MASTER_PASSWORD_HASH`
+2. **Strong passwords** - Minimum 12 characters with mixed case, numbers, and symbols
+3. **Never commit plain passwords** - If using plain text, use environment variables or secrets management
+4. **Rotate regularly** - Change passwords periodically, especially after potential exposure
+
+**Generating Password Hashes:**
+
+```bash
+# Using binary
+./snipo hash-password
+
+# Using Docker
+docker run --rm ghcr.io/mohamedelashri/snipo:latest hash-password
+
+# With password as argument (less secure, visible in shell history)
+./snipo hash-password "your-password"
+```
+
+The hash uses Argon2id with OWASP-recommended parameters (memory: 64MB, iterations: 1, parallelism: 4).
+
+**Hash Format:** `$argon2id$base64salt$base64hash`
+
+**Migration from Plain Text:**
+
+```bash
+# 1. Generate hash for current password
+./snipo hash-password "current-password"
+
+# 2. Update environment variable
+SNIPO_MASTER_PASSWORD_HASH=$argon2id$...
+
+# 3. Remove plain password (optional, hash takes precedence)
+# unset SNIPO_MASTER_PASSWORD
+
+# 4. Restart service
+```
+
+**Why Use Hashed Passwords:**
+- Passwords never visible in config files, logs, or process listings
+- Safer for version control (even with encrypted hashes)
+- Reduces exposure if configs are accidentally leaked
+- Backward compatible (plain passwords still supported)
+
+**Important Notes:**
+- Either `SNIPO_MASTER_PASSWORD` or `SNIPO_MASTER_PASSWORD_HASH` is required
+- If both are set, the hash takes precedence
+- Hash format is validated at startup (must start with `$argon2id$`)
+- Use secrets management (Docker Secrets, Vault) in production
+- Protect config files with appropriate permissions (e.g., `chmod 600 .env`)
 
 ### Reverse Proxy Configuration
 
@@ -170,12 +226,15 @@ curl -o internal/web/static/vendor/js/alpine.min.js \
 
 ## Security Checklist
 
-- [ ] Set strong master password (12+ characters)
-- [ ] Generate random session secret
+- [ ] Use hashed password (`SNIPO_MASTER_PASSWORD_HASH`) instead of plain text
+- [ ] Set strong master password (12+ characters, mixed case, numbers, symbols)
+- [ ] Generate random session secret with `openssl rand -hex 32`
 - [ ] Configure rate limiting appropriately
 - [ ] Use HTTPS in production (via reverse proxy)
 - [ ] Set `SNIPO_TRUST_PROXY=false` unless behind trusted proxy
 - [ ] Restrict network access (firewall/VPN)
+- [ ] Protect config files with proper permissions (`chmod 600 .env`)
+- [ ] Use secrets management in production (Docker Secrets, Vault, etc.)
 - [ ] Regular backups with encryption enabled
 - [ ] Keep dependencies updated
 
