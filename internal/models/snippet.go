@@ -63,8 +63,10 @@ type SnippetInput struct {
 type SnippetFilter struct {
 	Query      string
 	Language   string
-	TagID      int64
-	FolderID   int64
+	TagID      int64   // Single tag filter (deprecated, use TagIDs)
+	FolderID   int64   // Single folder filter (deprecated, use FolderIDs)
+	TagIDs     []int64 // Multiple tags filter
+	FolderIDs  []int64 // Multiple folders filter
 	IsFavorite *bool
 	IsPublic   *bool
 	IsArchived *bool

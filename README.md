@@ -222,6 +222,61 @@ API documentation:
 - OpenAPI spec: [`docs/openapi.yaml`](docs/openapi.yaml)
 - Interactive docs: `http://localhost:8080/api/v1/openapi.json`
 
+## Search
+
+Snipo features powerful fuzzy search that searches across:
+- Snippet titles, descriptions, and content
+- Multi-file snippet contents
+- File names
+
+### Basic Search
+Type keywords in the search bar. Multiple words are matched using AND logic:
+```
+python docker
+```
+Finds snippets containing both "python" and "docker" anywhere in the metadata or content.
+
+### Filters
+
+**By Tags:**
+```
+?tag_id=1              # Single tag
+?tag_ids=1,2,3         # Multiple tags
+```
+
+**By Folders:**
+```
+?folder_id=1           # Single folder
+?folder_ids=1,2,3      # Multiple folders
+```
+
+**By Language:**
+```
+?language=javascript
+```
+
+**By Status:**
+```
+?favorite=true         # Favorites only
+?is_archived=true      # Archived snippets
+```
+
+### Combining Filters
+Mix search with filters for precise results:
+```
+?q=api&tag_id=1&language=python
+```
+Searches for "api" in Python snippets with tag 1.
+
+### Sorting
+```
+?sort=title&order=asc  # A-Z by title
+?sort=updated_at       # Recently updated (default)
+?sort=created_at       # Recently created
+```
+
+**In-app help:** Click the `?` icon next to the search bar for interactive documentation.
+
 ## Security
 
 **Container Security:**

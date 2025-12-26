@@ -243,6 +243,7 @@ These variables control the overall application appearance:
 
 ```css
 .modal-backdrop            /* Modal background overlay */
+.modal-overlay             /* Alternative modal overlay (used in newer modals) */
 .modal                     /* Modal container */
 .modal-header              /* Modal header */
 .modal-body                /* Modal body content */
@@ -250,6 +251,15 @@ These variables control the overall application appearance:
 .settings-modal            /* Settings modal specific */
 .settings-tabs             /* Settings tab navigation */
 .settings-tab              /* Individual settings tab */
+
+/* Search Help Modal (new) */
+.search-help-dialog        /* Search help modal container */
+.search-help-header        /* Search help modal header */
+.search-help-body          /* Search help modal body */
+.search-help-grid          /* Grid layout for help cards */
+.help-card                 /* Individual help card */
+.help-card-header          /* Help card header with icon */
+.help-item                 /* Help item/example within card */
 ```
 
 ### Button Components
@@ -1118,6 +1128,60 @@ textarea {
 
 .tag-badge {
   border-radius: 9999px !important;
+}
+```
+
+### Customize Search Help Modal
+
+Style the new search help dialog with custom colors and effects.
+
+```css
+/* Larger, more prominent search help modal */
+.search-help-dialog {
+  max-width: 1000px;
+  border: 2px solid var(--snipo-primary);
+}
+
+/* Custom header styling */
+.search-help-header {
+  background: linear-gradient(135deg, var(--snipo-primary), var(--snipo-accent));
+  color: white;
+}
+
+.search-help-title svg,
+.search-help-title h2 {
+  color: white;
+}
+
+/* Help card hover effects */
+.help-card {
+  transition: all 0.3s ease;
+}
+
+.help-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  border-color: var(--snipo-accent);
+}
+
+/* Custom code example styling */
+.help-item {
+  background: linear-gradient(135deg, 
+    var(--pico-code-background-color), 
+    rgba(var(--snipo-primary-rgb), 0.05));
+}
+
+.help-item code {
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Keyboard shortcuts styling */
+.help-item kbd {
+  background: var(--snipo-primary);
+  color: white;
+  border-color: var(--snipo-accent);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 ```
 

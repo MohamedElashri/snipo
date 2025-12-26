@@ -1,0 +1,157 @@
+{{define "search-help-modal"}}
+<!-- Search Help Modal -->
+<div x-show="showSearchHelp" 
+     x-cloak 
+     class="modal-overlay" 
+     @click.self="showSearchHelp = false"
+     x-transition:enter="modal-enter"
+     x-transition:enter-start="modal-enter-start"
+     x-transition:enter-end="modal-enter-end"
+     x-transition:leave="modal-leave"
+     x-transition:leave-start="modal-leave-start"
+     x-transition:leave-end="modal-leave-end">
+    <div class="search-help-dialog">
+        <div class="search-help-header">
+            <div class="search-help-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <h2>Search Guide</h2>
+            </div>
+            <button class="btn-icon" @click="showSearchHelp = false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        
+        <div class="search-help-body">
+            <div class="search-help-grid">
+                <!-- Basic Search -->
+                <div class="help-card">
+                    <div class="help-card-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <h3>Basic Search</h3>
+                    </div>
+                    <p>Search titles, descriptions, content, and filenames</p>
+                    <div class="help-item">
+                        <code>python docker</code>
+                        <small>Both keywords (AND)</small>
+                    </div>
+                </div>
+
+                <!-- Tags Filter -->
+                <div class="help-card">
+                    <div class="help-card-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                        </svg>
+                        <h3>Filter by Tags</h3>
+                    </div>
+                    <p>Click sidebar tags or use URL params</p>
+                    <div class="help-item">
+                        <code>?tag_id=1</code>
+                        <small>Single tag</small>
+                    </div>
+                    <div class="help-item">
+                        <code>?tag_ids=1,2,3</code>
+                        <small>Multiple tags</small>
+                    </div>
+                </div>
+
+                <!-- Folders Filter -->
+                <div class="help-card">
+                    <div class="help-card-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <h3>Filter by Folders</h3>
+                    </div>
+                    <p>Click sidebar folders or use URL params</p>
+                    <div class="help-item">
+                        <code>?folder_id=1</code>
+                        <small>Single folder</small>
+                    </div>
+                    <div class="help-item">
+                        <code>?folder_ids=1,2</code>
+                        <small>Multiple folders</small>
+                    </div>
+                </div>
+
+                <!-- Combine Filters -->
+                <div class="help-card">
+                    <div class="help-card-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                        <h3>Combine Filters</h3>
+                    </div>
+                    <p>Mix search with multiple filters</p>
+                    <div class="help-item">
+                        <code>?q=api&tag_id=1</code>
+                        <small>Search + tag filter</small>
+                    </div>
+                </div>
+
+                <!-- Language & Status -->
+                <div class="help-card">
+                    <div class="help-card-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <polyline points="16 18 22 12 16 6"></polyline>
+                            <polyline points="8 6 2 12 8 18"></polyline>
+                        </svg>
+                        <h3>Quick Filters</h3>
+                    </div>
+                    <div class="help-item">
+                        <code>?language=python</code>
+                        <small>By language</small>
+                    </div>
+                    <div class="help-item">
+                        <code>?favorite=true</code>
+                        <small>Favorites only</small>
+                    </div>
+                    <div class="help-item">
+                        <code>?is_archived=true</code>
+                        <small>Archived items</small>
+                    </div>
+                </div>
+
+                <!-- Keyboard Shortcuts -->
+                <div class="help-card">
+                    <div class="help-card-header">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                            <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"></path>
+                        </svg>
+                        <h3>Shortcuts</h3>
+                    </div>
+                    <div class="help-item">
+                        <div>
+                            <kbd>Ctrl+K</kbd> <kbd>⌘+K</kbd>
+                        </div>
+                        <small>Focus search</small>
+                    </div>
+                    <div class="help-item">
+                        <div>
+                            <kbd>Ctrl+N</kbd> <kbd>⌘+N</kbd>
+                        </div>
+                        <small>New snippet</small>
+                    </div>
+                    <div class="help-item">
+                        <div>
+                            <kbd>Esc</kbd>
+                        </div>
+                        <small>Close / Clear</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

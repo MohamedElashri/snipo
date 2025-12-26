@@ -212,6 +212,9 @@
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(2px);
+  z-index: 2000;
+  padding: 1rem;
+  overflow-y: auto;
 }
 
 .modal-dialog {
@@ -223,4 +226,166 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* Search Help Modal - Redesigned */
+.search-help-dialog {
+  background: var(--pico-background-color);
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  width: 100%;
+  max-width: 900px;
+  max-height: calc(100vh - 4rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--pico-muted-border-color);
+  position: relative;
+}
+
+.search-help-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--pico-card-background-color);
+}
+
+.search-help-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.search-help-title svg {
+  color: var(--pico-primary);
+}
+
+.search-help-title h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.search-help-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  background: var(--pico-background-color);
+}
+
+.search-help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.help-card {
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 0.2s;
+}
+
+.help-card:hover {
+  border-color: var(--pico-primary);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.help-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.help-card-header svg {
+  color: var(--pico-primary);
+  flex-shrink: 0;
+}
+
+.help-card-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--pico-color);
+}
+
+.help-card > p {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.8rem;
+  color: var(--pico-muted-color);
+  line-height: 1.4;
+}
+
+.help-item {
+  background: var(--pico-code-background-color);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-left: 2px solid var(--pico-primary);
+}
+
+.help-item code {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8rem;
+  color: var(--pico-primary);
+  background: none;
+  padding: 0;
+  font-weight: 500;
+}
+
+.help-item small {
+  font-size: 0.75rem;
+  color: var(--pico-muted-color);
+}
+
+.help-item kbd {
+  display: inline-block;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.75rem;
+  font-family: 'Fira Code', monospace;
+  color: var(--pico-color);
+  background: var(--pico-background-color);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 4px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.1) inset;
+  margin-right: 0.25rem;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+  
+  .search-help-dialog {
+    max-height: calc(100vh - 2rem);
+  }
+  
+  .search-help-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .search-help-body {
+    padding: 1rem;
+  }
+}
+
+@media (max-height: 700px) {
+  .search-help-dialog {
+    max-height: calc(100vh - 2rem);
+  }
+  
+  .search-help-header {
+    padding: 1rem 1.25rem;
+  }
+  
+  .search-help-body {
+    padding: 1rem;
+  }
 }

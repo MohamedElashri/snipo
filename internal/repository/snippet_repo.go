@@ -190,14 +190,21 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 	var conditions []string
 	var args []interface{}
 
-	// Fuzzy search on title, description, and content
+	// Fuzzy search on title, description, content, and snippet files
 	if filter.Query != "" {
 		// Split query into words for fuzzy matching
 		words := strings.Fields(filter.Query)
+		var searchConditions []string
 		for _, word := range words {
 			fuzzyPattern := "%" + word + "%"
-			conditions = append(conditions, "(s.title LIKE ? OR s.description LIKE ? OR s.content LIKE ?)")
-			args = append(args, fuzzyPattern, fuzzyPattern, fuzzyPattern)
+			// Search in snippet metadata and files
+			searchConditions = append(searchConditions, 
+				"(s.title LIKE ? OR s.description LIKE ? OR s.content LIKE ? OR "+
+				"s.id IN (SELECT snippet_id FROM snippet_files WHERE content LIKE ? OR filename LIKE ?))")
+			args = append(args, fuzzyPattern, fuzzyPattern, fuzzyPattern, fuzzyPattern, fuzzyPattern)
+		}
+		if len(searchConditions) > 0 {
+			conditions = append(conditions, "("+strings.Join(searchConditions, " AND ")+")")
 		}
 	}
 
@@ -236,16 +243,30 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 		conditions = append(conditions, "s.is_archived = 0")
 	}
 
-	// Filter by tag
+	// Filter by tag (support both single and multiple tags)
 	if filter.TagID > 0 {
 		conditions = append(conditions, "s.id IN (SELECT snippet_id FROM snippet_tags WHERE tag_id = ?)")
 		args = append(args, filter.TagID)
+	} else if len(filter.TagIDs) > 0 {
+		placeholders := make([]string, len(filter.TagIDs))
+		for i, tagID := range filter.TagIDs {
+			placeholders[i] = "?"
+			args = append(args, tagID)
+		}
+		conditions = append(conditions, fmt.Sprintf("s.id IN (SELECT snippet_id FROM snippet_tags WHERE tag_id IN (%s))", strings.Join(placeholders, ",")))
 	}
 
-	// Filter by folder
+	// Filter by folder (support both single and multiple folders)
 	if filter.FolderID > 0 {
 		conditions = append(conditions, "s.id IN (SELECT snippet_id FROM snippet_folders WHERE folder_id = ?)")
 		args = append(args, filter.FolderID)
+	} else if len(filter.FolderIDs) > 0 {
+		placeholders := make([]string, len(filter.FolderIDs))
+		for i, folderID := range filter.FolderIDs {
+			placeholders[i] = "?"
+			args = append(args, folderID)
+		}
+		conditions = append(conditions, fmt.Sprintf("s.id IN (SELECT snippet_id FROM snippet_folders WHERE folder_id IN (%s))", strings.Join(placeholders, ",")))
 	}
 
 	whereClause := ""
