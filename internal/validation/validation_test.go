@@ -206,7 +206,7 @@ func TestValidateSnippetInput_ValidTags(t *testing.T) {
 		Title:    "Valid Title",
 		Content:  "content",
 		Language: "plaintext",
-		Tags:     []string{"valid-tag", "another_tag", "tag123"},
+		Tags:     []string{"valid-tag", "another_tag", "tag123", "hi there"},
 	}
 
 	errs := ValidateSnippetInput(input)
@@ -215,12 +215,26 @@ func TestValidateSnippetInput_ValidTags(t *testing.T) {
 	}
 }
 
+func TestValidateSnippetInput_MultiWordTags(t *testing.T) {
+	input := &models.SnippetInput{
+		Title:    "Valid Title",
+		Content:  "content",
+		Language: "plaintext",
+		Tags:     []string{"multi word tag", "another tag", "one more"},
+	}
+
+	errs := ValidateSnippetInput(input)
+	if errs.HasErrors() {
+		t.Errorf("expected no errors for multi-word tags, got: %v", errs)
+	}
+}
+
 func TestValidateSnippetInput_InvalidTagCharacters(t *testing.T) {
 	input := &models.SnippetInput{
 		Title:    "Valid Title",
 		Content:  "content",
 		Language: "plaintext",
-		Tags:     []string{"invalid tag"}, // Space not allowed
+		Tags:     []string{"invalid@tag"}, // Special characters not allowed
 	}
 
 	errs := ValidateSnippetInput(input)
@@ -588,7 +602,7 @@ func TestValidateTagInput(t *testing.T) {
 		{"valid alphanumeric", "test123", false},
 		{"empty tag", "", true},
 		{"too long", strings.Repeat("a", 51), true},
-		{"with spaces", "test tag", true},
+		{"with spaces", "test tag", false},
 		{"with special chars", "test@tag", true},
 		{"with dots", "test.tag", true},
 	}
