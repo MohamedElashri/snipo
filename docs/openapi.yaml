@@ -625,6 +625,49 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/snippets/public/{id}/files/{filename}:
+    get:
+      tags: [Snippets]
+      summary: Get public snippet file
+      description: |
+        Get raw content of a specific file from a public multi-file snippet.
+        Returns plain text content suitable for downloading via wget/curl.
+        This endpoint is useful for accessing individual files in multi-file snippets.
+      operationId: getPublicSnippetFile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Snippet ID
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Name of the file to retrieve
+      responses:
+        '200':
+          description: Raw file content
+          content:
+            text/plain:
+              schema:
+                type: string
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              description: 'inline; filename="<filename>"'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Snippet or file not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/v1/snippets/{id}:
     get:
       tags: [Snippets]

@@ -1,6 +1,13 @@
 // File manager mixin - handles multi-file operations
 import { showToast } from '../../modules/toast.js';
 
+// Sanitize filename by replacing spaces with underscores
+function sanitizeFilename(filename) {
+  return filename
+    .replace(/\s+/g, '_')  // Replace spaces with underscores
+    .replace(/_+/g, '_');   // Replace multiple underscores with single underscore
+}
+
 export const fileManagerMixin = {
   _syncEditorToFile() {
     if (!this.aceEditor || !this.editingSnippet.files || !this.editingSnippet.files[this.activeFileIndex]) {
@@ -192,6 +199,9 @@ export const fileManagerMixin = {
   },
 
   updateActiveFilename(filename) {
+    // Sanitize filename to remove spaces
+    filename = sanitizeFilename(filename);
+    
     if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
       this.editingSnippet.files[this.activeFileIndex].filename = filename;
       

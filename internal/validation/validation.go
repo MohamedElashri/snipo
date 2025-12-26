@@ -71,6 +71,9 @@ func ValidateSnippetInput(input *models.SnippetInput) ValidationErrors {
 
 	// Validate files if present
 	for i, file := range input.Files {
+		// Sanitize filename by replacing spaces with underscores
+		input.Files[i].Filename = SanitizeFilename(file.Filename)
+		
 		if strings.TrimSpace(file.Filename) == "" {
 			errs = append(errs, ValidationError{Field: "files", Message: "Filename is required for all files"})
 		}
@@ -258,6 +261,21 @@ func ValidateTokenInput(name string) ValidationErrors {
 	}
 
 	return errs
+}
+
+// SanitizeFilename removes or replaces problematic characters in filenames
+func SanitizeFilename(filename string) string {
+	filename = strings.TrimSpace(filename)
+	
+	// Replace spaces with underscores
+	filename = strings.ReplaceAll(filename, " ", "_")
+	
+	// Replace multiple underscores with single underscore
+	for strings.Contains(filename, "__") {
+		filename = strings.ReplaceAll(filename, "__", "_")
+	}
+	
+	return filename
 }
 
 // ValidateFilename validates a filename for length and basic safety

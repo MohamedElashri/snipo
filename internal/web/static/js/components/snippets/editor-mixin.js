@@ -281,6 +281,33 @@ export const editorMixin = {
     }
   },
 
+  async togglePublicStatus() {
+    if (!this.editingSnippet?.id) return;
+
+    // Save the snippet with the new public status
+    const result = await api.put(`/api/v1/snippets/${this.editingSnippet.id}`, {
+      title: this.editingSnippet.title,
+      description: this.editingSnippet.description,
+      content: this.editingSnippet.content,
+      language: this.editingSnippet.language,
+      tags: this.editingSnippet.tags || [],
+      folder_id: this.editingSnippet.folder_id,
+      is_public: this.editingSnippet.is_public,
+      is_archived: this.editingSnippet.is_archived || false,
+      files: this.editingSnippet.files || []
+    });
+
+    if (result) {
+      showToast(result.is_public ? 'Snippet is now public' : 'Snippet is now private');
+      
+      // Update the snippet in the list
+      const idx = this.snippets.findIndex(s => s.id === this.editingSnippet.id);
+      if (idx !== -1) {
+        this.snippets[idx].is_public = result.is_public;
+      }
+    }
+  },
+
   addTag(tag) {
     if (tag && !this.editingSnippet.tags.includes(tag)) {
       this.editingSnippet.tags.push(tag);

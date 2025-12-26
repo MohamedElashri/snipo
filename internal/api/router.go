@@ -136,6 +136,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 		// Public snippet access
 		r.Get("/api/v1/snippets/public/{id}", snippetHandler.GetPublic)
+		r.Get("/api/v1/snippets/public/{id}/files/{filename}", snippetHandler.GetPublicFile)
 
 		// Auth endpoints (with rate limiting)
 		r.Group(func(r chi.Router) {

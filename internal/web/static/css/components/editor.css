@@ -759,6 +759,28 @@
   transform: translateX(14px);
 }
 
+/* Public toggle in preview mode */
+.public-toggle-switch-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--pico-color);
+}
+
+.public-toggle-switch-preview input {
+  display: none;
+}
+
+.public-toggle-switch-preview input:checked + .public-switch-track {
+  background: var(--snipo-success);
+}
+
+.public-toggle-switch-preview input:checked + .public-switch-track .public-switch-thumb {
+  transform: translateX(14px);
+}
+
 .editor-field {
   margin-bottom: 1rem;
 }
