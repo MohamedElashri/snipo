@@ -118,13 +118,79 @@ See [SECURITY.md](SECURITY.md) for detailed password security practices.
 
 ### Disabling Authentication
 
-⚠️ **WARNING: Use with extreme caution!**
+Snipo offers **three authentication modes** to suit different deployment scenarios:
 
-You can disable Snipo's built-in authentication when deploying behind an external authentication layer:
+#### 1. Full Authentication (Default)
+Normal mode with login page and password protection:
+```bash
+SNIPO_MASTER_PASSWORD=your-secure-password
+# or
+SNIPO_MASTER_PASSWORD_HASH=$argon2id$...
+```
+
+#### 2. Login Disabled (Settings Option)
+Hide the login page while maintaining security for sensitive operations. Useful for:
+- Private networks (Tailscale, WireGuard) where login UI is unnecessary
+- Trusted environments where you want easy access but protected token management
+- Auth proxy deployments where external authentication handles access control
+
+**Configuration:**
+1. Log in to your Snipo instance
+2. Go to Settings → General
+3. Enable "Disable Login Page"
+
+**How it works:**
+- Web UI is accessible without logging in
+- Login page redirects to home page
+- All API operations work without authentication
+- **API token creation and deletion always require password verification** for security
+
+**Security Model:**
+- **Read/Write Operations**: No password required
+- **Create API Token**: Password required (prompted in UI)
+- **Delete API Token**: Password required (prompted in UI)
+- **Change Settings**: No password required
+
+**Example - Working with API tokens:**
+```bash
+# Create token via API (password required in body)
+curl -X POST http://localhost:8080/api/v1/tokens \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name":"My Token",
+    "permissions":"admin",
+    "password":"your-secure-password"
+  }'
+
+# Delete token via API (password required in body)
+curl -X DELETE http://localhost:8080/api/v1/tokens/1 \
+  -H "Content-Type: application/json" \
+  -d '{"password":"your-secure-password"}'
+
+# Use token for operations (no password needed)
+curl http://localhost:8080/api/v1/snippets \
+  -H "Authorization: Bearer <api-token>"
+```
+
+**Why this matters:**
+- Even if someone gains access to your session or network, they cannot create or delete API tokens without the master password
+- Provides an additional security layer against session hijacking or XSS attacks
+- Protects against unauthorized API token management
+
+#### 3. Authentication Completely Disabled (Environment Variable)
+⚠️ **DANGER: Use with extreme caution!**
+
+Disable **all authentication and password requirements** when deploying behind an external authentication layer:
 
 ```bash
 SNIPO_DISABLE_AUTH=true
 ```
+
+**Security Impact:**
+- **No login required** - Direct access to web UI
+- **No password verification** - API token operations don't require passwords
+- **No session authentication** - All API endpoints are open
+- **Complete trust** in external authentication layer
 
 **Only use this when:**
 - Behind a trusted authentication proxy (Authelia, Authentik, OAuth2 Proxy, Cloudflare Access)
@@ -133,10 +199,11 @@ SNIPO_DISABLE_AUTH=true
 
 **Never use this when:**
 - Directly exposed to the internet
-- In untrusted networks
-- Without understanding the security implications
+- In untrusted networks  
+- Without understanding the complete security implications
+- Unless you have a properly configured authentication proxy
 
-See [SECURITY.md](SECURITY.md#disabling-authentication) for detailed guidance and best practices.
+See [SECURITY.md](SECURITY.md#authentication-modes) for detailed guidance and best practices.
 
 ## API
 

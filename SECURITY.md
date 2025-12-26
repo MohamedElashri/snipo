@@ -117,15 +117,133 @@ SNIPO_MASTER_PASSWORD_HASH=$argon2id$...
 - Use secrets management (Docker Secrets, Vault) in production
 - Protect config files with appropriate permissions (e.g., `chmod 600 .env`)
 
-## Disabling Authentication
+## Authentication Modes
+
+Snipo offers three authentication modes to balance security and usability for different deployment scenarios:
+
+### Mode 1: Full Authentication (Default)
+
+**Standard mode with login page and password protection.**
+
+```bash
+SNIPO_MASTER_PASSWORD=your-secure-password
+# or (recommended)
+SNIPO_MASTER_PASSWORD_HASH=$argon2id$base64salt$base64hash
+SNIPO_SESSION_SECRET=$(openssl rand -hex 32)
+```
+
+**Features:**
+- Login page required to access web UI
+- Session-based authentication for all operations
+- **API token operations always require password verification** (additional security layer)
+- All admin operations require authentication
+
+**Security Model:**
+- Login required to access UI and API
+- Session authentication for read/write operations
+- **Master password required** for creating API tokens (even with valid session)
+- **Master password required** for deleting API tokens (even with valid session)
+
+**Use when:**
+- Default deployment scenario
+- Public internet exposure (behind HTTPS reverse proxy)
+- Standard security requirements
+- Maximum security needed
+
+### Mode 2: Login Disabled (Settings Option)
+
+**Hide login page while maintaining API password protection for admin operations.**
+
+**Configuration:**
+1. Log in to your Snipo instance
+2. Navigate to Settings → General
+3. Enable "Disable Login Page"
+
+**How it works:**
+- Web UI is accessible without login page
+- Login page redirects to home
+- All standard operations work without authentication
+- **API token operations always require password verification**
+
+**Security characteristics:**
+- Web UI access:  No session required
+- API read/write operations:  No session required  
+- API token creation: ❌ **Always requires password** (security best practice)
+- API token deletion: ❌ **Always requires password** (security best practice)
+- Settings changes:  No session required
+- Backup/restore:  No session required
+
+**Enhanced Security:**
+Even in this mode, API token management operations (create/delete) **always require the master password**. This provides:
+- Protection against session hijacking
+- Defense against XSS attacks
+- Additional security layer for sensitive operations
+- Prevention of unauthorized token management
+
+**Use when:**
+- Deployed on private networks (Tailscale, WireGuard, VPN)
+- Trusted local environments
+- You want easy access but protected admin features
+- Primary API token usage with controlled token creation
+
+**Example workflow:**
+
+```bash
+# 1. Create API token (password required for security)
+curl -X POST http://localhost:8080/api/v1/tokens \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name":"My Token",
+    "permissions":"admin",
+    "password":"your-secure-password"
+  }'
+
+# Response includes the token (save it securely)
+# {"token":"snipo_...",...}
+
+# 2. Use API token for all operations (no password needed)
+curl http://localhost:8080/api/v1/snippets \
+  -H "Authorization: Bearer <api-token>"
+
+# 3. Delete token (password required for security)
+curl -X DELETE http://localhost:8080/api/v1/tokens/1 \
+  -H "Content-Type: application/json" \
+  -d '{"password":"your-secure-password"}'
+```
+
+**Benefits:**
+- No login friction for trusted environments
+- Easy access for reading and managing snippets
+- **Strong security for API token operations** (password always required)
+- Protection against unauthorized token creation/deletion
+- Defense-in-depth: even if session is compromised, tokens are protected
+- Suitable for personal networks, VPNs, and auth proxy deployments
+- Balances convenience with security
+
+### Mode 3: Authentication Completely Disabled
 
 ⚠️ **CRITICAL SECURITY CONSIDERATION**
 
-Snipo supports disabling built-in authentication via `SNIPO_DISABLE_AUTH=true`. This should **ONLY** be used in specific, well-understood scenarios.
+**Disable all authentication via environment variable.**
 
-### When to Disable Authentication
+```bash
+SNIPO_DISABLE_AUTH=true
+# Password variables not required when auth is disabled
+```
 
-**Acceptable Use Cases:**
+**Security characteristics:**
+- Web UI access:  No authentication
+- All API operations:  No authentication
+- Token creation:  **No password verification** (⚠️ bypassed)
+- Token deletion:  **No password verification** (⚠️ bypassed)
+- Settings changes:  No authentication
+- Admin operations:  No authentication
+
+**Critical Difference from Mode 2:**
+- Mode 2: Password **still required** for token operations
+- Mode 3: Password requirement **completely bypassed**
+- Use Mode 3 only when external authentication handles all access control
+**Use ONLY when:**
 
 1. **Behind Authentication Proxy** - When using external authentication layers:
    - [Authelia](https://www.authelia.com/)

@@ -136,6 +136,7 @@ type APITokenInput struct {
 	Name          string `json:"name"`
 	Permissions   string `json:"permissions"` // "read", "write", "admin"
 	ExpiresInDays *int   `json:"expires_in_days,omitempty"`
+	Password      string `json:"password,omitempty"` // Required when disable_login is enabled
 }
 
 // Pagination holds pagination info for list responses (ايه ده ؟)

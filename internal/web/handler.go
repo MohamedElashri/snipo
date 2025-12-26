@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"embed"
 	"html/template"
 	"io/fs"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/MohamedElashri/snipo/internal/auth"
+	"github.com/MohamedElashri/snipo/internal/repository"
 )
 
 //go:embed templates/*.html templates/components/*.html
@@ -18,12 +20,13 @@ var staticFS embed.FS
 
 // Handler handles web page requests
 type Handler struct {
-	templates   *template.Template
-	authService *auth.Service
+	templates    *template.Template
+	authService  *auth.Service
+	settingsRepo *repository.SettingsRepository
 }
 
 // NewHandler creates a new web handler
-func NewHandler(authService *auth.Service) (*Handler, error) {
+func NewHandler(authService *auth.Service, settingsRepo *repository.SettingsRepository) (*Handler, error) {
 	// Parse templates including components
 	tmpl, err := template.ParseFS(templatesFS, "templates/*.html", "templates/components/*.html")
 	if err != nil {
@@ -31,8 +34,9 @@ func NewHandler(authService *auth.Service) (*Handler, error) {
 	}
 
 	return &Handler{
-		templates:   tmpl,
-		authService: authService,
+		templates:    tmpl,
+		authService:  authService,
+		settingsRepo: settingsRepo,
 	}, nil
 }
 
@@ -49,14 +53,28 @@ type PageData struct {
 
 // Index serves the main application page
 func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
-	// Skip authentication check if auth is disabled
-	if !h.authService.IsAuthDisabled() {
-		// Check authentication
-		token := auth.GetSessionFromRequest(r)
-		if token == "" || !h.authService.ValidateSession(token) {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
-		}
+	// Skip authentication check if auth is completely disabled
+	if h.authService.IsAuthDisabled() {
+		data := PageData{Title: "Snippets"}
+		h.render(w, "layout.html", "index.html", data)
+		return
+	}
+
+	// Check if login is disabled in settings (but keep password for admin operations)
+	ctx := context.Background()
+	settings, err := h.settingsRepo.Get(ctx)
+	if err == nil && settings.DisableLogin {
+		// Login is disabled via settings - allow access without session
+		data := PageData{Title: "Snippets"}
+		h.render(w, "layout.html", "index.html", data)
+		return
+	}
+
+	// Normal authentication flow: require session
+	token := auth.GetSessionFromRequest(r)
+	if token == "" || !h.authService.ValidateSession(token) {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
 	}
 
 	data := PageData{Title: "Snippets"}
@@ -65,8 +83,17 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 
 // Login serves the login page
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
-	// If auth is disabled, redirect to home
+	// If auth is completely disabled, redirect to home
 	if h.authService.IsAuthDisabled() {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	// Check if login is disabled in settings (but keep password for admin operations)
+	ctx := context.Background()
+	settings, err := h.settingsRepo.Get(ctx)
+	if err == nil && settings.DisableLogin {
+		// Login is disabled via settings - redirect to home
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}

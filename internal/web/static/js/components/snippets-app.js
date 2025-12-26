@@ -276,7 +276,13 @@ export function initSnippetsApp(Alpine) {
     },
 
     async logout() {
-      await api.post('/api/v1/auth/logout');
+      try {
+        await api.post('/api/v1/auth/logout');
+      } catch (err) {
+        console.error('logout failed:', err);
+      }
+      // Redirect to login page to ensure clean state
+      // This works with auth proxies and handles the case when login is disabled
       window.location.href = '/login';
     },
 

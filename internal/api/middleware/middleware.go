@@ -170,12 +170,27 @@ func RequireAuth(authService *auth.Service) func(http.Handler) http.Handler {
 
 // RequireAuthWithTokenRepo checks for valid authentication with API token support
 func RequireAuthWithTokenRepo(authService *auth.Service, tokenRepo *repository.TokenRepository) func(http.Handler) http.Handler {
+	return RequireAuthWithSettings(authService, tokenRepo, nil)
+}
+
+// RequireAuthWithSettings checks for valid authentication with settings support
+func RequireAuthWithSettings(authService *auth.Service, tokenRepo *repository.TokenRepository, settingsRepo *repository.SettingsRepository) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// If authentication is disabled, allow all requests
+			// If authentication is completely disabled via env var, allow all requests
 			if authService.IsAuthDisabled() {
 				next.ServeHTTP(w, r)
 				return
+			}
+			
+			// Check if login is disabled via settings
+			if settingsRepo != nil {
+				settings, err := settingsRepo.Get(r.Context())
+				if err == nil && settings.DisableLogin {
+					// Login is disabled, allow access without authentication
+					next.ServeHTTP(w, r)
+					return
+				}
 			}
 			
 			// First, check for API token in header

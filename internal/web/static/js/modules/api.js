@@ -10,7 +10,12 @@ export const api = {
 
     const response = await fetch(url, options);
     if (response.status === 401) {
-      window.location.href = '/login';
+      // Only redirect to login if we're not already on the home or login page
+      // This prevents redirect loops when login is disabled in settings
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/' && currentPath !== '/login') {
+        window.location.href = '/login';
+      }
       return null;
     }
     if (response.status === 204) return null;
@@ -46,5 +51,9 @@ export const api = {
   get: (url) => api.request('GET', url),
   post: (url, data) => api.request('POST', url, data),
   put: (url, data) => api.request('PUT', url, data),
-  delete: (url) => api.request('DELETE', url)
+  delete: (url, options = {}) => {
+    // Support passing body in options for DELETE requests
+    const data = options.body ? JSON.parse(options.body) : null;
+    return api.request('DELETE', url, data);
+  }
 };

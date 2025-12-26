@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
 	"github.com/MohamedElashri/snipo/internal/validation"
@@ -15,12 +16,18 @@ import (
 
 // TokenHandler handles API token-related HTTP requests
 type TokenHandler struct {
-	repo *repository.TokenRepository
+	repo         *repository.TokenRepository
+	settingsRepo *repository.SettingsRepository
+	authService  *auth.Service
 }
 
 // NewTokenHandler creates a new token handler
-func NewTokenHandler(repo *repository.TokenRepository) *TokenHandler {
-	return &TokenHandler{repo: repo}
+func NewTokenHandler(repo *repository.TokenRepository, settingsRepo *repository.SettingsRepository, authService *auth.Service) *TokenHandler {
+	return &TokenHandler{
+		repo:         repo,
+		settingsRepo: settingsRepo,
+		authService:  authService,
+	}
 }
 
 // List handles GET /api/v1/tokens
@@ -41,6 +48,19 @@ func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
 		// Provide more detailed error message for debugging
 		Error(w, r, http.StatusBadRequest, "INVALID_JSON", fmt.Sprintf("Invalid JSON payload: %v", err))
 		return
+	}
+
+	// Always require password for token creation (unless auth is completely disabled)
+	if h.authService != nil && !h.authService.IsAuthDisabled() {
+		if input.Password == "" {
+			Error(w, r, http.StatusUnauthorized, "PASSWORD_REQUIRED", "Password is required to create API tokens")
+			return
+		}
+		// Verify password
+		if !h.authService.VerifyPassword(input.Password) {
+			Error(w, r, http.StatusUnauthorized, "INVALID_PASSWORD", "Invalid password")
+			return
+		}
 	}
 
 	// Validate input
@@ -97,6 +117,22 @@ func (h *TokenHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid token ID")
 		return
+	}
+
+	// Always require password for token deletion (unless auth is completely disabled)
+	if h.authService != nil && !h.authService.IsAuthDisabled() {
+		var input struct {
+			Password string `json:"password"`
+		}
+		if err := DecodeJSON(r, &input); err != nil || input.Password == "" {
+			Error(w, r, http.StatusUnauthorized, "PASSWORD_REQUIRED", "Password is required to delete API tokens")
+			return
+		}
+		// Verify password
+		if !h.authService.VerifyPassword(input.Password) {
+			Error(w, r, http.StatusUnauthorized, "INVALID_PASSWORD", "Invalid password")
+			return
+		}
 	}
 
 	err = h.repo.Delete(r.Context(), id)

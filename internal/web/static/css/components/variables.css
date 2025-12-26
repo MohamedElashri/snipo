@@ -4,10 +4,12 @@
   /* Color scheme */
   --snipo-primary: #6366f1;
   --snipo-primary-hover: #4f46e5;
+  --snipo-primary-rgb: 99, 102, 241;
   --snipo-secondary: #64748b;
   --snipo-success: #22c55e;
   --snipo-warning: #f59e0b;
   --snipo-danger: #ef4444;
+  --snipo-danger-rgb: 239, 68, 68;
 
   /* Sidebar */
   --sidebar-width: 220px;
@@ -44,6 +46,13 @@ body {
   --pico-card-background-color: #f8fafc;
   --pico-muted-border-color: #cbd5e1;
 
+  /* Text colors */
+  --snipo-text-primary: #1e293b;
+  --snipo-text-secondary: #64748b;
+  --snipo-bg-primary: #ffffff;
+  --snipo-bg-secondary: #f8fafc;
+  --snipo-border: #e2e8f0;
+
   /* Icon colors for light mode */
   --icon-color: #475569;
   --icon-hover: #1e293b;
@@ -70,6 +79,13 @@ body {
 
   /* Cards */
   --card-preview-bg: #161b22;
+
+  /* Text colors */
+  --snipo-text-primary: #c9d1d9;
+  --snipo-text-secondary: #8b949e;
+  --snipo-bg-primary: #0d1117;
+  --snipo-bg-secondary: #161b22;
+  --snipo-border: #30363d;
 
   /* Icon colors for dark mode */
   --icon-color: #8b949e;

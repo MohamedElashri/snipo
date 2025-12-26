@@ -9,6 +9,9 @@ export const settingsMixin = {
   apiTokens: [],
   newToken: { name: '', permissions: 'read', expires_in_days: 30 },
   createdToken: null,
+  tokenPasswordAction: null, // 'create' or 'delete'
+  tokenPassword: '',
+  pendingTokenData: null, // Stores data for create/delete action
   passwordForm: { current: '', new: '', confirm: '' },
   passwordError: '',
   passwordSuccess: '',
@@ -44,7 +47,8 @@ export const settingsMixin = {
   async loadApiTokens() {
     const result = await api.get('/api/v1/tokens');
     if (result) {
-      this.apiTokens = result;
+      // Handle both {data: [...]} and [...] formats
+      this.apiTokens = result.data || result;
     }
   },
 
@@ -84,11 +88,57 @@ export const settingsMixin = {
       return;
     }
 
-    const result = await api.post('/api/v1/tokens', {
+    // Always show password prompt for security
+    this.tokenPasswordAction = 'create';
+    this.tokenPassword = '';
+    this.pendingTokenData = {
       name: this.newToken.name,
       permissions: this.newToken.permissions,
       expires_in_days: parseInt(this.newToken.expires_in_days) || null
-    });
+    };
+  },
+
+  async deleteApiToken(tokenId) {
+    // Always show password prompt for security
+    this.tokenPasswordAction = 'delete';
+    this.tokenPassword = '';
+    this.pendingTokenData = tokenId;
+  },
+
+  async confirmTokenPassword() {
+    if (!this.tokenPassword) {
+      showToast('Password is required', 'error');
+      return;
+    }
+
+    if (this.tokenPasswordAction === 'create') {
+      await this.performCreateToken(this.tokenPassword);
+    } else if (this.tokenPasswordAction === 'delete') {
+      await this.performDeleteToken(this.pendingTokenData, this.tokenPassword);
+    }
+
+    this.cancelTokenPassword();
+  },
+
+  cancelTokenPassword() {
+    this.tokenPasswordAction = null;
+    this.tokenPassword = '';
+    this.pendingTokenData = null;
+  },
+
+  async performCreateToken(password) {
+    const payload = { ...this.pendingTokenData || {
+      name: this.newToken.name,
+      permissions: this.newToken.permissions,
+      expires_in_days: parseInt(this.newToken.expires_in_days) || null
+    }};
+
+    // Always include password for security
+    if (password) {
+      payload.password = password;
+    }
+
+    const result = await api.post('/api/v1/tokens', payload);
 
     if (result && !result.error) {
       this.createdToken = result.token;
@@ -100,15 +150,14 @@ export const settingsMixin = {
     }
   },
 
-  async deleteApiToken(tokenId) {
-    if (!confirm('Are you sure you want to delete this API token?')) return;
-
-    const result = await api.delete(`/api/v1/tokens/${tokenId}`);
+  async performDeleteToken(tokenId, password) {
+    const options = password ? { body: JSON.stringify({ password }) } : {};
+    const result = await api.delete(`/api/v1/tokens/${tokenId}`, options);
     if (!result || !result.error) {
       await this.loadApiTokens();
       showToast('API token deleted');
     } else {
-      showToast('Failed to delete token', 'error');
+      showToast(result?.error?.message || 'Failed to delete token', 'error');
     }
   },
 
