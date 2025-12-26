@@ -356,6 +356,15 @@
 .preview-code-scroll code {
   background: transparent !important;
   font-family: var(--font-mono);
+  display: inline;
+  padding: 0;
+}
+
+.preview-code-scroll code * {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  line-height: inherit;
 }
 
 /* Markdown Preview */

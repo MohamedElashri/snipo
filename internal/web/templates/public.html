@@ -117,7 +117,7 @@
         
         <!-- Code -->
         <div class="public-code">
-            <pre><code :class="'language-' + getCurrentLanguage()" x-text="getCurrentContent()"></code></pre>
+            <pre><code :class="'language-' + getCurrentLanguage()" x-html="highlightCode(getCurrentContent(), getCurrentLanguage())"></code></pre>
         </div>
         
         <!-- Footer -->
@@ -309,6 +309,15 @@
     .public-code code {
         background: transparent !important;
         font-family: var(--font-mono);
+        display: inline;
+        padding: 0;
+    }
+    
+    .public-code code * {
+        display: inline;
+        margin: 0;
+        padding: 0;
+        line-height: inherit;
     }
     
     .public-footer {

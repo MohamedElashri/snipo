@@ -214,7 +214,7 @@
             <!-- Code view for non-markdown -->
             <div class="preview-code-scroll"
                 x-show="(activeFile?.language || editingSnippet.language) !== 'markdown'">
-                <pre><code :class="'language-' + (activeFile?.language || editingSnippet.language)" x-text="activeFile?.content || editingSnippet.content"></code></pre>
+                <pre><code :class="'language-' + (activeFile?.language || editingSnippet.language)" x-html="highlightCode(activeFile?.content || editingSnippet.content, activeFile?.language || editingSnippet.language)"></code></pre>
             </div>
         </div>
     </div>
