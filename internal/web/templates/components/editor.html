@@ -158,8 +158,15 @@
                     </template>
                 </div>
             </div>
-            <div class="preview-meta-item" x-show="editingSnippet.is_public">
-                <span class="tag-badge public-badge">Public</span>
+            <!-- Public toggle in preview mode -->
+            <div class="preview-meta-item" x-show="editingSnippet?.id">
+                <label class="public-toggle-switch-preview" title="Make snippet publicly accessible">
+                    <input type="checkbox" x-model="editingSnippet.is_public" @change="togglePublicStatus()">
+                    <div class="public-switch-track">
+                        <div class="public-switch-thumb"></div>
+                    </div>
+                    <span>Public</span>
+                </label>
             </div>
             <!-- Toggle Focus Mode -->
             <div class="preview-meta-item" style="margin-left: auto;">
