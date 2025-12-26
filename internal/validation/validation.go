@@ -47,7 +47,7 @@ var allowedLanguages = map[string]bool{
 }
 
 // tagRegex validates tag names
-var tagRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+var tagRegex = regexp.MustCompile(`^[a-zA-Z0-9_ -]+$`)
 
 // ValidateSnippetInput validates snippet input
 func ValidateSnippetInput(input *models.SnippetInput) ValidationErrors {
@@ -113,7 +113,7 @@ func ValidateSnippetInput(input *models.SnippetInput) ValidationErrors {
 		if len(tag) > 50 {
 			errs = append(errs, ValidationError{Field: "tags", Message: "Tag name must be less than 50 characters"})
 		} else if !tagRegex.MatchString(tag) {
-			errs = append(errs, ValidationError{Field: "tags", Message: "Tag can only contain letters, numbers, underscores, and hyphens"})
+			errs = append(errs, ValidationError{Field: "tags", Message: "Tag can only contain letters, numbers, spaces, underscores, and hyphens"})
 		}
 	}
 
