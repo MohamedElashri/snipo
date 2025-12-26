@@ -284,14 +284,18 @@ paths:
             maximum: 100
         - name: q
           in: query
-          description: Search query
+          description: |
+            Search query (fuzzy search). Searches across snippet titles, descriptions, 
+            content, file contents, and filenames. Multiple words are matched with AND logic.
           schema:
             type: string
+          example: "python docker"
         - name: language
           in: query
-          description: Filter by language
+          description: Filter by programming language
           schema:
             type: string
+          example: "javascript"
         - name: favorite
           in: query
           description: Filter by favorite status
@@ -299,14 +303,34 @@ paths:
             type: boolean
         - name: tag_id
           in: query
-          description: Filter by tag ID
+          description: Filter by single tag ID (deprecated, use tag_ids for multiple)
           schema:
             type: integer
+          example: 1
+        - name: tag_ids
+          in: query
+          description: Filter by multiple tag IDs (comma-separated)
+          schema:
+            type: string
+          example: "1,2,3"
         - name: folder_id
           in: query
-          description: Filter by folder ID
+          description: Filter by single folder ID (deprecated, use folder_ids for multiple)
           schema:
             type: integer
+          example: 1
+        - name: folder_ids
+          in: query
+          description: Filter by multiple folder IDs (comma-separated)
+          schema:
+            type: string
+          example: "1,2"
+        - name: is_archived
+          in: query
+          description: Filter by archived status (default is false)
+          schema:
+            type: boolean
+          example: false
         - name: sort
           in: query
           description: Sort field
