@@ -22,19 +22,21 @@
 }
 
 .search-input {
-  margin: 0;
-  padding: 0.3rem 0.6rem 0.3rem 2rem;
+  margin: 0 !important;
+  padding: 0.3rem 0.6rem 0.3rem 2rem !important;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: 0.5rem center;
   background-size: 14px 14px;
   flex: 1;
-  font-size: 0.8rem;
-  height: 32px;
-  border-radius: 6px;
-  border: 1px solid var(--pico-muted-border-color);
+  font-size: 0.8rem !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  border-radius: 6px !important;
+  border: 1px solid var(--pico-muted-border-color) !important;
   transition: all 0.2s;
-  line-height: 1.2;
+  line-height: 1.2 !important;
+  width: 100%;
 }
 
 .search-input:focus {
