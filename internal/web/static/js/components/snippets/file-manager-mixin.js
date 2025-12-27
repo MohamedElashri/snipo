@@ -208,8 +208,10 @@ export const fileManagerMixin = {
       // Pass context to detectLanguageFromFilename
       const isOnlyFile = this.editingSnippet.files.length === 1;
       const detectedLang = this.detectLanguageFromFilename(filename, { isOnlyFile });
+      
       if (detectedLang) {
         const currentLang = this.editingSnippet.files[this.activeFileIndex].language;
+        
         if (detectedLang !== currentLang) {
           this.editingSnippet.files[this.activeFileIndex].language = detectedLang;
           

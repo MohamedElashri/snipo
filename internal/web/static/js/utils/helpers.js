@@ -75,6 +75,7 @@ export function getLanguageColor(lang) {
     css: '#563d7c',
     sql: '#e38c00',
     bash: '#89e051',
+    powershell: '#012456',
     json: '#292929',
     yaml: '#cb171e',
     markdown: '#083fa1',

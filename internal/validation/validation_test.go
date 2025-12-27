@@ -159,7 +159,7 @@ func TestValidateSnippetInput_ValidLanguages(t *testing.T) {
 	validLanguages := []string{
 		"javascript", "typescript", "python", "go", "rust",
 		"java", "c", "cpp", "csharp", "php", "ruby",
-		"html", "css", "json", "yaml", "sql", "bash",
+		"html", "css", "json", "yaml", "sql", "bash", "powershell",
 	}
 
 	for _, lang := range validLanguages {
