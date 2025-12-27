@@ -37,11 +37,11 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	r := chi.NewRouter()
 
 	// Global middleware (order matters!)
-	r.Use(middleware.RequestID)              // Generate request IDs first
-	r.Use(middleware.Recovery(cfg.Logger))   // Catch panics
-	r.Use(middleware.Logger(cfg.Logger))     // Log requests (includes request ID)
-	r.Use(middleware.SecurityHeaders)        // Security headers (includes X-API-Version)
-	
+	r.Use(middleware.RequestID)            // Generate request IDs first
+	r.Use(middleware.Recovery(cfg.Logger)) // Catch panics
+	r.Use(middleware.Logger(cfg.Logger))   // Log requests (includes request ID)
+	r.Use(middleware.SecurityHeaders)      // Security headers (includes X-API-Version)
+
 	// Use configured CORS
 	allowedOrigins := []string{"*"} // default
 	if cfg.Config != nil {
@@ -112,14 +112,14 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	folderHandler := handlers.NewFolderHandler(folderRepo)
 	tokenHandler := handlers.NewTokenHandler(tokenRepo, settingsRepo, cfg.AuthService)
 	authHandler := handlers.NewAuthHandler(cfg.AuthService)
-	
+
 	// Create health handler with feature flags
 	var featureFlags *config.FeatureFlags
 	if cfg.Config != nil {
 		featureFlags = &cfg.Config.Features
 	}
 	healthHandler := handlers.NewHealthHandler(cfg.DB, cfg.Version, cfg.Commit, featureFlags)
-	
+
 	backupHandler := handlers.NewBackupHandler(backupService, s3SyncService)
 	settingsHandler := handlers.NewSettingsHandler(settingsRepo)
 
@@ -176,7 +176,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/favorite", snippetHandler.ToggleFavorite)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/archive", snippetHandler.ToggleArchive)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/duplicate", snippetHandler.Duplicate)
-				
+
 				// History routes
 				r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead).Get("/history", snippetHandler.GetHistory)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/history/{history_id}/restore", snippetHandler.RestoreFromHistory)
