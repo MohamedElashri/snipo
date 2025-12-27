@@ -21,6 +21,7 @@ export function getAceMode(language) {
     'css': 'ace/mode/css',
     'sql': 'ace/mode/sql',
     'bash': 'ace/mode/sh',
+    'powershell': 'ace/mode/powershell',
     'json': 'ace/mode/json',
     'yaml': 'ace/mode/yaml',
     'markdown': 'ace/mode/markdown',
@@ -38,7 +39,7 @@ export function getFileExtension(language) {
     'rust': 'rs', 'java': 'java', 'csharp': 'cs', 'cpp': 'cpp', 'cuda': 'cu',
     'ruby': 'rb', 'php': 'php', 'swift': 'swift', 'kotlin': 'kt',
     'html': 'html', 'css': 'css', 'sql': 'sql', 'bash': 'sh',
-    'json': 'json', 'yaml': 'yaml', 'markdown': 'md', 'tex': 'tex',
+    'powershell': 'ps1', 'json': 'json', 'yaml': 'yaml', 'markdown': 'md', 'tex': 'tex',
     'bibtex': 'bib', 'plaintext': 'txt'
   };
   return extMap[language] || 'txt';
@@ -65,15 +66,74 @@ export function detectLanguageFromFilename(filename, options = {}) {
     return null;
   }
   
-  const ext = filename.split('.').pop()?.toLowerCase();
-  const langMap = {
-    'js': 'javascript', 'ts': 'typescript', 'py': 'python', 'go': 'go',
-    'rs': 'rust', 'java': 'java', 'cs': 'csharp', 'cpp': 'cpp', 'c': 'cpp',
-    'cu': 'cuda', 'cuh': 'cuda',
-    'rb': 'ruby', 'php': 'php', 'swift': 'swift', 'kt': 'kotlin',
-    'html': 'html', 'css': 'css', 'sql': 'sql', 'sh': 'bash',
-    'json': 'json', 'yaml': 'yaml', 'yml': 'yaml', 'md': 'markdown',
-    'tex': 'tex', 'bib': 'bibtex', 'txt': 'plaintext'
+  // Check for special filenames without extensions first
+  const lowerFilename = filename.toLowerCase();
+  const specialFiles = {
+    'makefile': 'plaintext',
+    'dockerfile': 'plaintext',
+    'rakefile': 'ruby',
+    'gemfile': 'ruby',
+    'podfile': 'ruby'
   };
+  
+  if (specialFiles[lowerFilename]) {
+    return specialFiles[lowerFilename];
+  }
+  
+  // Get file extension
+  const parts = filename.split('.');
+  if (parts.length === 1) {
+    // No extension found
+    return null;
+  }
+  
+  const ext = parts.pop()?.toLowerCase();
+  
+  const langMap = {
+    // JavaScript/TypeScript
+    'js': 'javascript', 'mjs': 'javascript', 'cjs': 'javascript', 'jsx': 'javascript',
+    'ts': 'typescript', 'tsx': 'typescript',
+    // Python
+    'py': 'python', 'pyw': 'python', 'pyi': 'python',
+    // Go
+    'go': 'go',
+    // Rust
+    'rs': 'rust',
+    // Java/Kotlin
+    'java': 'java', 'kt': 'kotlin', 'kts': 'kotlin',
+    // C/C++
+    'c': 'cpp', 'h': 'cpp', 'cpp': 'cpp', 'cc': 'cpp', 'cxx': 'cpp',
+    'hpp': 'cpp', 'hh': 'cpp', 'hxx': 'cpp',
+    // C#
+    'cs': 'csharp', 'csx': 'csharp',
+    // CUDA
+    'cu': 'cuda', 'cuh': 'cuda',
+    // Ruby
+    'rb': 'ruby', 'rake': 'ruby',
+    // PHP
+    'php': 'php', 'phtml': 'php', 'php3': 'php', 'php4': 'php', 'php5': 'php',
+    // Swift
+    'swift': 'swift',
+    // Web
+    'html': 'html', 'htm': 'html',
+    'css': 'css', 'scss': 'css', 'sass': 'css', 'less': 'css',
+    // SQL
+    'sql': 'sql',
+    // Shell/Bash
+    'sh': 'bash', 'bash': 'bash', 'zsh': 'bash',
+    // PowerShell
+    'ps1': 'powershell', 'psm1': 'powershell', 'psd1': 'powershell',
+    // Data formats
+    'json': 'json', 'jsonc': 'json',
+    'yaml': 'yaml', 'yml': 'yaml',
+    'xml': 'html',
+    // Documentation
+    'md': 'markdown', 'markdown': 'markdown',
+    'tex': 'tex',
+    'bib': 'bibtex',
+    // Plain text
+    'txt': 'plaintext', 'text': 'plaintext'
+  };
+  
   return langMap[ext] || null;
 }
