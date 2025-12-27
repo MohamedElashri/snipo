@@ -42,7 +42,7 @@ RUN file /snipo && ls -lh /snipo
 # ============================================================================
 # Final stage - minimal runtime image
 # ============================================================================
-FROM alpine:3.20
+FROM alpine:3.23
 
 # Install ca-certificates for HTTPS and create non-root user
 RUN apk add --no-cache ca-certificates tzdata \
