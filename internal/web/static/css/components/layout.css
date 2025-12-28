@@ -2,7 +2,7 @@
 
 .app-container {
   display: flex;
-  min-height: 100vh;
+  flex: 1 0 auto; /* Allow it to shrink */
 }
 
 .main-content {
@@ -10,7 +10,7 @@
   margin-left: var(--sidebar-width);
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 0; /* Allow it to shrink when needed */
   min-width: 0;
   overflow: hidden;
 }
