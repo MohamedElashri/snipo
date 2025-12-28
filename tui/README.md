@@ -200,6 +200,8 @@ curl http://localhost:8080/health
 - **TUI Framework**: [Bubble Tea](https://github.com/charmbracelet/bubbletea)
 - **UI Components**: [Bubbles](https://github.com/charmbracelet/bubbles)
 - **Styling**: [Lipgloss](https://github.com/charmbracelet/lipgloss)
+- **Syntax Highlighting**: [Chroma](https://github.com/alecthomas/chroma)
+- **Markdown Rendering**: [Glamour](https://github.com/charmbracelet/glamour)
 
 ## License
 

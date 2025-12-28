@@ -7,6 +7,7 @@ import (
 	"github.com/alecthomas/chroma/v2/formatters"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/charmbracelet/glamour"
 )
 
 // HighlightCode applies syntax highlighting to code based on the language
@@ -91,4 +92,62 @@ func CreateHighlightedCodeBlockWithFilename(code, filename string) string {
 	// Try to get language from filename if not explicitly provided
 	language := GetLanguageFromFilename(filename)
 	return CreateHighlightedCodeBlock(code, language)
+}
+
+// IsMarkdown checks if the language or filename indicates markdown content
+func IsMarkdown(language, filename string) bool {
+	if language != "" {
+		langLower := strings.ToLower(language)
+		if langLower == "markdown" || langLower == "md" {
+			return true
+		}
+	}
+
+	if filename != "" {
+		filenameLower := strings.ToLower(filename)
+		if strings.HasSuffix(filenameLower, ".md") || strings.HasSuffix(filenameLower, ".markdown") {
+			return true
+		}
+	}
+
+	return false
+}
+
+// RenderMarkdown renders markdown content with proper formatting
+func RenderMarkdown(content string, width int) string {
+	// Create a glamour renderer with dark style for terminal
+	r, err := glamour.NewTermRenderer(
+		glamour.WithAutoStyle(),
+		glamour.WithWordWrap(width),
+	)
+
+	if err != nil {
+		// If renderer creation fails, return original content
+		return content
+	}
+
+	// Render the markdown
+	rendered, err := r.Render(content)
+	if err != nil {
+		// If rendering fails, return original content
+		return content
+	}
+
+	return strings.TrimSpace(rendered)
+}
+
+// RenderContent renders content based on type (markdown or code with syntax highlighting)
+func RenderContent(content, language, filename string, width int) string {
+	// Check if this is markdown
+	if IsMarkdown(language, filename) {
+		return RenderMarkdown(content, width)
+	}
+
+	// Otherwise, apply syntax highlighting
+	highlightLanguage := language
+	if highlightLanguage == "" && filename != "" {
+		highlightLanguage = GetLanguageFromFilename(filename)
+	}
+
+	return HighlightCode(content, highlightLanguage)
 }
