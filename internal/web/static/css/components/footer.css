@@ -65,48 +65,4 @@ body {
   min-height: 100vh;
 }
 
-/* Tablet responsive */
-@media (max-width: 992px) {
-  .footer-content {
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-  }
-  
-  .footer-brand {
-    grid-column: 1 / -1;
-  }
-}
 
-/* Mobile responsive */
-@media (max-width: 768px) {
-  .app-footer {
-    padding: 2rem 1rem 1rem;
-  }
-  
-  .footer-content {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-  
-  .footer-brand {
-    grid-column: 1;
-  }
-  
-  .footer-description {
-    max-width: 100%;
-  }
-  
-  .footer-bottom {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-  
-  .footer-badges {
-    width: 100%;
-  }
-  
-  .footer-badge {
-    font-size: 0.75rem;
-  }
-}
