@@ -3,7 +3,7 @@
 # ============================================================================
 # Build stage
 # ============================================================================
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Build arguments for target platform (automatically set by Docker Buildx)
 # MUST be declared immediately after FROM to get the correct values
