@@ -174,6 +174,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
+	case tea.MouseMsg:
+		// Handle mouse events for scrolling
+		if m.mode == ViewDetail {
+			return m.handleMouseDetail(msg)
+		} else if m.mode == ViewList {
+			return m.handleMouseList(msg)
+		}
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
@@ -293,6 +301,39 @@ func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	return m, nil
+}
+
+func (m Model) handleMouseDetail(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.MouseWheelUp:
+		// Scroll up
+		if m.detailScroll > 0 {
+			m.detailScroll--
+		}
+	case tea.MouseWheelDown:
+		// Scroll down
+		maxScroll := m.calculateMaxScroll()
+		if m.detailScroll < maxScroll {
+			m.detailScroll++
+		}
+	}
+	return m, nil
+}
+
+func (m Model) handleMouseList(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	switch msg.Type {
+	case tea.MouseWheelUp:
+		// Scroll up in list
+		if m.selectedIdx > 0 {
+			m.selectedIdx--
+		}
+	case tea.MouseWheelDown:
+		// Scroll down in list
+		if m.selectedIdx < len(m.snippets)-1 {
+			m.selectedIdx++
+		}
+	}
 	return m, nil
 }
 
