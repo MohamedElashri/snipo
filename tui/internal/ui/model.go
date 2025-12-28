@@ -371,7 +371,11 @@ func (m Model) calculateMaxScroll() int {
 
 	// Render content
 	renderedContent := RenderContent(content, highlightLanguage, currentFilename, renderWidth)
-	contentLines := strings.Split(renderedContent, "\n")
+
+	// Wrap content to match what's displayed
+	maxContentWidth := renderWidth - 4
+	wrappedContent := wrapContent(renderedContent, maxContentWidth)
+	contentLines := strings.Split(wrappedContent, "\n")
 
 	// Calculate available height
 	availableHeight := m.height - 18
@@ -871,12 +875,29 @@ func (m Model) viewDetail() string {
 	// Apply markdown rendering or syntax highlighting based on content type
 	renderedContent := RenderContent(content, highlightLanguage, currentFilename, renderWidth)
 
+	// Wrap long lines to prevent horizontal scrolling and maintain consistent width
+	maxContentWidth := renderWidth - 4 // Leave some margin
+	wrappedContent := wrapContent(renderedContent, maxContentWidth)
+
 	// Handle scrolling for large content
-	contentLines := strings.Split(renderedContent, "\n")
+	contentLines := strings.Split(wrappedContent, "\n")
 	availableHeight := m.height - 18 // Reserve more space for file tabs
 
 	if availableHeight < 5 {
 		availableHeight = 5
+	}
+
+	// Calculate the maximum line width for consistent rendering
+	maxLineWidth := calculateMaxLineWidth(contentLines)
+
+	// Cap the max width to available space
+	if maxLineWidth > maxContentWidth {
+		maxLineWidth = maxContentWidth
+	}
+
+	// Ensure minimum width for better appearance
+	if maxLineWidth < 40 {
+		maxLineWidth = 40
 	}
 
 	// Ensure scroll position is within bounds
@@ -895,7 +916,11 @@ func (m Model) viewDetail() string {
 		endLine = len(contentLines)
 	}
 
-	visibleContent := strings.Join(contentLines[startLine:endLine], "\n")
+	// Pad all visible lines to max width for consistent rendering
+	visibleLines := contentLines[startLine:endLine]
+	paddedLines := padLinesToWidth(visibleLines, maxLineWidth)
+	visibleContent := strings.Join(paddedLines, "\n")
+
 	s.WriteString(codeBlockStyle.Render(visibleContent))
 
 	// Show scroll indicator if content is larger than viewport
