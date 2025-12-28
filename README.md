@@ -34,7 +34,7 @@ Or using Docker directly:
 ```bash
 docker run -d \
   -p 8080:8080 \
-  -v snipo-data:/app/data \
+  -v snipo-data:/data \
   -e SNIPO_MASTER_PASSWORD=your-secure-password \
   -e SNIPO_SESSION_SECRET=$(openssl rand -hex 32) \
   --name snipo \
