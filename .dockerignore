@@ -21,6 +21,9 @@ coverage.html
 *.swo
 *~
 
+# TUI
+tui/
+
 # OS files
 .DS_Store
 Thumbs.db
