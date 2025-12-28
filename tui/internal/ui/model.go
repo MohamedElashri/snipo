@@ -592,7 +592,7 @@ func (m Model) View() string {
 
 	// Only show header in list view, not in detail view
 	if m.mode == ViewList || m.mode == ViewSearch || m.mode == ViewSettings || m.mode == ViewHelp {
-		s.WriteString(titleStyle.Render("🔖 Snipo TUI"))
+		s.WriteString(titleStyle.Render("Snippy"))
 		s.WriteString("\n")
 		s.WriteString(subtitleStyle.Render(fmt.Sprintf("Connected to: %s", m.config.ServerURL)))
 		s.WriteString("\n\n")
@@ -694,7 +694,7 @@ func (m Model) viewDetail() string {
 		favorite = favoriteStyle.Render(" ★")
 	}
 
-	s.WriteString(titleStyle.Render("🔖 " + m.detailSnippet.Title + favorite))
+	s.WriteString(titleStyle.Render("Snippy " + m.detailSnippet.Title + favorite))
 	s.WriteString("\n")
 
 	// Show metadata in a compact format
@@ -883,7 +883,7 @@ func (m Model) viewSearchForm() string {
 func (m Model) viewSettings() string {
 	var s strings.Builder
 
-	s.WriteString(titleStyle.Render("⚙️  Settings"))
+	s.WriteString(titleStyle.Render("⚙️  Snippy Settings"))
 	s.WriteString("\n\n")
 
 	s.WriteString(dimmedStyle.Render("Configure your Snipo server connection"))
@@ -929,7 +929,7 @@ func (m Model) viewSettings() string {
 func (m Model) viewHelp() string {
 	var s strings.Builder
 
-	s.WriteString(headerStyle.Render("Snipo TUI - Help"))
+	s.WriteString(headerStyle.Render("Snippy - Help"))
 	s.WriteString("\n\n")
 
 	help := []struct {

@@ -1,6 +1,6 @@
 .PHONY: build install clean test run help
 
-BINARY_NAME=snipo-tui
+BINARY_NAME=snippy
 BUILD_DIR=bin
 INSTALL_PATH=/usr/local/bin
 
@@ -21,9 +21,9 @@ deps:
 	go mod tidy
 
 build: deps
-	@echo "Building $(BINARY_NAME)..."
+	@echo "Building snippy..."
 	@mkdir -p $(BUILD_DIR)
-	go build -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/snipo-tui
+	@go build -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/snippy
 	@echo "✓ Binary built: $(BUILD_DIR)/$(BINARY_NAME)"
 
 install: build

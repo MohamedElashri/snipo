@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/MohamedElashri/snipo/tui/internal/config"
 	"github.com/MohamedElashri/snipo/tui/internal/ui"
@@ -15,7 +16,8 @@ func Run() error {
 	}
 
 	if !cfg.IsConfigured() {
-		return fmt.Errorf("snipo-tui is not configured. Please run 'snipo-tui config' first")
+		fmt.Fprintf(os.Stderr, "Error: snippy is not configured. Please run 'snippy config' first\n")
+		os.Exit(1)
 	}
 
 	m := ui.NewModel(cfg)

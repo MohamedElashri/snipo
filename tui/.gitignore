@@ -1,6 +1,6 @@
 # Binaries
 bin/
-snipo-tui
+snippy
 *.exe
 *.exe~
 *.dll

@@ -1,19 +1,19 @@
-# Snipo TUI
+# Snippy 
 
 A rich terminal user interface (TUI) for [Snipo](https://github.com/MohamedElashri/snipo) - your self-hosted snippet manager.
 
 ## Features
 
-- 🎨 **Rich TUI** - Beautiful terminal interface built with Bubble Tea
-- 🔐 **API Key Authentication** - Secure authentication using API tokens
-- 📝 **Full CRUD Operations** - Create, read, update, and delete snippets
-- 🔍 **Search & Filter** - Search snippets by content, tags, and language
-- ⭐ **Favorites** - Mark and filter your favorite snippets
-- 🏷️ **Tags & Folders** - Organize snippets with tags and folders
-- 📄 **Pagination** - Navigate through large snippet collections
-- ⌨️ **Vim-style Keybindings** - Efficient keyboard navigation (h/j/k/l)
-- 🌐 **Cross-platform** - Works on Linux, macOS, and Windows
-- 🚀 **Fast & Lightweight** - Written in Go with minimal dependencies
+- **Rich TUI** - Beautiful terminal interface built with Bubble Tea
+- **API Key Authentication** - Secure authentication using API tokens
+- **Read-Only Operations** - View and browse snippets safely
+- **Search & Filter** - Search snippets by content, tags, and language
+- **Multi-File Support** - Navigate between files in multi-file snippets
+- **Tags & Metadata** - View snippet tags, language, and metadata
+- **Pagination** - Navigate through large snippet collections
+- **Vim-style Keybindings** - Efficient keyboard navigation (h/j/k/l)
+- **Cross-platform** - Works on Linux, macOS, and Windows
+- **Fast & Lightweight** - Written in Go with minimal dependencies
 
 ## Quick Start
 
@@ -25,7 +25,7 @@ make build
 
 Or manually:
 ```bash
-go build -o bin/snipo-tui ./cmd/snipo-tui
+go build -o bin/snippy ./cmd/snippy
 ```
 
 ### 2. Create API Token
@@ -39,7 +39,7 @@ go build -o bin/snipo-tui ./cmd/snipo-tui
 ### 3. Configure
 
 ```bash
-./bin/snipo-tui config
+./bin/snippy config
 ```
 
 Enter your server URL and API key when prompted.
@@ -47,7 +47,7 @@ Enter your server URL and API key when prompted.
 ### 4. Run
 
 ```bash
-./bin/snipo-tui
+./bin/snippy
 ```
 
 ## Installation
@@ -60,14 +60,14 @@ make install
 
 Then run from anywhere:
 ```bash
-snipo-tui
+snippy
 ```
 
 ### Manual Install
 
 ```bash
-sudo cp bin/snipo-tui /usr/local/bin/
-sudo chmod +x /usr/local/bin/snipo-tui
+sudo cp bin/snippy /usr/local/bin/
+sudo chmod +x /usr/local/bin/snippy
 ```
 
 ## Configuration
@@ -83,7 +83,7 @@ Configuration is stored at `~/.config/snipo/config.json`:
 
 To reconfigure:
 ```bash
-snipo-tui config
+snippy config
 ```
 
 ## Keybindings
@@ -120,16 +120,16 @@ snipo-tui config
 
 ```bash
 # Start TUI (default)
-snipo-tui
+snippy
 
 # Configure server and API key
-snipo-tui config
+snippy config
 
 # Show version
-snipo-tui version
+snippy version
 
 # Show help
-snipo-tui help
+snippy help
 ```
 
 ## Development
@@ -144,7 +144,7 @@ snipo-tui help
 
 ```
 tui/
-├── cmd/snipo-tui/      # CLI entry point
+├── cmd/snippy/         # CLI entry point
 ├── internal/
 │   ├── api/            # API client
 │   ├── app/            # Application logic
@@ -173,23 +173,23 @@ make test
 
 ## Troubleshooting
 
-### "snipo-tui is not configured"
+### "snippy is not configured"
 
 Run the config command:
 ```bash
-snipo-tui config
+snippy config
 ```
 
 ### "API error: Unauthorized"
 
 Your API key may be invalid. Create a new token and reconfigure:
 ```bash
-snipo-tui config
+snippy config
 ```
 
 ### Connection refused
 
-Ensure your Snipo server is running:
+Ensure your `Snipo` server is running:
 ```bash
 curl http://localhost:8080/health
 ```
