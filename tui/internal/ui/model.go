@@ -296,6 +296,57 @@ func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m Model) calculateMaxScroll() int {
+	if m.detailSnippet == nil {
+		return 0
+	}
+
+	// Get the current content
+	var content string
+	var currentFilename string
+	var highlightLanguage string
+
+	if len(m.detailSnippet.Files) > 0 && m.selectedFileIdx < len(m.detailSnippet.Files) {
+		content = m.detailSnippet.Files[m.selectedFileIdx].Content
+		currentFilename = m.detailSnippet.Files[m.selectedFileIdx].Filename
+	} else {
+		content = m.detailSnippet.Content
+	}
+
+	// Determine language
+	highlightLanguage = m.detailSnippet.Language
+	if currentFilename != "" {
+		fileLanguage := GetLanguageFromFilename(currentFilename)
+		if fileLanguage != "" {
+			highlightLanguage = fileLanguage
+		}
+	}
+
+	// Calculate render width
+	renderWidth := m.width - 8
+	if renderWidth < 40 {
+		renderWidth = 40
+	}
+
+	// Render content
+	renderedContent := RenderContent(content, highlightLanguage, currentFilename, renderWidth)
+	contentLines := strings.Split(renderedContent, "\n")
+
+	// Calculate available height
+	availableHeight := m.height - 18
+	if availableHeight < 5 {
+		availableHeight = 5
+	}
+
+	// Calculate max scroll
+	maxScroll := len(contentLines) - availableHeight
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+
+	return maxScroll
+}
+
 func (m Model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc", "backspace":
@@ -309,7 +360,11 @@ func (m Model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "down", "j":
-		m.detailScroll++
+		// Calculate max scroll to prevent scrolling beyond content
+		maxScroll := m.calculateMaxScroll()
+		if m.detailScroll < maxScroll {
+			m.detailScroll++
+		}
 
 	case "left", "h":
 		if m.detailSnippet != nil && len(m.detailSnippet.Files) > 1 {
@@ -756,7 +811,7 @@ func (m Model) viewDetail() string {
 		content = m.detailSnippet.Content
 	}
 
-	// Determine the language for syntax highlighting
+	// Determine the language for syntax highlighting or markdown rendering
 	highlightLanguage := m.detailSnippet.Language
 	if currentFilename != "" {
 		// If we have a filename, try to get language from it
@@ -766,11 +821,17 @@ func (m Model) viewDetail() string {
 		}
 	}
 
-	// Apply syntax highlighting to the entire content
-	highlightedContent := HighlightCode(content, highlightLanguage)
+	// Calculate available width for rendering (accounting for padding and margins)
+	renderWidth := m.width - 8 // Account for code block padding and margins
+	if renderWidth < 40 {
+		renderWidth = 40 // Minimum width
+	}
+
+	// Apply markdown rendering or syntax highlighting based on content type
+	renderedContent := RenderContent(content, highlightLanguage, currentFilename, renderWidth)
 
 	// Handle scrolling for large content
-	contentLines := strings.Split(highlightedContent, "\n")
+	contentLines := strings.Split(renderedContent, "\n")
 	availableHeight := m.height - 18 // Reserve more space for file tabs
 
 	if availableHeight < 5 {
