@@ -756,20 +756,25 @@ func (m Model) viewDetail() string {
 		content = m.detailSnippet.Content
 	}
 
+	// Determine the language for syntax highlighting
+	highlightLanguage := m.detailSnippet.Language
+	if currentFilename != "" {
+		// If we have a filename, try to get language from it
+		fileLanguage := GetLanguageFromFilename(currentFilename)
+		if fileLanguage != "" {
+			highlightLanguage = fileLanguage
+		}
+	}
+
+	// Apply syntax highlighting to the entire content
+	highlightedContent := HighlightCode(content, highlightLanguage)
+
 	// Handle scrolling for large content
-	contentLines := strings.Split(content, "\n")
+	contentLines := strings.Split(highlightedContent, "\n")
 	availableHeight := m.height - 18 // Reserve more space for file tabs
 
 	if availableHeight < 5 {
 		availableHeight = 5
-	}
-
-	// Calculate max line width for consistent rendering
-	maxLineWidth := 0
-	for _, line := range contentLines {
-		if len(line) > maxLineWidth {
-			maxLineWidth = len(line)
-		}
 	}
 
 	// Ensure scroll position is within bounds
@@ -781,24 +786,14 @@ func (m Model) viewDetail() string {
 		m.detailScroll = maxScroll
 	}
 
-	// Get visible content window and pad lines to max width
+	// Get visible content window
 	startLine := m.detailScroll
 	endLine := m.detailScroll + availableHeight
 	if endLine > len(contentLines) {
 		endLine = len(contentLines)
 	}
 
-	// Pad each visible line to the maximum width for consistent rendering
-	var paddedLines []string
-	for i := startLine; i < endLine; i++ {
-		line := contentLines[i]
-		if len(line) < maxLineWidth {
-			line = line + strings.Repeat(" ", maxLineWidth-len(line))
-		}
-		paddedLines = append(paddedLines, line)
-	}
-
-	visibleContent := strings.Join(paddedLines, "\n")
+	visibleContent := strings.Join(contentLines[startLine:endLine], "\n")
 	s.WriteString(codeBlockStyle.Render(visibleContent))
 
 	// Show scroll indicator if content is larger than viewport
