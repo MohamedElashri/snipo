@@ -39,7 +39,6 @@ func registerTransparentStyle(baseName, newName string) {
 
 		// 3. Iterate over other known token types to ensure transparency
 		tokens := []chroma.TokenType{
-			chroma.Title,
 			chroma.Background,
 			chroma.Text,
 			chroma.Whitespace,
