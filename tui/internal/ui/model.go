@@ -37,7 +37,6 @@ type Model struct {
 	totalPages   int
 	searchQuery  string
 	filterTags   []int
-	showFavorite bool
 
 	detailSnippet   *api.Snippet
 	detailScroll    int
@@ -176,9 +175,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.MouseMsg:
 		// Handle mouse events for scrolling
-		if m.mode == ViewDetail {
+		switch m.mode {
+		case ViewDetail:
 			return m.handleMouseDetail(msg)
-		} else if m.mode == ViewList {
+		case ViewList:
 			return m.handleMouseList(msg)
 		}
 
@@ -299,19 +299,34 @@ func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.currentPage--
 			return m, loadSnippets(m.client, m.currentPage, 20, m.searchQuery, m.filterTags, nil, "", nil, nil)
 		}
+
+	case "n":
+		m.mode = ViewCreate
+		m.initCreateForm()
+		return m, nil
+
+	case "f":
+		if len(m.snippets) > 0 {
+			return m, toggleFavorite(m.client, m.snippets[m.selectedIdx].ID)
+		}
+
+	case "d", "x":
+		if len(m.snippets) > 0 {
+			return m, deleteSnippet(m.client, m.snippets[m.selectedIdx].ID)
+		}
 	}
 
 	return m, nil
 }
 
 func (m Model) handleMouseDetail(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	switch msg.Type {
-	case tea.MouseWheelUp:
+	switch msg.Button {
+	case tea.MouseButtonWheelUp:
 		// Scroll up
 		if m.detailScroll > 0 {
 			m.detailScroll--
 		}
-	case tea.MouseWheelDown:
+	case tea.MouseButtonWheelDown:
 		// Scroll down
 		maxScroll := m.calculateMaxScroll()
 		if m.detailScroll < maxScroll {
@@ -322,13 +337,13 @@ func (m Model) handleMouseDetail(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleMouseList(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
-	switch msg.Type {
-	case tea.MouseWheelUp:
+	switch msg.Button {
+	case tea.MouseButtonWheelUp:
 		// Scroll up in list
 		if m.selectedIdx > 0 {
 			m.selectedIdx--
 		}
-	case tea.MouseWheelDown:
+	case tea.MouseButtonWheelDown:
 		// Scroll down in list
 		if m.selectedIdx < len(m.snippets)-1 {
 			m.selectedIdx++
@@ -430,6 +445,13 @@ func (m Model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "c":
 		if m.detailSnippet != nil {
 			return m, copyToClipboard(m.detailSnippet.Content)
+		}
+
+	case "e":
+		if m.detailSnippet != nil {
+			m.mode = ViewEdit
+			m.initEditForm(m.detailSnippet)
+			return m, nil
 		}
 	}
 
@@ -535,8 +557,12 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		for i := range m.inputs {
 			if i == m.focusedInput {
 				m.inputs[i].Focus()
+				m.inputs[i].TextStyle = focusedInputStyle
+				m.inputs[i].PromptStyle = focusedInputStyle
 			} else {
 				m.inputs[i].Blur()
+				m.inputs[i].TextStyle = inputStyle
+				m.inputs[i].PromptStyle = inputStyle
 			}
 		}
 
@@ -838,7 +864,7 @@ func (m Model) viewDetail() string {
 		for i, file := range m.detailSnippet.Files {
 			fileStyle := dimmedStyle
 			if i == m.selectedFileIdx {
-				fileStyle = selectedItemStyle.Copy().Underline(true)
+				fileStyle = selectedItemStyle.Underline(true)
 			}
 			s.WriteString(fileStyle.Render(fmt.Sprintf(" %s ", file.Filename)))
 			s.WriteString(" ")
@@ -950,19 +976,21 @@ func (m Model) viewCreateForm() string {
 	s.WriteString(headerStyle.Render("Create New Snippet"))
 	s.WriteString("\n\n")
 
+	formContent := strings.Builder{}
 	for i, input := range m.inputs {
-		s.WriteString(input.View())
-		s.WriteString("\n")
+		formContent.WriteString(input.View())
+		formContent.WriteString("\n")
 		if i < len(m.inputs)-1 {
-			s.WriteString("\n")
+			formContent.WriteString("\n")
 		}
 	}
 
-	s.WriteString("\n\n")
-	s.WriteString(dimmedStyle.Render("Note: Content editing in external editor coming soon"))
-	s.WriteString("\n\n")
-	s.WriteString(helpStyle.Render("tab next field • ctrl+s save • esc cancel"))
+	formContent.WriteString("\n\n")
+	formContent.WriteString(dimmedStyle.Render("Note: Content editing in external editor coming soon"))
+	formContent.WriteString("\n\n")
+	formContent.WriteString(helpStyle.Render("tab next field • ctrl+s save • esc cancel"))
 
+	s.WriteString(borderStyle.Render(formContent.String()))
 	return s.String()
 }
 
@@ -972,19 +1000,21 @@ func (m Model) viewEditForm() string {
 	s.WriteString(headerStyle.Render("Edit Snippet"))
 	s.WriteString("\n\n")
 
+	formContent := strings.Builder{}
 	for i, input := range m.inputs {
-		s.WriteString(input.View())
-		s.WriteString("\n")
+		formContent.WriteString(input.View())
+		formContent.WriteString("\n")
 		if i < len(m.inputs)-1 {
-			s.WriteString("\n")
+			formContent.WriteString("\n")
 		}
 	}
 
-	s.WriteString("\n\n")
-	s.WriteString(dimmedStyle.Render("Note: Content editing in external editor coming soon"))
-	s.WriteString("\n\n")
-	s.WriteString(helpStyle.Render("tab next field • ctrl+s save • esc cancel"))
+	formContent.WriteString("\n\n")
+	formContent.WriteString(dimmedStyle.Render("Note: Content editing in external editor coming soon"))
+	formContent.WriteString("\n\n")
+	formContent.WriteString(helpStyle.Render("tab next field • ctrl+s save • esc cancel"))
 
+	s.WriteString(borderStyle.Render(formContent.String()))
 	return s.String()
 }
 
