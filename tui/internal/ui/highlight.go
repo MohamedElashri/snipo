@@ -39,7 +39,6 @@ func registerTransparentStyle(baseName, newName string) {
 
 		// 3. Iterate over other known token types to ensure transparency
 		tokens := []chroma.TokenType{
-			chroma.Title,
 			chroma.Background,
 			chroma.Text,
 			chroma.Whitespace,
@@ -204,12 +203,12 @@ func getUniversalANSIStyle() ansi.StyleConfig {
 	
 	// Code - Cyan (ANSI 6) for inline, no background
 	s.Code.Color = pointer("6")
-	s.Code.StylePrimitive.BackgroundColor = nil
-	s.Code.StylePrimitive.BlockPrefix = ""
-	s.Code.StylePrimitive.BlockSuffix = ""
+	s.Code.BackgroundColor = nil
+	s.Code.BlockPrefix = ""
+	s.Code.BlockSuffix = ""
 	
 	// Code Block - Transparent, syntax highlighted
-	s.CodeBlock.StylePrimitive.BackgroundColor = nil
+	s.CodeBlock.BackgroundColor = nil
 	s.CodeBlock.Margin = pointer(uint(0))
 	
 	// Text - Default (nil) means strictly terminal foreground

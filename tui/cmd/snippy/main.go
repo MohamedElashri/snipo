@@ -10,13 +10,25 @@ import (
 	"github.com/MohamedElashri/snipo/tui/internal/config"
 )
 
+
+var (
+	Version = "beta_dev"
+	Commit  = "none"
+)
+
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "config" {
-		if err := runConfigWizard(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "config":
+			if err := runConfigWizard(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		case "version":
+			fmt.Printf("Snippy %s (%s)\n", Version, Commit)
+			return
 		}
-		return
 	}
 
 	if err := app.Run(); err != nil {
