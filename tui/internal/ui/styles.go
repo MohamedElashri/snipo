@@ -64,8 +64,9 @@ var (
 			MarginBottom(1)
 
 	codeBlockStyle = lipgloss.NewStyle().
-			Background(lipgloss.Color("235")).
 			Foreground(lipgloss.Color("252")).
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("62")).
 			Padding(1, 2).
 			MarginTop(1).
 			MarginBottom(1)
