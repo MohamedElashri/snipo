@@ -20,7 +20,51 @@ func init() {
 	registerTransparentStyle("friendly", "snipo-light")
 }
 
+func registerTransparentStyle(baseName, newName string) {
+	baseStyle := styles.Get(baseName)
+	if baseStyle != nil {
+		builder := baseStyle.Builder()
+		
+		// 1. Unset global background
+		bgEntry := builder.Get(chroma.Background)
+		builder.Add(chroma.Background, bgEntry.Colour.String())
 
+		// 2. Override specific tokens to ensure visibility (No Grey)
+		// Set Comments to Green (#00aa00) which maps to ANSI 2
+		builder.Add(chroma.Comment, "#00aa00")
+		builder.Add(chroma.CommentPreproc, "#00aa00")
+		builder.Add(chroma.CommentSingle, "#00aa00")
+		builder.Add(chroma.CommentSpecial, "#00aa00")
+		builder.Add(chroma.CommentMultiline, "#00aa00")
+
+		// 3. Iterate over other known token types to ensure transparency
+		tokens := []chroma.TokenType{
+			chroma.Title,
+			chroma.Background,
+			chroma.Text,
+			chroma.Whitespace,
+			// Comments handled above
+			chroma.Keyword,
+			chroma.Name,
+			chroma.Literal,
+			chroma.Operator,
+			chroma.Punctuation,
+		}
+		
+		for _, t := range tokens {
+			if entry := builder.Get(t); entry.Background.IsSet() {
+				// Re-add with only foreground (removing background)
+				builder.Add(t, entry.Colour.String())
+			}
+		}
+
+		newStyle, err := builder.Build()
+		if err == nil {
+			newStyle.Name = newName
+			styles.Register(newStyle)
+		}
+	}
+}
 
 // IsDarkMode detects if the terminal has a dark background
 func IsDarkMode() bool {
@@ -191,51 +235,6 @@ func getUniversalANSIStyle() ansi.StyleConfig {
 	return s
 }
 
-func registerTransparentStyle(baseName, newName string) {
-	baseStyle := styles.Get(baseName)
-	if baseStyle != nil {
-		builder := baseStyle.Builder()
-		
-		// 1. Unset global background
-		bgEntry := builder.Get(chroma.Background)
-		builder.Add(chroma.Background, bgEntry.Colour.String())
-
-		// 2. Override specific tokens to ensure visibility (No Grey)
-		// Set Comments to Green (#00aa00) which maps to ANSI 2
-		builder.Add(chroma.Comment, "#00aa00")
-		builder.Add(chroma.CommentPreproc, "#00aa00")
-		builder.Add(chroma.CommentSingle, "#00aa00")
-		builder.Add(chroma.CommentSpecial, "#00aa00")
-		builder.Add(chroma.CommentMultiline, "#00aa00")
-
-		// 3. Iterate over other known token types to ensure transparency
-		tokens := []chroma.TokenType{
-			chroma.Background,
-			chroma.Text,
-			chroma.Whitespace,
-			// Comments handled above
-			chroma.Keyword,
-			chroma.Name,
-			chroma.Literal,
-			chroma.Operator,
-			chroma.Punctuation,
-		}
-		
-		for _, t := range tokens {
-			if entry := builder.Get(t); entry.Background.IsSet() {
-				// Re-add with only foreground (removing background)
-				builder.Add(t, entry.Colour.String())
-			}
-		}
-
-		newStyle, err := builder.Build()
-		if err == nil {
-			newStyle.Name = newName
-			styles.Register(newStyle)
-		}
-	}
-}
-
 func pointer[T any](v T) *T {
 	return &v
 }
@@ -273,7 +272,6 @@ func RenderMarkdown(content string, width int) string {
 }
 
 
-
 // RenderContent renders content based on type (markdown or code with syntax highlighting)
 func RenderContent(content, language, filename string, width int) string {
 	// Check if this is markdown
@@ -289,5 +287,3 @@ func RenderContent(content, language, filename string, width int) string {
 
 	return HighlightCode(content, highlightLanguage)
 }
-
-
