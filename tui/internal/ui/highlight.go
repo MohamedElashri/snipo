@@ -8,7 +8,48 @@ import (
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/charmbracelet/glamour"
+	glamourStyles "github.com/charmbracelet/glamour/styles"
 )
+
+func init() {
+	// Register a custom style that clones monokai but removes the background
+	// from ALL tokens to ensure no dark boxes appear.
+	baseStyle := styles.Get("monokai")
+	if baseStyle != nil {
+		builder := baseStyle.Builder()
+		
+		// 1. Unset global background
+		bgEntry := builder.Get(chroma.Background)
+		builder.Add(chroma.Background, bgEntry.Colour.String())
+
+		// 2. Iterate over known token types to ensure consistent transparency
+		tokens := []chroma.TokenType{
+
+			chroma.Background,
+			chroma.Text,
+			chroma.Whitespace,
+			chroma.Comment,
+			chroma.Keyword,
+			chroma.Name,
+			chroma.Literal,
+			chroma.Operator,
+			chroma.Punctuation,
+		}
+		
+		for _, t := range tokens {
+			if entry := builder.Get(t); entry.Background.IsSet() {
+				// Re-add with only foreground (removing background)
+				builder.Add(t, entry.Colour.String())
+			}
+		}
+
+		newStyle, err := builder.Build()
+		if err == nil {
+			newStyle.Name = "snipo-dark"
+			styles.Register(newStyle)
+		}
+	}
+}
 
 // HighlightCode applies syntax highlighting to code based on the language
 func HighlightCode(code, language string) string {
@@ -31,8 +72,11 @@ func HighlightCode(code, language string) string {
 	// Coalesce the lexer to ensure it's properly initialized
 	lexer = chroma.Coalesce(lexer)
 
-	// Get the style - using monokai which works well in terminals
-	style := styles.Get("monokai")
+	// Get the style - using snipo-dark if available, otherwise monokai
+	style := styles.Get("snipo-dark")
+	if style == nil {
+		style = styles.Get("monokai")
+	}
 	if style == nil {
 		style = styles.Fallback
 	}
@@ -115,9 +159,17 @@ func IsMarkdown(language, filename string) bool {
 
 // RenderMarkdown renders markdown content with proper formatting
 func RenderMarkdown(content string, width int) string {
-	// Create a glamour renderer with dark style for terminal
+	// Create a custom style based on DarkStyleConfig but without backgrounds (nil)
+	style := glamourStyles.DarkStyleConfig
+	style.Code.StylePrimitive.BackgroundColor = nil
+	style.CodeBlock.StylePrimitive.BackgroundColor = nil
+	
+	// Use our custom chroma theme that has no background
+	style.CodeBlock.Theme = "snipo-dark"
+
+	// Create a glamour renderer with the custom style
 	r, err := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
+		glamour.WithStyles(style),
 		glamour.WithWordWrap(width),
 	)
 
@@ -151,3 +203,5 @@ func RenderContent(content, language, filename string, width int) string {
 
 	return HighlightCode(content, highlightLanguage)
 }
+
+
