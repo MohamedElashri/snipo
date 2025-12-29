@@ -1,4 +1,4 @@
-name: CI
+name: snipo CI
 
 on:
   push:

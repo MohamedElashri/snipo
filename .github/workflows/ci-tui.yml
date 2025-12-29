@@ -1,4 +1,4 @@
-name: TUI CI
+name: snippy CI
 
 on:
   push:
