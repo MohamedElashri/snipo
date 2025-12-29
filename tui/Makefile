@@ -1,4 +1,4 @@
-.PHONY: build install clean test run help
+.PHONY: build install clean test run lint help
 
 BINARY_NAME=snippy
 BUILD_DIR=bin
@@ -24,13 +24,13 @@ build: deps
 	@echo "Building snippy..."
 	@mkdir -p $(BUILD_DIR)
 	@go build -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/snippy
-	@echo "✓ Binary built: $(BUILD_DIR)/$(BINARY_NAME)"
+	@echo "Binary built: $(BUILD_DIR)/$(BINARY_NAME)"
 
 install: build
 	@echo "Installing $(BINARY_NAME) to $(INSTALL_PATH)..."
 	@sudo cp $(BUILD_DIR)/$(BINARY_NAME) $(INSTALL_PATH)/
 	@sudo chmod +x $(INSTALL_PATH)/$(BINARY_NAME)
-	@echo "✓ Installed successfully!"
+	@echo "Installed successfully!"
 	@echo "Run '$(BINARY_NAME) config' to configure"
 
 run:
@@ -40,7 +40,11 @@ run:
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(BUILD_DIR)
-	@echo "✓ Clean complete"
+	@echo "Clean complete"
+
+lint:
+	@echo "Running linter..."
+	golangci-lint run ./...
 
 test:
 	@echo "Running tests..."
