@@ -35,7 +35,7 @@ install: build
 
 run:
 	@echo "Running $(BINARY_NAME)..."
-	go run ./cmd/snipo-tui
+	go run ./cmd/snippy
 
 clean:
 	@echo "Cleaning build artifacts..."
