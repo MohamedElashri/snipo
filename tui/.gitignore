@@ -1,6 +1,6 @@
 # Binaries
 bin/
-snippy
+/snippy
 *.exe
 *.exe~
 *.dll
