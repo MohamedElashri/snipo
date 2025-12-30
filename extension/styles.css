@@ -212,3 +212,44 @@
     background-color: #334155;
     color: #f8fafc;
 }
+
+/* Autocomplete Suggestions */
+.snipo-suggestions {
+    position: absolute;
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 2147483647;
+    width: 100%;
+    margin-top: 4px;
+    display: none;
+}
+
+.snipo-suggestions.visible {
+    display: block;
+}
+
+.snipo-suggestion-item {
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #cbd5e1;
+    cursor: pointer;
+    border-bottom: 1px solid #334155;
+}
+
+.snipo-suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.snipo-suggestion-item:hover {
+    background-color: #334155;
+    color: #f8fafc;
+}
+
+.snipo-suggestion-item .match {
+    color: #60a5fa;
+    font-weight: 600;
+}

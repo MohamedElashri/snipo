@@ -164,10 +164,10 @@ async function showModal(snippetData) {
                     ${folders.map(f => `<option value="${f.id}">${f.name}</option>`).join('')}
                 </select>
             </div>
-            <div class="snipo-form-group">
+            <div class="snipo-form-group" style="position:relative;">
                 <label>Tags (separate by comma)</label>
-                <input type="text" id="snipo-tags" class="snipo-input" placeholder="javascript, react, api">
-                <div style="margin-top:5px; font-size:12px; color:#64748b;">Available: ${tags.map(t => t.name).slice(0, 10).join(', ')}${tags.length > 10 ? '...' : ''}</div>
+                <input type="text" id="snipo-tags" class="snipo-input" placeholder="javascript, react, api" autocomplete="off">
+                <div id="snipo-tag-suggestions" class="snipo-suggestions"></div>
             </div>
             <div class="snipo-modal-actions">
                 <button id="snipo-cancel" class="snipo-btn-secondary">Cancel</button>
@@ -187,23 +187,82 @@ async function showModal(snippetData) {
         setTimeout(() => overlay.remove(), 200);
     };
 
+    const tagsInput = overlay.querySelector('#snipo-tags');
+    const suggestionsBox = overlay.querySelector('#snipo-tag-suggestions');
+
+    // Autocomplete Logic
+    tagsInput.addEventListener('input', () => {
+        const val = tagsInput.value;
+        const tokens = val.split(',');
+        const currentToken = tokens[tokens.length - 1].trim().toLowerCase();
+
+        if (!currentToken) {
+            suggestionsBox.classList.remove('visible');
+            return;
+        }
+
+        // Filter tags
+        const usedTags = tokens.slice(0, -1).map(t => t.trim().toLowerCase());
+        const matches = tags.filter(t =>
+            t.name.toLowerCase().includes(currentToken) &&
+            !usedTags.includes(t.name.toLowerCase())
+        );
+
+        if (matches.length === 0) {
+            suggestionsBox.classList.remove('visible');
+            return;
+        }
+
+        suggestionsBox.innerHTML = matches.map(t => {
+            const name = t.name;
+            const idx = name.toLowerCase().indexOf(currentToken);
+            // safe substring handling
+            const part1 = name.substring(0, idx);
+            const part2 = name.substring(idx, idx + currentToken.length);
+            const part3 = name.substring(idx + currentToken.length);
+
+            return `<div class="snipo-suggestion-item" data-val="${name}">
+                ${part1}<span class="match">${part2}</span>${part3}
+            </div>`;
+        }).join('');
+
+        suggestionsBox.classList.add('visible');
+    });
+
+    suggestionsBox.addEventListener('click', (e) => {
+        const item = e.target.closest('.snipo-suggestion-item');
+        if (item) {
+            const selectedTag = item.getAttribute('data-val');
+            const tokens = tagsInput.value.split(',');
+            tokens.pop();
+            tokens.push(selectedTag);
+            tagsInput.value = tokens.join(', ') + ', ';
+            tagsInput.focus();
+            suggestionsBox.classList.remove('visible');
+        }
+    });
+
     overlay.querySelector('#snipo-cancel').addEventListener('click', close);
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay) close();
+        // Close suggestions if clicked outside
+        if (!tagsInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+            suggestionsBox.classList.remove('visible');
+        }
     });
 
     overlay.querySelector('#snipo-save').addEventListener('click', async () => {
         const title = overlay.querySelector('#snipo-title').value;
         const description = overlay.querySelector('#snipo-desc').value;
         const folderId = overlay.querySelector('#snipo-folder').value || null;
-        const tagsInput = overlay.querySelector('#snipo-tags').value;
+        const tagsInputVal = overlay.querySelector('#snipo-tags').value;
 
         const saveBtn = overlay.querySelector('#snipo-save');
         saveBtn.innerText = 'Saving...';
         saveBtn.disabled = true;
 
         // Process Tags
-        const tagNames = tagsInput.split(',').map(t => t.trim()).filter(t => t);
+        const tagNames = tagsInputVal.split(',').map(t => t.trim()).filter(t => t);
 
         // Backend expects array of strings for tags
         // It handles creation/lookup automatically
