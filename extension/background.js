@@ -20,12 +20,67 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // Handle Messages from Content Script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "saveSnippet") {
-        saveSnippet(request.code, sender.tab, request.language, request.title, sendResponse);
+        saveSnippet(request.code, sender.tab, request.language, request.title, request.folder_id, request.tags, request.description, sendResponse);
         return true; // Indicates async response
+    }
+    if (request.action === "fetchTags") {
+        apiCall(request.action, "GET", "/api/v1/tags", null, sendResponse);
+        return true;
+    }
+    if (request.action === "fetchFolders") {
+        apiCall(request.action, "GET", "/api/v1/folders", null, sendResponse);
+        return true;
+    }
+    if (request.action === "createTag") {
+        apiCall(request.action, "POST", "/api/v1/tags", { name: request.name }, sendResponse);
+        return true;
+    }
+    if (request.action === "createFolder") {
+        apiCall(request.action, "POST", "/api/v1/folders", { name: request.name }, sendResponse);
+        return true;
     }
 });
 
-async function saveSnippet(code, tab, language = "text", title = null, sendResponse = null) {
+async function apiCall(action, method, endpoint, body, sendResponse) {
+    try {
+        const config = await chrome.storage.sync.get(['instanceUrl', 'apiKey']);
+        if (!config.instanceUrl || !config.apiKey) {
+            sendResponse({ success: false, error: "Configuration missing" });
+            return;
+        }
+
+        const url = `${config.instanceUrl}${endpoint}`;
+        const options = {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': config.apiKey
+            }
+        };
+
+        if (body) {
+            options.body = JSON.stringify(body);
+        }
+
+        const response = await fetch(url, options);
+        if (response.ok) {
+            const data = await response.json();
+            sendResponse({ success: true, data: data.data || data }); // Handle enveloped or plain
+        } else {
+            const errorText = await response.text();
+            let errorMessage = "API Error";
+            try {
+                const errJson = JSON.parse(errorText);
+                if (errJson.error && errJson.error.message) errorMessage = errJson.error.message;
+            } catch (e) { }
+            sendResponse({ success: false, error: errorMessage });
+        }
+    } catch (e) {
+        sendResponse({ success: false, error: e.message });
+    }
+}
+
+async function saveSnippet(code, tab, language = "text", title = null, folder_id = null, tags = [], description = null, sendResponse = null) {
     // Get configuration
     try {
         const config = await chrome.storage.sync.get(['instanceUrl', 'apiKey']);
@@ -38,25 +93,32 @@ async function saveSnippet(code, tab, language = "text", title = null, sendRespo
         }
 
         const finalTitle = title || `Snippet from ${new URL(tab.url).hostname}`;
+        const finalDesc = description || `Saved from ${tab.url}`;
 
         // Construct API URL
         const apiUrl = `${config.instanceUrl}/api/v1/snippets`;
+
+        const payload = {
+            title: finalTitle,
+            content: code,
+            language: language,
+            description: finalDesc,
+            is_public: false,
+            tags: tags
+        };
+
+        if (folder_id) {
+            payload.folder_id = parseInt(folder_id);
+        }
 
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-API-Key': config.apiKey,
-                // Add version header just in case
                 'X-API-Version': '1.0'
             },
-            body: JSON.stringify({
-                title: finalTitle,
-                content: code,
-                language: language,
-                description: `Saved from ${tab.url}`,
-                is_public: false
-            })
+            body: JSON.stringify(payload)
         });
 
         if (response.ok) {

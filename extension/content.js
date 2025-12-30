@@ -70,14 +70,12 @@ function scanForCode() {
     });
 }
 
-function handleSaveClick(btn, preElement) {
+async function handleSaveClick(btn, preElement) {
     // Extract code
-    // Usually code is inside a <code> tag inside <pre>, but sometimes just in <pre>
     const codeElement = preElement.querySelector('code');
     const textContent = codeElement ? codeElement.innerText : preElement.innerText;
 
-    // Try to detect language from class
-    // Format usually language-js, lang-js, etc.
+    // Detect language
     let language = 'text';
     const classes = (preElement.className + ' ' + (codeElement ? codeElement.className : '')).split(/\s+/);
 
@@ -88,27 +86,125 @@ function handleSaveClick(btn, preElement) {
         }
     }
 
-    // Animate button
-    btn.innerHTML = '...';
-
-    chrome.runtime.sendMessage({
-        action: "saveSnippet",
-        code: textContent,
-        language: language,
-        title: document.title
-    }, (response) => {
-        if (response && response.success) {
-            // Success animation handled globally via toast, but we can also update button
-            // But let's rely on Toast as it's consistent for Context Menu too
+    // Check Interactive Mode setting
+    chrome.storage.sync.get(['interactiveMode'], async (items) => {
+        if (items.interactiveMode) {
+            // Interactive Mode: Show Modal
+            showModal({
+                code: textContent,
+                language: language,
+                title: document.title
+            });
         } else {
-            // Error handled via Toast
+            // Quick Save
+            btn.innerHTML = '...';
+            chrome.runtime.sendMessage({
+                action: "saveSnippet",
+                code: textContent,
+                language: language,
+                title: document.title
+            }, (response) => {
+                setTimeout(() => { btn.innerHTML = SNIPO_ICON; }, 2000);
+                if (!response) return; // Error handled by toast listener
+            });
         }
-        // Reset button icon after a delay
-        setTimeout(() => {
-            btn.innerHTML = SNIPO_ICON;
-        }, 2000);
     });
 }
+
+// --- MODAL LOGIC ---
+
+async function showModal(snippetData) {
+    // 1. Fetch Tags and Folders in parallel
+    const [tagsRes, foldersRes] = await Promise.all([
+        new Promise(resolve => chrome.runtime.sendMessage({ action: "fetchTags" }, resolve)),
+        new Promise(resolve => chrome.runtime.sendMessage({ action: "fetchFolders" }, resolve))
+    ]);
+
+    const tags = tagsRes.success ? tagsRes.data : [];
+    const folders = foldersRes.success ? foldersRes.data : [];
+
+    // 2. Create Modal HTML
+    const overlay = document.createElement('div');
+    overlay.className = 'snipo-modal-overlay';
+
+    overlay.innerHTML = `
+        <div class="snipo-modal">
+            <h2>Save Snippet</h2>
+            <div class="snipo-form-group">
+                <label>Title</label>
+                <input type="text" id="snipo-title" class="snipo-input" value="${snippetData.title.replace(/"/g, '&quot;')}">
+            </div>
+            <div class="snipo-form-group">
+                <label>Description</label>
+                <textarea id="snipo-desc" class="snipo-textarea">Saved from ${window.location.href}</textarea>
+            </div>
+            <div class="snipo-form-group">
+                <label>Folder</label>
+                <select id="snipo-folder" class="snipo-select">
+                    <option value="">No Folder</option>
+                    ${folders.map(f => `<option value="${f.id}">${f.name}</option>`).join('')}
+                </select>
+            </div>
+            <div class="snipo-form-group">
+                <label>Tags (separate by comma)</label>
+                <input type="text" id="snipo-tags" class="snipo-input" placeholder="javascript, react, api">
+                <div style="margin-top:5px; font-size:12px; color:#64748b;">Available: ${tags.map(t => t.name).slice(0, 10).join(', ')}${tags.length > 10 ? '...' : ''}</div>
+            </div>
+            <div class="snipo-modal-actions">
+                <button id="snipo-cancel" class="snipo-btn-secondary">Cancel</button>
+                <button id="snipo-save" class="snipo-btn-primary">Save Snippet</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Animation
+    requestAnimationFrame(() => overlay.classList.add('visible'));
+
+    // Event Listeners
+    const close = () => {
+        overlay.classList.remove('visible');
+        setTimeout(() => overlay.remove(), 200);
+    };
+
+    overlay.querySelector('#snipo-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) close();
+    });
+
+    overlay.querySelector('#snipo-save').addEventListener('click', async () => {
+        const title = overlay.querySelector('#snipo-title').value;
+        const description = overlay.querySelector('#snipo-desc').value;
+        const folderId = overlay.querySelector('#snipo-folder').value || null;
+        const tagsInput = overlay.querySelector('#snipo-tags').value;
+
+        const saveBtn = overlay.querySelector('#snipo-save');
+        saveBtn.innerText = 'Saving...';
+        saveBtn.disabled = true;
+
+        // Process Tags
+        const tagNames = tagsInput.split(',').map(t => t.trim()).filter(t => t);
+
+        // Backend expects array of strings for tags
+        // It handles creation/lookup automatically
+
+        // Send Save Request
+        chrome.runtime.sendMessage({
+            action: "saveSnippet",
+            code: snippetData.code,
+            language: snippetData.language,
+            title: title,
+            description: description,
+            folder_id: folderId,
+            tags: tagNames // Send Names
+        }, (response) => {
+            close();
+            // Toast will be shown by background msg listener
+        });
+    });
+}
+// ----------------
 
 // Toast Notification System
 let toastTimeout;

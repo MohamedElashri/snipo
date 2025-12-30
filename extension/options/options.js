@@ -21,6 +21,7 @@ async function saveOptions(e) {
 
     let instanceUrl = document.getElementById('instanceUrl').value;
     const apiKey = document.getElementById('apiKey').value;
+    const interactiveMode = document.getElementById('interactiveMode').checked;
 
     if (!instanceUrl || !apiKey) {
         showStatus('Please fill in all fields.', 'error');
@@ -53,7 +54,7 @@ async function saveOptions(e) {
 
         if (response.ok) {
             chrome.storage.sync.set(
-                { instanceUrl, apiKey },
+                { instanceUrl, apiKey, interactiveMode },
                 () => {
                     saveBtn.textContent = 'Save Configuration';
                     saveBtn.disabled = false;
@@ -98,10 +99,11 @@ async function saveOptions(e) {
 
 function restoreOptions() {
     chrome.storage.sync.get(
-        { instanceUrl: '', apiKey: '' },
+        { instanceUrl: '', apiKey: '', interactiveMode: false },
         (items) => {
             document.getElementById('instanceUrl').value = items.instanceUrl;
             document.getElementById('apiKey').value = items.apiKey;
+            document.getElementById('interactiveMode').checked = items.interactiveMode;
         }
     );
 }

@@ -145,3 +145,31 @@ input:focus {
 .footer a:hover {
     text-decoration: underline;
 }
+
+.section-divider {
+    border-top: 1px solid var(--border-color);
+    margin: 24px 0;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+}
+
+.checkbox-row input[type="checkbox"] {
+    width: auto;
+    margin: 0 10px 0 0;
+    cursor: pointer;
+}
+
+.checkbox-row label {
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    color: var(--text-primary);
+}
