@@ -108,6 +108,22 @@ input:focus {
     background-color: var(--primary-hover);
 }
 
+.btn.secondary {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.btn.secondary:hover {
+    background-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.btn.small {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
 .status-message {
     margin-top: 16px;
     padding: 10px;
