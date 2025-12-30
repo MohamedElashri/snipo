@@ -17,25 +17,44 @@ const ERROR_ICON = `
 
 // Initialize
 function init() {
-    scanForCode();
+    chrome.storage.sync.get(['instanceUrl'], (items) => {
+        const instanceUrl = items.instanceUrl;
 
-    // Observer for dynamic content (SPA navigation, etc.)
-    const observer = new MutationObserver((mutations) => {
-        let shouldScan = false;
-        for (const mutation of mutations) {
-            if (mutation.addedNodes.length > 0) {
-                shouldScan = true;
-                break;
+        // If instance URL is set and matches current origin, treat as self and do not run
+        if (instanceUrl) {
+            try {
+                const currentOrigin = new URL(window.location.href).origin;
+                const instanceOrigin = new URL(instanceUrl).origin;
+
+                if (currentOrigin === instanceOrigin) {
+                    console.log("Snipo Extension: Disabled on Snipo instance.");
+                    return; // Stop initialization
+                }
+            } catch (e) {
+                // Ignore URL parsing errors
             }
         }
-        if (shouldScan) {
-            // Debounce
-            clearTimeout(window.snipoScanTimeout);
-            window.snipoScanTimeout = setTimeout(scanForCode, 1000);
-        }
-    });
 
-    observer.observe(document.body, { childList: true, subtree: true });
+        scanForCode();
+
+        // Observer for dynamic content (SPA navigation, etc.)
+        const observer = new MutationObserver((mutations) => {
+            let shouldScan = false;
+            for (const mutation of mutations) {
+                if (mutation.addedNodes.length > 0) {
+                    shouldScan = true;
+                    break;
+                }
+            }
+            if (shouldScan) {
+                // Debounce
+                clearTimeout(window.snipoScanTimeout);
+                window.snipoScanTimeout = setTimeout(scanForCode, 1000);
+            }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+    });
 }
 
 function scanForCode() {
