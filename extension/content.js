@@ -200,6 +200,24 @@ async function showModal(snippetData) {
     // Ensure detected language is in list or add it if valid, otherwise fallback
     let safeLanguage = snippetData.language || 'plaintext';
 
+    // Helper to get extension
+    const getExt = (lang) => {
+        const extMap = {
+            'plaintext': 'txt', 'javascript': 'js', 'typescript': 'ts', 'python': 'py',
+            'go': 'go', 'rust': 'rs', 'java': 'java', 'c': 'c', 'cpp': 'cpp',
+            'csharp': 'cs', 'php': 'php', 'ruby': 'rb', 'swift': 'swift',
+            'kotlin': 'kt', 'scala': 'scala', 'html': 'html', 'css': 'css',
+            'scss': 'scss', 'json': 'json', 'yaml': 'yaml', 'xml': 'xml',
+            'markdown': 'md', 'sql': 'sql', 'bash': 'sh', 'shell': 'sh',
+            'powershell': 'ps1', 'dockerfile': 'dockerfile'
+        };
+        return extMap[lang] || 'txt';
+    };
+
+    // Default Filename Logic
+    const generateDefaultFilename = (lang) => `snippet.${getExt(lang)}`;
+    let currentFilename = generateDefaultFilename(safeLanguage);
+
     // 2. Create Modal HTML
     const overlay = document.createElement('div');
     overlay.className = 'snipo-modal-overlay';
@@ -211,17 +229,24 @@ async function showModal(snippetData) {
                 <label>Title</label>
                 <input type="text" id="snipo-title" class="snipo-input" value="${snippetData.title.replace(/"/g, '&quot;')}" >
             </div>
-            <div class="snipo-form-group">
-                <label>Language</label>
-                <select id="snipo-language" class="snipo-select">
-                    ${supportedLanguages.map(lang => `<option value="${lang}" ${lang === safeLanguage ? 'selected' : ''}>${lang.charAt(0).toUpperCase() + lang.slice(1)}</option>`).join('')}
-                    ${!supportedLanguages.includes(safeLanguage) ? `<option value="${safeLanguage}" selected>${safeLanguage} (Detected)</option>` : ''}
-                </select>
+            <div class="snipo-form-group-row">
+                <div class="snipo-form-group half-width">
+                    <label>Language</label>
+                    <select id="snipo-language" class="snipo-select">
+                        ${supportedLanguages.map(lang => `<option value="${lang}" ${lang === safeLanguage ? 'selected' : ''}>${lang.charAt(0).toUpperCase() + lang.slice(1)}</option>`).join('')}
+                        ${!supportedLanguages.includes(safeLanguage) ? `<option value="${safeLanguage}" selected>${safeLanguage} (Detected)</option>` : ''}
+                    </select>
+                </div>
+                <div class="snipo-form-group half-width">
+                    <label>Filename</label>
+                    <input type="text" id="snipo-filename" class="snipo-input" value="${currentFilename}">
+                </div>
             </div>
             <div class="snipo-form-group">
                 <label>Description</label>
                 <textarea id="snipo-desc" class="snipo-textarea">Saved from ${window.location.href}</textarea>
             </div>
+            <!-- ... Folder, Tags ... -->
             <div class="snipo-form-group">
                 <label>Folder</label>
                 <select id="snipo-folder" class="snipo-select">
@@ -245,6 +270,54 @@ async function showModal(snippetData) {
     `;
 
     document.body.appendChild(overlay);
+
+    // [Tag logic kept as is ...]
+    // Re-attach tag logic because innerHTML wiped it out? 
+    // Wait, the previous code block context showed "Tag logic kept as is..." usage in comments?
+    // No, I am replacing the block that creates overlay.
+    // The previous implementation had the tag logic AFTER `document.body.appendChild(overlay)`.
+    // I need to make sure I don't break the listeners.
+    // The previous code block ended with `document.body.appendChild(overlay);`
+    // And then listeners were attached.
+    // EXCEPT I need to add listener for language change to update filename.
+
+    const langSelect = overlay.querySelector('#snipo-language');
+    const filenameInput = overlay.querySelector('#snipo-filename');
+
+    langSelect.addEventListener('change', (e) => {
+        const newLang = e.target.value;
+        const currentVal = filenameInput.value;
+        const currentExt = currentVal.split('.').pop();
+
+        // Simple logic: if filename looks like default (snippet.ext), update fully.
+        // If custom, try to update extension.
+        if (currentVal.startsWith('snippet.')) {
+            filenameInput.value = generateDefaultFilename(newLang);
+        } else {
+            // Replace extension
+            const newExt = getExt(newLang);
+            // If we can identify the old extension, swap it.
+            // If no dot, append.
+            if (currentVal.includes('.')) {
+                const parts = currentVal.split('.');
+                parts.pop();
+                filenameInput.value = parts.join('.') + '.' + newExt;
+            } else {
+                filenameInput.value = currentVal + '.' + newExt;
+            }
+        }
+    });
+
+    // ... Tag Logic ...
+    // NOTE: In `replace_file_content`, I must match `TargetContent` EXACTLY.
+    // The existing code has "Tag logic kept as is" ? No, that was my thought process.
+    // The existing code has full tag logic.
+    // I created the modal with `overlay.innerHTML = ...`.
+    // I need to see what lines I am replacing.
+
+    // I will replace from `// 2. Create Modal HTML` down to `document.body.appendChild(overlay);`
+    // And insert the listener right after.
+
 
     // Animation
     requestAnimationFrame(() => overlay.classList.add('visible'));
@@ -322,16 +395,15 @@ async function showModal(snippetData) {
     overlay.querySelector('#snipo-save').addEventListener('click', async () => {
         const title = overlay.querySelector('#snipo-title').value;
         const language = overlay.querySelector('#snipo-language').value;
+        const filename = overlay.querySelector('#snipo-filename').value; // Get filename
         const description = overlay.querySelector('#snipo-desc').value;
         const folderId = overlay.querySelector('#snipo-folder').value || null;
         const tagsInputVal = overlay.querySelector('#snipo-tags').value;
+        const tagNames = tagsInputVal.split(',').map(t => t.trim()).filter(t => t);
 
         const saveBtn = overlay.querySelector('#snipo-save');
         saveBtn.innerText = 'Saving...';
         saveBtn.disabled = true;
-
-        // Process Tags
-        const tagNames = tagsInputVal.split(',').map(t => t.trim()).filter(t => t);
 
         // Backend expects array of strings for tags
         // It handles creation/lookup automatically
@@ -344,7 +416,8 @@ async function showModal(snippetData) {
             title: title,
             description: description,
             folder_id: folderId,
-            tags: tagNames // Send Names
+            tags: tagNames, // Send Names
+            filename: filename // Send filename
         }, (response) => {
             close();
             // Toast will be shown by background msg listener

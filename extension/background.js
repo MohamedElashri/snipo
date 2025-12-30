@@ -29,7 +29,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // Handle Messages from Content Script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "saveSnippet") {
-        saveSnippet(request.code, sender.tab, request.language, request.title, request.folder_id, request.tags, request.description, sendResponse);
+        saveSnippet(request.code, sender.tab, request.language, request.title, request.folder_id, request.tags, request.description, request.filename, sendResponse);
         return true; // Indicates async response
     }
     if (request.action === "fetchTags") {
@@ -89,7 +89,44 @@ async function apiCall(action, method, endpoint, body, sendResponse) {
     }
 }
 
-async function saveSnippet(code, tab, language = "plaintext", title = null, folder_id = null, tags = [], description = null, sendResponse = null) {
+// Helper to get default filename
+function getDefaultFilename(language) {
+    const extMap = {
+        'plaintext': 'txt',
+        'javascript': 'js',
+        'typescript': 'ts',
+        'python': 'py',
+        'go': 'go',
+        'rust': 'rs',
+        'java': 'java',
+        'c': 'c',
+        'cpp': 'cpp',
+        'csharp': 'cs',
+        'php': 'php',
+        'ruby': 'rb',
+        'swift': 'swift',
+        'kotlin': 'kt',
+        'scala': 'scala',
+        'html': 'html',
+        'css': 'css',
+        'scss': 'scss',
+        'json': 'json',
+        'yaml': 'yaml',
+        'xml': 'xml',
+        'markdown': 'md',
+        'sql': 'sql',
+        'bash': 'sh',
+        'shell': 'sh',
+        'powershell': 'ps1',
+        'dockerfile': 'dockerfile'
+    };
+    const ext = extMap[language] || 'txt';
+    // Generate a timestamped name for uniqueness in defaults
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    return `snippet_${timestamp}.${ext}`;
+}
+
+async function saveSnippet(code, tab, language = "plaintext", title = null, folder_id = null, tags = [], description = null, filename = null, sendResponse = null) {
     // Get configuration
     try {
         const config = await chrome.storage.sync.get(['instanceUrl', 'apiKey']);
@@ -103,17 +140,25 @@ async function saveSnippet(code, tab, language = "plaintext", title = null, fold
 
         const finalTitle = title || `Snippet from ${new URL(tab.url).hostname}`;
         const finalDesc = description || `Saved from ${tab.url}`;
+        const finalFilename = filename || getDefaultFilename(language);
 
         // Construct API URL
         const apiUrl = `${config.instanceUrl}/api/v1/snippets`;
 
+        // Use new FILES payload structure
         const payload = {
             title: finalTitle,
-            content: code,
-            language: language,
             description: finalDesc,
             is_public: false,
-            tags: tags
+            tags: tags,
+            language: language, // Restore top-level language for compatibility
+            files: [
+                {
+                    filename: finalFilename,
+                    content: code,
+                    language: language
+                }
+            ]
         };
 
         if (folder_id) {
