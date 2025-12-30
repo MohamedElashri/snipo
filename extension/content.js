@@ -17,8 +17,15 @@ const ERROR_ICON = `
 
 // Initialize
 function init() {
-    chrome.storage.sync.get(['instanceUrl'], (items) => {
+    chrome.storage.sync.get(['instanceUrl', 'apiKey'], (items) => {
         const instanceUrl = items.instanceUrl;
+        const apiKey = items.apiKey;
+
+        // Check if configured
+        if (!instanceUrl || !apiKey) {
+            console.log("Snipo Extension: Not configured. Skipping injection.");
+            return;
+        }
 
         // If instance URL is set and matches current origin, treat as self and do not run
         if (instanceUrl) {
@@ -117,12 +124,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "contextMenuSave") {
         initiateSaveFlow(request.code, 'plaintext', request.title, null); // No button element for context menu
     }
-    // ... existing toast listener?
 });
 
 async function handleSaveClick(btn, preElement) {
-    // Extract flow logic refactored
-
     // Extract code safely
     const clone = preElement.cloneNode(true);
     const cloneBtn = clone.querySelector('.snipo-btn');
@@ -270,17 +274,6 @@ async function showModal(snippetData) {
     `;
 
     document.body.appendChild(overlay);
-
-    // [Tag logic kept as is ...]
-    // Re-attach tag logic because innerHTML wiped it out? 
-    // Wait, the previous code block context showed "Tag logic kept as is..." usage in comments?
-    // No, I am replacing the block that creates overlay.
-    // The previous implementation had the tag logic AFTER `document.body.appendChild(overlay)`.
-    // I need to make sure I don't break the listeners.
-    // The previous code block ended with `document.body.appendChild(overlay);`
-    // And then listeners were attached.
-    // EXCEPT I need to add listener for language change to update filename.
-
     const langSelect = overlay.querySelector('#snipo-language');
     const filenameInput = overlay.querySelector('#snipo-filename');
 
@@ -307,17 +300,6 @@ async function showModal(snippetData) {
             }
         }
     });
-
-    // ... Tag Logic ...
-    // NOTE: In `replace_file_content`, I must match `TargetContent` EXACTLY.
-    // The existing code has "Tag logic kept as is" ? No, that was my thought process.
-    // The existing code has full tag logic.
-    // I created the modal with `overlay.innerHTML = ...`.
-    // I need to see what lines I am replacing.
-
-    // I will replace from `// 2. Create Modal HTML` down to `document.body.appendChild(overlay);`
-    // And insert the listener right after.
-
 
     // Animation
     requestAnimationFrame(() => overlay.classList.add('visible'));
