@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snipo Settings</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h2>Snipo Extension Settings</h2>
+            <p>Configure your self-hosted Snipo instance connection.</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="tab-info">Status</button>
+            <button class="tab-btn" data-tab="tab-settings">Settings</button>
+            <button class="tab-btn" data-tab="tab-ignored">Ignored Sites</button>
+        </div>
+
+        <div id="tab-info" class="tab-content active">
+            <div class="info-item">
+                <span class="info-label">Status</span>
+                <div class="connection-status">
+                    <span id="status-dot" class="status-dot"></span>
+                    <span id="connection-text" class="info-value">Checking...</span>
+                </div>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Connected Instance</span>
+                <span id="info-instance" class="info-value">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Extension Version</span>
+                <span id="ext-version" class="info-value">...</span>
+            </div>
+            <div class="actions" style="margin-top:20px">
+                <a href="https://github.com/MohamedElashri/snipo" target="_blank" class="btn secondary"
+                    style="display:block; text-align:center; text-decoration:none;">Documentation / Help</a>
+            </div>
+        </div>
+
+        <div id="tab-settings" class="tab-content">
+            <form id="settings-form">
+                <div class="form-group">
+                    <label for="instanceUrl">Instance URL</label>
+                    <input type="url" id="instanceUrl" name="instanceUrl" placeholder="http://localhost:8080" required>
+                    <span class="help-text">The base URL of your Snipo server.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="apiKey">API Key</label>
+                    <input type="password" id="apiKey" name="apiKey" placeholder="key" required>
+                    <span class="help-text">Generate an API key in your Snipo Settings page.</span>
+                    <button type="button" id="test-btn" class="btn secondary small"
+                        style="margin-top: 8px; width: auto;">Test Connection</button>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <h2>Preferences</h2>
+
+                <div class="form-group">
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="interactiveMode" name="interactiveMode">
+                        <label for="interactiveMode">Enable Interactive Mode</label>
+                    </div>
+                    <span class="help-text" style="display:block; margin-top:4px; margin-left: 24px;">
+                        Show a popup to edit details and organize snippet before saving.
+                    </span>
+                </div>
+
+                <div class="actions">
+                    <button type="submit" id="save-btn" class="btn primary">Save Configuration</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="tab-ignored" class="tab-content">
+            <div class="form-group">
+                <label for="new-ignored-site">Add Website to Ignore</label>
+                <div class="input-row">
+                    <input type="text" id="new-ignored-site" placeholder="e.g. stackoverflow.com">
+                    <button type="button" id="add-ignored-btn" class="btn primary small"
+                        style="width: auto;">Add</button>
+                </div>
+                <span class="help-text">Snipo will not run on these domains.</span>
+            </div>
+
+            <div class="form-group">
+                <label>Ignored Websites</label>
+                <div id="ignored-list" class="ignored-list">
+                    <!-- Items injected by JS -->
+                </div>
+            </div>
+        </div>
+
+        <div id="status" class="status-message hidden"></div>
+
+        <div class="footer">
+            <p>Need help? Visit <a href="https://github.com/MohamedElashri/snipo" target="_blank">Snipo on GitHub</a>
+            </p>
+        </div>
+    </div>
+    <script src="options.js"></script>
+</body>
+
+</html>
