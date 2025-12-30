@@ -1,0 +1,47 @@
+{
+    "manifest_version": 3,
+    "name": "Snipo - Code Snippet Manager",
+    "version": "0.1.0",
+    "description": "Save code snippets to your Snipo instance with one click.",
+    "permissions": [
+        "activeTab",
+        "scripting",
+        "contextMenus",
+        "storage"
+    ],
+    "host_permissions": [
+        "http://*/*",
+        "https://*/*"
+    ],
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "snipo@melashri.net"
+        }
+    },
+    "action": {
+        "default_title": "Snipo",
+        "default_popup": "options/options.html"
+    },
+    "options_ui": {
+        "page": "options/options.html",
+        "open_in_tab": false
+    },
+    "background": {
+        "scripts": [
+            "background.js"
+        ]
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "css": [
+                "styles.css"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,88 @@
+/* Snipo Injected Styles */
+
+.snipo-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 10000;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #1e293b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s, background-color 0.2s, transform 0.1s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Ensure container has relative positioning so absolute button works */
+.snipo-wrapper {
+    position: relative !important;
+    display: block !important;
+}
+
+.snipo-wrapper:hover .snipo-btn {
+    opacity: 1;
+}
+
+.snipo-btn:hover {
+    background-color: #2563eb;
+    transform: translateY(-1px);
+}
+
+.snipo-btn:active {
+    transform: translateY(0);
+}
+
+.snipo-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: #f8fafc;
+}
+
+/* Toast Notification */
+.snipo-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 2147483647;
+    /* Max z-index */
+    padding: 12px 20px;
+    background-color: #1e293b;
+    color: #f8fafc;
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+    border: 1px solid #334155;
+}
+
+.snipo-toast.visible {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.snipo-toast.success {
+    border-left: 4px solid #10b981;
+}
+
+.snipo-toast.error {
+    border-left: 4px solid #ef4444;
+}
+
+.snipo-toast-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

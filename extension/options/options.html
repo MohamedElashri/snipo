@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snipo Settings</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Snipo Settings</h1>
+            <p>Configure your self-hosted Snipo instance connection.</p>
+        </header>
+
+        <form id="settings-form">
+            <div class="form-group">
+                <label for="instanceUrl">Instance URL</label>
+                <input type="url" id="instanceUrl" name="instanceUrl" placeholder="http://localhost:8080" required>
+                <span class="help-text">The base URL of your Snipo server.</span>
+            </div>
+
+            <div class="form-group">
+                <label for="apiKey">API Key</label>
+                <input type="password" id="apiKey" name="apiKey" placeholder="sk_..." required>
+                <span class="help-text">Generate an API key in your Snipo Settings page.</span>
+            </div>
+
+            <div class="actions">
+                <button type="submit" id="save-btn" class="btn primary">Save Configuration</button>
+            </div>
+        </form>
+
+        <div id="status" class="status-message hidden"></div>
+        
+        <div class="footer">
+            <p>Need help? Visit <a href="https://github.com/MohamedElashri/snipo" target="_blank">Snipo on GitHub</a></p>
+        </div>
+    </div>
+    <script src="options.js"></script>
+</body>
+</html>
