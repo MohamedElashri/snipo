@@ -3,7 +3,8 @@
 .snipo-btn {
     position: absolute;
     top: 5px;
-    right: 5px;
+    right: 50px;
+    left: auto;
     z-index: 10000;
     width: 32px;
     height: 32px;
@@ -15,7 +16,9 @@
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.2s, background-color 0.2s, transform 0.1s;
+    transition: opacity 0.2s,
+        background-color 0.2s,
+        transform 0.1s;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
