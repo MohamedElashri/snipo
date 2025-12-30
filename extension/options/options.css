@@ -282,3 +282,66 @@ h2 {
 .status-dot.disconnected {
     background-color: var(--error-color);
 }
+
+/* Ignored Sites Tab Styles */
+.input-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.ignored-list {
+    background-color: var(--bg-color);
+    /* Matches input bg */
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    min-height: 100px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.ignored-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.ignored-item:last-child {
+    margin-bottom: 0;
+}
+
+.ignored-domain {
+    color: var(--text-primary);
+}
+
+.remove-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.remove-btn:hover {
+    color: var(--error-color);
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+.empty-state {
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
+    font-size: 13px;
+}

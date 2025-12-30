@@ -17,9 +17,21 @@ const ERROR_ICON = `
 
 // Initialize
 function init() {
-    chrome.storage.sync.get(['instanceUrl', 'apiKey'], (items) => {
+    chrome.storage.sync.get(['instanceUrl', 'apiKey', 'ignoredSites'], (items) => {
         const instanceUrl = items.instanceUrl;
         const apiKey = items.apiKey;
+        const ignoredSites = items.ignoredSites || [];
+
+        // Check ignored sites
+        const currentHostname = window.location.hostname;
+        const isIgnored = ignoredSites.some(site => {
+            return currentHostname === site || currentHostname.endsWith('.' + site);
+        });
+
+        if (isIgnored) {
+            console.log(`Snipo Extension: Disabled on ${currentHostname} (Ignored List).`);
+            return;
+        }
 
         // Check if configured
         if (!instanceUrl || !apiKey) {

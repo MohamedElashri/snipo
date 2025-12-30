@@ -157,6 +157,86 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
+// --- Ignored Sites Logic ---
+let ignoredSites = [];
+
+function renderIgnoredList() {
+    const list = document.getElementById('ignored-list');
+    list.innerHTML = '';
+
+    if (ignoredSites.length === 0) {
+        list.innerHTML = '<div class="empty-state">No websites ignored. Snipo runs everywhere.</div>';
+        return;
+    }
+
+    ignoredSites.forEach(site => {
+        const item = document.createElement('div');
+        item.className = 'ignored-item';
+        item.innerHTML = `
+            <span class="ignored-domain">${site}</span>
+            <button class="remove-btn" title="Remove" data-site="${site}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        `;
+        list.appendChild(item);
+    });
+
+    // Attach listeners
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const siteToRemove = e.currentTarget.getAttribute('data-site');
+            removeIgnoredSite(siteToRemove);
+        });
+    });
+}
+
+function addIgnoredSite() {
+    const input = document.getElementById('new-ignored-site');
+    let site = input.value.trim().toLowerCase();
+
+    if (!site) return;
+
+    // Simple cleanup: remove http(s)://, www., path
+    try {
+        if (!site.includes('://')) site = 'http://' + site; // dummy protocol for URL parser
+        site = new URL(site).hostname;
+    } catch (e) {
+        // Fallback to raw input if simple hostname extraction fails
+    }
+
+    // Check duplicates
+    if (ignoredSites.includes(site)) {
+        showStatus('Site already ignored.', 'error');
+        input.value = '';
+        return;
+    }
+
+    ignoredSites.push(site);
+    saveIgnoredSites();
+    input.value = '';
+    renderIgnoredList();
+}
+
+function removeIgnoredSite(site) {
+    ignoredSites = ignoredSites.filter(s => s !== site);
+    saveIgnoredSites();
+    renderIgnoredList();
+}
+
+function saveIgnoredSites() {
+    chrome.storage.sync.set({ ignoredSites }, () => {
+        // showStatus('Ignored list updated.'); // Optional: feedback
+    });
+}
+
+document.getElementById('add-ignored-btn').addEventListener('click', addIgnoredSite);
+document.getElementById('new-ignored-site').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addIgnoredSite();
+});
+
 async function updateStatusTab(items) {
     const statusDot = document.getElementById('status-dot');
     const statusText = document.getElementById('connection-text');
@@ -184,11 +264,14 @@ async function updateStatusTab(items) {
 
 function restoreOptions() {
     chrome.storage.sync.get(
-        { instanceUrl: '', apiKey: '', interactiveMode: false },
+        { instanceUrl: '', apiKey: '', interactiveMode: false, ignoredSites: [] },
         (items) => {
             document.getElementById('instanceUrl').value = items.instanceUrl;
             document.getElementById('apiKey').value = items.apiKey;
             document.getElementById('interactiveMode').checked = items.interactiveMode;
+
+            ignoredSites = items.ignoredSites || [];
+            renderIgnoredList();
 
             updateStatusTab(items);
         }

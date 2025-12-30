@@ -18,6 +18,7 @@
         <div class="tabs">
             <button class="tab-btn active" data-tab="tab-info">Status</button>
             <button class="tab-btn" data-tab="tab-settings">Settings</button>
+            <button class="tab-btn" data-tab="tab-ignored">Ignored Sites</button>
         </div>
 
         <div id="tab-info" class="tab-content active">
@@ -76,6 +77,25 @@
                     <button type="submit" id="save-btn" class="btn primary">Save Configuration</button>
                 </div>
             </form>
+        </div>
+
+        <div id="tab-ignored" class="tab-content">
+            <div class="form-group">
+                <label for="new-ignored-site">Add Website to Ignore</label>
+                <div class="input-row">
+                    <input type="text" id="new-ignored-site" placeholder="e.g. stackoverflow.com">
+                    <button type="button" id="add-ignored-btn" class="btn primary small"
+                        style="width: auto;">Add</button>
+                </div>
+                <span class="help-text">Snipo will not run on these domains.</span>
+            </div>
+
+            <div class="form-group">
+                <label>Ignored Websites</label>
+                <div id="ignored-list" class="ignored-list">
+                    <!-- Items injected by JS -->
+                </div>
+            </div>
         </div>
 
         <div id="status" class="status-message hidden"></div>
