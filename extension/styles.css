@@ -2,9 +2,9 @@
 
 .snipo-btn {
     position: absolute;
+    /* Sticky allows it to stay visible while scrolling */
     top: 5px;
-    right: 50px;
-    left: auto;
+    right: 5px;
     z-index: 10000;
     width: 32px;
     height: 32px;
@@ -20,13 +20,15 @@
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
+/* Enclosing Wrapper */
 /* Ensure container has relative positioning so absolute button works */
+/* .snipo-wrapper is ONLY added when we need to force relative */
 .snipo-wrapper {
     position: relative !important;
-    display: block !important;
 }
 
-.snipo-wrapper:hover .snipo-btn {
+/* Visibility trigger - relies on .snipo-container being always added */
+.snipo-container:hover .snipo-btn {
     opacity: 1;
 }
 

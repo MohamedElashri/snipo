@@ -10,10 +10,19 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 // Handle Context Menu Clicks
+// Handle Context Menu Clicks
 chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId === "save-to-snipo" && info.selectionText) {
-        // Send message to content script to handle the saving (so we can show UI feedback there)
-        saveSnippet(info.selectionText, tab);
+        // Delegate to content script to respect Interactive Mode setting
+        chrome.tabs.sendMessage(tab.id, {
+            action: "contextMenuSave",
+            code: info.selectionText,
+            title: tab.title
+        }).catch(err => {
+            console.warn("Could not send context menu action to content script. Tab might need reload.", err);
+            // Fallback to quick save if content script is missing? 
+            saveSnippet(info.selectionText, tab, "plaintext", tab.title);
+        });
     }
 });
 
@@ -80,7 +89,7 @@ async function apiCall(action, method, endpoint, body, sendResponse) {
     }
 }
 
-async function saveSnippet(code, tab, language = "text", title = null, folder_id = null, tags = [], description = null, sendResponse = null) {
+async function saveSnippet(code, tab, language = "plaintext", title = null, folder_id = null, tags = [], description = null, sendResponse = null) {
     // Get configuration
     try {
         const config = await chrome.storage.sync.get(['instanceUrl', 'apiKey']);

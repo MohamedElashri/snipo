@@ -66,12 +66,27 @@ function scanForCode() {
         // Mark as injected
         pre.setAttribute('data-snipo-injected', 'true');
 
-        // Check if wrapper needed
-        if (getComputedStyle(pre).position === 'static') {
-            pre.classList.add('snipo-wrapper');
-        } else {
-            // Add relative class helper if needed, or rely on existing relative/absolute
-            pre.classList.add('snipo-wrapper');
+        let container = pre;
+        let injectStart = false; // default append
+
+        // Smart Parent Detection (GitHub & others)
+        // Look for existing wrapper like div.highlight
+        const parent = pre.parentElement;
+        if (parent &&
+            (parent.classList.contains('highlight') ||
+                parent.classList.contains('zeroclipboard-container') ||
+                parent.tagName === 'DIV' && parent.children.length === 1)) {
+
+            container = parent;
+        }
+
+        // Always mark the container for CSS targeting (hover visibility)
+        container.classList.add('snipo-container');
+
+        // Ensure container is positioned context for absolute button
+        // Check if we need to force relative positioning
+        if (getComputedStyle(container).position === 'static') {
+            container.classList.add('snipo-wrapper'); // helper class for relative
         }
 
         const btn = document.createElement('button');
@@ -82,49 +97,81 @@ function scanForCode() {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
-            handleSaveClick(btn, pre);
+            handleSaveClick(btn, pre); // Always pass the PRE element for code
         });
 
-        pre.appendChild(btn);
+        // Inject
+        if (container === pre) {
+            // Inside Pre: Prepend or Append?
+            // Append is safer for absolute positioning top-right
+            container.appendChild(btn);
+        } else {
+            // Inside Parent: Append to be on top
+            container.appendChild(btn);
+        }
     });
 }
 
+// Listen for Context Menu Action
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "contextMenuSave") {
+        initiateSaveFlow(request.code, 'plaintext', request.title, null); // No button element for context menu
+    }
+    // ... existing toast listener?
+});
+
 async function handleSaveClick(btn, preElement) {
-    // Extract code
-    const codeElement = preElement.querySelector('code');
-    const textContent = codeElement ? codeElement.innerText : preElement.innerText;
+    // Extract flow logic refactored
+
+    // Extract code safely
+    const clone = preElement.cloneNode(true);
+    const cloneBtn = clone.querySelector('.snipo-btn');
+    if (cloneBtn) cloneBtn.remove();
+
+    const codeElement = clone.querySelector('code');
+    const textContent = (codeElement ? codeElement.textContent : clone.textContent).trim();
 
     // Detect language
-    let language = 'text';
+    let language = 'plaintext';
     const classes = (preElement.className + ' ' + (codeElement ? codeElement.className : '')).split(/\s+/);
 
     for (const cls of classes) {
         if (cls.startsWith('language-') || cls.startsWith('lang-')) {
-            language = cls.replace(/^lang(uage)?-/, '');
+            language = cls.replace(/^lang(uage)?-/, '').toLowerCase();
             break;
         }
     }
 
-    // Check Interactive Mode setting
+    // Normalize Language
+    const languageMap = {
+        'text': 'plaintext', 'txt': 'plaintext', 'js': 'javascript', 'ts': 'typescript',
+        'py': 'python', 'rb': 'ruby', 'sh': 'bash', 'c++': 'cpp', 'c#': 'csharp',
+        'golang': 'go', 'yml': 'yaml'
+    };
+    if (languageMap[language]) language = languageMap[language];
+
+    initiateSaveFlow(textContent, language, document.title, btn);
+}
+
+// Unified Save Flow (handles both Button and Context Menu)
+function initiateSaveFlow(code, language, title, btn) {
     chrome.storage.sync.get(['interactiveMode'], async (items) => {
         if (items.interactiveMode) {
-            // Interactive Mode: Show Modal
             showModal({
-                code: textContent,
+                code: code,
                 language: language,
-                title: document.title
+                title: title
             });
         } else {
             // Quick Save
-            btn.innerHTML = '...';
+            if (btn) btn.innerHTML = '...';
             chrome.runtime.sendMessage({
                 action: "saveSnippet",
-                code: textContent,
+                code: code,
                 language: language,
-                title: document.title
+                title: title
             }, (response) => {
-                setTimeout(() => { btn.innerHTML = SNIPO_ICON; }, 2000);
-                if (!response) return; // Error handled by toast listener
+                if (btn) setTimeout(() => { btn.innerHTML = SNIPO_ICON; }, 2000);
             });
         }
     });
@@ -142,6 +189,17 @@ async function showModal(snippetData) {
     const tags = tagsRes.success ? tagsRes.data : [];
     const folders = foldersRes.success ? foldersRes.data : [];
 
+    // List of common supported languages
+    const supportedLanguages = [
+        'plaintext', 'javascript', 'typescript', 'python', 'go', 'rust', 'java',
+        'c', 'cpp', 'csharp', 'php', 'ruby', 'swift', 'kotlin', 'scala',
+        'html', 'css', 'scss', 'json', 'yaml', 'xml', 'markdown',
+        'sql', 'bash', 'shell', 'powershell', 'dockerfile'
+    ];
+
+    // Ensure detected language is in list or add it if valid, otherwise fallback
+    let safeLanguage = snippetData.language || 'plaintext';
+
     // 2. Create Modal HTML
     const overlay = document.createElement('div');
     overlay.className = 'snipo-modal-overlay';
@@ -151,7 +209,14 @@ async function showModal(snippetData) {
             <h2>Save Snippet</h2>
             <div class="snipo-form-group">
                 <label>Title</label>
-                <input type="text" id="snipo-title" class="snipo-input" value="${snippetData.title.replace(/"/g, '&quot;')}">
+                <input type="text" id="snipo-title" class="snipo-input" value="${snippetData.title.replace(/"/g, '&quot;')}" >
+            </div>
+            <div class="snipo-form-group">
+                <label>Language</label>
+                <select id="snipo-language" class="snipo-select">
+                    ${supportedLanguages.map(lang => `<option value="${lang}" ${lang === safeLanguage ? 'selected' : ''}>${lang.charAt(0).toUpperCase() + lang.slice(1)}</option>`).join('')}
+                    ${!supportedLanguages.includes(safeLanguage) ? `<option value="${safeLanguage}" selected>${safeLanguage} (Detected)</option>` : ''}
+                </select>
             </div>
             <div class="snipo-form-group">
                 <label>Description</label>
@@ -164,10 +229,13 @@ async function showModal(snippetData) {
                     ${folders.map(f => `<option value="${f.id}">${f.name}</option>`).join('')}
                 </select>
             </div>
-            <div class="snipo-form-group" style="position:relative;">
-                <label>Tags (separate by comma)</label>
-                <input type="text" id="snipo-tags" class="snipo-input" placeholder="javascript, react, api" autocomplete="off">
-                <div id="snipo-tag-suggestions" class="snipo-suggestions"></div>
+            <div class="snipo-form-group" style="position: relative;">
+                <label>Tags</label>
+                <div class="snipo-tag-input-container">
+                    <input type="text" id="snipo-tags" class="snipo-input" placeholder="Type to add tags..." autocomplete="off">
+                    <div id="snipo-tags-list" class="snipo-tags-list"></div>
+                </div>
+                <div id="snipo-tag-suggestions" class="snipo-suggestions-dropdown"></div> 
             </div>
             <div class="snipo-modal-actions">
                 <button id="snipo-cancel" class="snipo-btn-secondary">Cancel</button>
@@ -253,6 +321,7 @@ async function showModal(snippetData) {
 
     overlay.querySelector('#snipo-save').addEventListener('click', async () => {
         const title = overlay.querySelector('#snipo-title').value;
+        const language = overlay.querySelector('#snipo-language').value;
         const description = overlay.querySelector('#snipo-desc').value;
         const folderId = overlay.querySelector('#snipo-folder').value || null;
         const tagsInputVal = overlay.querySelector('#snipo-tags').value;
@@ -271,7 +340,7 @@ async function showModal(snippetData) {
         chrome.runtime.sendMessage({
             action: "saveSnippet",
             code: snippetData.code,
-            language: snippetData.language,
+            language: language,
             title: title,
             description: description,
             folder_id: folderId,
