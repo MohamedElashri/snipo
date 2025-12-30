@@ -136,6 +136,52 @@ async function saveOptions(e) {
     }
 }
 
+// Set Version
+const manifest = chrome.runtime.getManifest();
+const versionSpan = document.getElementById('ext-version');
+if (versionSpan) {
+    versionSpan.textContent = manifest.version;
+}
+
+// Tab Switching Logic
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        // Remove active class from all
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+        // Add to current
+        btn.classList.add('active');
+        const tabId = btn.getAttribute('data-tab');
+        document.getElementById(tabId).classList.add('active');
+    });
+});
+
+async function updateStatusTab(items) {
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('connection-text');
+    const instanceText = document.getElementById('info-instance');
+
+    if (!items.instanceUrl || !items.apiKey) {
+        statusText.textContent = 'Not Configured';
+        statusDot.className = 'status-dot disconnected';
+        instanceText.textContent = '-';
+        return;
+    }
+
+    instanceText.textContent = items.instanceUrl;
+    statusText.textContent = 'Checking...';
+
+    try {
+        await verifyConnection(items.instanceUrl, items.apiKey);
+        statusText.textContent = 'Connected';
+        statusDot.className = 'status-dot connected';
+    } catch (e) {
+        statusText.textContent = 'Connection Failed';
+        statusDot.className = 'status-dot disconnected';
+    }
+}
+
 function restoreOptions() {
     chrome.storage.sync.get(
         { instanceUrl: '', apiKey: '', interactiveMode: false },
@@ -143,6 +189,8 @@ function restoreOptions() {
             document.getElementById('instanceUrl').value = items.instanceUrl;
             document.getElementById('apiKey').value = items.apiKey;
             document.getElementById('interactiveMode').checked = items.interactiveMode;
+
+            updateStatusTab(items);
         }
     );
 }

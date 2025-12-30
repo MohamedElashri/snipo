@@ -11,43 +11,72 @@
 <body>
     <div class="container">
         <header>
-            <h1>Snipo Settings</h1>
+            <h2>Snipo Extension Settings</h2>
             <p>Configure your self-hosted Snipo instance connection.</p>
         </header>
 
-        <form id="settings-form">
-            <div class="form-group">
-                <label for="instanceUrl">Instance URL</label>
-                <input type="url" id="instanceUrl" name="instanceUrl" placeholder="http://localhost:8080" required>
-                <span class="help-text">The base URL of your Snipo server.</span>
-            </div>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="tab-info">Status</button>
+            <button class="tab-btn" data-tab="tab-settings">Settings</button>
+        </div>
 
-            <div class="form-group">
-                <label for="apiKey">API Key</label>
-                <input type="password" id="apiKey" name="apiKey" placeholder="key" required>
-                <span class="help-text">Generate an API key in your Snipo Settings page.</span>
-                <button type="button" id="test-btn" class="btn secondary small"
-                    style="margin-top: 8px; width: auto;">Test Connection</button>
-            </div>
-
-            <div class="section-divider"></div>
-
-            <h2>Preferences</h2>
-
-            <div class="form-group">
-                <div class="checkbox-row">
-                    <input type="checkbox" id="interactiveMode" name="interactiveMode">
-                    <label for="interactiveMode">Enable Interactive Mode</label>
+        <div id="tab-info" class="tab-content active">
+            <div class="info-item">
+                <span class="info-label">Status</span>
+                <div class="connection-status">
+                    <span id="status-dot" class="status-dot"></span>
+                    <span id="connection-text" class="info-value">Checking...</span>
                 </div>
-                <span class="help-text" style="display:block; margin-top:4px; margin-left: 24px;">
-                    Show a popup to edit details and organize snippet before saving.
-                </span>
             </div>
+            <div class="info-item">
+                <span class="info-label">Connected Instance</span>
+                <span id="info-instance" class="info-value">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Extension Version</span>
+                <span id="ext-version" class="info-value">...</span>
+            </div>
+            <div class="actions" style="margin-top:20px">
+                <a href="https://github.com/MohamedElashri/snipo" target="_blank" class="btn secondary"
+                    style="display:block; text-align:center; text-decoration:none;">Documentation / Help</a>
+            </div>
+        </div>
 
-            <div class="actions">
-                <button type="submit" id="save-btn" class="btn primary">Save Configuration</button>
-            </div>
-        </form>
+        <div id="tab-settings" class="tab-content">
+            <form id="settings-form">
+                <div class="form-group">
+                    <label for="instanceUrl">Instance URL</label>
+                    <input type="url" id="instanceUrl" name="instanceUrl" placeholder="http://localhost:8080" required>
+                    <span class="help-text">The base URL of your Snipo server.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="apiKey">API Key</label>
+                    <input type="password" id="apiKey" name="apiKey" placeholder="key" required>
+                    <span class="help-text">Generate an API key in your Snipo Settings page.</span>
+                    <button type="button" id="test-btn" class="btn secondary small"
+                        style="margin-top: 8px; width: auto;">Test Connection</button>
+                </div>
+
+                <div class="section-divider"></div>
+
+                <h2>Preferences</h2>
+
+                <div class="form-group">
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="interactiveMode" name="interactiveMode">
+                        <label for="interactiveMode">Enable Interactive Mode</label>
+                    </div>
+                    <span class="help-text" style="display:block; margin-top:4px; margin-left: 24px;">
+                        Show a popup to edit details and organize snippet before saving.
+                    </span>
+                </div>
+
+                <div class="actions">
+                    <button type="submit" id="save-btn" class="btn primary">Save Configuration</button>
+                </div>
+            </form>
+        </div>
 
         <div id="status" class="status-message hidden"></div>
 
