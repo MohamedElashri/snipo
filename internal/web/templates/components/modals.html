@@ -499,6 +499,10 @@
                                 <option value="20">20px</option>
                                 <option value="22">22px</option>
                             </select>
+                            <small style="color: var(--pico-muted-color); font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+                                Note: Your browser's minimum font size setting may prevent smaller sizes from displaying.
+                                <a href="#" @click.prevent="showFontSizeHelp = true" style="color: var(--snipo-primary); text-decoration: underline; margin-left: 0.25rem;">How to change?</a>
+                            </small>
                         </div>
 
                         <div class="editor-field">
@@ -917,6 +921,92 @@
                 </template>
                 <span x-text="tokenPasswordAction === 'delete' ? 'Delete Token' : 'Create Token'"></span>
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Font Size Help Modal -->
+<div class="modal-backdrop" x-show="showFontSizeHelp" x-cloak @click.self="showFontSizeHelp = false">
+    <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3>Browser Minimum Font Size Settings</h3>
+            <button class="btn-icon" @click="showFontSizeHelp = false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <p style="margin-bottom: 1.5rem; color: var(--pico-muted-color);">
+                If font sizes below 14px aren't displaying correctly, your browser may have a minimum font size setting enabled. Here's how to change it:
+            </p>
+
+            <!-- Firefox -->
+            <div style="margin-bottom: 2rem;">
+                <h4 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <circle cx="12" cy="12" r="6"></circle>
+                        <circle cx="12" cy="12" r="2"></circle>
+                    </svg>
+                    Firefox
+                </h4>
+                <ol style="margin-left: 1.5rem; line-height: 1.8;">
+                    <li>Type <code style="background: var(--pico-card-background-color); padding: 0.125rem 0.375rem; border-radius: 3px; font-size: 0.875rem;">about:config</code> in the address bar and press Enter</li>
+                    <li>Accept the warning message</li>
+                    <li>Search for <code style="background: var(--pico-card-background-color); padding: 0.125rem 0.375rem; border-radius: 3px; font-size: 0.875rem;">font.minimum-size</code></li>
+                    <li>Find <code style="background: var(--pico-card-background-color); padding: 0.125rem 0.375rem; border-radius: 3px; font-size: 0.875rem;">font.minimum-size.x-western</code> (or your language variant)</li>
+                    <li>Double-click and set the value to <strong>0</strong> (or a lower value like 8)</li>
+                    <li>Restart Firefox for changes to take effect</li>
+                </ol>
+            </div>
+
+            <!-- Chrome -->
+            <div style="margin-bottom: 2rem;">
+                <h4 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 2a10 10 0 0 0 0 20"></path>
+                    </svg>
+                    Chrome / Edge
+                </h4>
+                <ol style="margin-left: 1.5rem; line-height: 1.8;">
+                    <li>Open Settings (⋮ menu → Settings)</li>
+                    <li>Click <strong>Appearance</strong> in the left sidebar</li>
+                    <li>Click <strong>Customize fonts</strong></li>
+                    <li>Find <strong>Minimum font size</strong> slider</li>
+                    <li>Set it to the smallest value or adjust as needed</li>
+                    <li>Close the settings tab</li>
+                </ol>
+            </div>
+
+            <!-- Safari -->
+            <div style="margin-bottom: 1rem;">
+                <h4 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 2v20M2 12h20"></path>
+                    </svg>
+                    Safari
+                </h4>
+                <ol style="margin-left: 1.5rem; line-height: 1.8;">
+                    <li>Open Safari → Preferences (or Settings on newer versions)</li>
+                    <li>Go to the <strong>Appearance</strong> tab</li>
+                    <li>Uncheck <strong>"Never use font sizes smaller than"</strong></li>
+                    <li>Or adjust the dropdown to a smaller value</li>
+                    <li>Close the preferences window</li>
+                </ol>
+            </div>
+
+            <div style="background: var(--pico-card-background-color); padding: 1rem; border-radius: 6px; border-left: 3px solid var(--snipo-primary); margin-top: 1.5rem;">
+                <p style="margin: 0; font-size: 0.875rem; color: var(--pico-muted-color);">
+                    <strong>Note:</strong> These settings are browser-level accessibility features designed to help users with visual impairments. Websites cannot override them by design.
+                </p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-primary" @click="showFontSizeHelp = false">Got it</button>
         </div>
     </div>
 </div>
