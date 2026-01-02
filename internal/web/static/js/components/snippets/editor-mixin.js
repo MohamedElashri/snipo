@@ -418,7 +418,7 @@ export const editorMixin = {
       
       // Apply visual settings
       this.aceEditor.setOptions({
-        fontSize: `${settings.editor_font_size || 14}px`,
+        fontSize: settings.editor_font_size || 14,
         showPrintMargin: settings.editor_show_print_margin || false,
         showGutter: settings.editor_show_gutter !== false,
         displayIndentGuides: settings.editor_show_indent_guides !== false,
