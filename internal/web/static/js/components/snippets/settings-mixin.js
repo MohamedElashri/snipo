@@ -6,6 +6,7 @@ import { theme } from '../../modules/theme.js';
 export const settingsMixin = {
   showSettings: false,
   settingsTab: 'password',
+  showFontSizeHelp: false,
   apiTokens: [],
   newToken: { name: '', permissions: 'read', expires_in_days: 30 },
   createdToken: null,

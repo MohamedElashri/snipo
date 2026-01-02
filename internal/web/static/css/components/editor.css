@@ -555,10 +555,17 @@
   right: 0;
   bottom: 0;
   font-family: var(--font-mono);
-  font-size: 14px;
 }
 
 .ace_editor {
+  font-family: var(--font-mono) !important;
+}
+
+.ace_editor .ace_text-layer {
+  font-family: var(--font-mono) !important;
+}
+
+.ace_editor .ace_line {
   font-family: var(--font-mono) !important;
 }
 
