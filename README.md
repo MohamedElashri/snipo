@@ -4,7 +4,8 @@ A lightweight, self-hosted snippet manager designed for single-user deployments.
 
 > **Note:** This project is intentionally scoped for single-user use. Multi-user features are not planned.
 
-[![CI](https://github.com/MohamedElashri/snipo/actions/workflows/snipo-ci.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/ci.yml)
+[![CI](https://github.com/MohamedElashri/snipo/actions/workflows/snipo-ci.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/snipo-ci.yml)
+[![CI](https://github.com/MohamedElashri/snipo/actions/workflows/snippy-ci.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/snippy-ci.yml)
 [![Release](https://github.com/MohamedElashri/snipo/actions/workflows/release.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/release.yml)
 [![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
@@ -67,7 +68,7 @@ export SNIPO_SESSION_SECRET=$(openssl rand -hex 32)
 | `SNIPO_DISABLE_AUTH` | No | `false` | Disable authentication entirely |
 | `SNIPO_SESSION_SECRET` | Yes | - | Session signing key (32+ chars) |
 | `SNIPO_PORT` | No | `8080` | Server port |
-| `SNIPO_DB_PATH` | No | `./data/snipo.db` | SQLite database path |
+| `SNIPO_DB_PATH` | No | `/data/snipo.db` | SQLite database path |
 
 *Either `SNIPO_MASTER_PASSWORD` or `SNIPO_MASTER_PASSWORD_HASH` is required (unless `SNIPO_DISABLE_AUTH=true`). Using the hash is recommended for security.
 

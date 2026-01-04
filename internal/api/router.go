@@ -85,7 +85,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		WithMaxFiles(cfg.MaxFilesPerSnippet)
 
 	// Create backup service
-	backupService := services.NewBackupService(cfg.DB, snippetService, tagRepo, folderRepo, fileRepo, cfg.Logger)
+	backupService := services.NewBackupService(cfg.DB, snippetService, tagRepo, folderRepo, fileRepo, cfg.Logger, cfg.Config.Auth.EncryptionSalt)
 
 	// Create S3 sync service if configured
 	var s3SyncService *services.S3SyncService

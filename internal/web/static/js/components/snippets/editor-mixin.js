@@ -237,7 +237,17 @@ export const editorMixin = {
 
   async copyToClipboard(snippet) {
     try {
-      await navigator.clipboard.writeText(snippet.content);
+      let contentToCopy = snippet.content;
+      
+      // Check if setting to exclude first line is enabled
+      if (this.settings?.exclude_first_line_on_copy) {
+        const lines = contentToCopy.split('\n');
+        if (lines.length > 1) {
+          contentToCopy = lines.slice(1).join('\n');
+        }
+      }
+      
+      await navigator.clipboard.writeText(contentToCopy);
       showToast('Copied to clipboard');
     } catch (err) {
       showToast('Failed to copy', 'error');
