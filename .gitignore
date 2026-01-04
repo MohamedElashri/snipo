@@ -20,3 +20,7 @@ coverage.html
 *.zip
 dist/
 !PRIVACY.md
+
+## Node.js dependencies (for vendor management)
+node_modules/
+package-lock.json
