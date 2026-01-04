@@ -15,6 +15,13 @@ const ERROR_ICON = `
     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
 </svg>`;
 
+// Helper function to safely create SVG element from string
+function createSVGFromString(svgString) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgString, 'image/svg+xml');
+    return doc.documentElement;
+}
+
 // Initialize
 function init() {
     chrome.storage.sync.get(['instanceUrl', 'apiKey', 'ignoredSites'], (items) => {
@@ -110,7 +117,7 @@ function scanForCode() {
 
         const btn = document.createElement('button');
         btn.className = 'snipo-btn';
-        btn.innerHTML = SNIPO_ICON;
+        btn.appendChild(createSVGFromString(SNIPO_ICON));
         btn.title = "Save to Snipo";
 
         btn.addEventListener('click', (e) => {
@@ -180,14 +187,17 @@ function initiateSaveFlow(code, language, title, btn) {
             });
         } else {
             // Quick Save
-            if (btn) btn.innerHTML = '...';
+            if (btn) btn.textContent = '...';
             chrome.runtime.sendMessage({
                 action: "saveSnippet",
                 code: code,
                 language: language,
                 title: title
             }, (response) => {
-                if (btn) setTimeout(() => { btn.innerHTML = SNIPO_ICON; }, 2000);
+                if (btn) setTimeout(() => { 
+                    btn.textContent = '';
+                    btn.appendChild(createSVGFromString(SNIPO_ICON));
+                }, 2000);
             });
         }
     });
@@ -234,60 +244,155 @@ async function showModal(snippetData) {
     const generateDefaultFilename = (lang) => `snippet.${getExt(lang)}`;
     let currentFilename = generateDefaultFilename(safeLanguage);
 
-    // 2. Create Modal HTML
+    // 2. Create Modal HTML using safe DOM methods
     const overlay = document.createElement('div');
     overlay.className = 'snipo-modal-overlay';
 
-    overlay.innerHTML = `
-        <div class="snipo-modal">
-            <h2>Save Snippet</h2>
-            <div class="snipo-form-group">
-                <label>Title</label>
-                <input type="text" id="snipo-title" class="snipo-input" value="${snippetData.title.replace(/"/g, '&quot;')}" >
-            </div>
-            <div class="snipo-form-group-row">
-                <div class="snipo-form-group half-width">
-                    <label>Language</label>
-                    <select id="snipo-language" class="snipo-select">
-                        ${supportedLanguages.map(lang => `<option value="${lang}" ${lang === safeLanguage ? 'selected' : ''}>${lang.charAt(0).toUpperCase() + lang.slice(1)}</option>`).join('')}
-                        ${!supportedLanguages.includes(safeLanguage) ? `<option value="${safeLanguage}" selected>${safeLanguage} (Detected)</option>` : ''}
-                    </select>
-                </div>
-                <div class="snipo-form-group half-width">
-                    <label>Filename</label>
-                    <input type="text" id="snipo-filename" class="snipo-input" value="${currentFilename}">
-                </div>
-            </div>
-            <div class="snipo-form-group">
-                <label>Description</label>
-                <textarea id="snipo-desc" class="snipo-textarea">Saved from ${window.location.href}</textarea>
-            </div>
-            <!-- ... Folder, Tags ... -->
-            <div class="snipo-form-group">
-                <label>Folder</label>
-                <select id="snipo-folder" class="snipo-select">
-                    <option value="">No Folder</option>
-                    ${folders.map(f => `<option value="${f.id}">${f.name}</option>`).join('')}
-                </select>
-            </div>
-            <div class="snipo-form-group" style="position: relative;">
-                <label>Tags</label>
-                <div class="snipo-tag-input-container">
-                    <input type="text" id="snipo-tags" class="snipo-input" placeholder="Type to add tags..." autocomplete="off">
-                    <div id="snipo-tags-list" class="snipo-tags-list"></div>
-                </div>
-                <div id="snipo-tag-suggestions" class="snipo-suggestions-dropdown"></div> 
-            </div>
-            <div class="snipo-modal-actions">
-                <button id="snipo-cancel" class="snipo-btn-secondary">Cancel</button>
-                <button id="snipo-save" class="snipo-btn-primary">Save Snippet</button>
-            </div>
-        </div>
-    `;
+    const modal = document.createElement('div');
+    modal.className = 'snipo-modal';
+
+    const h2 = document.createElement('h2');
+    h2.textContent = 'Save Snippet';
+    modal.appendChild(h2);
+
+    // Title field
+    const titleGroup = document.createElement('div');
+    titleGroup.className = 'snipo-form-group';
+    const titleLabel = document.createElement('label');
+    titleLabel.textContent = 'Title';
+    const titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.id = 'snipo-title';
+    titleInput.className = 'snipo-input';
+    titleInput.value = snippetData.title;
+    titleGroup.appendChild(titleLabel);
+    titleGroup.appendChild(titleInput);
+    modal.appendChild(titleGroup);
+
+    // Language and Filename row
+    const rowGroup = document.createElement('div');
+    rowGroup.className = 'snipo-form-group-row';
+
+    const langGroup = document.createElement('div');
+    langGroup.className = 'snipo-form-group half-width';
+    const langLabel = document.createElement('label');
+    langLabel.textContent = 'Language';
+    const langSelect = document.createElement('select');
+    langSelect.id = 'snipo-language';
+    langSelect.className = 'snipo-select';
+    supportedLanguages.forEach(lang => {
+        const option = document.createElement('option');
+        option.value = lang;
+        option.textContent = lang.charAt(0).toUpperCase() + lang.slice(1);
+        if (lang === safeLanguage) option.selected = true;
+        langSelect.appendChild(option);
+    });
+    if (!supportedLanguages.includes(safeLanguage)) {
+        const option = document.createElement('option');
+        option.value = safeLanguage;
+        option.textContent = safeLanguage + ' (Detected)';
+        option.selected = true;
+        langSelect.appendChild(option);
+    }
+    langGroup.appendChild(langLabel);
+    langGroup.appendChild(langSelect);
+
+    const filenameGroup = document.createElement('div');
+    filenameGroup.className = 'snipo-form-group half-width';
+    const filenameLabel = document.createElement('label');
+    filenameLabel.textContent = 'Filename';
+    const filenameInput = document.createElement('input');
+    filenameInput.type = 'text';
+    filenameInput.id = 'snipo-filename';
+    filenameInput.className = 'snipo-input';
+    filenameInput.value = currentFilename;
+    filenameGroup.appendChild(filenameLabel);
+    filenameGroup.appendChild(filenameInput);
+
+    rowGroup.appendChild(langGroup);
+    rowGroup.appendChild(filenameGroup);
+    modal.appendChild(rowGroup);
+
+    // Description field
+    const descGroup = document.createElement('div');
+    descGroup.className = 'snipo-form-group';
+    const descLabel = document.createElement('label');
+    descLabel.textContent = 'Description';
+    const descTextarea = document.createElement('textarea');
+    descTextarea.id = 'snipo-desc';
+    descTextarea.className = 'snipo-textarea';
+    descTextarea.textContent = 'Saved from ' + window.location.href;
+    descGroup.appendChild(descLabel);
+    descGroup.appendChild(descTextarea);
+    modal.appendChild(descGroup);
+
+    // Folder field
+    const folderGroup = document.createElement('div');
+    folderGroup.className = 'snipo-form-group';
+    const folderLabel = document.createElement('label');
+    folderLabel.textContent = 'Folder';
+    const folderSelect = document.createElement('select');
+    folderSelect.id = 'snipo-folder';
+    folderSelect.className = 'snipo-select';
+    const noFolderOption = document.createElement('option');
+    noFolderOption.value = '';
+    noFolderOption.textContent = 'No Folder';
+    folderSelect.appendChild(noFolderOption);
+    folders.forEach(f => {
+        const option = document.createElement('option');
+        option.value = f.id;
+        option.textContent = f.name;
+        folderSelect.appendChild(option);
+    });
+    folderGroup.appendChild(folderLabel);
+    folderGroup.appendChild(folderSelect);
+    modal.appendChild(folderGroup);
+
+    // Tags field
+    const tagsGroup = document.createElement('div');
+    tagsGroup.className = 'snipo-form-group';
+    tagsGroup.style.position = 'relative';
+    const tagsLabel = document.createElement('label');
+    tagsLabel.textContent = 'Tags';
+    const tagInputContainer = document.createElement('div');
+    tagInputContainer.className = 'snipo-tag-input-container';
+    const tagsInput = document.createElement('input');
+    tagsInput.type = 'text';
+    tagsInput.id = 'snipo-tags';
+    tagsInput.className = 'snipo-input';
+    tagsInput.placeholder = 'Type to add tags...';
+    tagsInput.autocomplete = 'off';
+    const tagsList = document.createElement('div');
+    tagsList.id = 'snipo-tags-list';
+    tagsList.className = 'snipo-tags-list';
+    tagInputContainer.appendChild(tagsInput);
+    tagInputContainer.appendChild(tagsList);
+    const tagSuggestions = document.createElement('div');
+    tagSuggestions.id = 'snipo-tag-suggestions';
+    tagSuggestions.className = 'snipo-suggestions-dropdown';
+    tagsGroup.appendChild(tagsLabel);
+    tagsGroup.appendChild(tagInputContainer);
+    tagsGroup.appendChild(tagSuggestions);
+    modal.appendChild(tagsGroup);
+
+    // Action buttons
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'snipo-modal-actions';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.id = 'snipo-cancel';
+    cancelBtn.className = 'snipo-btn-secondary';
+    cancelBtn.textContent = 'Cancel';
+    const saveBtn = document.createElement('button');
+    saveBtn.id = 'snipo-save';
+    saveBtn.className = 'snipo-btn-primary';
+    saveBtn.textContent = 'Save Snippet';
+    actionsDiv.appendChild(cancelBtn);
+    actionsDiv.appendChild(saveBtn);
+    modal.appendChild(actionsDiv);
+
+    overlay.appendChild(modal);
 
     document.body.appendChild(overlay);
-    const langSelect = overlay.querySelector('#snipo-language');
-    const filenameInput = overlay.querySelector('#snipo-filename');
 
     langSelect.addEventListener('change', (e) => {
         const newLang = e.target.value;
@@ -322,7 +427,6 @@ async function showModal(snippetData) {
         setTimeout(() => overlay.remove(), 200);
     };
 
-    const tagsInput = overlay.querySelector('#snipo-tags');
     const suggestionsBox = overlay.querySelector('#snipo-tag-suggestions');
 
     // Autocomplete Logic
@@ -348,18 +452,27 @@ async function showModal(snippetData) {
             return;
         }
 
-        suggestionsBox.innerHTML = matches.map(t => {
+        suggestionsBox.textContent = '';
+        matches.forEach(t => {
             const name = t.name;
             const idx = name.toLowerCase().indexOf(currentToken);
-            // safe substring handling
             const part1 = name.substring(0, idx);
             const part2 = name.substring(idx, idx + currentToken.length);
             const part3 = name.substring(idx + currentToken.length);
 
-            return `<div class="snipo-suggestion-item" data-val="${name}">
-                ${part1}<span class="match">${part2}</span>${part3}
-            </div>`;
-        }).join('');
+            const item = document.createElement('div');
+            item.className = 'snipo-suggestion-item';
+            item.dataset.val = name;
+            
+            item.appendChild(document.createTextNode(part1));
+            const matchSpan = document.createElement('span');
+            matchSpan.className = 'match';
+            matchSpan.textContent = part2;
+            item.appendChild(matchSpan);
+            item.appendChild(document.createTextNode(part3));
+            
+            suggestionsBox.appendChild(item);
+        });
 
         suggestionsBox.classList.add('visible');
     });
@@ -431,12 +544,15 @@ function showToast(success, message) {
     const toast = document.createElement('div');
     toast.className = `snipo-toast ${success ? 'success' : 'error'}`;
 
-    toast.innerHTML = `
-        <div class="snipo-toast-icon">
-            ${success ? CHECK_ICON : ERROR_ICON}
-        </div>
-        <span>${message || (success ? 'Snippet saved successfully!' : 'Failed to save snippet.')}</span>
-    `;
+    const iconDiv = document.createElement('div');
+    iconDiv.className = 'snipo-toast-icon';
+    iconDiv.appendChild(createSVGFromString(success ? CHECK_ICON : ERROR_ICON));
+    
+    const messageSpan = document.createElement('span');
+    messageSpan.textContent = message || (success ? 'Snippet saved successfully!' : 'Failed to save snippet.');
+    
+    toast.appendChild(iconDiv);
+    toast.appendChild(messageSpan);
 
     document.body.appendChild(toast);
 

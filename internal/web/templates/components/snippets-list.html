@@ -8,10 +8,7 @@
 
     <!-- Empty state -->
     <div class="empty-state" x-show="!loading && snippets.length === 0">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <polyline points="16 18 22 12 16 6"></polyline>
-            <polyline points="8 6 2 12 8 18"></polyline>
-        </svg>
+        <img src="/static/logo.png" alt="Snipo" width="48" height="48" style="opacity: 0.5;">
         <h3>No snippets yet</h3>
         <p>Create your first snippet to get started</p>
         <button class="btn-primary mt-4" @click="newSnippet()">
