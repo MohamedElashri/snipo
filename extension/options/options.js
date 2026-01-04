@@ -162,25 +162,57 @@ let ignoredSites = [];
 
 function renderIgnoredList() {
     const list = document.getElementById('ignored-list');
-    list.innerHTML = '';
+    list.textContent = '';
 
     if (ignoredSites.length === 0) {
-        list.innerHTML = '<div class="empty-state">No websites ignored. Snipo runs everywhere.</div>';
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'empty-state';
+        emptyDiv.textContent = 'No websites ignored. Snipo runs everywhere.';
+        list.appendChild(emptyDiv);
         return;
     }
 
     ignoredSites.forEach(site => {
         const item = document.createElement('div');
         item.className = 'ignored-item';
-        item.innerHTML = `
-            <span class="ignored-domain">${site}</span>
-            <button class="remove-btn" title="Remove" data-site="${site}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
-        `;
+        
+        const domainSpan = document.createElement('span');
+        domainSpan.className = 'ignored-domain';
+        domainSpan.textContent = site;
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.title = 'Remove';
+        removeBtn.dataset.site = site;
+        
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', '16');
+        svg.setAttribute('height', '16');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor');
+        svg.setAttribute('stroke-width', '2');
+        svg.setAttribute('stroke-linecap', 'round');
+        svg.setAttribute('stroke-linejoin', 'round');
+        
+        const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line1.setAttribute('x1', '18');
+        line1.setAttribute('y1', '6');
+        line1.setAttribute('x2', '6');
+        line1.setAttribute('y2', '18');
+        
+        const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line2.setAttribute('x1', '6');
+        line2.setAttribute('y1', '6');
+        line2.setAttribute('x2', '18');
+        line2.setAttribute('y2', '18');
+        
+        svg.appendChild(line1);
+        svg.appendChild(line2);
+        removeBtn.appendChild(svg);
+        
+        item.appendChild(domainSpan);
+        item.appendChild(removeBtn);
         list.appendChild(item);
     });
 
