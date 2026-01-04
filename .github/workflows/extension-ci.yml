@@ -2,11 +2,11 @@ name: Extension CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [dev]
     paths:
       - 'extension/**'
   pull_request:
-    branches: [main, dev]
+    branches: [dev]
     paths:
       - 'extension/**'
 
