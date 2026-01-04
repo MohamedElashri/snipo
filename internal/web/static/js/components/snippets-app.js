@@ -155,6 +155,9 @@ export function initSnippetsApp(Alpine) {
         if (this.sortBy === 'title_desc') {
           params.set('sort', 'title');
           params.set('order', 'desc');
+        } else if (this.sortBy === 'title') {
+          params.set('sort', 'title');
+          params.set('order', 'asc');
         } else {
           params.set('sort', this.sortBy);
         }
