@@ -10,6 +10,8 @@ on:
       - 'docs/**'
       - '.github/**'
       - 'LICENSE'
+      - '.vscode/**
+      - 'Makefile'
 
 permissions:
   packages: write
