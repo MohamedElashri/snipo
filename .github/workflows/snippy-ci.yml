@@ -2,11 +2,11 @@ name: snippy CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - 'tui/**'
   pull_request:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - 'tui/**'
 
