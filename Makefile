@@ -1,4 +1,4 @@
-.PHONY: all build run test test-coverage test-short coverage coverage-func lint clean docker docker-multiarch docker-run docker-stop dev migrate migrate-down
+.PHONY: all build run test test-coverage test-short coverage coverage-func lint clean docker docker-multiarch docker-run docker-stop dev migrate migrate-down vendor-install vendor-sync vendor-check vendor-update vendor-update-major
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -64,3 +64,29 @@ migrate:
 
 migrate-down:
 	go run ./cmd/server migrate down
+
+vendor-install:
+	@echo "Installing npm dependencies..."
+	npm install
+	@echo "Dependencies installed"
+
+vendor-sync:
+	@echo "Syncing vendor files..."
+	npm run vendor:sync
+
+vendor-check:
+	@echo "Checking for outdated packages..."
+	npm outdated || true
+
+vendor-update:
+	@echo "Updating vendor libraries (minor/patch)..."
+	npm update
+	npm run vendor:sync
+	@echo "Vendor libraries updated"
+
+vendor-update-major:
+	@echo "Updating vendor libraries (including major versions)..."
+	npx npm-check-updates -u
+	npm install
+	npm run vendor:sync
+	@echo "Vendor libraries updated (major versions included)"

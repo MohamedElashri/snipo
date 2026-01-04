@@ -1,0 +1,24 @@
+{
+  "name": "snipo-frontend-vendor",
+  "version": "1.0.0",
+  "description": "Frontend vendor dependencies for Snipo - managed locally for privacy",
+  "private": true,
+  "scripts": {
+    "vendor:sync": "node scripts/sync-vendor.js",
+    "vendor:check": "npm outdated",
+    "vendor:update": "npm update && npm run vendor:sync",
+    "vendor:update-major": "npx npm-check-updates -u && npm install && npm run vendor:sync"
+  },
+  "dependencies": {
+    "htmx.org": "^2.0.8",
+    "alpinejs": "^3.15.3",
+    "@alpinejs/collapse": "^3.15.3",
+    "ace-builds": "^1.43.5",
+    "prismjs": "^1.30.0",
+    "marked": "^17.0.1",
+    "@picocss/pico": "^2.1.1"
+  },
+  "devDependencies": {
+    "fs-extra": "^11.3.3"
+  }
+}
