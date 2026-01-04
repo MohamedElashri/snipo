@@ -1,0 +1,141 @@
+name: Extension CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'extension/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'extension/**'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.1.0
+        with:
+          node-version: '20'
+
+      - name: Validate Chrome manifest
+        run: |
+          cd extension
+          if ! jq empty manifest-chrome.json 2>/dev/null; then
+            echo "❌ Invalid Chrome manifest JSON"
+            exit 1
+          fi
+          echo "✓ Chrome manifest is valid JSON"
+
+      - name: Validate Firefox manifest
+        run: |
+          cd extension
+          if ! jq empty manifest.json 2>/dev/null; then
+            echo "❌ Invalid Firefox manifest JSON"
+            exit 1
+          fi
+          echo "✓ Firefox manifest is valid JSON"
+
+      - name: Check version consistency
+        run: |
+          cd extension
+          CHROME_VERSION=$(jq -r '.version' manifest-chrome.json)
+          FIREFOX_VERSION=$(jq -r '.version' manifest.json)
+          
+          if [ "$CHROME_VERSION" != "$FIREFOX_VERSION" ]; then
+            echo "❌ Version mismatch: Chrome ($CHROME_VERSION) != Firefox ($FIREFOX_VERSION)"
+            exit 1
+          fi
+          
+          echo "✓ Version consistency check passed: v$CHROME_VERSION"
+
+  lint:
+    name: Lint JavaScript
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.1.0
+        with:
+          node-version: '20'
+
+      - name: Check JavaScript syntax
+        run: |
+          cd extension
+          for file in background.js content.js options/options.js; do
+            if [ -f "$file" ]; then
+              echo "Checking $file..."
+              node --check "$file"
+            fi
+          done
+          echo "✓ All JavaScript files have valid syntax"
+
+  build:
+    name: Build Extension Packages
+    runs-on: ubuntu-latest
+    needs: [validate, lint]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.1
+
+      - name: Make build script executable
+        run: chmod +x extension/build.sh
+
+      - name: Build extension packages
+        run: |
+          cd extension
+          ./build.sh
+
+      - name: Verify build artifacts
+        run: |
+          cd extension/dist
+          VERSION=$(jq -r '.version' ../manifest.json)
+          
+          if [ ! -f "snipo-chrome-v$VERSION.zip" ]; then
+            echo "❌ Chrome package not found"
+            exit 1
+          fi
+          
+          if [ ! -f "snipo-firefox-v$VERSION.zip" ]; then
+            echo "❌ Firefox package not found"
+            exit 1
+          fi
+          
+          if [ ! -f "snipo-source-v$VERSION.zip" ]; then
+            echo "❌ Source archive not found"
+            exit 1
+          fi
+          
+          echo "✓ All build artifacts created successfully"
+          ls -lh *.zip
+
+      - name: Upload Chrome package
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: chrome-extension
+          path: extension/dist/snipo-chrome-*.zip
+          retention-days: 30
+
+      - name: Upload Firefox package
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: firefox-extension
+          path: extension/dist/snipo-firefox-*.zip
+          retention-days: 30
+
+      - name: Upload source archive
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: source-archive
+          path: extension/dist/snipo-source-*.zip
+          retention-days: 30
