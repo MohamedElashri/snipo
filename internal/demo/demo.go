@@ -77,7 +77,11 @@ func (s *Service) ResetDatabase(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			s.logger.Warn("failed to rollback transaction", "error", err)
+		}
+	}()
 
 	// Clear all data (preserve schema)
 	tables := []string{
