@@ -2,12 +2,12 @@ name: snipo CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [dev]
     paths-ignore:
       - 'tui/**'
       - 'extension/**'
   pull_request:
-    branches: [main, dev]
+    branches: [dev]
     paths-ignore:
       - 'tui/**'
       - 'extension/**'
