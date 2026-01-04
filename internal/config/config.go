@@ -100,7 +100,7 @@ func Load() (*Config, error) {
 	cfg.Server.MaxFilesPerSnippet = getEnvInt("SNIPO_MAX_FILES_PER_SNIPPET", 10)
 
 	// Database
-	cfg.Database.Path = getEnv("SNIPO_DB_PATH", "./data/snipo.db")
+	cfg.Database.Path = getEnv("SNIPO_DB_PATH", "/data/snipo.db")
 	cfg.Database.MaxOpenConns = getEnvInt("SNIPO_DB_MAX_CONNS", 1)
 	cfg.Database.BusyTimeout = getEnvInt("SNIPO_DB_BUSY_TIMEOUT", 5000)
 	cfg.Database.JournalMode = getEnv("SNIPO_DB_JOURNAL", "WAL")
