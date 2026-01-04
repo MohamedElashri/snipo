@@ -59,7 +59,7 @@ WORKDIR /data
 # Add security labels
 LABEL org.opencontainers.image.source="https://github.com/MohamedElashri/snipo" \
       org.opencontainers.image.description="Self-hosted snippet manager" \
-      org.opencontainers.image.licenses="GPL-3.0" \
+      org.opencontainers.image.licenses="Affero General Public License v3.0" \
       org.opencontainers.image.vendor="Mohamed Elashri"
 
 # Expose the default port
