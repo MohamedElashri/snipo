@@ -20,19 +20,20 @@
     <div :class="viewMode === 'list' ? 'snippet-list-view' : 'snippet-grid'"
         x-show="!loading && snippets.length > 0">
         <template x-for="snippet in snippets" :key="snippet.id">
-            <article class="snippet-card" @click="viewSnippet(snippet)">
-                <div class="snippet-card-header">
-                    <h3 class="snippet-card-title" x-text="snippet.title"></h3>
-                    <span class="snippet-card-language"
-                        :style="{ background: getLanguageColor(snippet.language) }"
-                        x-text="snippet.language"></span>
-                </div>
+            <article class="snippet-card">
+                <div @click="viewSnippet(snippet)" style="cursor: pointer;">
+                    <div class="snippet-card-header">
+                        <h3 class="snippet-card-title" x-text="snippet.title"></h3>
+                        <span class="snippet-card-language"
+                            :style="{ background: getLanguageColor(snippet.language) }"
+                            x-text="snippet.language"></span>
+                    </div>
 
-                <!-- Show description if exists, otherwise show first 2 lines of code -->
-                <p class="snippet-card-description" x-show="snippet.description" x-text="snippet.description">
-                </p>
-                <pre class="snippet-card-preview"
-                    x-show="!snippet.description"><code x-text="snippet.content.split('\n').slice(0, 2).join('\n')"></code></pre>
+                    <!-- Show description if exists, otherwise show first 2 lines of code -->
+                    <p class="snippet-card-description" x-show="snippet.description" x-text="snippet.description">
+                    </p>
+                    <pre class="snippet-card-preview" x-show="!snippet.description"><code x-text="snippet.content.split('\n').slice(0, 2).join('\n')"></code></pre>
+                </div>
 
                 <div class="snippet-card-footer">
                     <div class="snippet-card-tags">
@@ -44,6 +45,52 @@
                         </template>
                     </div>
                     <div class="snippet-card-meta">
+                        <!-- Single file: simple copy button -->
+                        <button x-show="!snippet.files || snippet.files.length <= 1" 
+                                class="snippet-card-copy-btn" 
+                                @click.stop="copySnippetFromCard(snippet)" 
+                                title="Copy code">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                        
+                        <!-- Multiple files: dropdown menu -->
+                        <div x-show="snippet.files && snippet.files.length > 1" 
+                             class="snippet-card-copy-dropdown"
+                             x-data="{ open: false }"
+                             @click.outside="open = false">
+                            <button class="snippet-card-copy-btn" 
+                                    @click.stop="open = !open" 
+                                    :title="'Copy file (' + snippet.files.length + ' files)'">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 2px;">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div x-show="open" 
+                                 x-cloak
+                                 class="snippet-card-copy-menu"
+                                 @click.stop>
+                                <div class="snippet-card-copy-menu-header">Copy file:</div>
+                                <template x-for="(file, index) in snippet.files" :key="file.id || index">
+                                    <button class="snippet-card-copy-menu-item"
+                                            @click="copyFileFromCard(snippet, file); open = false"
+                                            :title="'Copy ' + file.filename">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                            <polyline points="13 2 13 9 20 9"></polyline>
+                                        </svg>
+                                        <span x-text="file.filename"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                        
                         <span x-show="snippet.is_favorite" title="Favorite">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
                                 stroke="currentColor" stroke-width="2">

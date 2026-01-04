@@ -28,7 +28,8 @@ func (r *SettingsRepository) Get(ctx context.Context) (*models.Settings, error) 
 		       editor_font_size, editor_tab_size, editor_theme, editor_word_wrap,
 		       editor_show_print_margin, editor_show_gutter, editor_show_indent_guides,
 		       editor_highlight_active_line, editor_use_soft_tabs, editor_enable_snippets,
-		       editor_enable_live_autocompletion, markdown_font_size, created_at, updated_at
+		       editor_enable_live_autocompletion, markdown_font_size, exclude_first_line_on_copy,
+		       created_at, updated_at
 		FROM settings
 		WHERE id = 1
 	`
@@ -60,6 +61,7 @@ func (r *SettingsRepository) Get(ctx context.Context) (*models.Settings, error) 
 		&settings.EditorEnableSnippets,
 		&settings.EditorEnableLiveAutocompletion,
 		&settings.MarkdownFontSize,
+		&settings.ExcludeFirstLineOnCopy,
 		&settings.CreatedAt,
 		&settings.UpdatedAt,
 	)
@@ -82,7 +84,8 @@ func (r *SettingsRepository) Update(ctx context.Context, input *models.SettingsI
 		    editor_font_size = ?, editor_tab_size = ?, editor_theme = ?, editor_word_wrap = ?,
 		    editor_show_print_margin = ?, editor_show_gutter = ?, editor_show_indent_guides = ?,
 		    editor_highlight_active_line = ?, editor_use_soft_tabs = ?, editor_enable_snippets = ?,
-		    editor_enable_live_autocompletion = ?, markdown_font_size = ?, updated_at = CURRENT_TIMESTAMP
+		    editor_enable_live_autocompletion = ?, markdown_font_size = ?, exclude_first_line_on_copy = ?,
+		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = 1
 		RETURNING id, app_name, custom_css, theme, default_language,
 		          s3_enabled, s3_endpoint, s3_bucket, s3_region,
@@ -91,7 +94,8 @@ func (r *SettingsRepository) Update(ctx context.Context, input *models.SettingsI
 		          editor_font_size, editor_tab_size, editor_theme, editor_word_wrap,
 		          editor_show_print_margin, editor_show_gutter, editor_show_indent_guides,
 		          editor_highlight_active_line, editor_use_soft_tabs, editor_enable_snippets,
-		          editor_enable_live_autocompletion, markdown_font_size, created_at, updated_at
+		          editor_enable_live_autocompletion, markdown_font_size, exclude_first_line_on_copy,
+		          created_at, updated_at
 	`
 
 	settings := &models.Settings{}
@@ -120,6 +124,7 @@ func (r *SettingsRepository) Update(ctx context.Context, input *models.SettingsI
 		input.EditorEnableSnippets,
 		input.EditorEnableLiveAutocompletion,
 		input.MarkdownFontSize,
+		input.ExcludeFirstLineOnCopy,
 	).Scan(
 		&settings.ID,
 		&settings.AppName,
@@ -146,6 +151,7 @@ func (r *SettingsRepository) Update(ctx context.Context, input *models.SettingsI
 		&settings.EditorEnableSnippets,
 		&settings.EditorEnableLiveAutocompletion,
 		&settings.MarkdownFontSize,
+		&settings.ExcludeFirstLineOnCopy,
 		&settings.CreatedAt,
 		&settings.UpdatedAt,
 	)
