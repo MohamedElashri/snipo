@@ -90,3 +90,25 @@ vendor-update-major:
 	npm install
 	npm run vendor:sync
 	@echo "Vendor libraries updated (major versions included)"
+
+help:
+	@echo ""
+	@echo "Use 'make <command>' to execute any command."
+	@echo ""
+	@echo "Available commands:"
+	@echo "  build          - Build the application"
+	@echo "  run            - Run the application"
+	@echo "  dev            - Run in development mode"
+	@echo "  test           - Run all tests"
+	@echo "  test-short     - Run short tests"
+	@echo "  lint           - Run linter"
+	@echo "  clean          - Clean build artifacts"
+	@echo "  docker         - Build Docker image"
+	@echo "  docker-run     - Run with Docker Compose"
+	@echo "  docker-stop    - Stop Docker Compose"
+	@echo "  migrate        - Run database migrations"
+	@echo "  vendor-sync    - Sync vendor files"
+	@echo "  vendor-check   - Check for outdated packages"
+	@echo "  vendor-update  - Update vendor libraries (minor/patch)"
+	@echo "  vendor-update-major - Update vendor libraries (including major versions)"
+	@echo "  help           - Show this help message"
