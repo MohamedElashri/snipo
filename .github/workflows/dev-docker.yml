@@ -60,6 +60,7 @@ jobs:
         run: |
           echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "DATE=$(date -u +'%Y%m%d')" >> $GITHUB_OUTPUT
+          echo "IMAGE_NAME_LOWER=$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -68,17 +69,17 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:testing
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:testing-${{ steps.commit.outputs.DATE }}-${{ steps.commit.outputs.SHORT_SHA }}
+            ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing
+            ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing-${{ steps.commit.outputs.DATE }}-${{ steps.commit.outputs.SHORT_SHA }}
           build-args: |
             VERSION=dev-${{ steps.commit.outputs.SHORT_SHA }}
             COMMIT=${{ github.sha }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:testing
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing
           cache-to: type=inline
 
       - name: Image digest
         run: |
           echo "✅ Image pushed to GitHub Container Registry"
           echo "Tags:"
-          echo "  - ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:testing"
-          echo "  - ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:testing-${{ steps.commit.outputs.DATE }}-${{ steps.commit.outputs.SHORT_SHA }}"
+          echo "  - ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing"
+          echo "  - ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing-${{ steps.commit.outputs.DATE }}-${{ steps.commit.outputs.SHORT_SHA }}"
