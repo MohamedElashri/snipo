@@ -19,3 +19,4 @@ coverage.html
 ## extension folder ignore list
 *.zip
 dist/
+!PRIVACY.md

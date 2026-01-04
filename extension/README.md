@@ -17,14 +17,14 @@ Browser extension for saving code snippets to your self-hosted Snipo instance.
 ### From Browser Stores (Recommended)
 
 **Chrome Web Store:**
-```
-Coming soon - extension is being prepared for submission
-```
+
+> Coming soon - Extension is being prepared for submission
 
 **Firefox Add-ons:**
-```
-Coming soon - extension is being prepared for submission
-```
+
+> Coming soon - Extension is submitted to AMO and is awaiting approval
+
+
 
 ### Manual Installation (Development)
 
