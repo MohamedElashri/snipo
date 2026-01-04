@@ -15,8 +15,11 @@
     ],
     "browser_specific_settings": {
         "gecko": {
-            "id": "snipo@melashri.net",
-            "strict_min_version": "109.0"
+            "id": "snipo-snippet-manager@extensions.snipo",
+            "strict_min_version": "140.0",
+            "data_collection_permissions": {
+                "required": ["none"]
+            }
         }
     },
     "icons": {

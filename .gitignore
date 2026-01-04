@@ -3,6 +3,7 @@
 !README.md
 !docs/*
 !SECURITY.md
+!extension/README.md
 
 ## data/binaries (used for testing during development)
 /data
@@ -12,3 +13,8 @@ bin/*
 ## Coverage
 coverage.out
 coverage.html
+
+
+## extension folder ignore list
+*.zip
+dist/
