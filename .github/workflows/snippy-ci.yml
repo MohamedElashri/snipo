@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths:
       - 'tui/**'
+      - 'extension/**'
   pull_request:
     branches: [main]
     paths:
       - 'tui/**'
+      - 'extension/**'
 
 permissions:
   contents: read
