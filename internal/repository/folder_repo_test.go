@@ -184,6 +184,7 @@ func TestFolderRepository_ListTree(t *testing.T) {
 
 	if parentFolder == nil {
 		t.Fatal("Parent folder not found in tree")
+		return
 	}
 
 	if len(parentFolder.Children) != 2 {

@@ -15,6 +15,9 @@ import (
 	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/internal/config"
 	"github.com/MohamedElashri/snipo/internal/database"
+	"github.com/MohamedElashri/snipo/internal/demo"
+	"github.com/MohamedElashri/snipo/internal/repository"
+	"github.com/MohamedElashri/snipo/internal/services"
 )
 
 // Build-time variables
@@ -110,7 +113,7 @@ func runServer() {
 	if masterPasswordForAuth == "" {
 		masterPasswordForAuth = cfg.Auth.MasterPassword
 	}
-	
+
 	authService := auth.NewService(
 		db.DB,
 		masterPasswordForAuth,
@@ -129,6 +132,28 @@ func runServer() {
 			}
 		}
 	}()
+
+	// Initialize demo mode if enabled
+	if cfg.Demo.Enabled {
+		// Create repositories and services for demo mode
+		snippetRepo := repository.NewSnippetRepository(db.DB)
+		tagRepo := repository.NewTagRepository(db.DB)
+		folderRepo := repository.NewFolderRepository(db.DB)
+		fileRepo := repository.NewSnippetFileRepository(db.DB)
+		historyRepo := repository.NewHistoryRepository(db.DB)
+		settingsRepo := repository.NewSettingsRepository(db.DB)
+
+		snippetService := services.NewSnippetService(snippetRepo, logger).
+			WithTagRepo(tagRepo).
+			WithFolderRepo(folderRepo).
+			WithFileRepo(fileRepo).
+			WithHistoryRepo(historyRepo).
+			WithSettingsRepo(settingsRepo).
+			WithMaxFiles(cfg.Server.MaxFilesPerSnippet)
+
+		demoService := demo.NewService(db.DB, snippetService, logger, cfg.Demo.ResetInterval, cfg.Demo.Enabled)
+		demoService.StartPeriodicReset(ctx)
+	}
 
 	// Create router
 	router := api.NewRouter(api.RouterConfig{
@@ -244,19 +269,19 @@ func hashPassword() {
 			os.Exit(1)
 		}
 	}
-	
+
 	if password == "" {
 		fmt.Println("Error: Password cannot be empty")
 		os.Exit(1)
 	}
-	
+
 	// Generate hash using auth package
 	hash, err := auth.HashPassword(password)
 	if err != nil {
 		fmt.Printf("Error hashing password: %v\n", err)
 		os.Exit(1)
 	}
-	
+
 	fmt.Println("\nGenerated Argon2id password hash:")
 	fmt.Println(hash)
 	fmt.Println("\nAdd this to your environment or .env file:")
