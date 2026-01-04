@@ -107,6 +107,7 @@ help:
 	@echo "  docker-run     - Run with Docker Compose"
 	@echo "  docker-stop    - Stop Docker Compose"
 	@echo "  migrate        - Run database migrations"
+	@echo "  vendor-install - Install npm dependencies"
 	@echo "  vendor-sync    - Sync vendor files"
 	@echo "  vendor-check   - Check for outdated packages"
 	@echo "  vendor-update  - Update vendor libraries (minor/patch)"
