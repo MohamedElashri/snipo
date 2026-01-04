@@ -123,6 +123,15 @@
                         <strong>Note:</strong> API token operations always require password verification for security.
                     </p>
                 </div>
+                <div class="editor-field" style="margin-top: 1rem;">
+                    <label class="checkbox-label">
+                        <input type="checkbox" x-model="settings.exclude_first_line_on_copy" @change="updateSettings()">
+                        <span>Exclude First Line When Copying</span>
+                    </label>
+                    <p class="text-sm text-muted" style="margin-top: 0.25rem;">
+                        When copying snippets, automatically exclude the first line (useful for shebang lines like <code>#!/usr/bin/bash</code> or <code>&lt;?php</code>).
+                    </p>
+                </div>
             </div>
 
             <!-- Appearance tab -->

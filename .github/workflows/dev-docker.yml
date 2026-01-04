@@ -1,0 +1,87 @@
+name: Testing Branching Workflow
+
+on:
+  push:
+    branches: [dev]
+    paths-ignore:
+      - 'tui/**'
+      - 'extension/**'
+      - '**.md'
+      - 'docs/**'
+      - '.github/**'
+      - 'LICENSE'
+
+permissions:
+  packages: write
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  test:
+    name: Test Before Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@v6.1.0
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Run tests
+        run: go test -v -race ./...
+
+  build-and-push-testing:
+    name: Build and Push Testing Image
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3.7.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.12.0
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get commit info
+        id: commit
+        run: |
+          echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "DATE=$(date -u +'%Y%m%d')" >> $GITHUB_OUTPUT
+          echo "IMAGE_NAME_LOWER=$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing
+            ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing-${{ steps.commit.outputs.DATE }}-${{ steps.commit.outputs.SHORT_SHA }}
+          build-args: |
+            VERSION=dev-${{ steps.commit.outputs.SHORT_SHA }}
+            COMMIT=${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing
+          cache-to: type=inline
+
+      - name: Image digest
+        run: |
+          echo "✅ Image pushed to GitHub Container Registry"
+          echo "Tags:"
+          echo "  - ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing"
+          echo "  - ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing-${{ steps.commit.outputs.DATE }}-${{ steps.commit.outputs.SHORT_SHA }}"

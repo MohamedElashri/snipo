@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -139,7 +140,7 @@ func (t *FailedLoginTracker) cleanup() {
 // If authDisabled is true, authentication is completely bypassed (use with external auth)
 func NewService(db *sql.DB, masterPassword, sessionSecret string, sessionDuration time.Duration, logger *slog.Logger, authDisabled bool) *Service {
 	var passwordHash string
-	
+
 	// If auth is disabled, skip all password processing
 	if authDisabled {
 		logger.Warn("⚠️  AUTHENTICATION DISABLED - All requests will be accepted without verification",
@@ -229,7 +230,7 @@ func (s *Service) CreateSession() (string, error) {
 	}
 	token := base64.URLEncoding.EncodeToString(tokenBytes)
 
-	// Hash token for storage
+	// ALWAYS use the secure HMAC-SHA256 hash for new sessions
 	tokenHash := hashToken(token)
 
 	// Generate session ID
@@ -256,36 +257,73 @@ func (s *Service) CreateSession() (string, error) {
 }
 
 // ValidateSession checks if a session token is valid
+// MIGRATION STRATEGY: Supports both HMAC-SHA256 (new) and SHA256 (legacy) for backward compatibility
+// - Tries HMAC-SHA256 first (all new sessions)
+// - Falls back to SHA256 only for old sessions
+// - Automatically upgrades old sessions to HMAC-SHA256 on first use
 func (s *Service) ValidateSession(token string) bool {
 	if token == "" {
 		return false
 	}
 
+	// Try new HMAC-SHA256 hash first
 	tokenHash := hashToken(token)
-
 	var expiresAt time.Time
+	var sessionID string
 	err := s.db.QueryRow(
-		"SELECT expires_at FROM sessions WHERE token_hash = ?",
+		"SELECT id, expires_at FROM sessions WHERE token_hash = ?",
 		tokenHash,
-	).Scan(&expiresAt)
+	).Scan(&sessionID, &expiresAt)
 
-	if err != nil {
-		return false
+	if err == nil {
+		if time.Now().After(expiresAt) {
+			_, _ = s.db.Exec("DELETE FROM sessions WHERE token_hash = ?", tokenHash)
+			return false
+		}
+		return true
 	}
 
-	if time.Now().After(expiresAt) {
-		// Clean up expired session
-		_, _ = s.db.Exec("DELETE FROM sessions WHERE token_hash = ?", tokenHash)
-		return false
+	// Fall back to legacy SHA256 hash for old sessions
+	if err == sql.ErrNoRows {
+		tokenHashLegacy := hashTokenLegacy(token)
+		err = s.db.QueryRow(
+			"SELECT id, expires_at FROM sessions WHERE token_hash = ?",
+			tokenHashLegacy,
+		).Scan(&sessionID, &expiresAt)
+
+		if err == nil {
+			if time.Now().After(expiresAt) {
+				_, _ = s.db.Exec("DELETE FROM sessions WHERE token_hash = ?", tokenHashLegacy)
+				return false
+			}
+			// Upgrade the session hash to new format
+			_, _ = s.db.Exec("UPDATE sessions SET token_hash = ? WHERE id = ?", tokenHash, sessionID)
+			return true
+		}
 	}
 
-	return true
+	return false
 }
 
 // InvalidateSession removes a session
+// MIGRATION STRATEGY: Supports both hash formats to ensure old sessions can be properly invalidated
 func (s *Service) InvalidateSession(token string) error {
+	// Try new hash first
 	tokenHash := hashToken(token)
-	_, err := s.db.Exec("DELETE FROM sessions WHERE token_hash = ?", tokenHash)
+	result, err := s.db.Exec("DELETE FROM sessions WHERE token_hash = ?", tokenHash)
+	if err != nil {
+		return err
+	}
+
+	// Check if any rows were affected
+	rows, _ := result.RowsAffected()
+	if rows > 0 {
+		return nil
+	}
+
+	// Try legacy hash
+	tokenHashLegacy := hashTokenLegacy(token)
+	_, err = s.db.Exec("DELETE FROM sessions WHERE token_hash = ?", tokenHashLegacy)
 	return err
 }
 
@@ -352,8 +390,23 @@ func GetSessionFromRequest(r *http.Request) string {
 	return ""
 }
 
-// hashToken creates a SHA256 hash of the token
+// hashToken creates an HMAC-SHA256 hash of the token (new secure method)
+// ALL NEW SESSIONS use this method exclusively.
 func hashToken(token string) string {
+	key := []byte("snipo-session-hmac-key-v1")
+	h := hmac.New(sha256.New, key)
+	h.Write([]byte(token))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// hashTokenLegacy creates a SHA256 hash of the token (for backward compatibility)
+// MIGRATION STRATEGY:
+//   - This is ONLY used for validating existing sessions created before the security upgrade
+//   - When an old session is validated, it's automatically upgraded to HMAC-SHA256
+//   - New sessions NEVER use this method
+//   - This fallback can be removed after the session duration has passed (default: 168h/7 days)
+//     (recommended: remove after 1-2 major version releases)
+func hashTokenLegacy(token string) string {
 	hash := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(hash[:])
 }

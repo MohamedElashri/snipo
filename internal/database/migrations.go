@@ -261,6 +261,13 @@ const addDisableLoginSQL = `
 ALTER TABLE settings ADD COLUMN disable_login INTEGER DEFAULT 0 NOT NULL;
 `
 
+// Migration 8: Add exclude_first_line_on_copy setting
+
+const addExcludeFirstLineSQL = `
+-- Add exclude_first_line_on_copy column to settings table
+ALTER TABLE settings ADD COLUMN exclude_first_line_on_copy INTEGER DEFAULT 0 NOT NULL;
+`
+
 // getMigrations returns all available migrations in order
 func getMigrations() []Migration {
 	return []Migration{
@@ -271,5 +278,6 @@ func getMigrations() []Migration {
 		{Version: 5, Name: "add_editor_settings", SQL: addEditorSettingsSQL},
 		{Version: 6, Name: "add_markdown_settings", SQL: addMarkdownSettingsSQL},
 		{Version: 7, Name: "add_disable_login", SQL: addDisableLoginSQL},
+		{Version: 8, Name: "add_exclude_first_line", SQL: addExcludeFirstLineSQL},
 	}
 }

@@ -19,6 +19,7 @@ import (
 
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 const (
@@ -32,12 +33,13 @@ var (
 
 // BackupService handles backup and restore operations
 type BackupService struct {
-	db         *sql.DB
-	snippetSvc *SnippetService
-	tagRepo    *repository.TagRepository
-	folderRepo *repository.FolderRepository
-	fileRepo   *repository.SnippetFileRepository
-	logger     *slog.Logger
+	db             *sql.DB
+	snippetSvc     *SnippetService
+	tagRepo        *repository.TagRepository
+	folderRepo     *repository.FolderRepository
+	fileRepo       *repository.SnippetFileRepository
+	logger         *slog.Logger
+	encryptionSalt string
 }
 
 // NewBackupService creates a new backup service
@@ -48,14 +50,16 @@ func NewBackupService(
 	folderRepo *repository.FolderRepository,
 	fileRepo *repository.SnippetFileRepository,
 	logger *slog.Logger,
+	encryptionSalt string,
 ) *BackupService {
 	return &BackupService{
-		db:         db,
-		snippetSvc: snippetSvc,
-		tagRepo:    tagRepo,
-		folderRepo: folderRepo,
-		fileRepo:   fileRepo,
-		logger:     logger,
+		db:             db,
+		snippetSvc:     snippetSvc,
+		tagRepo:        tagRepo,
+		folderRepo:     folderRepo,
+		fileRepo:       fileRepo,
+		logger:         logger,
+		encryptionSalt: encryptionSalt,
 	}
 }
 
@@ -125,7 +129,7 @@ func (b *BackupService) Export(ctx context.Context, opts models.ExportOptions) (
 
 	// Encrypt if password provided
 	if opts.Password != "" {
-		content, err = encrypt(content, opts.Password)
+		content, err = b.encrypt(content, opts.Password)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to encrypt backup: %w", err)
 		}
@@ -148,7 +152,7 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 	// Decrypt if password provided
 	var err error
 	if opts.Password != "" {
-		content, err = decrypt(content, opts.Password)
+		content, err = b.decrypt(content, opts.Password)
 		if err != nil {
 			return nil, ErrDecryptionFailed
 		}
@@ -464,15 +468,20 @@ func getExtension(lang string) string {
 	return "txt"
 }
 
-// deriveKey derives a 32-byte key from password using SHA256
-func deriveKey(password string) []byte {
+// deriveKey derives a 32-byte key from password using PBKDF2
+func (b *BackupService) deriveKey(password string) []byte {
+	return pbkdf2.Key([]byte(password), []byte(b.encryptionSalt), 100000, 32, sha256.New)
+}
+
+// deriveKeyLegacy derives a 32-byte key using the old SHA256 method (for backward compatibility)
+func deriveKeyLegacy(password string) []byte {
 	hash := sha256.Sum256([]byte(password))
 	return hash[:]
 }
 
 // encrypt encrypts data using AES-256-GCM
-func encrypt(data []byte, password string) ([]byte, error) {
-	key := deriveKey(password)
+func (b *BackupService) encrypt(data []byte, password string) ([]byte, error) {
+	key := b.deriveKey(password)
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -492,10 +501,25 @@ func encrypt(data []byte, password string) ([]byte, error) {
 	return gcm.Seal(nonce, nonce, data, nil), nil
 }
 
-// decrypt decrypts data using AES-256-GCM
-func decrypt(data []byte, password string) ([]byte, error) {
-	key := deriveKey(password)
+// decrypt decrypts data using AES-256-GCM with backward compatibility
+func (b *BackupService) decrypt(data []byte, password string) ([]byte, error) {
+	// Try new PBKDF2 method first
+	result, err := decryptWithKey(data, b.deriveKey(password))
+	if err == nil {
+		return result, nil
+	}
 
+	// Fall back to legacy SHA256 method for old backups
+	result, legacyErr := decryptWithKey(data, deriveKeyLegacy(password))
+	if legacyErr == nil {
+		return result, nil
+	}
+
+	return nil, err
+}
+
+// decryptWithKey performs the actual AES-256-GCM decryption with a given key
+func decryptWithKey(data []byte, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err

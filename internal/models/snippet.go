@@ -146,7 +146,7 @@ type Pagination struct {
 	Page       int `json:"page"`
 	Limit      int `json:"limit"`
 	Total      int `json:"total"`
-	TotalPages int `json:"total_pages"`
+	TotalPages int `json:"totalPages"`
 }
 
 // SnippetListResponse represents a paginated list of snippets
@@ -209,28 +209,28 @@ type S3RestoreResult struct {
 
 // SnippetHistory represents a historical version of a snippet
 type SnippetHistory struct {
-	ID          int64              `json:"id"`
-	SnippetID   string             `json:"snippet_id"`
-	Title       string             `json:"title"`
-	Description string             `json:"description"`
-	Content     string             `json:"content"`
-	Language    string             `json:"language"`
-	IsFavorite  bool               `json:"is_favorite"`
-	IsPublic    bool               `json:"is_public"`
-	IsArchived  bool               `json:"is_archived"`
-	ChangeType  string             `json:"change_type"` // 'create', 'update', 'delete'
-	CreatedAt   time.Time          `json:"created_at"`
+	ID          int64                `json:"id"`
+	SnippetID   string               `json:"snippet_id"`
+	Title       string               `json:"title"`
+	Description string               `json:"description"`
+	Content     string               `json:"content"`
+	Language    string               `json:"language"`
+	IsFavorite  bool                 `json:"is_favorite"`
+	IsPublic    bool                 `json:"is_public"`
+	IsArchived  bool                 `json:"is_archived"`
+	ChangeType  string               `json:"change_type"` // 'create', 'update', 'delete'
+	CreatedAt   time.Time            `json:"created_at"`
 	Files       []SnippetFileHistory `json:"files,omitempty"`
 }
 
 // SnippetFileHistory represents a historical version of a snippet file
 type SnippetFileHistory struct {
-	ID         int64     `json:"id"`
-	HistoryID  int64     `json:"history_id"`
-	SnippetID  string    `json:"snippet_id"`
-	Filename   string    `json:"filename"`
-	Content    string    `json:"content"`
-	Language   string    `json:"language"`
-	SortOrder  int       `json:"sort_order"`
-	CreatedAt  time.Time `json:"created_at"`
+	ID        int64     `json:"id"`
+	HistoryID int64     `json:"history_id"`
+	SnippetID string    `json:"snippet_id"`
+	Filename  string    `json:"filename"`
+	Content   string    `json:"content"`
+	Language  string    `json:"language"`
+	SortOrder int       `json:"sort_order"`
+	CreatedAt time.Time `json:"created_at"`
 }

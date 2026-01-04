@@ -171,7 +171,7 @@ All configuration is via environment variables. See [`.env.example`](../.env.exa
 |----------|---------|-------------|
 | `SNIPO_HOST` | `0.0.0.0` | Server bind address |
 | `SNIPO_PORT` | `8080` | Server port |
-| `SNIPO_DB_PATH` | `./data/snipo.db` | SQLite database path |
+| `SNIPO_DB_PATH` | `/data/snipo.db` | SQLite database path |
 | `SNIPO_MASTER_PASSWORD` | **required** | Login password |
 | `SNIPO_SESSION_SECRET` | **required** | Session signing key (32+ chars) |
 | `SNIPO_SESSION_DURATION` | `168h` | Session lifetime |

@@ -39,8 +39,8 @@ func DecodeJSON(r *http.Request, v interface{}) error {
 
 // APIResponse is the standard response envelope
 type APIResponse struct {
-	Data  interface{} `json:"data"`
-	Meta  *Meta       `json:"meta,omitempty"`
+	Data  interface{}  `json:"data"`
+	Meta  *Meta        `json:"meta,omitempty"`
 	Error *ErrorDetail `json:"error,omitempty"`
 }
 
@@ -63,7 +63,7 @@ type Pagination struct {
 	Page       int              `json:"page"`
 	Limit      int              `json:"limit"`
 	Total      int              `json:"total"`
-	TotalPages int              `json:"total_pages"`
+	TotalPages int              `json:"totalPages"`
 	Links      *PaginationLinks `json:"links,omitempty"`
 }
 
@@ -81,11 +81,11 @@ type ErrorResponse struct {
 
 // ErrorDetail contains error details
 type ErrorDetail struct {
-	Code      string                      `json:"code"`
-	Message   string                      `json:"message"`
+	Code      string                       `json:"code"`
+	Message   string                       `json:"message"`
 	Details   []validation.ValidationError `json:"details,omitempty"`
-	RequestID string                      `json:"request_id,omitempty"`
-	Timestamp time.Time                   `json:"timestamp,omitempty"`
+	RequestID string                       `json:"request_id,omitempty"`
+	Timestamp time.Time                    `json:"timestamp,omitempty"`
 }
 
 // getMeta extracts metadata from request context
@@ -102,16 +102,16 @@ func getMeta(r *http.Request) *Meta {
 func buildPaginationLinks(r *http.Request, page, limit, total int) *PaginationLinks {
 	baseURL := fmt.Sprintf("%s://%s%s", scheme(r), r.Host, r.URL.Path)
 	query := r.URL.Query()
-	
+
 	// Self link
 	query.Set("page", fmt.Sprintf("%d", page))
 	query.Set("limit", fmt.Sprintf("%d", limit))
 	self := fmt.Sprintf("%s?%s", baseURL, query.Encode())
-	
+
 	links := &PaginationLinks{
 		Self: self,
 	}
-	
+
 	// Next link
 	totalPages := (total + limit - 1) / limit
 	if page < totalPages {
@@ -119,14 +119,14 @@ func buildPaginationLinks(r *http.Request, page, limit, total int) *PaginationLi
 		next := fmt.Sprintf("%s?%s", baseURL, query.Encode())
 		links.Next = &next
 	}
-	
+
 	// Previous link
 	if page > 1 {
 		query.Set("page", fmt.Sprintf("%d", page-1))
 		prev := fmt.Sprintf("%s?%s", baseURL, query.Encode())
 		links.Prev = &prev
 	}
-	
+
 	return links
 }
 
@@ -170,7 +170,7 @@ func SuccessList(w http.ResponseWriter, r *http.Request, data interface{}, page,
 	if totalPages == 0 {
 		totalPages = 1
 	}
-	
+
 	response := ListResponse{
 		Data: data,
 		Pagination: &Pagination{
