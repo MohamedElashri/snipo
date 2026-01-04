@@ -77,7 +77,6 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing
-            ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing-${{ steps.commit.outputs.DATE }}-${{ steps.commit.outputs.SHORT_SHA }}
           build-args: |
             VERSION=dev-${{ steps.commit.outputs.SHORT_SHA }}
             COMMIT=${{ github.sha }}
