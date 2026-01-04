@@ -8,6 +8,8 @@ on:
       - 'extension/**'
       - '**.md'
       - 'docs/**'
+      - '.github/**'
+      - 'LICENSE'
 
 permissions:
   packages: write
