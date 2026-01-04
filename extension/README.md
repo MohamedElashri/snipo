@@ -17,14 +17,14 @@ Browser extension for saving code snippets to your self-hosted Snipo instance.
 ### From Browser Stores (Recommended)
 
 **Chrome Web Store:**
-```
-Coming soon - extension is being prepared for submission
-```
+
+> Coming soon - Extension is being prepared for submission
 
 **Firefox Add-ons:**
-```
-Coming soon - extension is being prepared for submission
-```
+
+> Coming soon - Extension is submitted to AMO and is awaiting approval
+
+
 
 ### Manual Installation (Development)
 
@@ -175,15 +175,3 @@ Contributions are welcome! Please:
 ## License
 
 Affero General Public License v3.0 - see [LICENSE](../LICENSE)
-
-## Links
-
-- **Main Repository**: https://github.com/MohamedElashri/snipo
-- **Issues**: https://github.com/MohamedElashri/snipo/issues
-- **Documentation**: https://github.com/MohamedElashri/snipo/tree/main/docs
-
-## Support
-
-- Open an issue: https://github.com/MohamedElashri/snipo/issues
-- Read the docs: https://github.com/MohamedElashri/snipo/tree/main/docs
-- Check the FAQ: https://github.com/MohamedElashri/snipo#faq

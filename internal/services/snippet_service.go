@@ -336,7 +336,20 @@ func (s *SnippetService) List(ctx context.Context, filter models.SnippetFilter) 
 		filter.SortOrder = "desc"
 	}
 
-	return s.repo.List(ctx, filter)
+	response, err := s.repo.List(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	// Load files for each snippet
+	if s.fileRepo != nil && len(response.Data) > 0 {
+		for i := range response.Data {
+			files, _ := s.fileRepo.GetBySnippetID(ctx, response.Data[i].ID)
+			response.Data[i].Files = files
+		}
+	}
+
+	return response, nil
 }
 
 // ToggleFavorite toggles the favorite status of a snippet

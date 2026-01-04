@@ -20,19 +20,20 @@
     <div :class="viewMode === 'list' ? 'snippet-list-view' : 'snippet-grid'"
         x-show="!loading && snippets.length > 0">
         <template x-for="snippet in snippets" :key="snippet.id">
-            <article class="snippet-card" @click="viewSnippet(snippet)">
-                <div class="snippet-card-header">
-                    <h3 class="snippet-card-title" x-text="snippet.title"></h3>
-                    <span class="snippet-card-language"
-                        :style="{ background: getLanguageColor(snippet.language) }"
-                        x-text="snippet.language"></span>
-                </div>
+            <article class="snippet-card">
+                <div @click="viewSnippet(snippet)" style="cursor: pointer;">
+                    <div class="snippet-card-header">
+                        <h3 class="snippet-card-title" x-text="snippet.title"></h3>
+                        <span class="snippet-card-language"
+                            :style="{ background: getLanguageColor(snippet.language) }"
+                            x-text="snippet.language"></span>
+                    </div>
 
-                <!-- Show description if exists, otherwise show first 2 lines of code -->
-                <p class="snippet-card-description" x-show="snippet.description" x-text="snippet.description">
-                </p>
-                <pre class="snippet-card-preview"
-                    x-show="!snippet.description"><code x-text="snippet.content.split('\n').slice(0, 2).join('\n')"></code></pre>
+                    <!-- Show description if exists, otherwise show first 2 lines of code -->
+                    <p class="snippet-card-description" x-show="snippet.description" x-text="snippet.description">
+                    </p>
+                    <pre class="snippet-card-preview" x-show="!snippet.description"><code x-text="snippet.content.split('\n').slice(0, 2).join('\n')"></code></pre>
+                </div>
 
                 <div class="snippet-card-footer">
                     <div class="snippet-card-tags">
@@ -44,6 +45,52 @@
                         </template>
                     </div>
                     <div class="snippet-card-meta">
+                        <!-- Single file: simple copy button -->
+                        <button x-show="!snippet.files || snippet.files.length <= 1" 
+                                class="snippet-card-copy-btn" 
+                                @click.stop="copySnippetFromCard(snippet)" 
+                                title="Copy code">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                        
+                        <!-- Multiple files: dropdown menu -->
+                        <div x-show="snippet.files && snippet.files.length > 1" 
+                             class="snippet-card-copy-dropdown"
+                             x-data="{ open: false }"
+                             @click.outside="open = false">
+                            <button class="snippet-card-copy-btn" 
+                                    @click.stop="open = !open" 
+                                    :title="'Copy file (' + snippet.files.length + ' files)'">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 2px;">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div x-show="open" 
+                                 x-cloak
+                                 class="snippet-card-copy-menu"
+                                 @click.stop>
+                                <div class="snippet-card-copy-menu-header">Copy file:</div>
+                                <template x-for="(file, index) in snippet.files" :key="file.id || index">
+                                    <button class="snippet-card-copy-menu-item"
+                                            @click="copyFileFromCard(snippet, file); open = false"
+                                            :title="'Copy ' + file.filename">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                            <polyline points="13 2 13 9 20 9"></polyline>
+                                        </svg>
+                                        <span x-text="file.filename"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                        
                         <span x-show="snippet.is_favorite" title="Favorite">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
                                 stroke="currentColor" stroke-width="2">
@@ -70,17 +117,106 @@
     </div>
 
     <!-- Pagination -->
-    <div class="flex justify-between items-center mt-4" x-show="pagination.totalPages > 1">
-        <button @click="pagination.page--; loadSnippets()" :disabled="pagination.page <= 1" class="btn-icon">
+    <div class="pagination" x-show="pagination.totalPages > 1" x-data="{ showPageInput: false, pageInput: '' }">
+        <button @click="pagination.page--; loadSnippets()" :disabled="pagination.page <= 1" class="pagination-btn" title="Previous page">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="15 18 9 12 15 6"></polyline>
             </svg>
         </button>
-        <span class="text-sm text-muted">
-            Page <span x-text="pagination.page"></span> of <span x-text="pagination.totalPages"></span>
-        </span>
+        
+        <!-- Page numbers for small total pages -->
+        <template x-if="pagination.totalPages <= 7">
+            <div class="pagination-pages">
+                <template x-for="page in pagination.totalPages" :key="page">
+                    <button 
+                        @click="pagination.page = page; loadSnippets()" 
+                        :class="{ 'active': pagination.page === page }"
+                        class="pagination-page-btn"
+                        x-text="page">
+                    </button>
+                </template>
+            </div>
+        </template>
+        
+        <!-- Compact pagination with ellipsis for many pages -->
+        <template x-if="pagination.totalPages > 7">
+            <div class="pagination-pages">
+                <!-- First page -->
+                <button 
+                    @click="pagination.page = 1; loadSnippets()" 
+                    :class="{ 'active': pagination.page === 1 }"
+                    class="pagination-page-btn">
+                    1
+                </button>
+                
+                <!-- Ellipsis and pages around current -->
+                <template x-if="pagination.page > 3">
+                    <span class="pagination-ellipsis">...</span>
+                </template>
+                
+                <template x-for="page in Array.from({length: pagination.totalPages}, (_, i) => i + 1).filter(p => p > 1 && p < pagination.totalPages && Math.abs(p - pagination.page) <= 1)" :key="page">
+                    <button 
+                        @click="pagination.page = page; loadSnippets()" 
+                        :class="{ 'active': pagination.page === page }"
+                        class="pagination-page-btn"
+                        x-text="page">
+                    </button>
+                </template>
+                
+                <template x-if="pagination.page < pagination.totalPages - 2">
+                    <span class="pagination-ellipsis">...</span>
+                </template>
+                
+                <!-- Last page -->
+                <button 
+                    @click="pagination.page = pagination.totalPages; loadSnippets()" 
+                    :class="{ 'active': pagination.page === pagination.totalPages }"
+                    class="pagination-page-btn"
+                    x-text="pagination.totalPages">
+                </button>
+            </div>
+        </template>
+        
+        <!-- Go to page input -->
+        <div class="pagination-goto" x-show="pagination.totalPages > 7">
+            <template x-if="!showPageInput">
+                <button @click="showPageInput = true; pageInput = pagination.page" class="pagination-goto-btn" title="Go to page">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                </button>
+            </template>
+            <template x-if="showPageInput">
+                <div class="pagination-input-group">
+                    <input 
+                        type="number" 
+                        x-model="pageInput"
+                        @keyup.enter="if(pageInput >= 1 && pageInput <= pagination.totalPages) { pagination.page = parseInt(pageInput); loadSnippets(); showPageInput = false; }"
+                        @keyup.escape="showPageInput = false"
+                        class="pagination-input"
+                        :min="1"
+                        :max="pagination.totalPages"
+                        placeholder="#"
+                        x-init="$nextTick(() => $el.focus())">
+                    <button 
+                        @click="if(pageInput >= 1 && pageInput <= pagination.totalPages) { pagination.page = parseInt(pageInput); loadSnippets(); showPageInput = false; }"
+                        class="pagination-input-go"
+                        title="Go">
+                        ✓
+                    </button>
+                    <button 
+                        @click="showPageInput = false"
+                        class="pagination-input-cancel"
+                        title="Cancel">
+                        ✕
+                    </button>
+                </div>
+            </template>
+        </div>
+        
         <button @click="pagination.page++; loadSnippets()" :disabled="pagination.page >= pagination.totalPages"
-            class="btn-icon">
+            class="pagination-btn" title="Next page">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="9 18 15 12 9 6"></polyline>
             </svg>

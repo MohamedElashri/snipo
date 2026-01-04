@@ -33,16 +33,16 @@ type testMeta struct {
 }
 
 type testListResponse struct {
-	Data       interface{}       `json:"data"`
-	Pagination *testPagination   `json:"pagination,omitempty"`
-	Meta       *testMeta         `json:"meta,omitempty"`
+	Data       interface{}     `json:"data"`
+	Pagination *testPagination `json:"pagination,omitempty"`
+	Meta       *testMeta       `json:"meta,omitempty"`
 }
 
 type testPagination struct {
 	Page       int                  `json:"page"`
 	Limit      int                  `json:"limit"`
 	Total      int                  `json:"total"`
-	TotalPages int                  `json:"total_pages"`
+	TotalPages int                  `json:"totalPages"`
 	Links      *testPaginationLinks `json:"links,omitempty"`
 }
 
@@ -799,7 +799,7 @@ func TestHealthHandler_Health(t *testing.T) {
 
 func TestHealthHandler_Health_WithFeatureFlags(t *testing.T) {
 	db := testutil.TestDB(t)
-	
+
 	// Test with all features enabled
 	features := &config.FeatureFlags{
 		PublicSnippets: true,

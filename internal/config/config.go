@@ -42,14 +42,16 @@ type DatabaseConfig struct {
 
 // AuthConfig holds authentication settings
 type AuthConfig struct {
-	MasterPassword         string
-	MasterPasswordHash     string // Pre-hashed password (Argon2id format)
-	Disabled               bool   // Disable authentication entirely (use with external auth like Authelia)
-	SessionSecret          string
-	SessionSecretGenerated bool // True if session secret was auto-generated (not recommended for production)
-	SessionDuration        time.Duration
-	RateLimit              int
-	RateLimitWindow        time.Duration
+	MasterPassword          string
+	MasterPasswordHash      string // Pre-hashed password (Argon2id format)
+	Disabled                bool   // Disable authentication entirely (use with external auth like Authelia)
+	SessionSecret           string
+	SessionSecretGenerated  bool // True if session secret was auto-generated (not recommended for production)
+	SessionDuration         time.Duration
+	RateLimit               int
+	RateLimitWindow         time.Duration
+	EncryptionSalt          string // Salt for backup encryption (PBKDF2)
+	EncryptionSaltGenerated bool   // True if salt was auto-generated
 }
 
 // S3Config holds S3 storage settings
@@ -98,7 +100,7 @@ func Load() (*Config, error) {
 	cfg.Server.MaxFilesPerSnippet = getEnvInt("SNIPO_MAX_FILES_PER_SNIPPET", 10)
 
 	// Database
-	cfg.Database.Path = getEnv("SNIPO_DB_PATH", "./data/snipo.db")
+	cfg.Database.Path = getEnv("SNIPO_DB_PATH", "/data/snipo.db")
 	cfg.Database.MaxOpenConns = getEnvInt("SNIPO_DB_MAX_CONNS", 1)
 	cfg.Database.BusyTimeout = getEnvInt("SNIPO_DB_BUSY_TIMEOUT", 5000)
 	cfg.Database.JournalMode = getEnv("SNIPO_DB_JOURNAL", "WAL")
@@ -106,7 +108,7 @@ func Load() (*Config, error) {
 
 	// Auth - Check if authentication is disabled
 	cfg.Auth.Disabled = getEnvBool("SNIPO_DISABLE_AUTH", false)
-	
+
 	// If auth is disabled, skip password requirements
 	if cfg.Auth.Disabled {
 		// Clear any password config when disabled
@@ -116,12 +118,12 @@ func Load() (*Config, error) {
 		// Auth enabled - Support both plain text password and pre-hashed password
 		cfg.Auth.MasterPassword = os.Getenv("SNIPO_MASTER_PASSWORD")
 		cfg.Auth.MasterPasswordHash = os.Getenv("SNIPO_MASTER_PASSWORD_HASH")
-		
+
 		// At least one password method must be provided when auth is enabled
 		if cfg.Auth.MasterPassword == "" && cfg.Auth.MasterPasswordHash == "" {
 			return nil, errors.New("either SNIPO_MASTER_PASSWORD or SNIPO_MASTER_PASSWORD_HASH is required (or set SNIPO_DISABLE_AUTH=true)")
 		}
-		
+
 		// If both are provided, prefer the hash
 		if cfg.Auth.MasterPasswordHash != "" {
 			// Validate hash format (basic check for Argon2id format)
@@ -145,6 +147,18 @@ func Load() (*Config, error) {
 	cfg.Auth.SessionDuration = getEnvDuration("SNIPO_SESSION_DURATION", 168*time.Hour)
 	cfg.Auth.RateLimit = getEnvInt("SNIPO_RATE_LIMIT", 100)
 	cfg.Auth.RateLimitWindow = getEnvDuration("SNIPO_RATE_WINDOW", 1*time.Minute)
+
+	// Encryption salt for backups
+	encryptionSalt := os.Getenv("SNIPO_ENCRYPTION_SALT")
+	if encryptionSalt == "" {
+		salt, err := generateSecret()
+		if err != nil {
+			return nil, err
+		}
+		encryptionSalt = salt
+		cfg.Auth.EncryptionSaltGenerated = true
+	}
+	cfg.Auth.EncryptionSalt = encryptionSalt
 
 	// S3
 	cfg.S3.Enabled = getEnvBool("SNIPO_S3_ENABLED", false)

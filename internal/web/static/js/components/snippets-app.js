@@ -155,6 +155,9 @@ export function initSnippetsApp(Alpine) {
         if (this.sortBy === 'title_desc') {
           params.set('sort', 'title');
           params.set('order', 'desc');
+        } else if (this.sortBy === 'title') {
+          params.set('sort', 'title');
+          params.set('order', 'asc');
         } else {
           params.set('sort', this.sortBy);
         }
@@ -385,6 +388,45 @@ export function initSnippetsApp(Alpine) {
       };
       flatten(this.folders);
       return result;
+    },
+
+    // Helper methods for snippet cards
+    async copySnippetFromCard(snippet) {
+      try {
+        let contentToCopy = snippet.content;
+        
+        // Check if setting to exclude first line is enabled
+        if (this.settings?.exclude_first_line_on_copy) {
+          const lines = contentToCopy.split('\n');
+          if (lines.length > 1) {
+            contentToCopy = lines.slice(1).join('\n');
+          }
+        }
+        
+        await navigator.clipboard.writeText(contentToCopy);
+        showToast('Copied to clipboard');
+      } catch (err) {
+        showToast('Failed to copy', 'error');
+      }
+    },
+
+    async copyFileFromCard(snippet, file) {
+      try {
+        let contentToCopy = file.content;
+        
+        // Check if setting to exclude first line is enabled
+        if (this.settings?.exclude_first_line_on_copy) {
+          const lines = contentToCopy.split('\n');
+          if (lines.length > 1) {
+            contentToCopy = lines.slice(1).join('\n');
+          }
+        }
+        
+        await navigator.clipboard.writeText(contentToCopy);
+        showToast(`Copied ${file.filename} to clipboard`);
+      } catch (err) {
+        showToast('Failed to copy', 'error');
+      }
     },
 
     // Utility methods exposed to component
