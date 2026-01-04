@@ -30,7 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Fixed
 
-- NA
+- Fix pagination not showing up in some cases
+- Fix API response formatting for consistent JSON field naming
+- Fix sorting by title (A-Z) and title (Z-A) being the same.
 
 #### Removed
 
