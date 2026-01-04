@@ -1,6 +1,7 @@
-## ignore everything md except README.md
+## ignore everything md except README.md and CHANGELOG.md
 *.md
 !README.md
+!CHANGELOG.md
 !docs/*
 !SECURITY.md
 !extension/README.md
