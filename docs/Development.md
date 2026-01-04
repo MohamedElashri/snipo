@@ -378,6 +378,65 @@ Each release includes:
 | `Ctrl+N` / `Cmd+N` | New snippet |
 | `Escape` | Close editor/modal |
 
+## Vendor Library Management
+
+Snipo serves all frontend JavaScript and CSS libraries locally (no CDN) for privacy. Libraries are managed via npm but served from the `internal/web/static/vendor/` directory.
+
+### Current Libraries
+
+- **htmx** - HTML-over-the-wire interactions
+- **Alpine.js** - Reactive UI framework
+- **Ace Editor** - Code editor with syntax highlighting
+- **Prism.js** - Syntax highlighting for display
+- **Marked** - Markdown parser
+- **Pico CSS** - Minimal CSS framework
+
+### Setup
+
+```bash
+# First time setup
+npm install
+npm run vendor:sync
+
+# Or use Make
+make vendor-install
+make vendor-sync
+```
+
+### Updating Libraries
+
+```bash
+# Check for available updates
+make vendor-check
+
+# Update to latest compatible versions (minor/patch)
+make vendor-update
+
+# Update to latest including major versions
+make vendor-update-major
+```
+
+### How It Works
+
+1. Dependencies are declared in `package.json` with semantic versioning
+2. `npm install` downloads packages to `node_modules/` (gitignored)
+3. `scripts/sync-vendor.js` copies specific files to `internal/web/static/vendor/` (committed)
+4. Your app serves files from the vendor directory
+
+### Adding New Libraries
+
+1. Install the package: `npm install <package-name>`
+2. Edit `scripts/sync-vendor.js` to add file mappings:
+```javascript
+const vendorConfig = {
+  js: {
+    'newlib.min.js': 'package-name/dist/newlib.min.js',
+  }
+};
+```
+3. Sync: `npm run vendor:sync`
+4. Update HTML templates to include the new library
+
 ## Customization
 
 Snipo supports extensive visual customization through custom CSS. See [customization.md](customization.md) for a complete guide on:
