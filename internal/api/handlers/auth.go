@@ -11,11 +11,21 @@ import (
 // AuthHandler handles authentication-related HTTP requests
 type AuthHandler struct {
 	authService *auth.Service
+	demoMode    bool
 }
 
 // NewAuthHandler creates a new auth handler
 func NewAuthHandler(authService *auth.Service) *AuthHandler {
-	return &AuthHandler{authService: authService}
+	return &AuthHandler{
+		authService: authService,
+		demoMode:    false,
+	}
+}
+
+// WithDemoMode sets the demo mode flag
+func (h *AuthHandler) WithDemoMode(enabled bool) *AuthHandler {
+	h.demoMode = enabled
+	return h
 }
 
 // LoginRequest represents a login request
@@ -132,6 +142,12 @@ type ChangePasswordRequest struct {
 
 // ChangePassword handles POST /api/v1/auth/change-password
 func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	// Block password changes in demo mode
+	if h.demoMode {
+		Error(w, r, http.StatusForbidden, "DEMO_MODE_RESTRICTION", "Password changes are disabled in demo mode")
+		return
+	}
+
 	var req ChangePasswordRequest
 	if err := DecodeJSON(r, &req); err != nil {
 		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid JSON payload")

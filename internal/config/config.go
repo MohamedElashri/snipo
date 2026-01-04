@@ -19,6 +19,7 @@ type Config struct {
 	Logging  LoggingConfig
 	API      APIConfig
 	Features FeatureFlags
+	Demo     DemoConfig
 }
 
 // ServerConfig holds HTTP server settings
@@ -87,6 +88,12 @@ type FeatureFlags struct {
 	BackupRestore  bool
 }
 
+// DemoConfig holds demo mode settings
+type DemoConfig struct {
+	Enabled       bool
+	ResetInterval time.Duration
+}
+
 // Load reads configuration from environment variables
 func Load() (*Config, error) {
 	cfg := &Config{}
@@ -106,12 +113,20 @@ func Load() (*Config, error) {
 	cfg.Database.JournalMode = getEnv("SNIPO_DB_JOURNAL", "WAL")
 	cfg.Database.SynchronousMode = getEnv("SNIPO_DB_SYNC", "NORMAL")
 
+	// Demo Mode (check early to override auth requirements)
+	cfg.Demo.Enabled = getEnvBool("SNIPO_DEMO_MODE", false)
+	cfg.Demo.ResetInterval = getEnvDuration("SNIPO_DEMO_RESET_INTERVAL", 15*time.Minute)
+
 	// Auth - Check if authentication is disabled
 	cfg.Auth.Disabled = getEnvBool("SNIPO_DISABLE_AUTH", false)
 
-	// If auth is disabled, skip password requirements
-	if cfg.Auth.Disabled {
-		// Clear any password config when disabled
+	// If demo mode is enabled, override auth settings
+	if cfg.Demo.Enabled {
+		cfg.Auth.MasterPassword = "demo"
+		cfg.Auth.MasterPasswordHash = ""
+		cfg.Auth.Disabled = false
+	} else if cfg.Auth.Disabled {
+		// If auth is disabled (and not demo mode), skip password requirements
 		cfg.Auth.MasterPassword = ""
 		cfg.Auth.MasterPasswordHash = ""
 	} else {

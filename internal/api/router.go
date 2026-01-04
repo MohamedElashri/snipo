@@ -30,6 +30,7 @@ type RouterConfig struct {
 	RateLimitWindow    int // in seconds
 	MaxFilesPerSnippet int
 	S3Config           *config.S3Config
+	SnippetService     *services.SnippetService // For demo mode
 }
 
 // NewRouter creates and configures the HTTP router
@@ -76,13 +77,20 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	historyRepo := repository.NewHistoryRepository(cfg.DB)
 
 	// Create services
-	snippetService := services.NewSnippetService(snippetRepo, cfg.Logger).
-		WithTagRepo(tagRepo).
-		WithFolderRepo(folderRepo).
-		WithFileRepo(fileRepo).
-		WithHistoryRepo(historyRepo).
-		WithSettingsRepo(settingsRepo).
-		WithMaxFiles(cfg.MaxFilesPerSnippet)
+	var snippetService *services.SnippetService
+	if cfg.SnippetService != nil {
+		// Use provided snippet service (for demo mode)
+		snippetService = cfg.SnippetService
+	} else {
+		// Create new snippet service
+		snippetService = services.NewSnippetService(snippetRepo, cfg.Logger).
+			WithTagRepo(tagRepo).
+			WithFolderRepo(folderRepo).
+			WithFileRepo(fileRepo).
+			WithHistoryRepo(historyRepo).
+			WithSettingsRepo(settingsRepo).
+			WithMaxFiles(cfg.MaxFilesPerSnippet)
+	}
 
 	// Create backup service
 	backupService := services.NewBackupService(cfg.DB, snippetService, tagRepo, folderRepo, fileRepo, cfg.Logger, cfg.Config.Auth.EncryptionSalt)
@@ -110,8 +118,8 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	snippetHandler := handlers.NewSnippetHandler(snippetService)
 	tagHandler := handlers.NewTagHandler(tagRepo)
 	folderHandler := handlers.NewFolderHandler(folderRepo)
-	tokenHandler := handlers.NewTokenHandler(tokenRepo, settingsRepo, cfg.AuthService)
-	authHandler := handlers.NewAuthHandler(cfg.AuthService)
+	tokenHandler := handlers.NewTokenHandler(tokenRepo, settingsRepo, cfg.AuthService).WithDemoMode(cfg.Config.Demo.Enabled)
+	authHandler := handlers.NewAuthHandler(cfg.AuthService).WithDemoMode(cfg.Config.Demo.Enabled)
 
 	// Create health handler with feature flags
 	var featureFlags *config.FeatureFlags
@@ -242,6 +250,9 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	if err != nil {
 		cfg.Logger.Error("failed to create web handler", "error", err)
 	} else {
+		// Set demo mode if enabled
+		webHandler = webHandler.WithDemoMode(cfg.Config.Demo.Enabled)
+
 		// Static files
 		r.Handle("/static/*", web.StaticHandler())
 

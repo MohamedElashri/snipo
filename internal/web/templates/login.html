@@ -1,8 +1,26 @@
 {{define "content"}}
+{{if .DemoMode}}
+<!-- Demo Mode Info Banner (Top of Page) -->
+<div class="login-demo-banner-top">
+    <div class="login-demo-content">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 16v-4"></path>
+            <path d="M12 8h.01"></path>
+        </svg>
+        <div class="login-demo-text">
+            <strong>Demo Mode Active</strong>
+            <p>Use password: <code>demo</code></p>
+            <p class="login-demo-warning">All data resets every 15 minutes. Do not store personal information.</p>
+        </div>
+    </div>
+</div>
+{{end}}
+
 <div class="login-container" x-data="loginForm()">
     <!-- Theme toggle in corner -->
     <button class="btn-icon" 
-            style="position: fixed; top: 1rem; right: 1rem;"
+            style="position: fixed; top: 1rem; right: 1rem; z-index: 1001;"
             @click="theme.toggle()"
             title="Toggle theme">
         <svg x-show="theme.get() === 'dark'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

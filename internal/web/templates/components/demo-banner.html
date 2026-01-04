@@ -1,0 +1,17 @@
+{{define "demo-banner"}}
+{{if .DemoMode}}
+<!-- Demo Mode Banner -->
+<div class="demo-banner">
+    <div class="demo-banner-content">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 6v6l4 2"></path>
+        </svg>
+        <span>
+            <strong>Demo Mode:</strong> This is a demonstration environment. 
+            All data resets every 15 minutes. Do not store personal or sensitive information.
+        </span>
+    </div>
+</div>
+{{end}}
+{{end}}
