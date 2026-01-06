@@ -76,6 +76,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	fileRepo := repository.NewSnippetFileRepository(cfg.DB)
 	settingsRepo := repository.NewSettingsRepository(cfg.DB)
 	historyRepo := repository.NewHistoryRepository(cfg.DB)
+	gistSyncRepo := repository.NewGistSyncRepository(cfg.DB)
 
 	// Create services
 	var snippetService *services.SnippetService
@@ -131,6 +132,27 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	backupHandler := handlers.NewBackupHandler(backupService, s3SyncService)
 	settingsHandler := handlers.NewSettingsHandler(settingsRepo)
+
+	// Create encryption service for gist sync (using auth encryption salt as key)
+	encryptionKey := []byte(cfg.Config.Auth.EncryptionSalt)
+	if len(encryptionKey) < 32 {
+		// Pad key to 32 bytes if needed
+		paddedKey := make([]byte, 32)
+		copy(paddedKey, encryptionKey)
+		encryptionKey = paddedKey
+	} else if len(encryptionKey) > 32 {
+		encryptionKey = encryptionKey[:32]
+	}
+	encryptionSvc, err := services.NewEncryptionService(encryptionKey)
+	if err != nil {
+		cfg.Logger.Warn("failed to initialize encryption service", "error", err)
+	}
+
+	// Create gist sync handler
+	var gistSyncHandler *handlers.GistSyncHandler
+	if encryptionSvc != nil {
+		gistSyncHandler = handlers.NewGistSyncHandler(gistSyncRepo, snippetRepo, encryptionSvc)
+	}
 
 	// Public routes (no auth required)
 	r.Group(func(r chi.Router) {
@@ -244,6 +266,48 @@ func NewRouter(cfg RouterConfig) http.Handler {
 			r.Post("/s3/restore", backupHandler.S3Restore)
 			r.Delete("/s3/delete", backupHandler.S3Delete)
 		})
+
+		// GitHub Gist Sync (admin only for config, write for sync operations)
+		if gistSyncHandler != nil {
+			r.Route("/api/v1/gist", func(r chi.Router) {
+				// Config endpoints (admin only)
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequireAdmin)
+					r.Use(apiRateLimiter.RateLimitAdmin)
+					r.Get("/config", gistSyncHandler.GetConfig)
+					r.Post("/config", gistSyncHandler.UpdateConfig)
+					r.Delete("/config", gistSyncHandler.ClearConfig)
+					r.Post("/config/test", gistSyncHandler.TestConnection)
+				})
+
+				// Sync operations (write permission)
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequireWrite)
+					r.Use(apiRateLimiter.RateLimitWrite)
+					r.Post("/sync/snippet/{id}", gistSyncHandler.SyncSnippet)
+					r.Post("/sync/all", gistSyncHandler.SyncAll)
+					r.Post("/sync/enable/{id}", gistSyncHandler.EnableSync)
+					r.Post("/sync/disable/{id}", gistSyncHandler.DisableSync)
+				})
+
+				// Mappings and conflicts (read permission)
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequireRead)
+					r.Use(apiRateLimiter.RateLimitRead)
+					r.Get("/mappings", gistSyncHandler.ListMappings)
+					r.Get("/conflicts", gistSyncHandler.ListConflicts)
+					r.Get("/logs", gistSyncHandler.GetLogs)
+				})
+
+				// Mapping deletion and conflict resolution (write permission)
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequireWrite)
+					r.Use(apiRateLimiter.RateLimitWrite)
+					r.Delete("/mappings/{id}", gistSyncHandler.DeleteMapping)
+					r.Post("/conflicts/{id}/resolve", gistSyncHandler.ResolveConflict)
+				})
+			})
+		}
 	})
 
 	// Web UI routes

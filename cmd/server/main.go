@@ -133,6 +133,27 @@ func runServer() {
 		}
 	}()
 
+	// Initialize gist sync worker
+	var gistSyncWorker *services.GistSyncWorker
+	gistSyncRepo := repository.NewGistSyncRepository(db.DB)
+	snippetRepo := repository.NewSnippetRepository(db.DB)
+
+	encryptionKey := []byte(cfg.Auth.EncryptionSalt)
+	if len(encryptionKey) < 32 {
+		paddedKey := make([]byte, 32)
+		copy(paddedKey, encryptionKey)
+		encryptionKey = paddedKey
+	} else if len(encryptionKey) > 32 {
+		encryptionKey = encryptionKey[:32]
+	}
+
+	if encryptionSvc, err := services.NewEncryptionService(encryptionKey); err == nil {
+		gistSyncWorker = services.NewGistSyncWorker(gistSyncRepo, snippetRepo, encryptionSvc, logger)
+		if err := gistSyncWorker.Start(ctx); err != nil {
+			logger.Warn("failed to start gist sync worker", "error", err)
+		}
+	}
+
 	// Initialize demo mode if enabled
 	if cfg.Demo.Enabled {
 		// Create repositories and services for demo mode
@@ -194,6 +215,13 @@ func runServer() {
 	<-quit
 
 	logger.Info("shutting down server...")
+
+	// Stop gist sync worker if running
+	if gistSyncWorker != nil {
+		if err := gistSyncWorker.Stop(); err != nil {
+			logger.Warn("failed to stop gist sync worker", "error", err)
+		}
+	}
 
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
