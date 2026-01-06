@@ -92,6 +92,13 @@
                 </svg>
                 Backup
             </button>
+            <button class="settings-tab" :class="{ active: settingsTab === 'gist' }"
+                @click="settingsTab = 'gist'; loadGistConfig(); loadGistMappings()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                </svg>
+                GitHub Gist
+            </button>
         </div>
 
         <div class="modal-body">
@@ -480,6 +487,181 @@
                         </div>
                     </template>
                 </div>
+            </div>
+
+            <!-- GitHub Gist tab -->
+            <div x-show="settingsTab === 'gist'">
+                <h4 style="margin-bottom: 1rem; font-size: 1rem;">GitHub Gist Sync</h4>
+                <p class="text-sm text-muted" style="margin-bottom: 1.5rem;">
+                    Sync your snippets with GitHub Gists. Requires a GitHub Personal Access Token with <code>gist</code> scope.
+                </p>
+
+                <!-- Connection Status -->
+                <div class="backup-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <h5 style="margin: 0; font-size: 0.9rem;">Connection Status</h5>
+                            <p class="text-sm text-muted" style="margin: 0.25rem 0 0 0;">
+                                <template x-if="gistConfig.has_token && gistConfig.enabled">
+                                    <span style="color: var(--snipo-success);">✓ Connected as <strong x-text="gistConfig.github_username"></strong></span>
+                                </template>
+                                <template x-if="!gistConfig.has_token || !gistConfig.enabled">
+                                    <span style="color: var(--snipo-text-secondary);">Not connected</span>
+                                </template>
+                            </p>
+                        </div>
+                        <template x-if="gistConfig.has_token">
+                            <button class="btn-secondary" @click="testGistConnection()" :disabled="gistTestingConnection">
+                                <span x-show="!gistTestingConnection">Test Connection</span>
+                                <span x-show="gistTestingConnection">Testing...</span>
+                            </button>
+                        </template>
+                    </div>
+
+                    <!-- Token Input -->
+                    <div class="editor-field" style="margin-bottom: 1rem;">
+                        <label>GitHub Personal Access Token</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="password" x-model="gistTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" 
+                                   style="flex: 1;" x-show="showGistTokenInput || !gistConfig.has_token">
+                            <button class="btn-secondary" @click="showGistTokenInput = !showGistTokenInput" 
+                                    x-show="gistConfig.has_token && !showGistTokenInput">
+                                Change Token
+                            </button>
+                        </div>
+                        <small class="text-sm text-muted" style="display: block; margin-top: 0.25rem;">
+                            <a href="https://github.com/settings/tokens/new?scopes=gist&description=Snipo" 
+                               target="_blank" style="color: var(--snipo-primary);">Generate token</a> 
+                            with <code>gist</code> scope
+                        </small>
+                    </div>
+
+                    <!-- Enable Sync -->
+                    <div class="editor-field" style="margin-bottom: 1rem;">
+                        <label class="checkbox-label">
+                            <input type="checkbox" x-model="gistConfig.enabled">
+                            <span>Enable GitHub Gist Sync</span>
+                        </label>
+                    </div>
+
+                    <!-- Auto Sync -->
+                    <div class="editor-field" style="margin-bottom: 1rem;">
+                        <label class="checkbox-label">
+                            <input type="checkbox" x-model="gistConfig.auto_sync_enabled" :disabled="!gistConfig.enabled">
+                            <span>Enable Automatic Background Sync</span>
+                        </label>
+                    </div>
+
+                    <!-- Sync Interval -->
+                    <div class="editor-field" style="margin-bottom: 1rem;">
+                        <label>Sync Interval</label>
+                        <select x-model.number="gistConfig.sync_interval_minutes" :disabled="!gistConfig.enabled">
+                            <option value="5">Every 5 minutes</option>
+                            <option value="15">Every 15 minutes</option>
+                            <option value="30">Every 30 minutes</option>
+                            <option value="60">Every hour</option>
+                        </select>
+                    </div>
+
+                    <!-- Conflict Strategy -->
+                    <div class="editor-field" style="margin-bottom: 1rem;">
+                        <label>Conflict Resolution Strategy</label>
+                        <select x-model="gistConfig.conflict_resolution_strategy" :disabled="!gistConfig.enabled">
+                            <option value="manual">Manual Resolution</option>
+                            <option value="snipo_wins">Snipo Always Wins</option>
+                            <option value="gist_wins">Gist Always Wins</option>
+                            <option value="newest_wins">Newest Version Wins</option>
+                        </select>
+                        <small class="text-sm text-muted" style="display: block; margin-top: 0.25rem;">
+                            How to handle conflicts when both snippet and gist are modified
+                        </small>
+                    </div>
+
+                    <!-- Last Sync -->
+                    <template x-if="gistConfig.last_full_sync_at">
+                        <p class="text-sm text-muted" style="margin-bottom: 1rem;">
+                            Last sync: <span x-text="formatGistDate(gistConfig.last_full_sync_at)"></span>
+                        </p>
+                    </template>
+
+                    <!-- Action Buttons -->
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn-primary" @click="saveGistConfig()" style="flex: 1; min-width: 150px;">
+                            Save Configuration
+                        </button>
+                        <button class="btn-primary" @click="enableSyncForAll()" :disabled="!gistConfig.enabled || gistSyncing" style="flex: 1; min-width: 150px;">
+                            <span x-show="!gistSyncing">Enable Sync for All</span>
+                            <span x-show="gistSyncing">Processing...</span>
+                        </button>
+                        <button class="btn-primary" @click="syncAllGists()" :disabled="!gistConfig.enabled || gistSyncing" style="flex: 1; min-width: 150px;">
+                            <span x-show="!gistSyncing">Sync Now</span>
+                            <span x-show="gistSyncing">Syncing...</span>
+                        </button>
+                        <template x-if="gistConfig.has_token">
+                            <button class="btn-secondary" @click="clearGistConfig()">
+                                Disconnect
+                            </button>
+                        </template>
+                    </div>
+                    <p class="text-sm text-muted" style="margin-top: 0.5rem;">
+                        <strong>Enable Sync for All:</strong> Creates gists for all snippets. <strong>Sync Now:</strong> Syncs already-enabled snippets.
+                    </p>
+                </div>
+
+                <!-- Mappings Section -->
+                <div class="backup-section" style="margin-top: 1.5rem;">
+                    <h5 style="margin-bottom: 0.75rem; font-size: 0.9rem;">Synced Snippets (<span x-text="gistMappings.length"></span>)</h5>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        <template x-if="gistMappings.length === 0">
+                            <p class="text-sm text-muted">No snippets synced yet.</p>
+                        </template>
+                        <template x-for="mapping in gistMappings" :key="mapping.id">
+                            <div style="padding: 0.75rem; border: 1px solid var(--snipo-border); border-radius: 6px; margin-bottom: 0.5rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                            <span :class="getSyncStatusBadge(mapping.sync_status).class" x-text="getSyncStatusBadge(mapping.sync_status).icon"></span>
+                                            <strong style="font-size: 0.875rem;" x-text="mapping.snippet_id"></strong>
+                                        </div>
+                                        <a :href="mapping.gist_url" target="_blank" class="text-sm" style="color: var(--snipo-primary);">
+                                            View on GitHub →
+                                        </a>
+                                    </div>
+                                    <button class="btn-icon" @click="deleteGistMapping(mapping.id)" title="Remove mapping">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Conflicts Section -->
+                <template x-if="gistConflicts.length > 0">
+                    <div class="backup-section" style="margin-top: 1.5rem;">
+                        <h5 style="margin-bottom: 0.75rem; font-size: 0.9rem; color: var(--snipo-warning);">
+                            ⚠ Conflicts (<span x-text="gistConflicts.length"></span>)
+                        </h5>
+                        <template x-for="conflict in gistConflicts" :key="conflict.id">
+                            <div style="padding: 0.75rem; border: 1px solid var(--snipo-warning); border-radius: 6px; margin-bottom: 0.5rem; background: rgba(var(--snipo-warning-rgb), 0.05);">
+                                <p style="font-size: 0.875rem; margin-bottom: 0.5rem;">
+                                    <strong x-text="conflict.snippet_id"></strong>
+                                </p>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button class="btn-secondary" @click="resolveGistConflict(conflict.id, 'snipo_wins')" style="flex: 1; font-size: 0.8rem;">
+                                        Keep Snipo
+                                    </button>
+                                    <button class="btn-secondary" @click="resolveGistConflict(conflict.id, 'gist_wins')" style="flex: 1; font-size: 0.8rem;">
+                                        Keep Gist
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
             </div>
 
             <!-- Editor tab -->
