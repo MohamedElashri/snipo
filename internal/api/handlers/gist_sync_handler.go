@@ -3,6 +3,8 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -119,12 +121,21 @@ func (h *GistSyncHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 		var err error
 		username, err = githubClient.GetAuthenticatedUser(r.Context())
 		if err != nil {
-			Error(w, r, http.StatusBadRequest, "INVALID_TOKEN", "Failed to validate GitHub token")
+			// Log detailed error for debugging
+			if logger := r.Context().Value("logger"); logger != nil {
+				logger.(*slog.Logger).Error("failed to validate GitHub token",
+					"error", err,
+					"token_prefix", input.GithubToken[:min(10, len(input.GithubToken))])
+			}
+			Error(w, r, http.StatusBadRequest, "INVALID_TOKEN", fmt.Sprintf("Failed to validate GitHub token: %v", err))
 			return
 		}
 
 		encryptedToken, err = h.encryptionSvc.Encrypt(input.GithubToken)
 		if err != nil {
+			if logger := r.Context().Value("logger"); logger != nil {
+				logger.(*slog.Logger).Error("failed to encrypt token", "error", err)
+			}
 			InternalError(w, r)
 			return
 		}
@@ -291,6 +302,44 @@ func (h *GistSyncHandler) DisableSync(w http.ResponseWriter, r *http.Request) {
 
 	OK(w, r, map[string]string{
 		"message": "Sync disabled for snippet",
+	})
+}
+
+// EnableSyncForAll enables sync for all snippets
+func (h *GistSyncHandler) EnableSyncForAll(w http.ResponseWriter, r *http.Request) {
+	syncService, err := h.createSyncService(r.Context())
+	if err != nil {
+		Error(w, r, http.StatusBadRequest, "SYNC_NOT_CONFIGURED", err.Error())
+		return
+	}
+
+	// Get all snippets using List with high limit
+	result, err := h.snippetRepo.List(r.Context(), models.SnippetFilter{
+		Limit: 10000, // High limit to get all snippets
+	})
+	if err != nil {
+		Error(w, r, http.StatusInternalServerError, "FETCH_FAILED", "Failed to fetch snippets")
+		return
+	}
+
+	enabled := 0
+	errors := 0
+	errorMessages := []string{}
+
+	for _, snippet := range result.Data {
+		if err := syncService.EnableSyncForSnippet(r.Context(), snippet.ID); err != nil {
+			errors++
+			errorMessages = append(errorMessages, fmt.Sprintf("%s: %v", snippet.ID, err))
+		} else {
+			enabled++
+		}
+	}
+
+	OK(w, r, map[string]interface{}{
+		"message":        fmt.Sprintf("Enabled sync for %d snippets", enabled),
+		"enabled":        enabled,
+		"errors":         errors,
+		"error_messages": errorMessages,
 	})
 }
 

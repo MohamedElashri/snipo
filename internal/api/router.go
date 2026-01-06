@@ -133,16 +133,8 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	backupHandler := handlers.NewBackupHandler(backupService, s3SyncService)
 	settingsHandler := handlers.NewSettingsHandler(settingsRepo)
 
-	// Create encryption service for gist sync (using auth encryption salt as key)
-	encryptionKey := []byte(cfg.Config.Auth.EncryptionSalt)
-	if len(encryptionKey) < 32 {
-		// Pad key to 32 bytes if needed
-		paddedKey := make([]byte, 32)
-		copy(paddedKey, encryptionKey)
-		encryptionKey = paddedKey
-	} else if len(encryptionKey) > 32 {
-		encryptionKey = encryptionKey[:32]
-	}
+	// Create encryption service for gist sync (using session secret as key)
+	encryptionKey := services.DeriveEncryptionKey(cfg.Config.Auth.SessionSecret)
 	encryptionSvc, err := services.NewEncryptionService(encryptionKey)
 	if err != nil {
 		cfg.Logger.Warn("failed to initialize encryption service", "error", err)
@@ -287,6 +279,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 					r.Post("/sync/snippet/{id}", gistSyncHandler.SyncSnippet)
 					r.Post("/sync/all", gistSyncHandler.SyncAll)
 					r.Post("/sync/enable/{id}", gistSyncHandler.EnableSync)
+					r.Post("/sync/enable-all", gistSyncHandler.EnableSyncForAll)
 					r.Post("/sync/disable/{id}", gistSyncHandler.DisableSync)
 				})
 

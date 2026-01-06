@@ -138,15 +138,7 @@ func runServer() {
 	gistSyncRepo := repository.NewGistSyncRepository(db.DB)
 	snippetRepo := repository.NewSnippetRepository(db.DB)
 
-	encryptionKey := []byte(cfg.Auth.EncryptionSalt)
-	if len(encryptionKey) < 32 {
-		paddedKey := make([]byte, 32)
-		copy(paddedKey, encryptionKey)
-		encryptionKey = paddedKey
-	} else if len(encryptionKey) > 32 {
-		encryptionKey = encryptionKey[:32]
-	}
-
+	encryptionKey := services.DeriveEncryptionKey(cfg.Auth.SessionSecret)
 	if encryptionSvc, err := services.NewEncryptionService(encryptionKey); err == nil {
 		gistSyncWorker = services.NewGistSyncWorker(gistSyncRepo, snippetRepo, encryptionSvc, logger)
 		if err := gistSyncWorker.Start(ctx); err != nil {

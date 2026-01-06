@@ -105,6 +105,12 @@ func (w *GistSyncWorker) performSync(ctx context.Context) {
 		return
 	}
 
+	// Check if token exists
+	if config.GithubTokenEncrypted == "" {
+		w.logger.Debug("no github token configured, skipping sync")
+		return
+	}
+
 	if config.LastFullSyncAt != nil {
 		nextSync := config.LastFullSyncAt.Add(time.Duration(config.SyncIntervalMinutes) * time.Minute)
 		if time.Now().Before(nextSync) {
@@ -116,7 +122,7 @@ func (w *GistSyncWorker) performSync(ctx context.Context) {
 
 	token, err := w.encryptionSvc.Decrypt(config.GithubTokenEncrypted)
 	if err != nil {
-		w.logger.Error("failed to decrypt token", "error", err)
+		w.logger.Error("failed to decrypt token", "error", err, "token_length", len(config.GithubTokenEncrypted))
 		return
 	}
 

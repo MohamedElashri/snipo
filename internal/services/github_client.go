@@ -201,13 +201,13 @@ func (c *GitHubClient) GetAuthenticatedUser(ctx context.Context) (string, error)
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
-		return "", fmt.Errorf("failed to execute request: %w", err)
+		return "", fmt.Errorf("failed to execute request (network error): %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, string(bodyBytes))
+		return "", fmt.Errorf("GitHub API returned status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	var user struct {
