@@ -31,6 +31,7 @@ type RouterConfig struct {
 	MaxFilesPerSnippet int
 	S3Config           *config.S3Config
 	SnippetService     *services.SnippetService // For demo mode
+	BasePath           string                   // Base path for reverse proxy
 }
 
 // NewRouter creates and configures the HTTP router
@@ -250,16 +251,23 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	if err != nil {
 		cfg.Logger.Error("failed to create web handler", "error", err)
 	} else {
-		// Set demo mode if enabled
-		webHandler = webHandler.WithDemoMode(cfg.Config.Demo.Enabled)
+		// Set demo mode and base path if enabled
+		webHandler = webHandler.WithDemoMode(cfg.Config.Demo.Enabled).WithBasePath(cfg.BasePath)
 
 		// Static files
-		r.Handle("/static/*", web.StaticHandler())
+		r.Handle("/static/*", web.StaticHandler(cfg.BasePath))
 
 		// Web pages
 		r.Get("/", webHandler.Index)
 		r.Get("/login", webHandler.Login)
 		r.Get("/s/{id}", webHandler.PublicSnippet) // Public snippet share page
+	}
+
+	// If base path is configured, mount everything under it
+	if cfg.BasePath != "" {
+		baseRouter := chi.NewRouter()
+		baseRouter.Mount(cfg.BasePath, r)
+		return baseRouter
 	}
 
 	return r

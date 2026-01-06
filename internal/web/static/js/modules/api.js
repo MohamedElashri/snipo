@@ -1,6 +1,14 @@
 // API helper module
 export const api = {
+  getBasePath() {
+    return window.SNIPO_CONFIG?.basePath || '';
+  },
+
   async request(method, url, data = null) {
+    // Prepend base path to URL if it's a relative path
+    const basePath = this.getBasePath();
+    const fullUrl = url.startsWith('/') ? basePath + url : url;
+
     const options = {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -8,13 +16,15 @@ export const api = {
     };
     if (data) options.body = JSON.stringify(data);
 
-    const response = await fetch(url, options);
+    const response = await fetch(fullUrl, options);
     if (response.status === 401) {
       // Only redirect to login if we're not already on the home or login page
       // This prevents redirect loops when login is disabled in settings
       const currentPath = window.location.pathname;
-      if (currentPath !== '/' && currentPath !== '/login') {
-        window.location.href = '/login';
+      const loginPath = basePath + '/login';
+      const homePath = basePath + '/';
+      if (currentPath !== homePath && currentPath !== loginPath) {
+        window.location.href = loginPath;
       }
       return null;
     }
