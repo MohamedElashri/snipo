@@ -69,6 +69,7 @@ export SNIPO_SESSION_SECRET=$(openssl rand -hex 32)
 | `SNIPO_SESSION_SECRET` | Yes | - | Session signing key (32+ chars) |
 | `SNIPO_PORT` | No | `8080` | Server port |
 | `SNIPO_DB_PATH` | No | `/data/snipo.db` | SQLite database path |
+| `SNIPO_BASE_PATH` | No | - | Base path for reverse proxy (e.g., `/snipo`) |
 
 *Either `SNIPO_MASTER_PASSWORD` or `SNIPO_MASTER_PASSWORD_HASH` is required (unless `SNIPO_DISABLE_AUTH=true`). Using the hash is recommended for security.
 
@@ -348,6 +349,109 @@ curl -O https://localhost:8080/api/v1/snippets/public/abc123/files/README.md
 - Keep image updated regularly
 
 See [Development Guide](docs/Development.md#security) for detailed security configuration.
+
+## Reverse Proxy Configuration
+
+Snipo supports deployment behind a reverse proxy with a custom subpath. This is useful when you want to host Snipo under a specific path like `https://yourdomain.com/snipo/`.
+
+### Configuration
+
+Set the `SNIPO_BASE_PATH` environment variable to your desired subpath:
+
+```bash
+SNIPO_BASE_PATH=/snipo
+```
+
+**Important notes:**
+- The path should start with `/` but not end with `/`
+- Examples: `/snipo`, `/apps/snippets`, `/code`
+- Leave empty (default) for root path deployment
+
+### Nginx Example
+
+```nginx
+location /snipo/ {
+    proxy_pass http://localhost:8080/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+Then configure Snipo:
+```bash
+SNIPO_BASE_PATH=/snipo
+SNIPO_TRUST_PROXY=true
+```
+
+### Caddy Example
+
+```caddy
+yourdomain.com {
+    handle /snipo/* {
+        reverse_proxy localhost:8080
+    }
+}
+```
+
+Configuration:
+```bash
+SNIPO_BASE_PATH=/snipo
+```
+
+### Traefik Example
+
+```yaml
+http:
+  routers:
+    snipo:
+      rule: "Host(`yourdomain.com`) && PathPrefix(`/snipo`)"
+      service: snipo
+      middlewares:
+        - snipo-stripprefix
+  
+  middlewares:
+    snipo-stripprefix:
+      stripPrefix:
+        prefixes:
+          - "/snipo"
+  
+  services:
+    snipo:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:8080"
+```
+
+Configuration:
+```bash
+SNIPO_BASE_PATH=/snipo
+```
+
+### Docker Compose with Reverse Proxy
+
+```yaml
+services:
+  snipo:
+    image: ghcr.io/mohamedelashri/snipo:latest
+    environment:
+      - SNIPO_MASTER_PASSWORD=your-secure-password
+      - SNIPO_SESSION_SECRET=${SESSION_SECRET}
+      - SNIPO_BASE_PATH=/snipo
+      - SNIPO_TRUST_PROXY=true
+    volumes:
+      - snipo-data:/data
+    networks:
+      - proxy-network
+
+volumes:
+  snipo-data:
+
+networks:
+  proxy-network:
+    external: true
+```
 
 ## Customization
 

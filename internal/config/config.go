@@ -30,6 +30,7 @@ type ServerConfig struct {
 	WriteTimeout       time.Duration
 	TrustProxy         bool
 	MaxFilesPerSnippet int
+	BasePath           string // Base path for reverse proxy (e.g., "/snipo")
 }
 
 // DatabaseConfig holds SQLite settings
@@ -105,6 +106,7 @@ func Load() (*Config, error) {
 	cfg.Server.WriteTimeout = getEnvDuration("SNIPO_WRITE_TIMEOUT", 30*time.Second)
 	cfg.Server.TrustProxy = getEnvBool("SNIPO_TRUST_PROXY", false)
 	cfg.Server.MaxFilesPerSnippet = getEnvInt("SNIPO_MAX_FILES_PER_SNIPPET", 10)
+	cfg.Server.BasePath = normalizeBasePath(getEnv("SNIPO_BASE_PATH", ""))
 
 	// Database
 	cfg.Database.Path = getEnv("SNIPO_DB_PATH", "/data/snipo.db")
@@ -257,4 +259,16 @@ func generateSecret() (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(bytes), nil
+}
+
+func normalizeBasePath(path string) string {
+	if path == "" {
+		return ""
+	}
+	path = strings.TrimSpace(path)
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	path = strings.TrimSuffix(path, "/")
+	return path
 }

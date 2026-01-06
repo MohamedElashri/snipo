@@ -288,7 +288,8 @@ export function initSnippetsApp(Alpine) {
       }
       // Redirect to login page to ensure clean state
       // This works with auth proxies and handles the case when login is disabled
-      window.location.href = '/login';
+      const basePath = window.SNIPO_CONFIG?.basePath || '';
+      window.location.href = basePath + '/login';
     },
 
     // URL routing

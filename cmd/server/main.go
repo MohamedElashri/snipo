@@ -167,6 +167,7 @@ func runServer() {
 		RateLimitWindow:    int(cfg.Auth.RateLimitWindow.Seconds()),
 		MaxFilesPerSnippet: cfg.Server.MaxFilesPerSnippet,
 		S3Config:           &cfg.S3,
+		BasePath:           cfg.Server.BasePath,
 	})
 
 	// Create server

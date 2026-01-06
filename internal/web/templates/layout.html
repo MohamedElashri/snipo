@@ -6,23 +6,30 @@
     <title>{{.Title}} - Snipo</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+    <link rel="icon" type="image/x-icon" href="{{.BasePath}}/static/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{.BasePath}}/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{.BasePath}}/static/favicon-16x16.png">
     
     <!-- Pico CSS (local) -->
-    <link rel="stylesheet" href="/static/vendor/css/pico.min.css">
+    <link rel="stylesheet" href="{{.BasePath}}/static/vendor/css/pico.min.css">
     
     <!-- Prism.js theme (local) -->
-    <link id="prism-theme" rel="stylesheet" href="/static/vendor/css/prism-tomorrow.min.css">
+    <link id="prism-theme" rel="stylesheet" href="{{.BasePath}}/static/vendor/css/prism-tomorrow.min.css">
     
     <!-- Ace Editor doesn't need separate CSS -->
     
     <!-- Fonts (local) -->
-    <link rel="stylesheet" href="/static/vendor/css/fonts.css">
+    <link rel="stylesheet" href="{{.BasePath}}/static/vendor/css/fonts.css">
     
     <!-- Custom styles - Modular CSS structure -->
-    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="{{.BasePath}}/static/css/main.css">
+    
+    <!-- Global configuration -->
+    <script>
+        window.SNIPO_CONFIG = {
+            basePath: '{{.BasePath}}'
+        };
+    </script>
     
     <!-- Initialize theme before page renders to prevent flash -->
     <script>
@@ -32,9 +39,10 @@
             // Update Prism theme link
             const prismLink = document.getElementById('prism-theme');
             if (prismLink) {
+                const basePath = window.SNIPO_CONFIG.basePath;
                 prismLink.href = theme === 'dark' 
-                    ? '/static/vendor/css/prism-tomorrow.min.css'
-                    : '/static/vendor/css/prism.min.css';
+                    ? basePath + '/static/vendor/css/prism-tomorrow.min.css'
+                    : basePath + '/static/vendor/css/prism.min.css';
             }
         })();
     </script>
@@ -49,32 +57,32 @@
     <div id="toast-container" class="toast-container"></div>
     
     <!-- htmx (local) -->
-    <script src="/static/vendor/js/htmx.min.js"></script>
+    <script src="{{.BasePath}}/static/vendor/js/htmx.min.js"></script>
     
     <!-- Marked.js for markdown rendering (local) -->
-    <script src="/static/vendor/js/marked.min.js"></script>
+    <script src="{{.BasePath}}/static/vendor/js/marked.min.js"></script>
     
     <!-- Ace Editor (local) -->
-    <script src="/static/vendor/js/ace/ace.js"></script>
+    <script src="{{.BasePath}}/static/vendor/js/ace/ace.js"></script>
     
     <!-- Prism.js (local) -->
-    <script src="/static/vendor/js/prism.min.js"></script>
-    <script src="/static/vendor/js/prism-javascript.min.js"></script>
-    <script src="/static/vendor/js/prism-python.min.js"></script>
-    <script src="/static/vendor/js/prism-go.min.js"></script>
-    <script src="/static/vendor/js/prism-bash.min.js"></script>
-    <script src="/static/vendor/js/prism-powershell.min.js"></script>
-    <script src="/static/vendor/js/prism-json.min.js"></script>
-    <script src="/static/vendor/js/prism-yaml.min.js"></script>
-    <script src="/static/vendor/js/prism-sql.min.js"></script>
-    <script src="/static/vendor/js/prism-markdown.min.js"></script>
-    <script src="/static/vendor/js/prism-cuda.min.js"></script>
+    <script src="{{.BasePath}}/static/vendor/js/prism.min.js"></script>
+    <script src="{{.BasePath}}/static/vendor/js/prism-javascript.min.js"></script>
+    <script src="{{.BasePath}}/static/vendor/js/prism-python.min.js"></script>
+    <script src="{{.BasePath}}/static/vendor/js/prism-go.min.js"></script>
+    <script src="{{.BasePath}}/static/vendor/js/prism-bash.min.js"></script>
+    <script src="{{.BasePath}}/static/vendor/js/prism-powershell.min.js"></script>
+    <script src="{{.BasePath}}/static/vendor/js/prism-json.min.js"></script>
+    <script src="{{.BasePath}}/static/vendor/js/prism-yaml.min.js"></script>
+    <script src="{{.BasePath}}/static/vendor/js/prism-sql.min.js"></script>
+    <script src="{{.BasePath}}/static/vendor/js/prism-markdown.min.js"></script>
+    <script src="{{.BasePath}}/static/vendor/js/prism-cuda.min.js"></script>
     
     <!-- App JS - Modular structure with ES6 modules -->
-    <script type="module" src="/static/js/main.js"></script>
+    <script type="module" src="{{.BasePath}}/static/js/main.js"></script>
     
     <!-- Alpine.js with collapse plugin (load last after app.js) -->
-    <script defer src="/static/vendor/js/alpine-collapse.min.js"></script>
-    <script defer src="/static/vendor/js/alpine.min.js"></script>
+    <script defer src="{{.BasePath}}/static/vendor/js/alpine-collapse.min.js"></script>
+    <script defer src="{{.BasePath}}/static/vendor/js/alpine.min.js"></script>
 </body>
 </html>
