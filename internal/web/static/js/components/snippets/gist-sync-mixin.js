@@ -15,6 +15,7 @@ export const gistSyncMixin = {
   gistTokenInput: '',
   gistTestingConnection: false,
   gistSyncing: false,
+  gistSyncProgress: { current: 0, total: 0, message: '' },
   gistMappings: [],
   gistConflicts: [],
   gistLogs: [],
@@ -84,31 +85,47 @@ export const gistSyncMixin = {
     }
 
     this.gistSyncing = true;
-    const result = await api.post('/api/v1/gist/sync/enable-all');
-    this.gistSyncing = false;
-
-    if (result && !result.error) {
-      showToast(`Enabled sync for ${result.enabled} snippets${result.errors > 0 ? ` (${result.errors} errors)` : ''}`, 'success');
-      await this.loadGistMappings();
-    } else {
-      showToast(result?.error?.message || 'Failed to enable sync', 'error');
+    this.gistSyncProgress = { current: 0, total: 0, message: 'Enabling sync for all snippets...' };
+    
+    try {
+      const result = await api.post('/api/v1/gist/sync/enable-all');
+      
+      if (result && !result.error) {
+        showToast(`Enabled sync for ${result.enabled} snippets${result.errors > 0 ? ` (${result.errors} errors)` : ''}`, 'success');
+        await this.loadGistMappings();
+      } else {
+        showToast(result?.error?.message || 'Failed to enable sync', 'error');
+      }
+    } catch (error) {
+      showToast('Failed to enable sync', 'error');
+    } finally {
+      this.gistSyncing = false;
+      this.gistSyncProgress = { current: 0, total: 0, message: '' };
     }
   },
 
   async syncAllGists() {
     this.gistSyncing = true;
-    const result = await api.post('/api/v1/gist/sync/all');
-    this.gistSyncing = false;
+    this.gistSyncProgress = { current: 0, total: 0, message: 'Syncing snippets...' };
+    
+    try {
+      const result = await api.post('/api/v1/gist/sync/all');
 
-    if (result && !result.error) {
-      const message = result.synced > 0 || result.conflicts > 0 || result.errors > 0
-        ? `Sync complete: ${result.synced} synced, ${result.conflicts} conflicts, ${result.errors} errors`
-        : 'No snippets are synced yet. Use "Enable Sync for All" first.';
-      showToast(message, result.synced > 0 ? 'success' : 'info');
-      await this.loadGistMappings();
-      await this.loadGistConflicts();
-    } else {
-      showToast(result?.error?.message || 'Sync failed', 'error');
+      if (result && !result.error) {
+        const message = result.synced > 0 || result.conflicts > 0 || result.errors > 0
+          ? `Sync complete: ${result.synced} synced, ${result.conflicts} conflicts, ${result.errors} errors`
+          : 'No snippets are synced yet. Use "Enable Sync for All" first.';
+        showToast(message, result.synced > 0 ? 'success' : 'info');
+        await this.loadGistMappings();
+        await this.loadGistConflicts();
+      } else {
+        showToast(result?.error?.message || 'Sync failed', 'error');
+      }
+    } catch (error) {
+      showToast('Sync failed', 'error');
+    } finally {
+      this.gistSyncing = false;
+      this.gistSyncProgress = { current: 0, total: 0, message: '' };
     }
   },
 

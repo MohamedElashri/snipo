@@ -603,6 +603,22 @@
                             </button>
                         </template>
                     </div>
+                    
+                    <!-- Progress Bar -->
+                    <div x-show="gistSyncing" style="margin-top: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span class="text-sm" x-text="gistSyncProgress.message" style="color: var(--snipo-text-secondary);"></span>
+                            <span class="text-sm" x-show="gistSyncProgress.total > 0" style="color: var(--snipo-text-secondary);">
+                                <span x-text="gistSyncProgress.current"></span>/<span x-text="gistSyncProgress.total"></span>
+                            </span>
+                        </div>
+                        <div style="width: 100%; height: 8px; background: var(--snipo-border); border-radius: 4px; overflow: hidden;">
+                            <div style="height: 100%; background: var(--snipo-primary); transition: width 0.3s ease;" 
+                                 :style="`width: ${gistSyncProgress.total > 0 ? (gistSyncProgress.current / gistSyncProgress.total * 100) : 0}%`">
+                            </div>
+                        </div>
+                    </div>
+                    
                     <p class="text-sm text-muted" style="margin-top: 0.5rem;">
                         <strong>Enable Sync for All:</strong> Creates gists for all snippets. <strong>Sync Now:</strong> Syncs already-enabled snippets.
                     </p>
