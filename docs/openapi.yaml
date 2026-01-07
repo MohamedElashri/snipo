@@ -150,11 +150,53 @@ paths:
       operationId: health
       responses:
         '200':
-          description: Health status
+          description: Health status - all checks passed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  summary: All systems healthy
+                  value:
+                    status: "healthy"
+                    version: "1.0.0"
+                    commit: "abc123"
+                    uptime: "2h30m15s"
+                    checks:
+                      database: "healthy"
+                    memory:
+                      alloc_mb: 45
+                      total_alloc_mb: 120
+                      sys_mb: 75
+                      num_gc: 12
+                    features:
+                      public_snippets: true
+                      s3_sync: false
+                      api_tokens: true
+                      backup_restore: true
+                    timestamp: "2024-01-07T00:00:00Z"
+        '503':
+          description: Service unhealthy - database connection failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                database_unhealthy:
+                  summary: Database connection failed
+                  value:
+                    status: "unhealthy"
+                    version: "1.0.0"
+                    uptime: "2h30m15s"
+                    checks:
+                      database: "unhealthy: connection refused"
+                    memory:
+                      alloc_mb: 45
+                      total_alloc_mb: 120
+                      sys_mb: 75
+                      num_gc: 12
+                    timestamp: "2024-01-07T00:00:00Z"
 
   /api/v1/auth/login:
     post:
@@ -181,26 +223,102 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
+              examples:
+                success:
+                  summary: Login successful
+                  value:
+                    success: true
+                    message: "Login successful"
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request - invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_json:
+                  summary: Invalid JSON payload
+                  value:
+                    error:
+                      code: "INVALID_JSON"
+                      message: "Invalid JSON payload"
+                missing_password:
+                  summary: Password field missing
+                  value:
+                    error:
+                      code: "MISSING_PASSWORD"
+                      message: "Password is required"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_credentials:
+                  summary: Invalid password
+                  value:
+                    error:
+                      code: "INVALID_CREDENTIALS"
+                      message: "Invalid password"
         '429':
-          $ref: '#/components/responses/TooManyRequests'
+          description: Too many failed login attempts
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                rate_limited:
+                  summary: Too many failed attempts
+                  value:
+                    error:
+                      code: "RATE_LIMITED"
+                      message: "Too many failed attempts. Please wait 60 seconds."
+        '500':
+          description: Internal server error - session creation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                session_creation_failed:
+                  summary: Failed to create session
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/auth/logout:
     post:
       tags: [Authentication]
       summary: Logout
-      description: Invalidate current session
+      description: Invalidate current session and clear session cookie
       operationId: logout
       responses:
         '200':
           description: Logout successful
+          headers:
+            Set-Cookie:
+              description: Clears the session cookie
+              schema:
+                type: string
+                examples:
+                  - snipo_session=; Path=/; Max-Age=0
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
+              examples:
+                success:
+                  summary: Logout successful
+                  value:
+                    success: true
+                    message: "Logout successful"
 
   /api/v1/auth/check:
     get:
@@ -218,10 +336,30 @@ paths:
                 properties:
                   authenticated:
                     type: boolean
-                    examples:
-                      - true
+              examples:
+                authenticated:
+                  summary: Valid session
+                  value:
+                    authenticated: true
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - no valid session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_session:
+                  summary: No session token provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_session:
+                  summary: Invalid or expired session
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
 
   /api/v1/auth/change-password:
     post:
@@ -249,16 +387,78 @@ paths:
                 properties:
                   success:
                     type: boolean
-                    examples:
-                      - true
                   message:
                     type: string
-                    examples:
-                      - Password changed successfully
+              examples:
+                success:
+                  summary: Password changed
+                  value:
+                    success: true
+                    message: "Password changed successfully"
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request - validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_json:
+                  summary: Invalid JSON payload
+                  value:
+                    error:
+                      code: "INVALID_JSON"
+                      message: "Invalid JSON payload"
+                missing_fields:
+                  summary: Required fields missing
+                  value:
+                    error:
+                      code: "MISSING_FIELDS"
+                      message: "Current and new password are required"
+                password_too_short:
+                  summary: New password too short
+                  value:
+                    error:
+                      code: "PASSWORD_TOO_SHORT"
+                      message: "Password must be at least 12 characters"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - invalid current password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_password:
+                  summary: Current password incorrect
+                  value:
+                    error:
+                      code: "INVALID_PASSWORD"
+                      message: "Current password is incorrect"
+        '403':
+          description: Forbidden - demo mode restriction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                demo_mode:
+                  summary: Password changes disabled in demo mode
+                  value:
+                    error:
+                      code: "DEMO_MODE_RESTRICTION"
+                      message: "Password changes are disabled in demo mode"
+        '500':
+          description: Internal server error - password update failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                password_update_failed:
+                  summary: Failed to update password
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/snippets:
     get:
@@ -422,11 +622,54 @@ paths:
                         next: null
                         prev: null
                     meta:
-                      request_id: "550e8400-e29b-41d4-a716-446655440001"
-                      timestamp: "2024-12-24T10:31:00Z"
+                      request_id: "550e8400-e29b-41d4-a716-446655440000"
+                      timestamp: "2024-12-21T15:00:00Z"
                       version: "1.0"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Read permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error - database query failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve snippets
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
     post:
       tags: [Snippets]
@@ -523,19 +766,63 @@ paths:
                       timestamp: "2024-12-24T10:30:00Z"
                       version: "1.0"
         '400':
-          description: Bad request
+          description: Bad request - invalid JSON
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
-                invalid_request:
+                invalid_json:
+                  summary: Invalid JSON payload
                   value:
                     error:
-                      code: "INVALID_REQUEST"
-                      message: "Request body is required"
+                      code: "INVALID_JSON"
+                      message: "Invalid JSON payload"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error - failed to create snippet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                creation_failed:
+                  summary: Database error during creation
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
         '422':
           description: Validation error
           content:
@@ -602,8 +889,64 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Snippet'
+              examples:
+                results:
+                  summary: Search results
+                  value:
+                    data:
+                      - id: "abc123"
+                        title: "Python HTTP Server"
+                        language: "python"
+                        is_public: false
+                empty_query:
+                  summary: Empty query returns empty array
+                  value:
+                    data: []
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Read permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error - search failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                search_failed:
+                  summary: Database search error
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/snippets/public/{id}:
     get:
@@ -624,8 +967,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Snippet'
+        '400':
+          description: Bad request - missing ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_id:
+                  summary: Snippet ID is required
+                  value:
+                    error:
+                      code: "MISSING_ID"
+                      message: "Snippet ID is required"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Snippet not found or not public
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Snippet not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Snippet not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve snippet
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/snippets/public/{id}/files/{filename}:
     get:
@@ -662,13 +1042,56 @@ paths:
                 type: string
               description: 'inline; filename="<filename>"'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request - missing ID or filename
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_id:
+                  summary: Snippet ID is required
+                  value:
+                    error:
+                      code: "MISSING_ID"
+                      message: "Snippet ID is required"
+                missing_filename:
+                  summary: Filename is required
+                  value:
+                    error:
+                      code: "MISSING_FILENAME"
+                      message: "Filename is required"
         '404':
           description: Snippet or file not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                snippet_not_found:
+                  summary: Snippet not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "File not found"
+                file_not_found:
+                  summary: File not found in snippet
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "File not found in snippet"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve snippet
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/snippets/{id}:
     get:
@@ -693,10 +1116,77 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Snippet'
+        '400':
+          description: Bad request - missing ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_id:
+                  summary: Snippet ID is required
+                  value:
+                    error:
+                      code: "MISSING_ID"
+                      message: "Snippet ID is required"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Read permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Snippet not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Snippet not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve snippet
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
     put:
       tags: [Snippets]
@@ -727,13 +1217,84 @@ paths:
               schema:
                 $ref: '#/components/schemas/Snippet'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request - missing ID or invalid JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_id:
+                  summary: Snippet ID is required
+                  value:
+                    error:
+                      code: "MISSING_ID"
+                      message: "Snippet ID is required"
+                invalid_json:
+                  summary: Invalid JSON payload
+                  value:
+                    error:
+                      code: "INVALID_JSON"
+                      message: "Invalid JSON payload"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Snippet not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Snippet not found"
         '422':
           $ref: '#/components/responses/ValidationError'
+        '500':
+          description: Internal server error - update failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                update_failed:
+                  summary: Database error during update
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
     delete:
       tags: [Snippets]
@@ -752,11 +1313,78 @@ paths:
             type: string
       responses:
         '204':
-          description: Snippet deleted
+          description: Snippet deleted successfully
+        '400':
+          description: Bad request - missing ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_id:
+                  summary: Snippet ID is required
+                  value:
+                    error:
+                      code: "MISSING_ID"
+                      message: "Snippet ID is required"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Snippet not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Snippet not found"
+        '500':
+          description: Internal server error - deletion failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                deletion_failed:
+                  summary: Database error during deletion
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/snippets/{id}/favorite:
     post:
@@ -781,10 +1409,77 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Snippet'
+        '400':
+          description: Bad request - missing ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_id:
+                  summary: Snippet ID is required
+                  value:
+                    error:
+                      code: "MISSING_ID"
+                      message: "Snippet ID is required"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Snippet not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Snippet not found"
+        '500':
+          description: Internal server error - toggle failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                toggle_failed:
+                  summary: Database error during toggle
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/snippets/{id}/duplicate:
     post:
@@ -809,10 +1504,77 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Snippet'
+        '400':
+          description: Bad request - missing ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_id:
+                  summary: Snippet ID is required
+                  value:
+                    error:
+                      code: "MISSING_ID"
+                      message: "Snippet ID is required"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Snippet not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Snippet not found"
+        '500':
+          description: Internal server error - duplication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                duplication_failed:
+                  summary: Database error during duplication
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/snippets/{id}/archive:
     post:
@@ -855,12 +1617,77 @@ paths:
                     $ref: '#/components/schemas/Snippet'
                   meta:
                     $ref: '#/components/schemas/Meta'
+        '400':
+          description: Bad request - missing ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_id:
+                  summary: Snippet ID is required
+                  value:
+                    error:
+                      code: "MISSING_ID"
+                      message: "Snippet ID is required"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Snippet not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Snippet not found"
+        '500':
+          description: Internal server error - archive failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                archive_failed:
+                  summary: Database error during archive
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/snippets/{id}/history:
     get:
@@ -911,10 +1738,77 @@ paths:
                       $ref: '#/components/schemas/HistoryEntry'
                   meta:
                     $ref: '#/components/schemas/Meta'
+        '400':
+          description: Bad request - missing ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_id:
+                  summary: Snippet ID is required
+                  value:
+                    error:
+                      code: "MISSING_ID"
+                      message: "Snippet ID is required"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Read permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Snippet not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Snippet not found"
+        '500':
+          description: Internal server error - failed to retrieve history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                history_failed:
+                  summary: Database error retrieving history
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/snippets/{id}/history/{history_id}/restore:
     post:
@@ -961,12 +1855,82 @@ paths:
                     $ref: '#/components/schemas/Snippet'
                   meta:
                     $ref: '#/components/schemas/Meta'
+        '400':
+          description: Bad request - missing or invalid IDs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_id:
+                  summary: Snippet ID is required
+                  value:
+                    error:
+                      code: "MISSING_ID"
+                      message: "Snippet ID is required"
+                missing_history_id:
+                  summary: History ID is required
+                  value:
+                    error:
+                      code: "MISSING_HISTORY_ID"
+                      message: "History ID is required"
+                invalid_history_id:
+                  summary: Invalid history ID format
+                  value:
+                    error:
+                      code: "INVALID_HISTORY_ID"
+                      message: "Invalid history ID"
+                restore_failed:
+                  summary: Restore operation failed
+                  value:
+                    error:
+                      code: "RESTORE_FAILED"
+                      message: "History entry not found"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Snippet not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Snippet not found"
 
   /api/v1/tags:
     get:
@@ -991,7 +1955,50 @@ paths:
                     items:
                       $ref: '#/components/schemas/Tag'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Read permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve tags
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
     post:
       tags: [Tags]
@@ -1016,15 +2023,94 @@ paths:
               schema:
                 $ref: '#/components/schemas/Tag'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request - invalid JSON or validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_json:
+                  summary: Invalid JSON payload
+                  value:
+                    error:
+                      code: "INVALID_JSON"
+                      message: "Invalid JSON payload"
+                name_required:
+                  summary: Name is required
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "name"
+                          message: "Name is required"
+                name_too_long:
+                  summary: Name exceeds maximum length
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "name"
+                          message: "Name must be 50 characters or less"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '409':
           description: Tag already exists
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                tag_exists:
+                  summary: Tag name already exists
+                  value:
+                    error:
+                      code: "TAG_EXISTS"
+                      message: "A tag with this name already exists"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to create tag
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/tags/{id}:
     get:
@@ -1049,10 +2135,77 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tag'
+        '400':
+          description: Bad request - invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_id:
+                  summary: Invalid tag ID
+                  value:
+                    error:
+                      code: "INVALID_ID"
+                      message: "Invalid tag ID"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Read permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Tag not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Tag not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve tag
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
     put:
       tags: [Tags]
@@ -1083,17 +2236,113 @@ paths:
               schema:
                 $ref: '#/components/schemas/Tag'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request - invalid ID, JSON, or validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_id:
+                  summary: Invalid tag ID
+                  value:
+                    error:
+                      code: "INVALID_ID"
+                      message: "Invalid tag ID"
+                invalid_json:
+                  summary: Invalid JSON payload
+                  value:
+                    error:
+                      code: "INVALID_JSON"
+                      message: "Invalid JSON payload"
+                name_required:
+                  summary: Name is required
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "name"
+                          message: "Name is required"
+                name_too_long:
+                  summary: Name exceeds maximum length
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "name"
+                          message: "Name must be 50 characters or less"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Tag not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Tag not found"
         '409':
           description: Tag name already exists
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                tag_exists:
+                  summary: Tag name already exists
+                  value:
+                    error:
+                      code: "TAG_EXISTS"
+                      message: "A tag with this name already exists"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to update tag
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
     delete:
       tags: [Tags]
@@ -1113,10 +2362,77 @@ paths:
       responses:
         '204':
           description: Tag deleted
+        '400':
+          description: Bad request - invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_id:
+                  summary: Invalid tag ID
+                  value:
+                    error:
+                      code: "INVALID_ID"
+                      message: "Invalid tag ID"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Tag not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Tag not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Tag not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to delete tag
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/folders:
     get:
@@ -1148,7 +2464,50 @@ paths:
                     items:
                       $ref: '#/components/schemas/Folder'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Read permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve folders
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
     post:
       tags: [Folders]
@@ -1173,11 +2532,90 @@ paths:
               schema:
                 $ref: '#/components/schemas/Folder'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request - invalid JSON or validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_json:
+                  summary: Invalid JSON payload
+                  value:
+                    error:
+                      code: "INVALID_JSON"
+                      message: "Invalid JSON payload"
+                name_required:
+                  summary: Name is required
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "name"
+                          message: "Name is required"
+                name_too_long:
+                  summary: Name exceeds maximum length
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "name"
+                          message: "Name must be 100 characters or less"
+                parent_not_found:
+                  summary: Parent folder not found
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "parent_id"
+                          message: "Parent folder not found"
         '401':
-          $ref: '#/components/responses/Unauthorized'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to create folder
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/folders/{id}:
     get:
@@ -1202,10 +2640,77 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Folder'
+        '400':
+          description: Bad request - invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_id:
+                  summary: Invalid folder ID
+                  value:
+                    error:
+                      code: "INVALID_ID"
+                      message: "Invalid folder ID"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Read permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Folder not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Folder not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Folder not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve folder
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
     put:
       tags: [Folders]
@@ -1236,13 +2741,118 @@ paths:
               schema:
                 $ref: '#/components/schemas/Folder'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request - invalid ID, JSON, or validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_id:
+                  summary: Invalid folder ID
+                  value:
+                    error:
+                      code: "INVALID_ID"
+                      message: "Invalid folder ID"
+                invalid_json:
+                  summary: Invalid JSON payload
+                  value:
+                    error:
+                      code: "INVALID_JSON"
+                      message: "Invalid JSON payload"
+                name_required:
+                  summary: Name is required
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "name"
+                          message: "Name is required"
+                name_too_long:
+                  summary: Name exceeds maximum length
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "name"
+                          message: "Name must be 100 characters or less"
+                self_parent:
+                  summary: Folder cannot be its own parent
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "parent_id"
+                          message: "Folder cannot be its own parent"
+                parent_not_found:
+                  summary: Parent folder not found
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "parent_id"
+                          message: "Parent folder not found"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+          description: Folder not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Folder not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Folder not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to update folder
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
     delete:
       tags: [Folders]
@@ -1262,10 +2872,77 @@ paths:
       responses:
         '204':
           description: Folder deleted
+        '400':
+          description: Bad request - invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_id:
+                  summary: Invalid folder ID
+                  value:
+                    error:
+                      code: "INVALID_ID"
+                      message: "Invalid folder ID"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Folder not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Folder not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Folder not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to delete folder
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/folders/{id}/move:
     put:
@@ -1301,13 +2978,109 @@ paths:
               schema:
                 $ref: '#/components/schemas/Folder'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request - invalid ID, JSON, or validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_id:
+                  summary: Invalid folder ID
+                  value:
+                    error:
+                      code: "INVALID_ID"
+                      message: "Invalid folder ID"
+                invalid_json:
+                  summary: Invalid JSON payload
+                  value:
+                    error:
+                      code: "INVALID_JSON"
+                      message: "Invalid JSON payload"
+                self_parent:
+                  summary: Folder cannot be its own parent
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "parent_id"
+                          message: "Folder cannot be its own parent"
+                parent_not_found:
+                  summary: Parent folder not found
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "parent_id"
+                          message: "Parent folder not found"
+                circular_reference:
+                  summary: Would create circular reference
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "parent_id"
+                          message: "Cannot move folder: would create circular reference"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+          description: Folder not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Folder not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Folder not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to move folder
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/tokens:
     get:
@@ -1332,7 +3105,50 @@ paths:
                     items:
                       $ref: '#/components/schemas/APIToken'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve tokens
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
     post:
       tags: [Tokens]
@@ -1357,11 +3173,108 @@ paths:
               schema:
                 $ref: '#/components/schemas/APIToken'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request - invalid JSON or validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_json:
+                  summary: Invalid JSON payload
+                  value:
+                    error:
+                      code: "INVALID_JSON"
+                      message: "Invalid JSON payload"
+                name_required:
+                  summary: Name is required
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "name"
+                          message: "Name is required"
+                name_too_long:
+                  summary: Name exceeds maximum length
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "name"
+                          message: "Name must be 100 characters or less"
+                invalid_permissions:
+                  summary: Invalid permissions value
+                  value:
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Validation failed"
+                      details:
+                        - field: "permissions"
+                          message: "Permissions must be 'read', 'write', or 'admin'"
         '401':
-          $ref: '#/components/responses/Unauthorized'
-        '422':
-          $ref: '#/components/responses/ValidationError'
+          description: Unauthorized - password required or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+                password_required:
+                  summary: Password required for token creation
+                  value:
+                    error:
+                      code: "PASSWORD_REQUIRED"
+                      message: "Password is required to create API tokens"
+                invalid_password:
+                  summary: Invalid password
+                  value:
+                    error:
+                      code: "INVALID_PASSWORD"
+                      message: "Invalid password"
+        '403':
+          description: Forbidden - admin permission required or demo mode restriction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+                demo_mode:
+                  summary: API token creation disabled in demo mode
+                  value:
+                    error:
+                      code: "DEMO_MODE_RESTRICTION"
+                      message: "API token creation is disabled in demo mode"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to create token
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/tokens/{id}:
     get:
@@ -1386,15 +3299,82 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/APIToken'
+        '400':
+          description: Bad request - invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_id:
+                  summary: Invalid token ID
+                  value:
+                    error:
+                      code: "INVALID_ID"
+                      message: "Invalid token ID"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Token not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Token not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Token not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve token
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
     delete:
       tags: [Tokens]
       summary: Revoke token
-      description: Revoke an API token
+      description: Revoke an API token (requires password confirmation)
       operationId: deleteToken
       security:
         - sessionCookie: []
@@ -1406,13 +3386,104 @@ paths:
           required: true
           schema:
             type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  description: Password confirmation required for token deletion
+              required:
+                - password
       responses:
         '204':
           description: Token revoked
+        '400':
+          description: Bad request - invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_id:
+                  summary: Invalid token ID
+                  value:
+                    error:
+                      code: "INVALID_ID"
+                      message: "Invalid token ID"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - password required or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+                password_required:
+                  summary: Password required for token deletion
+                  value:
+                    error:
+                      code: "PASSWORD_REQUIRED"
+                      message: "Password is required to delete API tokens"
+                invalid_password:
+                  summary: Invalid password
+                  value:
+                    error:
+                      code: "INVALID_PASSWORD"
+                      message: "Invalid password"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Token not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Token not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Token not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to delete token
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/backup/export:
     get:
@@ -1454,7 +3525,50 @@ paths:
                 format: binary
                 description: Encrypted backup
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error - backup failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                backup_failed:
+                  summary: Failed to create backup
+                  value:
+                    error:
+                      code: "BACKUP_FAILED"
+                      message: "Failed to export backup"
 
   /api/v1/backup/import:
     post:
@@ -1497,9 +3611,87 @@ paths:
               schema:
                 $ref: '#/components/schemas/ImportResult'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request - invalid file or format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_request:
+                  summary: Failed to parse form data
+                  value:
+                    error:
+                      code: "INVALID_REQUEST"
+                      message: "Failed to parse form data"
+                missing_file:
+                  summary: No backup file provided
+                  value:
+                    error:
+                      code: "MISSING_FILE"
+                      message: "No backup file provided"
+                read_error:
+                  summary: Failed to read backup file
+                  value:
+                    error:
+                      code: "READ_ERROR"
+                      message: "Failed to read backup file"
+                decryption_failed:
+                  summary: Wrong decryption password
+                  value:
+                    error:
+                      code: "DECRYPTION_FAILED"
+                      message: "Failed to decrypt backup - wrong password?"
+                invalid_format:
+                  summary: Invalid backup file format
+                  value:
+                    error:
+                      code: "INVALID_FORMAT"
+                      message: "Invalid backup file format"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error - import failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                import_failed:
+                  summary: Failed to import backup
+                  value:
+                    error:
+                      code: "IMPORT_FAILED"
+                      message: "Failed to import backup"
 
   /api/v1/backup/s3/status:
     get:
@@ -1522,7 +3714,37 @@ paths:
                   enabled:
                     type: boolean
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
 
   /api/v1/backup/s3/sync:
     post:
@@ -1547,13 +3769,63 @@ paths:
               schema:
                 $ref: '#/components/schemas/S3SyncResult'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error - sync failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                sync_failed:
+                  summary: Failed to sync to S3
+                  value:
+                    error:
+                      code: "SYNC_FAILED"
+                      message: "Failed to sync backup to S3"
         '503':
           description: S3 not configured
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                s3_not_configured:
+                  summary: S3 storage not configured
+                  value:
+                    error:
+                      code: "S3_NOT_CONFIGURED"
+                      message: "S3 storage is not configured"
 
   /api/v1/backup/s3/list:
     get:
@@ -1578,13 +3850,63 @@ paths:
                     items:
                       $ref: '#/components/schemas/S3BackupInfo'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error - list failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                list_failed:
+                  summary: Failed to list S3 backups
+                  value:
+                    error:
+                      code: "LIST_FAILED"
+                      message: "Failed to list backups from S3"
         '503':
           description: S3 not configured
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                s3_not_configured:
+                  summary: S3 storage not configured
+                  value:
+                    error:
+                      code: "S3_NOT_CONFIGURED"
+                      message: "S3 storage is not configured"
 
   /api/v1/backup/s3/restore:
     post:
@@ -1622,15 +3944,82 @@ paths:
               schema:
                 $ref: '#/components/schemas/ImportResult'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request - invalid request or missing key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_request:
+                  summary: Invalid request body
+                  value:
+                    error:
+                      code: "INVALID_REQUEST"
+                      message: "Invalid request body"
+                missing_key:
+                  summary: Backup key is required
+                  value:
+                    error:
+                      code: "MISSING_KEY"
+                      message: "Backup key is required"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error - restore failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                restore_failed:
+                  summary: Failed to restore from S3
+                  value:
+                    error:
+                      code: "RESTORE_FAILED"
+                      message: "Failed to restore backup from S3"
         '503':
           description: S3 not configured
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                s3_not_configured:
+                  summary: S3 storage not configured
+                  value:
+                    error:
+                      code: "S3_NOT_CONFIGURED"
+                      message: "S3 storage is not configured"
 
   /api/v1/backup/s3/delete:
     delete:
@@ -1662,15 +4051,76 @@ paths:
                     examples:
                       - Backup deleted successfully
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad request - missing key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_key:
+                  summary: Backup key is required
+                  value:
+                    error:
+                      code: "MISSING_KEY"
+                      message: "Backup key is required"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error - delete failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                delete_failed:
+                  summary: Failed to delete S3 backup
+                  value:
+                    error:
+                      code: "DELETE_FAILED"
+                      message: "Failed to delete backup from S3"
         '503':
           description: S3 not configured
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                s3_not_configured:
+                  summary: S3 storage not configured
+                  value:
+                    error:
+                      code: "S3_NOT_CONFIGURED"
+                      message: "S3 storage is not configured"
 
   /api/v1/settings:
     get:
@@ -1705,9 +4155,50 @@ paths:
                   meta:
                     $ref: '#/components/schemas/Meta'
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve settings
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
     put:
       tags: [Settings]
@@ -1796,12 +4287,18 @@ paths:
                       timestamp: "2024-12-24T10:35:00Z"
                       version: "1.0"
         '400':
-          description: Validation error
+          description: Bad request - invalid JSON or validation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ValidationError'
+                $ref: '#/components/schemas/Error'
               examples:
+                invalid_json:
+                  summary: Invalid JSON payload
+                  value:
+                    error:
+                      code: "INVALID_JSON"
+                      message: "Invalid request body"
                 invalid_theme:
                   summary: Invalid theme value
                   value:
@@ -1830,7 +4327,24 @@ paths:
                         - field: "editor_theme"
                           message: "Unsupported editor theme: 'invalid_theme'"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
         '403':
           description: Forbidden - admin permission required
           content:
@@ -1838,11 +4352,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
-                admin_required:
+                insufficient_permissions:
+                  summary: Admin permission required
                   value:
                     error:
-                      code: "ADMIN_REQUIRED"
-                      message: "This operation requires admin-level permissions"
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to update settings
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/gist/config:
     get:
@@ -1879,7 +4407,50 @@ paths:
                     type: string
                     format: date-time
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve configuration
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
     
     post:
       tags: [GitHub Gist Sync]
@@ -1924,8 +4495,80 @@ paths:
                     type: string
         '400':
           description: Invalid configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_interval:
+                  summary: Sync interval too short
+                  value:
+                    error:
+                      code: "INVALID_INTERVAL"
+                      message: "Sync interval must be at least 5 minutes"
+                invalid_strategy:
+                  summary: Invalid conflict resolution strategy
+                  value:
+                    error:
+                      code: "INVALID_STRATEGY"
+                      message: "Invalid conflict resolution strategy"
+                invalid_token:
+                  summary: GitHub token validation failed
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Failed to validate GitHub token"
+                invalid_json:
+                  summary: Invalid JSON payload
+                  value:
+                    error:
+                      code: "INVALID_JSON"
+                      message: "Invalid request body"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to update configuration
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
     
     delete:
       tags: [GitHub Gist Sync]
@@ -1939,8 +4582,58 @@ paths:
       responses:
         '200':
           description: Configuration cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to clear configuration
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/gist/config/test:
     post:
@@ -1964,8 +4657,74 @@ paths:
                     type: string
         '400':
           description: No token configured or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                sync_not_configured:
+                  summary: No GitHub token configured
+                  value:
+                    error:
+                      code: "SYNC_NOT_CONFIGURED"
+                      message: "GitHub token not configured"
+                invalid_token:
+                  summary: Invalid GitHub token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "GitHub token is invalid or expired"
+                no_token:
+                  summary: No token configured
+                  value:
+                    error:
+                      code: "NO_TOKEN"
+                      message: "No GitHub token configured"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to test connection
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/gist/sync/enable-all:
     post:
@@ -1997,8 +4756,68 @@ paths:
                       type: string
         '400':
           description: Sync not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_configured:
+                  summary: GitHub sync not configured
+                  value:
+                    error:
+                      code: "SYNC_NOT_CONFIGURED"
+                      message: "GitHub token not configured"
+                fetch_failed:
+                  summary: Failed to fetch snippets
+                  value:
+                    error:
+                      code: "FETCH_FAILED"
+                      message: "Failed to fetch snippets"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - write permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to enable sync
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/gist/sync/all:
     post:
@@ -2034,8 +4853,62 @@ paths:
                     type: string
         '400':
           description: Sync not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_configured:
+                  summary: GitHub sync not configured
+                  value:
+                    error:
+                      code: "SYNC_NOT_CONFIGURED"
+                      message: "GitHub token not configured"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - write permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                sync_failed:
+                  summary: Failed to sync snippets
+                  value:
+                    error:
+                      code: "SYNC_FAILED"
+                      message: "Failed to sync snippets"
 
   /api/v1/gist/sync/enable/{id}:
     post:
@@ -2059,8 +4932,74 @@ paths:
           description: Sync enabled
         '400':
           description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                sync_not_configured:
+                  summary: Sync not configured
+                  value:
+                    error:
+                      code: "SYNC_NOT_CONFIGURED"
+                      message: "GitHub token not configured"
+                snippet_not_found:
+                  summary: Snippet not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Snippet not found"
+                missing_id:
+                  summary: Missing snippet ID
+                  value:
+                    error:
+                      code: "MISSING_ID"
+                      message: "Snippet ID is required"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - write permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                enable_failed:
+                  summary: Failed to enable sync
+                  value:
+                    error:
+                      code: "ENABLE_FAILED"
+                      message: "Failed to enable sync for snippet"
 
   /api/v1/gist/sync/disable/{id}:
     post:
@@ -2084,8 +5023,74 @@ paths:
           description: Sync disabled
         '400':
           description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                disable_failed:
+                  summary: Failed to disable sync
+                  value:
+                    error:
+                      code: "DISABLE_FAILED"
+                      message: "Failed to disable sync for snippet"
+                sync_not_configured:
+                  summary: Sync not configured
+                  value:
+                    error:
+                      code: "SYNC_NOT_CONFIGURED"
+                      message: "GitHub token not configured"
+                missing_id:
+                  summary: Missing snippet ID
+                  value:
+                    error:
+                      code: "MISSING_ID"
+                      message: "Snippet ID is required"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - write permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                disable_failed:
+                  summary: Failed to disable sync
+                  value:
+                    error:
+                      code: "DISABLE_FAILED"
+                      message: "Failed to disable sync for snippet"
 
   /api/v1/gist/sync/snippet/{id}:
     post:
@@ -2109,8 +5114,74 @@ paths:
           description: Snippet synced
         '400':
           description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                sync_not_configured:
+                  summary: Sync not configured
+                  value:
+                    error:
+                      code: "SYNC_NOT_CONFIGURED"
+                      message: "GitHub token not configured"
+                snippet_not_found:
+                  summary: Snippet not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Snippet not found"
+                missing_id:
+                  summary: Missing snippet ID
+                  value:
+                    error:
+                      code: "MISSING_ID"
+                      message: "Snippet ID is required"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - write permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                sync_failed:
+                  summary: Failed to sync snippet
+                  value:
+                    error:
+                      code: "SYNC_FAILED"
+                      message: "Failed to sync snippet"
 
   /api/v1/gist/mappings:
     get:
@@ -2151,7 +5222,50 @@ paths:
                     error_message:
                       type: string
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve mappings
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/gist/mappings/{id}:
     delete:
@@ -2173,10 +5287,71 @@ paths:
       responses:
         '200':
           description: Mapping deleted
-        '404':
-          $ref: '#/components/responses/NotFound'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Bad request - invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_id:
+                  summary: Invalid mapping ID
+                  value:
+                    error:
+                      code: "INVALID_ID"
+                      message: "Invalid mapping ID"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to delete mapping
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/gist/conflicts:
     get:
@@ -2214,7 +5389,50 @@ paths:
                       type: string
                       format: date-time
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve conflicts
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/gist/conflicts/{id}/resolve:
     post:
@@ -2250,10 +5468,86 @@ paths:
           description: Conflict resolved
         '400':
           description: Invalid resolution choice
-        '404':
-          $ref: '#/components/responses/NotFound'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_resolution:
+                  summary: Invalid resolution choice
+                  value:
+                    error:
+                      code: "INVALID_RESOLUTION"
+                      message: "Invalid resolution choice"
+                sync_not_configured:
+                  summary: Sync not configured
+                  value:
+                    error:
+                      code: "SYNC_NOT_CONFIGURED"
+                      message: "GitHub token not configured"
+                resolve_failed:
+                  summary: Failed to resolve conflict
+                  value:
+                    error:
+                      code: "RESOLVE_FAILED"
+                      message: "Failed to resolve conflict"
+                invalid_json:
+                  summary: Invalid JSON payload
+                  value:
+                    error:
+                      code: "INVALID_JSON"
+                      message: "Invalid request body"
+                invalid_id:
+                  summary: Invalid conflict ID
+                  value:
+                    error:
+                      code: "INVALID_ID"
+                      message: "Invalid conflict ID"
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - write permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                resolve_failed:
+                  summary: Failed to resolve conflict
+                  value:
+                    error:
+                      code: "RESOLVE_FAILED"
+                      message: "Failed to resolve conflict"
 
   /api/v1/gist/logs:
     get:
@@ -2302,7 +5596,50 @@ paths:
                       type: string
                       format: date-time
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Admin permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                database_error:
+                  summary: Failed to retrieve logs
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "An internal server error occurred"
 
   /api/v1/openapi.json:
     get:
@@ -2320,6 +5657,32 @@ paths:
               schema:
                 type: object
                 description: OpenAPI 3.1 specification
+        '404':
+          description: OpenAPI specification file not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                file_not_found:
+                  summary: Specification file not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "OpenAPI specification file not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                file_read_error:
+                  summary: Failed to read specification file
+                  value:
+                    error:
+                      code: "INTERNAL_ERROR"
+                      message: "Failed to serve OpenAPI specification"
 
 components:
   securitySchemes:
@@ -3089,6 +6452,25 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          examples:
+            invalid_json:
+              summary: Invalid JSON in request body
+              value:
+                error:
+                  code: "INVALID_JSON"
+                  message: "Invalid JSON in request body"
+            missing_required_field:
+              summary: Required field missing
+              value:
+                error:
+                  code: "INVALID_REQUEST"
+                  message: "Request body is required"
+            invalid_parameter:
+              summary: Invalid parameter value
+              value:
+                error:
+                  code: "INVALID_PARAMETER"
+                  message: "Invalid parameter value provided"
 
     Unauthorized:
       description: Unauthorized
@@ -3096,6 +6478,25 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          examples:
+            no_auth:
+              summary: No authentication provided
+              value:
+                error:
+                  code: "UNAUTHORIZED"
+                  message: "Authentication required"
+            invalid_token:
+              summary: Invalid or expired token
+              value:
+                error:
+                  code: "INVALID_TOKEN"
+                  message: "Invalid or expired authentication token"
+            session_expired:
+              summary: Session expired
+              value:
+                error:
+                  code: "SESSION_EXPIRED"
+                  message: "Your session has expired. Please log in again"
 
     Forbidden:
       description: Forbidden - insufficient permissions
@@ -3103,6 +6504,25 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          examples:
+            insufficient_permissions:
+              summary: Insufficient permissions
+              value:
+                error:
+                  code: "FORBIDDEN"
+                  message: "Insufficient permissions to perform this action"
+            read_only_token:
+              summary: Read-only token used for write operation
+              value:
+                error:
+                  code: "READ_ONLY"
+                  message: "This token only has read permissions"
+            admin_required:
+              summary: Admin permission required
+              value:
+                error:
+                  code: "ADMIN_REQUIRED"
+                  message: "This operation requires admin-level permissions"
 
     NotFound:
       description: Resource not found
@@ -3110,6 +6530,31 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          examples:
+            snippet_not_found:
+              summary: Snippet not found
+              value:
+                error:
+                  code: "NOT_FOUND"
+                  message: "Snippet not found"
+            tag_not_found:
+              summary: Tag not found
+              value:
+                error:
+                  code: "NOT_FOUND"
+                  message: "Tag not found"
+            folder_not_found:
+              summary: Folder not found
+              value:
+                error:
+                  code: "NOT_FOUND"
+                  message: "Folder not found"
+            resource_not_found:
+              summary: Generic resource not found
+              value:
+                error:
+                  code: "NOT_FOUND"
+                  message: "The requested resource was not found"
 
     ValidationError:
       description: Validation error
@@ -3117,6 +6562,36 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ValidationError'
+          examples:
+            empty_title:
+              summary: Empty title validation
+              value:
+                error:
+                  code: "VALIDATION_ERROR"
+                  message: "Validation failed"
+                  details:
+                    - field: "title"
+                      message: "Title must not be empty"
+            invalid_language:
+              summary: Invalid language code
+              value:
+                error:
+                  code: "VALIDATION_ERROR"
+                  message: "Validation failed"
+                  details:
+                    - field: "language"
+                      message: "Invalid language code"
+            multiple_errors:
+              summary: Multiple validation errors
+              value:
+                error:
+                  code: "VALIDATION_ERROR"
+                  message: "Validation failed"
+                  details:
+                    - field: "title"
+                      message: "Title must not be empty"
+                    - field: "content"
+                      message: "Content is required"
 
     TooManyRequests:
       description: Rate limit exceeded
@@ -3124,3 +6599,47 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+          examples:
+            rate_limit_exceeded:
+              summary: Rate limit exceeded
+              value:
+                error:
+                  code: "RATE_LIMIT_EXCEEDED"
+                  message: "Rate limit exceeded. Please try again later"
+      headers:
+        X-RateLimit-Limit:
+          description: Maximum requests per window
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          description: Requests remaining in current window
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          description: Unix timestamp when limit resets
+          schema:
+            type: integer
+        Retry-After:
+          description: Seconds to wait before retrying
+          schema:
+            type: integer
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            database_error:
+              summary: Database operation failed
+              value:
+                error:
+                  code: "DATABASE_ERROR"
+                  message: "A database error occurred"
+            internal_error:
+              summary: Generic internal error
+              value:
+                error:
+                  code: "INTERNAL_ERROR"
+                  message: "An internal server error occurred"
