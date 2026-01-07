@@ -105,7 +105,8 @@ export function initPublicSnippet(Alpine) {
           // If made private, redirect to home after a delay
           if (!newPublicState) {
             setTimeout(() => {
-              window.location.href = '/';
+              const basePath = window.SNIPO_CONFIG?.basePath || '';
+              window.location.href = basePath + '/';
             }, 1500);
           }
         } else {

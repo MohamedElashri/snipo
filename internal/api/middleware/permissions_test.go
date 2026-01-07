@@ -11,21 +11,21 @@ import (
 
 func TestCheckPermission(t *testing.T) {
 	tests := []struct {
-		name           string
-		tokenPerm      string
-		requiredPerm   string
-		expectAllowed  bool
+		name          string
+		tokenPerm     string
+		requiredPerm  string
+		expectAllowed bool
 	}{
 		// Admin can do everything
 		{"admin can read", PermissionAdmin, PermissionRead, true},
 		{"admin can write", PermissionAdmin, PermissionWrite, true},
 		{"admin can admin", PermissionAdmin, PermissionAdmin, true},
-		
+
 		// Write can read and write
 		{"write can read", PermissionWrite, PermissionRead, true},
 		{"write can write", PermissionWrite, PermissionWrite, true},
 		{"write cannot admin", PermissionWrite, PermissionAdmin, false},
-		
+
 		// Read can only read
 		{"read can read", PermissionRead, PermissionRead, true},
 		{"read cannot write", PermissionRead, PermissionWrite, false},
@@ -103,6 +103,7 @@ func TestGetTokenFromContext(t *testing.T) {
 	retrieved := GetTokenFromContext(ctx)
 	if retrieved == nil {
 		t.Fatal("expected token, got nil")
+		return
 	}
 
 	if retrieved.ID != token.ID {

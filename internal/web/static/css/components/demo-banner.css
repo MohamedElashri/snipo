@@ -1,0 +1,209 @@
+/* Demo Mode Banner */
+.demo-banner {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+    color: white;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.demo-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: 1200px;
+    text-align: center;
+}
+
+.demo-banner-content svg {
+    flex-shrink: 0;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.demo-banner-content span {
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.demo-banner-content strong {
+    font-weight: 600;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.1);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .demo-banner {
+        padding: 0.6rem 0.75rem;
+    }
+    
+    .demo-banner-content {
+        gap: 0.5rem;
+    }
+    
+    .demo-banner-content span {
+        font-size: 0.85rem;
+    }
+    
+    .demo-banner-content svg {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .demo-banner {
+    background: linear-gradient(135deg, #d63031 0%, #c0392b 100%);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Light mode adjustments */
+[data-theme="light"] .demo-banner {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    border-bottom-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Login Page Demo Banner - Top of Page */
+.login-demo-banner-top {
+    background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+    color: white;
+    padding: 1.25rem 2rem;
+    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+    animation: slideDown 0.4s ease-out;
+    width: 100%;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.login-demo-banner-top .login-demo-content {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.login-demo-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.login-demo-content svg {
+    flex-shrink: 0;
+    margin-top: 0.2rem;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+.login-demo-text {
+    flex: 1;
+}
+
+.login-demo-text strong {
+    display: block;
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+.login-demo-text p {
+    margin: 0.5rem 0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.login-demo-text code {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    font-family: 'Monaco', 'Courier New', monospace;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    display: inline-block;
+}
+
+.login-demo-warning {
+    font-size: 0.85rem;
+    opacity: 0.95;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+/* Responsive adjustments for login banner */
+@media (max-width: 768px) {
+    .login-demo-banner-top {
+        padding: 1rem 1.25rem;
+    }
+    
+    .login-demo-banner-top .login-demo-content {
+        max-width: 100%;
+    }
+    
+    .login-demo-content {
+        gap: 0.75rem;
+    }
+    
+    .login-demo-text strong {
+        font-size: 1rem;
+    }
+    
+    .login-demo-text p {
+        font-size: 0.9rem;
+    }
+    
+    .login-demo-text code {
+        font-size: 1rem;
+        padding: 0.2rem 0.6rem;
+    }
+}
+
+/* Dark mode adjustments for login banner */
+[data-theme="dark"] .login-demo-banner-top {
+    background: linear-gradient(135deg, #3a7bc8 0%, #2c5aa0 100%);
+    box-shadow: 0 2px 8px rgba(58, 123, 200, 0.25);
+    border-bottom-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Light mode adjustments for login banner */
+[data-theme="light"] .login-demo-banner-top {
+    background: linear-gradient(135deg, #5ca0f2 0%, #4a8cd9 100%);
+    box-shadow: 0 2px 8px rgba(92, 160, 242, 0.3);
+    border-bottom-color: rgba(255, 255, 255, 0.25);
+}

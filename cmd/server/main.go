@@ -15,6 +15,9 @@ import (
 	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/internal/config"
 	"github.com/MohamedElashri/snipo/internal/database"
+	"github.com/MohamedElashri/snipo/internal/demo"
+	"github.com/MohamedElashri/snipo/internal/repository"
+	"github.com/MohamedElashri/snipo/internal/services"
 )
 
 // Build-time variables
@@ -79,6 +82,12 @@ func runServer() {
 			"recommendation", "Set SNIPO_SESSION_SECRET environment variable for production. Generate with: openssl rand -hex 32")
 	}
 
+	if cfg.Auth.EncryptionSaltGenerated {
+		logger.Warn("SECURITY WARNING: SNIPO_ENCRYPTION_SALT not set - using auto-generated salt",
+			"recommendation", "Set SNIPO_ENCRYPTION_SALT environment variable for production. Generate with: openssl rand -hex 32",
+			"impact", "GitHub sync tokens will not persist across restarts without a persistent encryption salt")
+	}
+
 	// Connect to database
 	db, err := database.New(database.Config{
 		Path:            cfg.Database.Path,
@@ -110,7 +119,7 @@ func runServer() {
 	if masterPasswordForAuth == "" {
 		masterPasswordForAuth = cfg.Auth.MasterPassword
 	}
-	
+
 	authService := auth.NewService(
 		db.DB,
 		masterPasswordForAuth,
@@ -130,6 +139,42 @@ func runServer() {
 		}
 	}()
 
+	// Initialize gist sync worker
+	var gistSyncWorker *services.GistSyncWorker
+	gistSyncRepo := repository.NewGistSyncRepository(db.DB)
+	snippetRepo := repository.NewSnippetRepository(db.DB)
+	fileRepo := repository.NewSnippetFileRepository(db.DB)
+
+	encryptionKey := services.DeriveEncryptionKey(cfg.Auth.EncryptionSalt)
+	if encryptionSvc, err := services.NewEncryptionService(encryptionKey); err == nil {
+		gistSyncWorker = services.NewGistSyncWorker(gistSyncRepo, snippetRepo, fileRepo, encryptionSvc, logger)
+		if err := gistSyncWorker.Start(ctx); err != nil {
+			logger.Warn("failed to start gist sync worker", "error", err)
+		}
+	}
+
+	// Initialize demo mode if enabled
+	if cfg.Demo.Enabled {
+		// Create repositories and services for demo mode
+		snippetRepo := repository.NewSnippetRepository(db.DB)
+		tagRepo := repository.NewTagRepository(db.DB)
+		folderRepo := repository.NewFolderRepository(db.DB)
+		fileRepo := repository.NewSnippetFileRepository(db.DB)
+		historyRepo := repository.NewHistoryRepository(db.DB)
+		settingsRepo := repository.NewSettingsRepository(db.DB)
+
+		snippetService := services.NewSnippetService(snippetRepo, logger).
+			WithTagRepo(tagRepo).
+			WithFolderRepo(folderRepo).
+			WithFileRepo(fileRepo).
+			WithHistoryRepo(historyRepo).
+			WithSettingsRepo(settingsRepo).
+			WithMaxFiles(cfg.Server.MaxFilesPerSnippet)
+
+		demoService := demo.NewService(db.DB, snippetService, logger, cfg.Demo.ResetInterval, cfg.Demo.Enabled)
+		demoService.StartPeriodicReset(ctx)
+	}
+
 	// Create router
 	router := api.NewRouter(api.RouterConfig{
 		DB:                 db.DB,
@@ -142,6 +187,7 @@ func runServer() {
 		RateLimitWindow:    int(cfg.Auth.RateLimitWindow.Seconds()),
 		MaxFilesPerSnippet: cfg.Server.MaxFilesPerSnippet,
 		S3Config:           &cfg.S3,
+		BasePath:           cfg.Server.BasePath,
 	})
 
 	// Create server
@@ -168,6 +214,13 @@ func runServer() {
 	<-quit
 
 	logger.Info("shutting down server...")
+
+	// Stop gist sync worker if running
+	if gistSyncWorker != nil {
+		if err := gistSyncWorker.Stop(); err != nil {
+			logger.Warn("failed to stop gist sync worker", "error", err)
+		}
+	}
 
 	// Graceful shutdown with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -244,19 +297,19 @@ func hashPassword() {
 			os.Exit(1)
 		}
 	}
-	
+
 	if password == "" {
 		fmt.Println("Error: Password cannot be empty")
 		os.Exit(1)
 	}
-	
+
 	// Generate hash using auth package
 	hash, err := auth.HashPassword(password)
 	if err != nil {
 		fmt.Printf("Error hashing password: %v\n", err)
 		os.Exit(1)
 	}
-	
+
 	fmt.Println("\nGenerated Argon2id password hash:")
 	fmt.Println(hash)
 	fmt.Println("\nAdd this to your environment or .env file:")

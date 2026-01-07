@@ -7,6 +7,7 @@
 /* Component styles */
 @import './components/sidebar.css';
 @import './components/header.css';
+@import './components/demo-banner.css';
 @import './components/snippets.css';
 @import './components/editor.css';
 @import './components/modals.css';

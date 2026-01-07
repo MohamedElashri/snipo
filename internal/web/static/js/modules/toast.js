@@ -15,7 +15,7 @@ export function showToast(message, type = 'success') {
     </button>
   `;
   container.appendChild(toast);
-  setTimeout(() => toast.remove(), 5000);
+  setTimeout(() => toast.remove(), 8000);
 }
 
 // Expose globally for inline handlers

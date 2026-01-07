@@ -19,6 +19,7 @@ type Config struct {
 	Logging  LoggingConfig
 	API      APIConfig
 	Features FeatureFlags
+	Demo     DemoConfig
 }
 
 // ServerConfig holds HTTP server settings
@@ -29,6 +30,7 @@ type ServerConfig struct {
 	WriteTimeout       time.Duration
 	TrustProxy         bool
 	MaxFilesPerSnippet int
+	BasePath           string // Base path for reverse proxy (e.g., "/snipo")
 }
 
 // DatabaseConfig holds SQLite settings
@@ -87,6 +89,12 @@ type FeatureFlags struct {
 	BackupRestore  bool
 }
 
+// DemoConfig holds demo mode settings
+type DemoConfig struct {
+	Enabled       bool
+	ResetInterval time.Duration
+}
+
 // Load reads configuration from environment variables
 func Load() (*Config, error) {
 	cfg := &Config{}
@@ -98,6 +106,7 @@ func Load() (*Config, error) {
 	cfg.Server.WriteTimeout = getEnvDuration("SNIPO_WRITE_TIMEOUT", 30*time.Second)
 	cfg.Server.TrustProxy = getEnvBool("SNIPO_TRUST_PROXY", false)
 	cfg.Server.MaxFilesPerSnippet = getEnvInt("SNIPO_MAX_FILES_PER_SNIPPET", 10)
+	cfg.Server.BasePath = normalizeBasePath(getEnv("SNIPO_BASE_PATH", ""))
 
 	// Database
 	cfg.Database.Path = getEnv("SNIPO_DB_PATH", "/data/snipo.db")
@@ -106,12 +115,20 @@ func Load() (*Config, error) {
 	cfg.Database.JournalMode = getEnv("SNIPO_DB_JOURNAL", "WAL")
 	cfg.Database.SynchronousMode = getEnv("SNIPO_DB_SYNC", "NORMAL")
 
+	// Demo Mode (check early to override auth requirements)
+	cfg.Demo.Enabled = getEnvBool("SNIPO_DEMO_MODE", false)
+	cfg.Demo.ResetInterval = getEnvDuration("SNIPO_DEMO_RESET_INTERVAL", 15*time.Minute)
+
 	// Auth - Check if authentication is disabled
 	cfg.Auth.Disabled = getEnvBool("SNIPO_DISABLE_AUTH", false)
 
-	// If auth is disabled, skip password requirements
-	if cfg.Auth.Disabled {
-		// Clear any password config when disabled
+	// If demo mode is enabled, override auth settings
+	if cfg.Demo.Enabled {
+		cfg.Auth.MasterPassword = "demo"
+		cfg.Auth.MasterPasswordHash = ""
+		cfg.Auth.Disabled = false
+	} else if cfg.Auth.Disabled {
+		// If auth is disabled (and not demo mode), skip password requirements
 		cfg.Auth.MasterPassword = ""
 		cfg.Auth.MasterPasswordHash = ""
 	} else {
@@ -242,4 +259,16 @@ func generateSecret() (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(bytes), nil
+}
+
+func normalizeBasePath(path string) string {
+	if path == "" {
+		return ""
+	}
+	path = strings.TrimSpace(path)
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	path = strings.TrimSuffix(path, "/")
+	return path
 }

@@ -30,6 +30,8 @@ type RouterConfig struct {
 	RateLimitWindow    int // in seconds
 	MaxFilesPerSnippet int
 	S3Config           *config.S3Config
+	SnippetService     *services.SnippetService // For demo mode
+	BasePath           string                   // Base path for reverse proxy
 }
 
 // NewRouter creates and configures the HTTP router
@@ -74,15 +76,23 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	fileRepo := repository.NewSnippetFileRepository(cfg.DB)
 	settingsRepo := repository.NewSettingsRepository(cfg.DB)
 	historyRepo := repository.NewHistoryRepository(cfg.DB)
+	gistSyncRepo := repository.NewGistSyncRepository(cfg.DB)
 
 	// Create services
-	snippetService := services.NewSnippetService(snippetRepo, cfg.Logger).
-		WithTagRepo(tagRepo).
-		WithFolderRepo(folderRepo).
-		WithFileRepo(fileRepo).
-		WithHistoryRepo(historyRepo).
-		WithSettingsRepo(settingsRepo).
-		WithMaxFiles(cfg.MaxFilesPerSnippet)
+	var snippetService *services.SnippetService
+	if cfg.SnippetService != nil {
+		// Use provided snippet service (for demo mode)
+		snippetService = cfg.SnippetService
+	} else {
+		// Create new snippet service
+		snippetService = services.NewSnippetService(snippetRepo, cfg.Logger).
+			WithTagRepo(tagRepo).
+			WithFolderRepo(folderRepo).
+			WithFileRepo(fileRepo).
+			WithHistoryRepo(historyRepo).
+			WithSettingsRepo(settingsRepo).
+			WithMaxFiles(cfg.MaxFilesPerSnippet)
+	}
 
 	// Create backup service
 	backupService := services.NewBackupService(cfg.DB, snippetService, tagRepo, folderRepo, fileRepo, cfg.Logger, cfg.Config.Auth.EncryptionSalt)
@@ -110,8 +120,8 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	snippetHandler := handlers.NewSnippetHandler(snippetService)
 	tagHandler := handlers.NewTagHandler(tagRepo)
 	folderHandler := handlers.NewFolderHandler(folderRepo)
-	tokenHandler := handlers.NewTokenHandler(tokenRepo, settingsRepo, cfg.AuthService)
-	authHandler := handlers.NewAuthHandler(cfg.AuthService)
+	tokenHandler := handlers.NewTokenHandler(tokenRepo, settingsRepo, cfg.AuthService).WithDemoMode(cfg.Config.Demo.Enabled)
+	authHandler := handlers.NewAuthHandler(cfg.AuthService).WithDemoMode(cfg.Config.Demo.Enabled)
 
 	// Create health handler with feature flags
 	var featureFlags *config.FeatureFlags
@@ -122,6 +132,19 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	backupHandler := handlers.NewBackupHandler(backupService, s3SyncService)
 	settingsHandler := handlers.NewSettingsHandler(settingsRepo)
+
+	// Create encryption service for gist sync (using encryption salt as key for persistence)
+	encryptionKey := services.DeriveEncryptionKey(cfg.Config.Auth.EncryptionSalt)
+	encryptionSvc, err := services.NewEncryptionService(encryptionKey)
+	if err != nil {
+		cfg.Logger.Warn("failed to initialize encryption service", "error", err)
+	}
+
+	// Create gist sync handler
+	var gistSyncHandler *handlers.GistSyncHandler
+	if encryptionSvc != nil {
+		gistSyncHandler = handlers.NewGistSyncHandler(gistSyncRepo, snippetRepo, fileRepo, encryptionSvc)
+	}
 
 	// Public routes (no auth required)
 	r.Group(func(r chi.Router) {
@@ -235,6 +258,49 @@ func NewRouter(cfg RouterConfig) http.Handler {
 			r.Post("/s3/restore", backupHandler.S3Restore)
 			r.Delete("/s3/delete", backupHandler.S3Delete)
 		})
+
+		// GitHub Gist Sync (admin only for config, write for sync operations)
+		if gistSyncHandler != nil {
+			r.Route("/api/v1/gist", func(r chi.Router) {
+				// Config endpoints (admin only)
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequireAdmin)
+					r.Use(apiRateLimiter.RateLimitAdmin)
+					r.Get("/config", gistSyncHandler.GetConfig)
+					r.Post("/config", gistSyncHandler.UpdateConfig)
+					r.Delete("/config", gistSyncHandler.ClearConfig)
+					r.Post("/config/test", gistSyncHandler.TestConnection)
+				})
+
+				// Sync operations (write permission)
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequireWrite)
+					r.Use(apiRateLimiter.RateLimitWrite)
+					r.Post("/sync/snippet/{id}", gistSyncHandler.SyncSnippet)
+					r.Post("/sync/all", gistSyncHandler.SyncAll)
+					r.Post("/sync/enable/{id}", gistSyncHandler.EnableSync)
+					r.Post("/sync/enable-all", gistSyncHandler.EnableSyncForAll)
+					r.Post("/sync/disable/{id}", gistSyncHandler.DisableSync)
+				})
+
+				// Mappings and conflicts (read permission)
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequireRead)
+					r.Use(apiRateLimiter.RateLimitRead)
+					r.Get("/mappings", gistSyncHandler.ListMappings)
+					r.Get("/conflicts", gistSyncHandler.ListConflicts)
+					r.Get("/logs", gistSyncHandler.GetLogs)
+				})
+
+				// Mapping deletion and conflict resolution (write permission)
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequireWrite)
+					r.Use(apiRateLimiter.RateLimitWrite)
+					r.Delete("/mappings/{id}", gistSyncHandler.DeleteMapping)
+					r.Post("/conflicts/{id}/resolve", gistSyncHandler.ResolveConflict)
+				})
+			})
+		}
 	})
 
 	// Web UI routes
@@ -242,13 +308,23 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	if err != nil {
 		cfg.Logger.Error("failed to create web handler", "error", err)
 	} else {
+		// Set demo mode and base path if enabled
+		webHandler = webHandler.WithDemoMode(cfg.Config.Demo.Enabled).WithBasePath(cfg.BasePath)
+
 		// Static files
-		r.Handle("/static/*", web.StaticHandler())
+		r.Handle("/static/*", web.StaticHandler(cfg.BasePath))
 
 		// Web pages
 		r.Get("/", webHandler.Index)
 		r.Get("/login", webHandler.Login)
 		r.Get("/s/{id}", webHandler.PublicSnippet) // Public snippet share page
+	}
+
+	// If base path is configured, mount everything under it
+	if cfg.BasePath != "" {
+		baseRouter := chi.NewRouter()
+		baseRouter.Mount(cfg.BasePath, r)
+		return baseRouter
 	}
 
 	return r

@@ -2,19 +2,6 @@
 
 A rich terminal user interface (TUI) for [Snipo](https://github.com/MohamedElashri/snipo) - your self-hosted snippet manager.
 
-## Features
-
-- **Rich TUI** - Beautiful terminal interface built with Bubble Tea
-- **API Key Authentication** - Secure authentication using API tokens
-- **Read-Only Operations** - View and browse snippets safely
-- **Search & Filter** - Search snippets by content, tags, and language
-- **Multi-File Support** - Navigate between files in multi-file snippets
-- **Tags & Metadata** - View snippet tags, language, and metadata
-- **Pagination** - Navigate through large snippet collections
-- **Vim-style Keybindings** - Efficient keyboard navigation (h/j/k/l)
-- **Cross-platform** - Works on Linux, macOS, and Windows
-- **Fast & Lightweight** - Written in Go with minimal dependencies
-
 ## Quick Start
 
 ### 1. Build
@@ -138,22 +125,7 @@ snippy help
 
 - Go 1.24+
 - Running Snipo server
-- API token with appropriate permissions
-
-### Project Structure
-
-```
-tui/
-├── cmd/snippy/         # CLI entry point
-├── internal/
-│   ├── api/            # API client
-│   ├── app/            # Application logic
-│   ├── config/         # Configuration management
-│   └── ui/             # TUI components
-├── go.mod
-├── Makefile
-└── README.md
-```
+- API token with appropriate permissions (read is currently enough)
 
 ### Build & Run
 
@@ -205,14 +177,4 @@ curl http://localhost:8080/health
 
 ## License
 
-GNU General Public License v3.0 (GPLv3)
-
-## Related Projects
-
-- [Snipo](https://github.com/MohamedElashri/snipo) - Main project with web interface & API
-
-## Support
-
-For issues and questions:
-- Open an issue on [GitHub](https://github.com/MohamedElashri/snipo/issues)
-- Check the [main documentation](https://github.com/MohamedElashri/snipo)
+Affero General Public License v3.0 (AGPLv3) [LICENSE](../LICENSE)
