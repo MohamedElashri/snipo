@@ -110,14 +110,28 @@
 
 /* Settings modal */
 .settings-modal {
-  max-width: 800px;
-  width: 90%;
+  max-width: 1000px;
+  width: 95%;
 }
 
 .settings-tabs {
   display: flex;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--pico-muted-border-color);
   padding: 0 1rem;
+  gap: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .settings-modal {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+  }
+  
+  .settings-tabs {
+    padding: 0 0.5rem;
+  }
 }
 
 .settings-tab {
