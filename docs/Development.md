@@ -447,3 +447,124 @@ Snipo supports extensive visual customization through custom CSS. See [customiza
 - Best practices and examples
 
 Users can add custom CSS through **Settings → Appearance → Custom CSS**.
+
+## GitHub Gist Sync Architecture
+
+Snipo implements two-way synchronization with GitHub Gists using a settings-based approach (no OAuth required).
+
+### Components
+
+**Backend (Go):**
+- `internal/models/gist_sync.go` - Data models for config, mappings, conflicts, logs
+- `internal/repository/gist_sync_repo.go` - Database operations for gist sync
+- `internal/services/encryption_service.go` - AES-256-GCM token encryption
+- `internal/services/github_client.go` - HTTP client for GitHub Gist API
+- `internal/services/checksum.go` - SHA256 checksums for change detection
+- `internal/services/gist_converter.go` - Bidirectional snippet/gist conversion
+- `internal/services/gist_sync_service.go` - Core sync logic and conflict resolution
+- `internal/services/gist_sync_worker.go` - Background sync worker
+- `internal/api/handlers/gist_sync_handler.go` - API endpoints
+
+**Frontend (JavaScript):**
+- `internal/web/static/js/components/snippets/gist-sync-mixin.js` - UI logic
+- `internal/web/templates/components/modals.html` - Settings UI (GitHub Gist tab)
+
+**Database:**
+- `migrations/007_add_gist_sync.sql` - Schema for sync tables
+- Tables: `gist_sync_config`, `snippet_gist_mappings`, `gist_sync_conflicts`, `gist_sync_log`
+
+### Key Design Decisions
+
+**1. Settings-Based Authentication (No OAuth):**
+- Users provide GitHub Personal Access Token directly
+- Simpler for self-hosted deployments
+- No OAuth app registration required
+- Token encrypted with session secret using AES-256-GCM
+
+**2. Metadata Embedding:**
+- Snipo-specific metadata (favorites, folders, tags) embedded in gist description
+- Format: `Title\n[snipo:{json}]`
+- Keeps gist files clean (no separate metadata file)
+- Backward compatible with old metadata file approach
+
+**3. Checksum-Based Change Detection:**
+- SHA256 checksums calculated for normalized snippet/gist data
+- Stored in `snippet_gist_mappings` table
+- Enables efficient conflict detection
+
+**4. Conflict Resolution Strategies:**
+- Manual: User chooses which version to keep
+- Snipo Wins: Always use Snipo version
+- Gist Wins: Always use GitHub version
+- Newest Wins: Use most recently modified version
+
+### API Endpoints
+
+**Configuration:**
+- `GET /api/v1/gist/config` - Get configuration (token masked)
+- `POST /api/v1/gist/config` - Save configuration and token
+- `DELETE /api/v1/gist/config` - Clear token and disable sync
+- `POST /api/v1/gist/config/test` - Test token validity
+
+**Sync Operations:**
+- `POST /api/v1/gist/sync/snippet/{id}` - Sync specific snippet
+- `POST /api/v1/gist/sync/all` - Sync all enabled snippets
+- `POST /api/v1/gist/sync/enable/{id}` - Enable sync for snippet
+- `POST /api/v1/gist/sync/enable-all` - Enable sync for all snippets
+- `POST /api/v1/gist/sync/disable/{id}` - Disable sync for snippet
+
+**Mappings & Conflicts:**
+- `GET /api/v1/gist/mappings` - List all mappings
+- `DELETE /api/v1/gist/mappings/{id}` - Remove mapping
+- `GET /api/v1/gist/conflicts` - List unresolved conflicts
+- `POST /api/v1/gist/conflicts/{id}/resolve` - Resolve conflict
+- `GET /api/v1/gist/logs` - View sync operation logs
+
+### Sync Algorithm
+
+1. **Enable Sync for Snippet:**
+   - Check if mapping exists
+   - If not, create gist via GitHub API
+   - Calculate checksums for both versions
+   - Store mapping with checksums
+
+2. **Detect Changes:**
+   - Fetch current snippet and gist
+   - Calculate current checksums
+   - Compare with stored checksums
+   - Return: NoSync, SnipoToGist, GistToSnipo, or Conflict
+
+3. **Sync Snippet to Gist:**
+   - Convert snippet to gist request format
+   - Update gist via GitHub API
+   - Update checksums in mapping
+   - Log operation
+
+4. **Sync Gist to Snippet:**
+   - Fetch gist from GitHub
+   - Convert to snippet format
+   - Update snippet in database
+   - Update checksums in mapping
+   - Log operation
+
+5. **Handle Conflict:**
+   - Create conflict record
+   - Update mapping status to "conflict"
+   - Wait for user resolution or apply automatic strategy
+
+### Background Worker
+
+The `GistSyncWorker` runs in the background and:
+- Checks every 1 minute if sync is needed
+- Respects `sync_interval_minutes` from config
+- Only syncs if `enabled` and `auto_sync_enabled` are true
+- Tracks `last_full_sync_at` to prevent over-syncing
+- Gracefully shuts down on server stop
+
+### Security Considerations
+
+- Tokens encrypted with `DeriveEncryptionKey(sessionSecret)` using SHA256
+- Encryption uses AES-256-GCM with random nonce per encryption
+- Tokens never logged or exposed in API responses
+- Worker checks token existence before attempting decryption
+- All API endpoints require appropriate permissions (admin/write/read)

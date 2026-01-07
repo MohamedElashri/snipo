@@ -332,6 +332,63 @@ curl -O https://localhost:8080/api/v1/snippets/public/abc123/files/README.md
 - View count is tracked automatically
 - Files are returned as plain text with proper Content-Disposition headers
 
+## GitHub Gist Sync
+
+Snipo supports two-way synchronization with GitHub Gists, allowing you to backup your snippets to GitHub and keep them in sync across platforms.
+
+### Setup
+
+1. **Generate GitHub Personal Access Token:**
+   - Go to [GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)](https://github.com/settings/tokens/new?scopes=gist&description=Snipo)
+   - Create a token with `gist` scope
+   - Copy the generated token
+
+2. **Configure in Snipo:**
+   - Go to Settings → GitHub Gist tab
+   - Paste your GitHub token
+   - Click "Save Configuration" (sync is automatically enabled)
+
+### Features
+
+**Sync Options:**
+- **Enable Sync for All**: Creates GitHub gists for all your snippets at once
+- **Sync Now**: Syncs changes for already-enabled snippets
+- **Auto-Sync**: Background sync at configurable intervals (5/15/30/60 minutes)
+
+**Conflict Resolution:**
+- **Manual**: Review and resolve conflicts manually
+- **Snipo Wins**: Always keep Snipo version
+- **Gist Wins**: Always keep GitHub version
+- **Newest Wins**: Keep the most recently modified version
+
+**Metadata Preservation:**
+- Snippet titles, descriptions, and content are synced
+- Snipo-specific metadata (favorites, folders, tags) embedded in gist description
+- Multi-file snippets fully supported
+
+### Usage
+
+**Enable sync for all snippets:**
+```
+Settings → GitHub Gist → Enable Sync for All
+```
+
+**View synced snippets:**
+- See list of synced snippets with status badges (✓ synced, ⟳ pending, ⚠ conflict, ✗ error)
+- Click gist links to view on GitHub
+- Remove mappings to stop syncing specific snippets
+
+**Manage conflicts:**
+- Conflicts appear when both Snipo and GitHub versions are modified
+- Choose "Keep Snipo" or "Keep Gist" to resolve
+- Or set automatic conflict resolution strategy in settings
+
+### Limitations
+
+- Requires GitHub Personal Access Token (no OAuth)
+- Sync is per-snippet, not automatic for new snippets
+- GitHub API rate limit: 5000 requests/hour
+
 ## Security
 
 **Container Security:**
