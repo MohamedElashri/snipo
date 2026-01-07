@@ -1,6 +1,7 @@
 package services
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/MohamedElashri/snipo/internal/models"
@@ -114,24 +115,25 @@ func TestSnippetToGistRequest(t *testing.T) {
 			t.Fatalf("failed to convert snippet: %v", err)
 		}
 
-		if req.Description != "Test Snippet" {
-			t.Errorf("expected description 'Test Snippet', got '%s'", req.Description)
+		// Description should contain title and embedded metadata
+		if !strings.Contains(req.Description, "Test Snippet") {
+			t.Errorf("expected description to contain 'Test Snippet', got '%s'", req.Description)
+		}
+
+		if !strings.Contains(req.Description, "[snipo:") {
+			t.Errorf("expected description to contain embedded metadata, got '%s'", req.Description)
 		}
 
 		if !req.Public {
 			t.Error("expected public to be true")
 		}
 
-		if len(req.Files) != 2 {
-			t.Errorf("expected 2 files (1 snippet + metadata), got %d", len(req.Files))
+		if len(req.Files) != 1 {
+			t.Errorf("expected 1 file (metadata embedded in description), got %d", len(req.Files))
 		}
 
 		if _, ok := req.Files["test.go"]; !ok {
 			t.Error("expected test.go file")
-		}
-
-		if _, ok := req.Files[metadataFilename]; !ok {
-			t.Error("expected metadata file")
 		}
 	})
 
@@ -149,16 +151,18 @@ func TestSnippetToGistRequest(t *testing.T) {
 			t.Fatalf("failed to convert snippet: %v", err)
 		}
 
-		if len(req.Files) != 2 {
-			t.Errorf("expected 2 files, got %d", len(req.Files))
+		if len(req.Files) != 1 {
+			t.Errorf("expected 1 file (metadata embedded in description), got %d", len(req.Files))
+		}
+
+		if !strings.Contains(req.Description, "[snipo:") {
+			t.Error("expected metadata embedded in description")
 		}
 
 		found := false
-		for filename := range req.Files {
-			if filename != metadataFilename {
-				found = true
-				break
-			}
+		for range req.Files {
+			found = true
+			break
 		}
 		if !found {
 			t.Error("expected a content file")
@@ -170,14 +174,11 @@ func TestGistToSnippet(t *testing.T) {
 	t.Run("gist with metadata", func(t *testing.T) {
 		gist := &models.GistResponse{
 			ID:          "gist-123",
-			Description: "Test Gist",
+			Description: "Test Gist\n[snipo:{\"version\":\"1.0\",\"snipo_id\":\"snippet-123\",\"is_favorite\":true,\"is_archived\":false}]",
 			Public:      true,
 			Files: map[string]models.GistFile{
 				"test.go": {
 					Content: "package main",
-				},
-				metadataFilename: {
-					Content: `{"version":"1.0","snipo_id":"snippet-123","is_favorite":true,"is_archived":false}`,
 				},
 			},
 		}
