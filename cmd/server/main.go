@@ -137,10 +137,11 @@ func runServer() {
 	var gistSyncWorker *services.GistSyncWorker
 	gistSyncRepo := repository.NewGistSyncRepository(db.DB)
 	snippetRepo := repository.NewSnippetRepository(db.DB)
+	fileRepo := repository.NewSnippetFileRepository(db.DB)
 
 	encryptionKey := services.DeriveEncryptionKey(cfg.Auth.SessionSecret)
 	if encryptionSvc, err := services.NewEncryptionService(encryptionKey); err == nil {
-		gistSyncWorker = services.NewGistSyncWorker(gistSyncRepo, snippetRepo, encryptionSvc, logger)
+		gistSyncWorker = services.NewGistSyncWorker(gistSyncRepo, snippetRepo, fileRepo, encryptionSvc, logger)
 		if err := gistSyncWorker.Start(ctx); err != nil {
 			logger.Warn("failed to start gist sync worker", "error", err)
 		}

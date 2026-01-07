@@ -13,6 +13,7 @@ import (
 type GistSyncWorker struct {
 	syncRepo      *repository.GistSyncRepository
 	snippetRepo   *repository.SnippetRepository
+	fileRepo      *repository.SnippetFileRepository
 	encryptionSvc *EncryptionService
 	logger        *slog.Logger
 	stopCh        chan struct{}
@@ -25,12 +26,14 @@ type GistSyncWorker struct {
 func NewGistSyncWorker(
 	syncRepo *repository.GistSyncRepository,
 	snippetRepo *repository.SnippetRepository,
+	fileRepo *repository.SnippetFileRepository,
 	encryptionSvc *EncryptionService,
 	logger *slog.Logger,
 ) *GistSyncWorker {
 	return &GistSyncWorker{
 		syncRepo:      syncRepo,
 		snippetRepo:   snippetRepo,
+		fileRepo:      fileRepo,
 		encryptionSvc: encryptionSvc,
 		logger:        logger,
 		stopCh:        make(chan struct{}),
@@ -127,7 +130,7 @@ func (w *GistSyncWorker) performSync(ctx context.Context) {
 	}
 
 	githubClient := NewGitHubClient(token)
-	syncService := NewGistSyncService(githubClient, w.snippetRepo, w.syncRepo, w.encryptionSvc)
+	syncService := NewGistSyncService(githubClient, w.snippetRepo, w.fileRepo, w.syncRepo, w.encryptionSvc)
 
 	result, err := syncService.SyncAll(ctx)
 	if err != nil {

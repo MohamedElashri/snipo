@@ -14,6 +14,7 @@ import (
 type GistSyncService struct {
 	githubClient  *GitHubClient
 	snippetRepo   *repository.SnippetRepository
+	fileRepo      *repository.SnippetFileRepository
 	syncRepo      *repository.GistSyncRepository
 	encryptionSvc *EncryptionService
 }
@@ -22,12 +23,14 @@ type GistSyncService struct {
 func NewGistSyncService(
 	githubClient *GitHubClient,
 	snippetRepo *repository.SnippetRepository,
+	fileRepo *repository.SnippetFileRepository,
 	syncRepo *repository.GistSyncRepository,
 	encryptionSvc *EncryptionService,
 ) *GistSyncService {
 	return &GistSyncService{
 		githubClient:  githubClient,
 		snippetRepo:   snippetRepo,
+		fileRepo:      fileRepo,
 		syncRepo:      syncRepo,
 		encryptionSvc: encryptionSvc,
 	}
@@ -39,6 +42,13 @@ func (s *GistSyncService) SyncSnippetToGist(ctx context.Context, snippetID strin
 	if err != nil {
 		return fmt.Errorf("failed to get snippet: %w", err)
 	}
+
+	// Load snippet files for multi-file snippets
+	files, err := s.fileRepo.GetBySnippetID(ctx, snippetID)
+	if err != nil {
+		return fmt.Errorf("failed to get snippet files: %w", err)
+	}
+	snippet.Files = files
 
 	mapping, err := s.syncRepo.GetMapping(ctx, snippetID)
 	if err != nil {

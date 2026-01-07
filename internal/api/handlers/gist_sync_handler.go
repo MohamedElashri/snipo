@@ -18,6 +18,7 @@ import (
 type GistSyncHandler struct {
 	syncRepo      *repository.GistSyncRepository
 	snippetRepo   *repository.SnippetRepository
+	fileRepo      *repository.SnippetFileRepository
 	encryptionSvc *services.EncryptionService
 }
 
@@ -25,11 +26,13 @@ type GistSyncHandler struct {
 func NewGistSyncHandler(
 	syncRepo *repository.GistSyncRepository,
 	snippetRepo *repository.SnippetRepository,
+	fileRepo *repository.SnippetFileRepository,
 	encryptionSvc *services.EncryptionService,
 ) *GistSyncHandler {
 	return &GistSyncHandler{
 		syncRepo:      syncRepo,
 		snippetRepo:   snippetRepo,
+		fileRepo:      fileRepo,
 		encryptionSvc: encryptionSvc,
 	}
 }
@@ -451,16 +454,15 @@ func (h *GistSyncHandler) createSyncService(ctx context.Context) (*services.Gist
 	if err != nil {
 		return nil, err
 	}
-
-	if config == nil || !config.Enabled || config.GithubTokenEncrypted == "" {
-		return nil, http.ErrNotSupported
+	if config == nil || config.GithubTokenEncrypted == "" {
+		return nil, fmt.Errorf("github token not configured")
 	}
 
 	token, err := h.encryptionSvc.Decrypt(config.GithubTokenEncrypted)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to decrypt token: %w", err)
 	}
 
 	githubClient := services.NewGitHubClient(token)
-	return services.NewGistSyncService(githubClient, h.snippetRepo, h.syncRepo, h.encryptionSvc), nil
+	return services.NewGistSyncService(githubClient, h.snippetRepo, h.fileRepo, h.syncRepo, h.encryptionSvc), nil
 }

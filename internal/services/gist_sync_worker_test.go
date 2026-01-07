@@ -75,8 +75,9 @@ func setupTestWorker(t *testing.T) (*GistSyncWorker, *sql.DB) {
 		t.Fatalf("failed to create encryption service: %v", err)
 	}
 
+	fileRepo := repository.NewSnippetFileRepository(db)
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
-	worker := NewGistSyncWorker(syncRepo, snippetRepo, encryptionSvc, logger)
+	worker := NewGistSyncWorker(syncRepo, snippetRepo, fileRepo, encryptionSvc, logger)
 
 	return worker, db
 }
