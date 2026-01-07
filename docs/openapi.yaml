@@ -120,6 +120,8 @@ tags:
     description: Backup and restore operations
   - name: Settings
     description: Application settings management (admin only)
+  - name: GitHub Gist Sync
+    description: Two-way synchronization with GitHub Gists
   - name: Documentation
     description: API documentation and specifications
 
@@ -1841,6 +1843,466 @@ paths:
                     error:
                       code: "ADMIN_REQUIRED"
                       message: "This operation requires admin-level permissions"
+
+  /api/v1/gist/config:
+    get:
+      tags: [GitHub Gist Sync]
+      summary: Get GitHub Gist sync configuration
+      description: Retrieves the current GitHub Gist sync configuration (token is masked)
+      operationId: getGistConfig
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: Gist sync configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                  github_username:
+                    type: string
+                  has_token:
+                    type: boolean
+                  auto_sync_enabled:
+                    type: boolean
+                  sync_interval_minutes:
+                    type: integer
+                  conflict_resolution_strategy:
+                    type: string
+                    enum: [manual, snipo_wins, gist_wins, newest_wins]
+                  last_full_sync_at:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags: [GitHub Gist Sync]
+      summary: Update GitHub Gist sync configuration
+      description: Updates the GitHub Gist sync configuration and optionally sets a new token
+      operationId: updateGistConfig
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                github_token:
+                  type: string
+                  description: GitHub Personal Access Token (optional, only when updating)
+                auto_sync_enabled:
+                  type: boolean
+                sync_interval_minutes:
+                  type: integer
+                  minimum: 5
+                conflict_resolution_strategy:
+                  type: string
+                  enum: [manual, snipo_wins, gist_wins, newest_wins]
+      responses:
+        '200':
+          description: Configuration updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  username:
+                    type: string
+        '400':
+          description: Invalid configuration
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    delete:
+      tags: [GitHub Gist Sync]
+      summary: Clear GitHub Gist sync configuration
+      description: Removes the GitHub token and disables sync
+      operationId: clearGistConfig
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: Configuration cleared
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/gist/config/test:
+    post:
+      tags: [GitHub Gist Sync]
+      summary: Test GitHub connection
+      description: Tests the configured GitHub token by attempting to authenticate
+      operationId: testGistConnection
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: Connection successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+        '400':
+          description: No token configured or invalid token
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/gist/sync/enable-all:
+    post:
+      tags: [GitHub Gist Sync]
+      summary: Enable sync for all snippets
+      description: Creates GitHub gists for all snippets and enables sync
+      operationId: enableSyncForAll
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: Sync enabled for snippets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  enabled:
+                    type: integer
+                  errors:
+                    type: integer
+                  error_messages:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Sync not configured
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/gist/sync/all:
+    post:
+      tags: [GitHub Gist Sync]
+      summary: Sync all enabled snippets
+      description: Syncs all snippets that have sync enabled
+      operationId: syncAllGists
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: Sync completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_processed:
+                    type: integer
+                  synced:
+                    type: integer
+                  conflicts:
+                    type: integer
+                  errors:
+                    type: integer
+                  error_messages:
+                    type: array
+                    items:
+                      type: string
+                  duration:
+                    type: string
+        '400':
+          description: Sync not configured
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/gist/sync/enable/{id}:
+    post:
+      tags: [GitHub Gist Sync]
+      summary: Enable sync for a snippet
+      description: Creates a GitHub gist for the snippet and enables sync
+      operationId: enableSyncForSnippet
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Snippet ID
+      responses:
+        '200':
+          description: Sync enabled
+        '400':
+          description: Invalid request
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/gist/sync/disable/{id}:
+    post:
+      tags: [GitHub Gist Sync]
+      summary: Disable sync for a snippet
+      description: Disables sync for the snippet (does not delete the gist)
+      operationId: disableSyncForSnippet
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Snippet ID
+      responses:
+        '200':
+          description: Sync disabled
+        '400':
+          description: Invalid request
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/gist/sync/snippet/{id}:
+    post:
+      tags: [GitHub Gist Sync]
+      summary: Sync a specific snippet
+      description: Syncs a specific snippet with its GitHub gist
+      operationId: syncSnippet
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Snippet ID
+      responses:
+        '200':
+          description: Snippet synced
+        '400':
+          description: Invalid request
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/gist/mappings:
+    get:
+      tags: [GitHub Gist Sync]
+      summary: List snippet-gist mappings
+      description: Retrieves all snippet-gist mappings
+      operationId: listGistMappings
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: List of mappings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    snippet_id:
+                      type: string
+                    gist_id:
+                      type: string
+                    gist_url:
+                      type: string
+                    sync_enabled:
+                      type: boolean
+                    last_synced_at:
+                      type: string
+                      format: date-time
+                    sync_status:
+                      type: string
+                      enum: [synced, pending, conflict, error]
+                    error_message:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/gist/mappings/{id}:
+    delete:
+      tags: [GitHub Gist Sync]
+      summary: Delete a snippet-gist mapping
+      description: Removes the mapping (does not delete the gist or snippet)
+      operationId: deleteGistMapping
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Mapping ID
+      responses:
+        '200':
+          description: Mapping deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/gist/conflicts:
+    get:
+      tags: [GitHub Gist Sync]
+      summary: List sync conflicts
+      description: Retrieves all unresolved sync conflicts
+      operationId: listGistConflicts
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKeyAuth: []
+      responses:
+        '200':
+          description: List of conflicts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    snippet_id:
+                      type: string
+                    gist_id:
+                      type: string
+                    snipo_version:
+                      type: string
+                    gist_version:
+                      type: string
+                    resolved:
+                      type: boolean
+                    created_at:
+                      type: string
+                      format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/gist/conflicts/{id}/resolve:
+    post:
+      tags: [GitHub Gist Sync]
+      summary: Resolve a sync conflict
+      description: Resolves a conflict by choosing which version to keep
+      operationId: resolveGistConflict
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Conflict ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - resolution
+              properties:
+                resolution:
+                  type: string
+                  enum: [snipo_wins, gist_wins]
+      responses:
+        '200':
+          description: Conflict resolved
+        '400':
+          description: Invalid resolution choice
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/gist/logs:
+    get:
+      tags: [GitHub Gist Sync]
+      summary: Get sync operation logs
+      description: Retrieves recent sync operation logs
+      operationId: getGistLogs
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+          description: Maximum number of logs to return
+      responses:
+        '200':
+          description: List of logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    snippet_id:
+                      type: string
+                    gist_id:
+                      type: string
+                    operation:
+                      type: string
+                      enum: [create, update, delete, sync]
+                    status:
+                      type: string
+                      enum: [success, failed]
+                    message:
+                      type: string
+                    created_at:
+                      type: string
+                      format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /api/v1/openapi.json:
     get:
