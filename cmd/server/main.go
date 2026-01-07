@@ -82,6 +82,12 @@ func runServer() {
 			"recommendation", "Set SNIPO_SESSION_SECRET environment variable for production. Generate with: openssl rand -hex 32")
 	}
 
+	if cfg.Auth.EncryptionSaltGenerated {
+		logger.Warn("SECURITY WARNING: SNIPO_ENCRYPTION_SALT not set - using auto-generated salt",
+			"recommendation", "Set SNIPO_ENCRYPTION_SALT environment variable for production. Generate with: openssl rand -hex 32",
+			"impact", "GitHub sync tokens will not persist across restarts without a persistent encryption salt")
+	}
+
 	// Connect to database
 	db, err := database.New(database.Config{
 		Path:            cfg.Database.Path,
@@ -139,7 +145,7 @@ func runServer() {
 	snippetRepo := repository.NewSnippetRepository(db.DB)
 	fileRepo := repository.NewSnippetFileRepository(db.DB)
 
-	encryptionKey := services.DeriveEncryptionKey(cfg.Auth.SessionSecret)
+	encryptionKey := services.DeriveEncryptionKey(cfg.Auth.EncryptionSalt)
 	if encryptionSvc, err := services.NewEncryptionService(encryptionKey); err == nil {
 		gistSyncWorker = services.NewGistSyncWorker(gistSyncRepo, snippetRepo, fileRepo, encryptionSvc, logger)
 		if err := gistSyncWorker.Start(ctx); err != nil {

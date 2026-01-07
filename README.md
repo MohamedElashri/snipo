@@ -24,6 +24,7 @@ A lightweight, self-hosted snippet manager designed for single-user deployments.
 cat > .env << EOF
 SNIPO_MASTER_PASSWORD=your-secure-password
 SNIPO_SESSION_SECRET=$(openssl rand -hex 32)
+SNIPO_ENCRYPTION_SALT=$(openssl rand -base64 32)
 EOF
 
 # Run with Docker Compose
@@ -38,6 +39,7 @@ docker run -d \
   -v snipo-data:/data \
   -e SNIPO_MASTER_PASSWORD=your-secure-password \
   -e SNIPO_SESSION_SECRET=$(openssl rand -hex 32) \
+  -e SNIPO_ENCRYPTION_SALT=$(openssl rand -base64 32) \
   --name snipo \
   ghcr.io/mohamedelashri/snipo:latest
 ```
@@ -54,6 +56,7 @@ tar xzf snipo_linux_amd64.tar.gz
 # Configure and run
 export SNIPO_MASTER_PASSWORD="your-secure-password"
 export SNIPO_SESSION_SECRET=$(openssl rand -hex 32)
+export SNIPO_ENCRYPTION_SALT=$(openssl rand -base64 32)
 ./snipo serve
 ```
 
@@ -67,6 +70,7 @@ export SNIPO_SESSION_SECRET=$(openssl rand -hex 32)
 | `SNIPO_MASTER_PASSWORD_HASH` | Yes* | - | Pre-hashed password (Argon2id) - **recommended** |
 | `SNIPO_DISABLE_AUTH` | No | `false` | Disable authentication entirely |
 | `SNIPO_SESSION_SECRET` | Yes | - | Session signing key (32+ chars) |
+| `SNIPO_ENCRYPTION_SALT` | Recommended | Auto-generated | Encryption key for backups & GitHub tokens |
 | `SNIPO_PORT` | No | `8080` | Server port |
 | `SNIPO_DB_PATH` | No | `/data/snipo.db` | SQLite database path |
 | `SNIPO_BASE_PATH` | No | - | Base path for reverse proxy (e.g., `/snipo`) |

@@ -133,8 +133,8 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	backupHandler := handlers.NewBackupHandler(backupService, s3SyncService)
 	settingsHandler := handlers.NewSettingsHandler(settingsRepo)
 
-	// Create encryption service for gist sync (using session secret as key)
-	encryptionKey := services.DeriveEncryptionKey(cfg.Config.Auth.SessionSecret)
+	// Create encryption service for gist sync (using encryption salt as key for persistence)
+	encryptionKey := services.DeriveEncryptionKey(cfg.Config.Auth.EncryptionSalt)
 	encryptionSvc, err := services.NewEncryptionService(encryptionKey)
 	if err != nil {
 		cfg.Logger.Warn("failed to initialize encryption service", "error", err)
