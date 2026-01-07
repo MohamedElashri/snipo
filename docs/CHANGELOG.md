@@ -18,17 +18,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Fixed
 
-- Fix pagination not showing up in some cases
-- Fix API response formatting for consistent JSON field naming
-- Fix sorting by title (A-Z) and title (Z-A) being the same.
+- Fix GitHub sync tokens not persisting across restarts
 
 #### Removed
 
 - NA
-- 
+  
 #### Security
 
 - NA
+
+#### Important Notes
+
+- **GitHub Gist Sync**: To use the GitHub Gist sync feature, you must set the `SNIPO_ENCRYPTION_SALT` environment variable. Without this, GitHub tokens will not persist across application restarts and you'll need to reconnect after each restart. Generate a salt with: `openssl rand -base64 32`. This is not a breaking change for existing users, but is required for the GitHub sync feature to work properly.
 
 
 ### Snippy TUI
