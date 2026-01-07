@@ -26,6 +26,7 @@ import { backupMixin } from './snippets/backup-mixin.js';
 import { historyMixin } from './snippets/history-mixin.js';
 import { draftMixin } from './snippets/draft-mixin.js';
 import { settingsMixin } from './snippets/settings-mixin.js';
+import { gistSyncMixin } from './snippets/gist-sync-mixin.js';
 
 export function initSnippetsApp(Alpine) {
   Alpine.data('snippetsApp', () => ({
@@ -288,7 +289,8 @@ export function initSnippetsApp(Alpine) {
       }
       // Redirect to login page to ensure clean state
       // This works with auth proxies and handles the case when login is disabled
-      window.location.href = '/login';
+      const basePath = window.SNIPO_CONFIG?.basePath || '';
+      window.location.href = basePath + '/login';
     },
 
     // URL routing
@@ -449,6 +451,7 @@ export function initSnippetsApp(Alpine) {
     ...backupMixin,
     ...historyMixin,
     ...draftMixin,
-    ...settingsMixin
+    ...settingsMixin,
+    ...gistSyncMixin
   }));
 }

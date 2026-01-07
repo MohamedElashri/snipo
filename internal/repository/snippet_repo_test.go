@@ -69,6 +69,7 @@ func TestSnippetRepository_GetByID(t *testing.T) {
 
 	if snippet == nil {
 		t.Fatal("expected snippet, got nil")
+		return
 	}
 	if snippet.ID != created.ID {
 		t.Errorf("expected ID %q, got %q", created.ID, snippet.ID)

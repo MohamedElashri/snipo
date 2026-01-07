@@ -10,27 +10,20 @@ export function initLoginForm(Alpine) {
       this.error = '';
 
       try {
-        const response = await fetch('/api/v1/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ password: this.password })
-        });
-
-        const json = await response.json();
+        const result = await window.api.post('/api/v1/auth/login', { password: this.password });
 
         // Handle error response format: { error: { code, message } }
-        if (json.error) {
-          this.error = json.error.message || 'Invalid password';
+        if (result && result.error) {
+          this.error = result.error.message || 'Invalid password';
           return;
         }
 
-        // Handle success response format: { data: { success, message }, meta }
-        const result = json.data || json;
-        if (result.success) {
-          window.location.href = '/';
+        // Handle success response
+        if (result && result.success) {
+          const basePath = window.SNIPO_CONFIG?.basePath || '';
+          window.location.href = basePath + '/';
         } else {
-          this.error = result.message || 'Invalid password';
+          this.error = result?.message || 'Invalid password';
         }
       } catch (err) {
         this.error = 'Connection error';

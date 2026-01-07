@@ -19,6 +19,7 @@ type TokenHandler struct {
 	repo         *repository.TokenRepository
 	settingsRepo *repository.SettingsRepository
 	authService  *auth.Service
+	demoMode     bool
 }
 
 // NewTokenHandler creates a new token handler
@@ -27,7 +28,14 @@ func NewTokenHandler(repo *repository.TokenRepository, settingsRepo *repository.
 		repo:         repo,
 		settingsRepo: settingsRepo,
 		authService:  authService,
+		demoMode:     false,
 	}
+}
+
+// WithDemoMode sets the demo mode flag
+func (h *TokenHandler) WithDemoMode(enabled bool) *TokenHandler {
+	h.demoMode = enabled
+	return h
 }
 
 // List handles GET /api/v1/tokens
@@ -43,6 +51,12 @@ func (h *TokenHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // Create handles POST /api/v1/tokens
 func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
+	// Block API token creation in demo mode
+	if h.demoMode {
+		Error(w, r, http.StatusForbidden, "DEMO_MODE_RESTRICTION", "API token creation is disabled in demo mode")
+		return
+	}
+
 	var input models.APITokenInput
 	if err := DecodeJSON(r, &input); err != nil {
 		// Provide more detailed error message for debugging

@@ -33,11 +33,28 @@ services:
       - SNIPO_MASTER_PASSWORD=${SNIPO_MASTER_PASSWORD:-<Put_your_master_password_here>}
       # Required: Set a random session secret (generate with: openssl rand -hex 32)
       - SNIPO_SESSION_SECRET=${SNIPO_SESSION_SECRET:-<generate_with_openssl_rand_hex_32>}
+      # Recommended: Encryption salt for backups and GitHub token storage (generate with: openssl rand -base64 32)
+      # IMPORTANT: Required for GitHub Gist sync feature to persist across restarts
+      # - SNIPO_ENCRYPTION_SALT=${SNIPO_ENCRYPTION_SALT:-<generate_with_openssl_rand_base64_32>}
+      # Optional: Session duration
+      # - SNIPO_SESSION_DURATION=168h
       # Optional: Server configuration
       - SNIPO_HOST=0.0.0.0
       - SNIPO_PORT=8080
+      # - SNIPO_TRUST_PROXY=false
+      # - SNIPO_BASE_PATH=/snipo  # For reverse proxy subpath deployment
+      # - SNIPO_MAX_FILES_PER_SNIPPET=10
       - SNIPO_LOG_LEVEL=info
       - SNIPO_LOG_FORMAT=json
+      # Optional: Database configuration
+      # - SNIPO_DB_PATH=/data/snipo.db
+      # - SNIPO_DB_MAX_CONNS=1
+      # - SNIPO_DB_BUSY_TIMEOUT=5000
+      # - SNIPO_DB_JOURNAL=WAL
+      # - SNIPO_DB_SYNC=NORMAL
+      # Optional: Authentication rate limiting
+      # - SNIPO_RATE_LIMIT=100
+      # - SNIPO_RATE_WINDOW=1m
       # Optional: API rate limiting (requests per hour)
       - SNIPO_RATE_LIMIT_READ=1000
       - SNIPO_RATE_LIMIT_WRITE=500

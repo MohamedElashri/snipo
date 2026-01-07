@@ -8,7 +8,7 @@
 
     <!-- Empty state -->
     <div class="empty-state" x-show="!loading && snippets.length === 0">
-        <img src="/static/logo.png" alt="Snipo" width="48" height="48" style="opacity: 0.5;">
+        <img src="{{.BasePath}}/static/logo.png" alt="Snipo" width="48" height="48" style="opacity: 0.5;">
         <h3>No snippets yet</h3>
         <p>Create your first snippet to get started</p>
         <button class="btn-primary mt-4" @click="newSnippet()">

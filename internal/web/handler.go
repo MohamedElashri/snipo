@@ -23,6 +23,8 @@ type Handler struct {
 	templates    *template.Template
 	authService  *auth.Service
 	settingsRepo *repository.SettingsRepository
+	demoMode     bool
+	basePath     string
 }
 
 // NewHandler creates a new web handler
@@ -37,25 +39,42 @@ func NewHandler(authService *auth.Service, settingsRepo *repository.SettingsRepo
 		templates:    tmpl,
 		authService:  authService,
 		settingsRepo: settingsRepo,
+		demoMode:     false,
+		basePath:     "",
 	}, nil
 }
 
+// WithDemoMode sets the demo mode flag
+func (h *Handler) WithDemoMode(enabled bool) *Handler {
+	h.demoMode = enabled
+	return h
+}
+
+// WithBasePath sets the base path for reverse proxy
+func (h *Handler) WithBasePath(basePath string) *Handler {
+	h.basePath = basePath
+	return h
+}
+
 // StaticHandler returns a handler for static files
-func StaticHandler() http.Handler {
+func StaticHandler(basePath string) http.Handler {
 	staticContent, _ := fs.Sub(staticFS, "static")
-	return http.StripPrefix("/static/", http.FileServer(http.FS(staticContent)))
+	prefix := basePath + "/static/"
+	return http.StripPrefix(prefix, http.FileServer(http.FS(staticContent)))
 }
 
 // PageData holds data passed to templates
 type PageData struct {
-	Title string
+	Title    string
+	DemoMode bool
+	BasePath string
 }
 
 // Index serves the main application page
 func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	// Skip authentication check if auth is completely disabled
 	if h.authService.IsAuthDisabled() {
-		data := PageData{Title: "Snippets"}
+		data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath}
 		h.render(w, "layout.html", "index.html", data)
 		return
 	}
@@ -65,7 +84,7 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	settings, err := h.settingsRepo.Get(ctx)
 	if err == nil && settings.DisableLogin {
 		// Login is disabled via settings - allow access without session
-		data := PageData{Title: "Snippets"}
+		data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath}
 		h.render(w, "layout.html", "index.html", data)
 		return
 	}
@@ -73,11 +92,11 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	// Normal authentication flow: require session
 	token := auth.GetSessionFromRequest(r)
 	if token == "" || !h.authService.ValidateSession(token) {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(w, r, h.basePath+"/login", http.StatusSeeOther)
 		return
 	}
 
-	data := PageData{Title: "Snippets"}
+	data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath}
 	h.render(w, "layout.html", "index.html", data)
 }
 
@@ -85,7 +104,7 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	// If auth is completely disabled, redirect to home
 	if h.authService.IsAuthDisabled() {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, h.basePath+"/", http.StatusSeeOther)
 		return
 	}
 
@@ -94,24 +113,24 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	settings, err := h.settingsRepo.Get(ctx)
 	if err == nil && settings.DisableLogin {
 		// Login is disabled via settings - redirect to home
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, h.basePath+"/", http.StatusSeeOther)
 		return
 	}
 
 	// If already authenticated, redirect to home
 	token := auth.GetSessionFromRequest(r)
 	if token != "" && h.authService.ValidateSession(token) {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, h.basePath+"/", http.StatusSeeOther)
 		return
 	}
 
-	data := PageData{Title: "Login"}
+	data := PageData{Title: "Login", DemoMode: h.demoMode, BasePath: h.basePath}
 	h.render(w, "layout.html", "login.html", data)
 }
 
 // PublicSnippet serves the public snippet view page (no auth required)
 func (h *Handler) PublicSnippet(w http.ResponseWriter, r *http.Request) {
-	data := PageData{Title: "Shared Snippet"}
+	data := PageData{Title: "Shared Snippet", DemoMode: h.demoMode, BasePath: h.basePath}
 	h.render(w, "layout.html", "public.html", data)
 }
 
