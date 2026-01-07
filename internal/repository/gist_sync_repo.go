@@ -237,7 +237,9 @@ func (r *GistSyncRepository) ListMappings(ctx context.Context) ([]*models.Snippe
 	if err != nil {
 		return nil, fmt.Errorf("failed to list mappings: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var mappings []*models.SnippetGistMapping
 	for rows.Next() {
@@ -392,7 +394,9 @@ func (r *GistSyncRepository) ListConflicts(ctx context.Context, resolvedOnly boo
 	if err != nil {
 		return nil, fmt.Errorf("failed to list conflicts: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var conflicts []*models.GistSyncConflict
 	for rows.Next() {
@@ -481,7 +485,9 @@ func (r *GistSyncRepository) ListLogs(ctx context.Context, limit int) ([]*models
 	if err != nil {
 		return nil, fmt.Errorf("failed to list logs: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var logs []*models.GistSyncLog
 	for rows.Next() {
@@ -550,7 +556,9 @@ func (r *GistSyncRepository) GetEnabledMappings(ctx context.Context) ([]*models.
 	if err != nil {
 		return nil, fmt.Errorf("failed to get enabled mappings: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var mappings []*models.SnippetGistMapping
 	for rows.Next() {

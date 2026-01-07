@@ -77,7 +77,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 
 func TestGistSyncRepository_Config(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := NewGistSyncRepository(db)
 	ctx := context.Background()
@@ -120,7 +120,7 @@ func TestGistSyncRepository_Config(t *testing.T) {
 
 func TestGistSyncRepository_Mapping(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := NewGistSyncRepository(db)
 	ctx := context.Background()
@@ -186,7 +186,7 @@ func TestGistSyncRepository_Mapping(t *testing.T) {
 
 func TestGistSyncRepository_Conflict(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := NewGistSyncRepository(db)
 	ctx := context.Background()
@@ -231,7 +231,7 @@ func TestGistSyncRepository_Conflict(t *testing.T) {
 
 func TestGistSyncRepository_Log(t *testing.T) {
 	db := setupTestDB(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := NewGistSyncRepository(db)
 	ctx := context.Background()

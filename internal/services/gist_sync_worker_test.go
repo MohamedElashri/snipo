@@ -84,7 +84,7 @@ func setupTestWorker(t *testing.T) (*GistSyncWorker, *sql.DB) {
 
 func TestGistSyncWorker_StartStop(t *testing.T) {
 	worker, db := setupTestWorker(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 
@@ -113,7 +113,7 @@ func TestGistSyncWorker_StartStop(t *testing.T) {
 
 func TestGistSyncWorker_MultipleStarts(t *testing.T) {
 	worker, db := setupTestWorker(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 
@@ -132,7 +132,7 @@ func TestGistSyncWorker_MultipleStarts(t *testing.T) {
 
 func TestGistSyncWorker_StopWithoutStart(t *testing.T) {
 	worker, db := setupTestWorker(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	if err := worker.Stop(); err != nil {
 		t.Fatalf("stop without start should not error: %v", err)

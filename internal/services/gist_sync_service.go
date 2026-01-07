@@ -95,7 +95,7 @@ func (s *GistSyncService) SyncSnippetToGist(ctx context.Context, snippetID strin
 			errMsg := err.Error()
 			mapping.ErrorMessage = &errMsg
 			mapping.SyncStatus = models.SyncStatusError
-			s.syncRepo.UpdateMapping(ctx, mapping)
+			_ = s.syncRepo.UpdateMapping(ctx, mapping)
 			return fmt.Errorf("failed to update gist: %w", err)
 		}
 
@@ -290,7 +290,9 @@ func (s *GistSyncService) SyncAll(ctx context.Context) (*models.SyncResult, erro
 	}
 
 	result.Duration = time.Since(startTime).String()
-	s.syncRepo.UpdateLastFullSyncTime(ctx)
+	if err := s.syncRepo.UpdateLastFullSyncTime(ctx); err != nil {
+		return nil, fmt.Errorf("failed to update last full sync time: %w", err)
+	}
 
 	return result, nil
 }
@@ -412,7 +414,7 @@ func (s *GistSyncService) logSuccess(ctx context.Context, snippetID, gistID, ope
 		Status:    models.SyncOpStatusSuccess,
 		Message:   &message,
 	}
-	s.syncRepo.CreateLog(ctx, log)
+	_ = s.syncRepo.CreateLog(ctx, log)
 }
 
 // logError logs a failed sync operation
@@ -425,5 +427,5 @@ func (s *GistSyncService) logError(ctx context.Context, snippetID, gistID, opera
 		Status:    models.SyncOpStatusFailed,
 		Message:   &message,
 	}
-	s.syncRepo.CreateLog(ctx, log)
+	_ = s.syncRepo.CreateLog(ctx, log)
 }

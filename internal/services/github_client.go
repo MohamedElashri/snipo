@@ -53,7 +53,7 @@ func (c *GitHubClient) CreateGist(ctx context.Context, req *models.GistRequest) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusCreated {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -88,7 +88,7 @@ func (c *GitHubClient) UpdateGist(ctx context.Context, gistID string, req *model
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -118,7 +118,7 @@ func (c *GitHubClient) GetGist(ctx context.Context, gistID string) (*models.Gist
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -148,7 +148,7 @@ func (c *GitHubClient) DeleteGist(ctx context.Context, gistID string) error {
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusNoContent {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -173,7 +173,7 @@ func (c *GitHubClient) ListGists(ctx context.Context) ([]*models.GistResponse, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
@@ -203,7 +203,7 @@ func (c *GitHubClient) GetAuthenticatedUser(ctx context.Context) (string, error)
 	if err != nil {
 		return "", fmt.Errorf("failed to execute request (network error): %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
