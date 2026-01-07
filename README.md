@@ -24,6 +24,7 @@ A lightweight, self-hosted snippet manager designed for single-user deployments.
 cat > .env << EOF
 SNIPO_MASTER_PASSWORD=your-secure-password
 SNIPO_SESSION_SECRET=$(openssl rand -hex 32)
+SNIPO_ENCRYPTION_SALT=$(openssl rand -base64 32)
 EOF
 
 # Run with Docker Compose
@@ -38,6 +39,7 @@ docker run -d \
   -v snipo-data:/data \
   -e SNIPO_MASTER_PASSWORD=your-secure-password \
   -e SNIPO_SESSION_SECRET=$(openssl rand -hex 32) \
+  -e SNIPO_ENCRYPTION_SALT=$(openssl rand -base64 32) \
   --name snipo \
   ghcr.io/mohamedelashri/snipo:latest
 ```
@@ -54,6 +56,7 @@ tar xzf snipo_linux_amd64.tar.gz
 # Configure and run
 export SNIPO_MASTER_PASSWORD="your-secure-password"
 export SNIPO_SESSION_SECRET=$(openssl rand -hex 32)
+export SNIPO_ENCRYPTION_SALT=$(openssl rand -base64 32)
 ./snipo serve
 ```
 
@@ -67,6 +70,7 @@ export SNIPO_SESSION_SECRET=$(openssl rand -hex 32)
 | `SNIPO_MASTER_PASSWORD_HASH` | Yes* | - | Pre-hashed password (Argon2id) - **recommended** |
 | `SNIPO_DISABLE_AUTH` | No | `false` | Disable authentication entirely |
 | `SNIPO_SESSION_SECRET` | Yes | - | Session signing key (32+ chars) |
+| `SNIPO_ENCRYPTION_SALT` | Recommended | Auto-generated | Encryption key for backups & GitHub tokens |
 | `SNIPO_PORT` | No | `8080` | Server port |
 | `SNIPO_DB_PATH` | No | `/data/snipo.db` | SQLite database path |
 | `SNIPO_BASE_PATH` | No | - | Base path for reverse proxy (e.g., `/snipo`) |
@@ -331,6 +335,63 @@ curl -O https://localhost:8080/api/v1/snippets/public/abc123/files/README.md
 - Public snippets are accessible without authentication
 - View count is tracked automatically
 - Files are returned as plain text with proper Content-Disposition headers
+
+## GitHub Gist Sync
+
+Snipo supports two-way synchronization with GitHub Gists, allowing you to backup your snippets to GitHub and keep them in sync across platforms.
+
+### Setup
+
+1. **Generate GitHub Personal Access Token:**
+   - Go to [GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)](https://github.com/settings/tokens/new?scopes=gist&description=Snipo)
+   - Create a token with `gist` scope
+   - Copy the generated token
+
+2. **Configure in Snipo:**
+   - Go to Settings → GitHub Gist tab
+   - Paste your GitHub token
+   - Click "Save Configuration" (sync is automatically enabled)
+
+### Features
+
+**Sync Options:**
+- **Enable Sync for All**: Creates GitHub gists for all your snippets at once
+- **Sync Now**: Syncs changes for already-enabled snippets
+- **Auto-Sync**: Background sync at configurable intervals (5/15/30/60 minutes)
+
+**Conflict Resolution:**
+- **Manual**: Review and resolve conflicts manually
+- **Snipo Wins**: Always keep Snipo version
+- **Gist Wins**: Always keep GitHub version
+- **Newest Wins**: Keep the most recently modified version
+
+**Metadata Preservation:**
+- Snippet titles, descriptions, and content are synced
+- Snipo-specific metadata (favorites, folders, tags) embedded in gist description
+- Multi-file snippets fully supported
+
+### Usage
+
+**Enable sync for all snippets:**
+```
+Settings → GitHub Gist → Enable Sync for All
+```
+
+**View synced snippets:**
+- See list of synced snippets with status badges (✓ synced, ⟳ pending, ⚠ conflict, ✗ error)
+- Click gist links to view on GitHub
+- Remove mappings to stop syncing specific snippets
+
+**Manage conflicts:**
+- Conflicts appear when both Snipo and GitHub versions are modified
+- Choose "Keep Snipo" or "Keep Gist" to resolve
+- Or set automatic conflict resolution strategy in settings
+
+### Limitations
+
+- Requires GitHub Personal Access Token (no OAuth)
+- Sync is per-snippet, not automatic for new snippets
+- GitHub API rate limit: 5000 requests/hour
 
 ## Security
 

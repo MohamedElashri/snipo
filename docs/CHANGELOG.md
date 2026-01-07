@@ -5,7 +5,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.2] - TBD
+
+## [1.3.3] - 07/01/2026
+
+### Web App
+
+#### Added
+
+- Added demo mode to show a demo of the app with some snippets (Can be configured via `SNIPO_DEMO_MODE` environment variable)
+- Added GitHub Gists sync (Can be configured settings -> GitHub Gists)
+- Add support for deploying snipo to subpaths (Can be configured via `SNIPO_BASE_PATH` environment variable)
+
+#### Fixed
+
+- Fix GitHub sync tokens not persisting across restarts
+
+#### Removed
+
+- NA
+  
+#### Security
+
+- NA
+
+#### Important Notes
+
+- **GitHub Gist Sync**: To use the GitHub Gist sync feature, you must set the `SNIPO_ENCRYPTION_SALT` environment variable. Without this, GitHub tokens will not persist across application restarts and you'll need to reconnect after each restart. Generate a salt with: `openssl rand -base64 32`. This is not a breaking change for existing users, but is required for the GitHub sync feature to work properly.
+
+
+### Snippy TUI
+
+#### Added
+
+- NA
+- 
+#### Fixed
+
+- NA
+- 
+#### Removed
+
+- NA
+
+### Web Extension
+
+#### Added
+
+- Published Firefox extension (https://addons.mozilla.org/addon/snipo-code-snippet-manager/)
+
+#### Fixed
+
+- NA
+  
+#### Removed
+
+- NA
+---
+**
+
+## [1.3.2] - 03/01/2026
 
 ### Web App
 

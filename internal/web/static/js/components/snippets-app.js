@@ -26,6 +26,7 @@ import { backupMixin } from './snippets/backup-mixin.js';
 import { historyMixin } from './snippets/history-mixin.js';
 import { draftMixin } from './snippets/draft-mixin.js';
 import { settingsMixin } from './snippets/settings-mixin.js';
+import { gistSyncMixin } from './snippets/gist-sync-mixin.js';
 
 export function initSnippetsApp(Alpine) {
   Alpine.data('snippetsApp', () => ({
@@ -450,6 +451,7 @@ export function initSnippetsApp(Alpine) {
     ...backupMixin,
     ...historyMixin,
     ...draftMixin,
-    ...settingsMixin
+    ...settingsMixin,
+    ...gistSyncMixin
   }));
 }
