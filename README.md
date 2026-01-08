@@ -114,6 +114,11 @@ environment:
   - SNIPO_MASTER_PASSWORD_HASH=$argon2id$base64salt$base64hash
 ```
 
+> **Docker Compose Warning**: When using `SNIPO_MASTER_PASSWORD_HASH` in docker-compose.yml, the `$` characters in Argon2id hashes will be interpreted as variable substitution. Either:
+> - Use double dollar signs: `$$argon2id$$base64salt$$base64hash`
+> - Quote the value: `"SNIPO_MASTER_PASSWORD_HASH=$argon2id$base64salt$base64hash"`
+> - Use a `.env` file and reference it: `SNIPO_MASTER_PASSWORD_HASH=${SNIPO_MASTER_PASSWORD_HASH}`
+
 **Benefits of using hashed passwords:**
 - Password never appears in plain text in config files
 - Safer for version control (if you encrypt/secure the hash)

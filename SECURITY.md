@@ -65,6 +65,11 @@ SNIPO_RATE_WINDOW=1m
 SNIPO_TRUST_PROXY=false
 ```
 
+> **Docker Compose Warning**: When using `SNIPO_MASTER_PASSWORD_HASH` in docker-compose.yml, the `$` characters in Argon2id hashes will be interpreted as variable substitution. Either:
+> - Use double dollar signs: `$$argon2id$$base64salt$$base64hash`
+> - Quote the value: `"SNIPO_MASTER_PASSWORD_HASH=$argon2id$base64salt$base64hash"`
+> - Use a `.env` file and reference it: `SNIPO_MASTER_PASSWORD_HASH=${SNIPO_MASTER_PASSWORD_HASH}`
+
 **Password Security Best Practices:**
 
 1. **Use hashed passwords** - Generate with `./snipo hash-password` and set `SNIPO_MASTER_PASSWORD_HASH`
