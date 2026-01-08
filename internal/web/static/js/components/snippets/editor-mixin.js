@@ -237,7 +237,11 @@ export const editorMixin = {
 
   async copyToClipboard(snippet) {
     try {
-      let contentToCopy = snippet.content;
+      // Get content from either legacy content field or first file
+      let contentToCopy = snippet.content || '';
+      if (!contentToCopy && snippet.files && snippet.files.length > 0) {
+        contentToCopy = snippet.files[0].content || '';
+      }
       
       // Check if setting to exclude first line is enabled
       if (this.settings?.exclude_first_line_on_copy) {
