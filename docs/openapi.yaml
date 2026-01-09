@@ -361,105 +361,7 @@ paths:
                       code: "UNAUTHORIZED"
                       message: "Authentication required"
 
-  /api/v1/auth/change-password:
-    post:
-      tags: [Authentication]
-      summary: Change password
-      description: Update the application password
-      operationId: changePassword
-      security:
-        - sessionCookie: []
-        - bearerAuth: []
-        - apiKey: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ChangePasswordRequest'
-      responses:
-        '200':
-          description: Password changed successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-              examples:
-                success:
-                  summary: Password changed
-                  value:
-                    success: true
-                    message: "Password changed successfully"
-        '400':
-          description: Bad request - validation failed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                invalid_json:
-                  summary: Invalid JSON payload
-                  value:
-                    error:
-                      code: "INVALID_JSON"
-                      message: "Invalid JSON payload"
-                missing_fields:
-                  summary: Required fields missing
-                  value:
-                    error:
-                      code: "MISSING_FIELDS"
-                      message: "Current and new password are required"
-                password_too_short:
-                  summary: New password too short
-                  value:
-                    error:
-                      code: "PASSWORD_TOO_SHORT"
-                      message: "Password must be at least 12 characters"
-        '401':
-          description: Unauthorized - invalid current password
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                invalid_password:
-                  summary: Current password incorrect
-                  value:
-                    error:
-                      code: "INVALID_PASSWORD"
-                      message: "Current password is incorrect"
-        '403':
-          description: Forbidden - demo mode restriction
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                demo_mode:
-                  summary: Password changes disabled in demo mode
-                  value:
-                    error:
-                      code: "DEMO_MODE_RESTRICTION"
-                      message: "Password changes are disabled in demo mode"
-        '500':
-          description: Internal server error - password update failed
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                password_update_failed:
-                  summary: Failed to update password
-                  value:
-                    error:
-                      code: "INTERNAL_ERROR"
-                      message: "An internal server error occurred"
-
+  
   /api/v1/snippets:
     get:
       tags: [Snippets]
@@ -6018,16 +5920,7 @@ components:
         message:
           type: string
 
-    ChangePasswordRequest:
-      type: object
-      required: [current_password, new_password]
-      properties:
-        current_password:
-          type: string
-        new_password:
-          type: string
-          minLength: 6
-
+    
     Snippet:
       type: object
       properties:

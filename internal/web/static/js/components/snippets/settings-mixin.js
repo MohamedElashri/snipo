@@ -5,7 +5,7 @@ import { theme } from '../../modules/theme.js';
 
 export const settingsMixin = {
   showSettings: false,
-  settingsTab: 'password',
+  settingsTab: 'general',
   showFontSizeHelp: false,
   apiTokens: [],
   newToken: { name: '', permissions: 'read', expires_in_days: 30 },
@@ -13,17 +13,11 @@ export const settingsMixin = {
   tokenPasswordAction: null, // 'create' or 'delete'
   tokenPassword: '',
   pendingTokenData: null, // Stores data for create/delete action
-  passwordForm: { current: '', new: '', confirm: '' },
-  passwordError: '',
-  passwordSuccess: '',
   customCssChanged: false,
 
   async openSettings() {
     this.showSettings = true;
-    this.settingsTab = 'password';
-    this.passwordForm = { current: '', new: '', confirm: '' };
-    this.passwordError = '';
-    this.passwordSuccess = '';
+    this.settingsTab = 'general';
     this.createdToken = null;
     this.customCssChanged = false;
     await this.loadApiTokens();
@@ -32,9 +26,6 @@ export const settingsMixin = {
   openEditorSettings() {
     this.showSettings = true;
     this.settingsTab = 'editor';
-    this.passwordForm = { current: '', new: '', confirm: '' };
-    this.passwordError = '';
-    this.passwordSuccess = '';
     this.createdToken = null;
     this.customCssChanged = false;
   },
@@ -50,36 +41,6 @@ export const settingsMixin = {
     if (result) {
       // Handle both {data: [...]} and [...] formats
       this.apiTokens = result.data || result;
-    }
-  },
-
-  async changePassword() {
-    this.passwordError = '';
-    this.passwordSuccess = '';
-
-    if (this.passwordForm.new !== this.passwordForm.confirm) {
-      this.passwordError = 'New passwords do not match';
-      return;
-    }
-
-    if (this.passwordForm.new.length < 6) {
-      this.passwordError = 'Password must be at least 6 characters';
-      return;
-    }
-
-    const result = await api.post('/api/v1/auth/change-password', {
-      current_password: this.passwordForm.current,
-      new_password: this.passwordForm.new
-    });
-
-    if (result && !result.error) {
-      this.passwordSuccess = 'Password changed successfully. Logging out...';
-      this.passwordForm = { current: '', new: '', confirm: '' };
-      setTimeout(async () => {
-        await this.logout();
-      }, 1500);
-    } else {
-      this.passwordError = result?.error?.message || 'Failed to change password';
     }
   },
 

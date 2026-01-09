@@ -182,6 +182,29 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 	if filter.Limit <= 0 {
 		filter.Limit = 20
 	}
+
+	// Validate sort column to prevent SQL injection
+	validSortColumns := map[string]bool{
+		"id":          true,
+		"title":       true,
+		"description": true,
+		"content":     true,
+		"language":    true,
+		"is_favorite": true,
+		"is_public":   true,
+		"view_count":  true,
+		"created_at":  true,
+		"updated_at":  true,
+	}
+
+	if filter.SortBy == "" || !validSortColumns[filter.SortBy] {
+		filter.SortBy = "updated_at"
+	}
+
+	// Validate sort order
+	if filter.SortOrder != "asc" && filter.SortOrder != "desc" {
+		filter.SortOrder = "desc"
+	}
 	if filter.Page <= 0 {
 		filter.Page = 1
 	}
@@ -198,9 +221,9 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 		for _, word := range words {
 			fuzzyPattern := "%" + word + "%"
 			// Search in snippet metadata and files
-			searchConditions = append(searchConditions, 
+			searchConditions = append(searchConditions,
 				"(s.title LIKE ? OR s.description LIKE ? OR s.content LIKE ? OR "+
-				"s.id IN (SELECT snippet_id FROM snippet_files WHERE content LIKE ? OR filename LIKE ?))")
+					"s.id IN (SELECT snippet_id FROM snippet_files WHERE content LIKE ? OR filename LIKE ?))")
 			args = append(args, fuzzyPattern, fuzzyPattern, fuzzyPattern, fuzzyPattern, fuzzyPattern)
 		}
 		if len(searchConditions) > 0 {
@@ -281,22 +304,6 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 		return nil, fmt.Errorf("failed to count snippets: %w", err)
 	}
 
-	// Validate sort column
-	validSortColumns := map[string]bool{
-		"created_at": true,
-		"updated_at": true,
-		"title":      true,
-		"language":   true,
-	}
-	if !validSortColumns[filter.SortBy] {
-		filter.SortBy = "updated_at"
-	}
-
-	sortOrder := "DESC"
-	if strings.ToLower(filter.SortOrder) == "asc" {
-		sortOrder = "ASC"
-	}
-
 	// Calculate offset
 	offset := (filter.Page - 1) * filter.Limit
 
@@ -308,7 +315,7 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 		%s
 		ORDER BY s.%s %s
 		LIMIT ? OFFSET ?
-	`, whereClause, filter.SortBy, sortOrder)
+	`, whereClause, filter.SortBy, filter.SortOrder)
 
 	args = append(args, filter.Limit, offset)
 

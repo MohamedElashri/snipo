@@ -176,7 +176,6 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		r.Use(middleware.RequireAuthWithSettings(cfg.AuthService, tokenRepo, settingsRepo))
 
 		// Auth management (protected, requires any auth)
-		r.Post("/api/v1/auth/change-password", authHandler.ChangePassword)
 
 		// Settings management (admin only)
 		r.Route("/api/v1/settings", func(r chi.Router) {
