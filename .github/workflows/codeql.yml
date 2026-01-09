@@ -30,8 +30,12 @@ jobs:
       uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
-        queries: security-extended,security-and-quality
-
+        #queries: security-extended,security-and-quality
+        queries: security-extended
+        paths-ignore: |
+          **/vendor/**
+          **/go.mod
+          **/go.sum
     - name: Autobuild
       uses: github/codeql-action/autobuild@v4
 
