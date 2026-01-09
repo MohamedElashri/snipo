@@ -337,7 +337,13 @@ export function initSnippetsApp(Alpine) {
       }
 
       if (snippetId) {
-        const result = await api.get(`/api/v1/snippets/${snippetId}`);
+        // Sanitize snippetId: ensure it's a valid positive integer
+        const sanitizedId = parseInt(snippetId, 10);
+        if (!Number.isInteger(sanitizedId) || sanitizedId <= 0) {
+          console.error('Invalid snippet ID:', snippetId);
+          return;
+        }
+        const result = await api.get(`/api/v1/snippets/${sanitizedId}`);
         if (result && !result.error) {
           this.editingSnippet = {
             ...result,
