@@ -77,6 +77,92 @@ export SNIPO_ENCRYPTION_SALT=$(openssl rand -base64 32)
 
 *Either `SNIPO_MASTER_PASSWORD` or `SNIPO_MASTER_PASSWORD_HASH` is required (unless `SNIPO_DISABLE_AUTH=true`). Using the hash is recommended for security.
 
+### Database Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SNIPO_DB_PATH` | `/data/snipo.db` | SQLite database path |
+| `SNIPO_DB_MAX_CONNS` | `1` | Maximum database connections |
+| `SNIPO_DB_BUSY_TIMEOUT` | `5000` | Database busy timeout (ms) |
+| `SNIPO_DB_JOURNAL` | `WAL` | Journal mode (WAL/DELETE/MEMORY) |
+| `SNIPO_DB_SYNC` | `NORMAL` | Synchronous mode (OFF/NORMAL/FULL) |
+| `SNIPO_DB_MMAP_SIZE` | `268435456` | Memory-mapped I/O size (256MB) |
+| `SNIPO_DB_CACHE_SIZE` | `-2000` | Cache size in KB (2MB, negative = KB) |
+
+#### Database Memory Settings
+
+If you encounter "out of memory" database errors, reduce the memory settings:
+
+```bash
+# For systems with limited memory
+SNIPO_DB_MMAP_SIZE=67108864    # 64MB instead of 256MB
+SNIPO_DB_CACHE_SIZE=-1000      # 1MB instead of 2MB
+
+# For very constrained systems
+SNIPO_DB_MMAP_SIZE=33554432    # 32MB
+SNIPO_DB_CACHE_SIZE=-500       # 512KB
+
+# Disable memory-mapped I/O if issues persist
+SNIPO_DB_MMAP_SIZE=0           # Disable mmap
+```
+
+**Note:** The SQLite "out of memory (14)" error is misleading - it's about SQLite's internal memory allocation, not system RAM. Reducing these values typically resolves the issue.
+
+#### Database Permission Issues
+
+The "out of memory (14)" error can also be caused by filesystem permission problems:
+
+**Common Causes:**
+- Docker volume mount with insufficient permissions
+- Read-only filesystem preventing database creation
+- User/UID mismatch between host and container
+
+**Solutions:**
+
+**1. Fix Docker Volume Permissions:**
+```bash
+# Ensure the data directory has proper permissions
+sudo chown -R 1000:1000 /path/to/your/data
+sudo chmod -R 755 /path/to/your/data
+
+# Or use a bind mount with proper ownership
+mkdir -p ./snipo-data
+chmod 755 ./snipo-data
+```
+
+**2. Docker Compose Configuration:**
+```yaml
+services:
+  snipo:
+    volumes:
+      - ./snipo-data:/data  # Ensure host directory is writable
+    # Remove user mapping if causing permission issues
+    # user: "1000:1000"
+```
+
+**3. Check Volume Mount:**
+```bash
+# Verify the container can write to the data directory
+docker run --rm -v ./snipo-data:/data alpine touch /data/test
+```
+
+**4. Use Named Volumes (Recommended):**
+```yaml
+services:
+  snipo:
+    volumes:
+      - snipo_data:/data  # Docker manages permissions
+
+volumes:
+  snipo_data:
+```
+
+**Troubleshooting Steps:**
+1. Check container logs for permission errors
+2. Verify the data directory exists and is writable
+3. Test with a simple file write operation
+4. Consider using Docker named volumes instead of bind mounts
+
 ### API Configuration
 
 | Variable | Default | Description |

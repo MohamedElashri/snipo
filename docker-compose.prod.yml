@@ -8,6 +8,12 @@
 # 3. Enable network isolation (uncomment networks section below)
 # 4. Use a reverse proxy with HTTPS (nginx, traefik, caddy)
 # 5. Regularly update the image and rotate passwords
+#
+# DATABASE MEMORY CONFIGURATION:
+# For production environments with limited resources, consider reducing database memory usage:
+# Add these environment variables to prevent "out of memory" errors:
+#   - SNIPO_DB_MMAP_SIZE=67108864    # 64MB instead of 256MB
+#   - SNIPO_DB_CACHE_SIZE=-1000      # 1MB instead of 2MB
 
 services:
   snipo:
