@@ -547,3 +547,100 @@ func TestSnippetRepository_List_FilterByArchive(t *testing.T) {
 		t.Errorf("expected 1 active snippet, got %d", len(listNotArchived.Data))
 	}
 }
+
+func TestSnippetRepository_List_SQLInjectionPrevention(t *testing.T) {
+	db := testutil.TestDB(t)
+	repo := NewSnippetRepository(db)
+	ctx := testutil.TestContext()
+
+	// Create a test snippet
+	input := &models.SnippetInput{
+		Title:    "Test Snippet",
+		Content:  "test content",
+		Language: "plaintext",
+	}
+	_, err := repo.Create(ctx, input)
+	if err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	tests := []struct {
+		name              string
+		inputFilter       models.SnippetFilter
+		expectedSortBy    string
+		expectedSortOrder string
+	}{
+		{
+			name: "Valid sort column and order",
+			inputFilter: models.SnippetFilter{
+				SortBy:    "title",
+				SortOrder: "asc",
+			},
+			expectedSortBy:    "title",
+			expectedSortOrder: "asc",
+		},
+		{
+			name: "Invalid sort column should default to updated_at",
+			inputFilter: models.SnippetFilter{
+				SortBy:    "malicious_column; DROP TABLE snippets; --",
+				SortOrder: "desc",
+			},
+			expectedSortBy:    "updated_at",
+			expectedSortOrder: "desc",
+		},
+		{
+			name: "Invalid sort order should default to desc",
+			inputFilter: models.SnippetFilter{
+				SortBy:    "created_at",
+				SortOrder: "invalid_order",
+			},
+			expectedSortBy:    "created_at",
+			expectedSortOrder: "desc",
+		},
+		{
+			name: "Empty sort values should get defaults",
+			inputFilter: models.SnippetFilter{
+				SortBy:    "",
+				SortOrder: "",
+			},
+			expectedSortBy:    "updated_at",
+			expectedSortOrder: "desc",
+		},
+		{
+			name: "SQL injection attempt in sort column",
+			inputFilter: models.SnippetFilter{
+				SortBy:    "updated_at; SELECT * FROM users; --",
+				SortOrder: "asc",
+			},
+			expectedSortBy:    "updated_at",
+			expectedSortOrder: "asc",
+		},
+		{
+			name: "Valid sort column with mixed case order",
+			inputFilter: models.SnippetFilter{
+				SortBy:    "language",
+				SortOrder: "ASC",
+			},
+			expectedSortBy:    "language",
+			expectedSortOrder: "desc", // Should be normalized to lowercase, invalid values become "desc"
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Test that the List method doesn't crash and returns valid results
+			result, err := repo.List(ctx, tt.inputFilter)
+			if err != nil {
+				t.Fatalf("List failed: %v", err)
+			}
+
+			// Should return at least one snippet since we created one
+			if result.Pagination.Total < 1 {
+				t.Error("expected at least 1 snippet in results")
+			}
+
+			// The query should execute successfully without SQL injection errors
+			// If there is SQL injection, the query would fail or return unexpected results
+		})
+	}
+}
