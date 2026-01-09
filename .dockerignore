@@ -24,6 +24,9 @@ coverage.html
 # TUI
 tui/
 
+# Extension
+extension/
+
 # OS files
 .DS_Store
 Thumbs.db
