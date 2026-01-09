@@ -24,6 +24,8 @@ type Config struct {
 	BusyTimeout     int
 	JournalMode     string
 	SynchronousMode string
+	MMapSize        int64 // Memory-mapped I/O size in bytes
+	CacheSize       int   // Cache size in pages (negative = KB)
 }
 
 // New creates a new database connection
@@ -60,9 +62,9 @@ func New(cfg Config, logger *slog.Logger) (*DB, error) {
 
 	// Apply additional pragmas
 	pragmas := []string{
-		"PRAGMA cache_size = -2000",    // 2MB cache
-		"PRAGMA temp_store = MEMORY",   // Temp tables in memory
-		"PRAGMA mmap_size = 268435456", // 256MB memory-mapped I/O
+		fmt.Sprintf("PRAGMA cache_size = %d", cfg.CacheSize), // Configurable cache size
+		"PRAGMA temp_store = MEMORY",                         // Temp tables in memory
+		fmt.Sprintf("PRAGMA mmap_size = %d", cfg.MMapSize),   // Configurable memory-mapped I/O
 	}
 
 	for _, pragma := range pragmas {
@@ -117,7 +119,7 @@ func (db *DB) Migrate(ctx context.Context) error {
 				db.logger.Warn("column is_archived already exists, modifying migration 3 to skip it")
 				// Reconstruct migration to only run what might be missing
 				m.SQL = ""
-				
+
 				// Check index (safe to retry with IF NOT EXISTS, so adding it)
 				m.SQL += "CREATE INDEX IF NOT EXISTS idx_snippets_archived ON snippets(is_archived);\n"
 
