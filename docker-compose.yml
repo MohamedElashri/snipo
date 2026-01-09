@@ -52,6 +52,13 @@ services:
       # - SNIPO_DB_BUSY_TIMEOUT=5000
       # - SNIPO_DB_JOURNAL=WAL
       # - SNIPO_DB_SYNC=NORMAL
+      # Optional: Database memory settings (adjust based on system resources)
+      # Reduce these values if experiencing "out of memory" database errors
+      # - SNIPO_DB_MMAP_SIZE=268435456    # 256MB memory-mapped I/O
+      # - SNIPO_DB_CACHE_SIZE=-2000        # 2MB cache (negative value = KB)
+      # For systems with memory constraints, try:
+      # - SNIPO_DB_MMAP_SIZE=67108864     # 64MB
+      # - SNIPO_DB_CACHE_SIZE=-1000       # 1MB
       # Optional: Authentication rate limiting
       # - SNIPO_RATE_LIMIT=100
       # - SNIPO_RATE_WINDOW=1m
