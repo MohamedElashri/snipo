@@ -1,0 +1,7 @@
+# CodeQL configuration file
+# Exclude paths from analysis
+
+paths:
+  - '**/vendor/**'
+  - 'go.mod'
+  - 'go.sum'
