@@ -40,6 +40,8 @@ type DatabaseConfig struct {
 	BusyTimeout     int
 	JournalMode     string
 	SynchronousMode string
+	MMapSize        int64 // Memory-mapped I/O size in bytes
+	CacheSize       int   // Cache size in pages (negative = KB)
 }
 
 // AuthConfig holds authentication settings
@@ -114,6 +116,8 @@ func Load() (*Config, error) {
 	cfg.Database.BusyTimeout = getEnvInt("SNIPO_DB_BUSY_TIMEOUT", 5000)
 	cfg.Database.JournalMode = getEnv("SNIPO_DB_JOURNAL", "WAL")
 	cfg.Database.SynchronousMode = getEnv("SNIPO_DB_SYNC", "NORMAL")
+	cfg.Database.MMapSize = getEnvInt64("SNIPO_DB_MMAP_SIZE", 268435456) // 256MB default
+	cfg.Database.CacheSize = getEnvInt("SNIPO_DB_CACHE_SIZE", -2000)     // 2MB default (negative = KB)
 
 	// Demo Mode (check early to override auth requirements)
 	cfg.Demo.Enabled = getEnvBool("SNIPO_DEMO_MODE", false)
@@ -224,6 +228,15 @@ func (c *ServerConfig) Addr() string {
 func getEnv(key, defaultVal string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
+	}
+	return defaultVal
+}
+
+func getEnvInt64(key string, defaultVal int64) int64 {
+	if val := os.Getenv(key); val != "" {
+		if i, err := strconv.ParseInt(val, 10, 64); err == nil {
+			return i
+		}
 	}
 	return defaultVal
 }

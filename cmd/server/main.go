@@ -95,6 +95,8 @@ func runServer() {
 		BusyTimeout:     cfg.Database.BusyTimeout,
 		JournalMode:     cfg.Database.JournalMode,
 		SynchronousMode: cfg.Database.SynchronousMode,
+		MMapSize:        cfg.Database.MMapSize,
+		CacheSize:       cfg.Database.CacheSize,
 	}, logger)
 	if err != nil {
 		logger.Error("failed to connect to database", "error", err)
@@ -248,6 +250,8 @@ func runMigrations() {
 		BusyTimeout:     cfg.Database.BusyTimeout,
 		JournalMode:     cfg.Database.JournalMode,
 		SynchronousMode: cfg.Database.SynchronousMode,
+		MMapSize:        cfg.Database.MMapSize,
+		CacheSize:       cfg.Database.CacheSize,
 	}, logger)
 	if err != nil {
 		logger.Error("failed to connect to database", "error", err)
