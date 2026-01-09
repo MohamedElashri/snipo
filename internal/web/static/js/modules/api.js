@@ -4,7 +4,34 @@ export const api = {
     return window.SNIPO_CONFIG?.basePath || '';
   },
 
+  validateUrl(url) {
+    // Only allow relative URLs starting with /
+    if (!url.startsWith('/')) {
+      throw new Error('Only relative URLs are allowed');
+    }
+
+    // Prevent path traversal attacks
+    if (url.includes('..')) {
+      throw new Error('Path traversal is not allowed');
+    }
+
+    // Ensure URL stays within API namespace
+    if (!url.startsWith('/api/')) {
+      throw new Error('Only API endpoints are allowed');
+    }
+
+    // Additional validation: no protocol, hostname, or @ symbols
+    if (url.includes('://') || url.includes('@')) {
+      throw new Error('Invalid URL format');
+    }
+
+    return true;
+  },
+
   async request(method, url, data = null) {
+    // Validate URL before processing
+    this.validateUrl(url);
+
     // Prepend base path to URL if it's a relative path
     const basePath = this.getBasePath();
     const fullUrl = url.startsWith('/') ? basePath + url : url;
