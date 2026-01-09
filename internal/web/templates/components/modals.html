@@ -66,15 +66,7 @@
                 </svg>
                 Editor
             </button>
-            <button class="settings-tab" :class="{ active: settingsTab === 'password' }"
-                @click="settingsTab = 'password'">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                Password
-            </button>
-            <button class="settings-tab" :class="{ active: settingsTab === 'apikeys' }"
+                        <button class="settings-tab" :class="{ active: settingsTab === 'apikeys' }"
                 @click="settingsTab = 'apikeys'">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                     <path
@@ -229,33 +221,7 @@
                 </div>
             </div>
 
-            <!-- Password tab -->
-            <div x-show="settingsTab === 'password'">
-                <form @submit.prevent="changePassword()">
-                    <div class="editor-field">
-                        <label>Current Password</label>
-                        <input type="password" x-model="passwordForm.current" required>
-                    </div>
-                    <div class="editor-field">
-                        <label>New Password</label>
-                        <input type="password" x-model="passwordForm.new" required minlength="6">
-                    </div>
-                    <div class="editor-field">
-                        <label>Confirm New Password</label>
-                        <input type="password" x-model="passwordForm.confirm" required>
-                    </div>
-
-                    <p x-show="passwordError" class="text-sm" style="color: var(--snipo-danger);"
-                        x-text="passwordError"></p>
-                    <p x-show="passwordSuccess" class="text-sm" style="color: var(--snipo-success);"
-                        x-text="passwordSuccess"></p>
-
-                    <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">
-                        Change Password
-                    </button>
-                </form>
-            </div>
-
+            
             <!-- API Keys tab -->
             <div x-show="settingsTab === 'apikeys'">
                 <!-- Create new token -->
