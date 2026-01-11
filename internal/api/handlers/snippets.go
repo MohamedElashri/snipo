@@ -91,11 +91,27 @@ func (h *SnippetHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if sortBy := r.URL.Query().Get("sort"); sortBy != "" {
-		filter.SortBy = sortBy
+		validSortColumns := map[string]bool{
+			"id":          true,
+			"title":       true,
+			"description": true,
+			"content":     true,
+			"language":    true,
+			"is_favorite": true,
+			"is_public":   true,
+			"view_count":  true,
+			"created_at":  true,
+			"updated_at":  true,
+		}
+		if validSortColumns[sortBy] {
+			filter.SortBy = sortBy
+		}
 	}
 
 	if order := r.URL.Query().Get("order"); order != "" {
-		filter.SortOrder = order
+		if order == "asc" || order == "desc" {
+			filter.SortOrder = order
+		}
 	}
 
 	result, err := h.service.List(r.Context(), filter)
@@ -378,7 +394,7 @@ func (h *SnippetHandler) GetPublicFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Content-Disposition", "inline; filename=\""+filename+"\"")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	
+
 	// Write the file content
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write([]byte(targetFile.Content)); err != nil {
