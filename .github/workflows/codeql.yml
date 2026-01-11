@@ -3,18 +3,11 @@ name: "CodeQL Analysis"
 on:
   push:
     branches: [dev, main]
-    paths-ignore:
-      - '**/vendor/**'
-      - 'go.mod'
-      - 'go.sum'
   pull_request:
     branches: [dev, main]
-    paths-ignore:
-      - '**/vendor/**'
-      - 'go.mod'
-      - 'go.sum'
   schedule:
     - cron: '20 14 * * 1'
+  workflow_dispatch:
 
 jobs:
   analyze:
