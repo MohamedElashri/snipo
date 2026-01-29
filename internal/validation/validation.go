@@ -46,8 +46,8 @@ var allowedLanguages = map[string]bool{
 	"clojure": true, "graphql": true, "protobuf": true, "terraform": true,
 }
 
-// tagRegex validates tag names
-var tagRegex = regexp.MustCompile(`^[a-zA-Z0-9_ -]+$`)
+// tagRegex validates tag names - allows alphanumeric, spaces, hyphens, underscores, dots, and hash symbols
+var tagRegex = regexp.MustCompile(`^[a-zA-Z0-9_ .\-#+]+$`)
 
 // ValidateSnippetInput validates snippet input
 func ValidateSnippetInput(input *models.SnippetInput) ValidationErrors {
@@ -229,7 +229,7 @@ func ValidateTagInput(name string) ValidationErrors {
 	} else if len(name) > 50 {
 		errs = append(errs, ValidationError{Field: "name", Message: "Tag name must be less than 50 characters"})
 	} else if !tagRegex.MatchString(name) {
-		errs = append(errs, ValidationError{Field: "name", Message: "Tag can only contain letters, numbers, underscores, and hyphens"})
+		errs = append(errs, ValidationError{Field: "name", Message: "Tag can only contain letters, numbers, spaces, underscores, hyphens, dots, and hash symbols"})
 	}
 
 	return errs

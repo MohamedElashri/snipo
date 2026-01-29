@@ -600,11 +600,15 @@ func TestValidateTagInput(t *testing.T) {
 		{"valid tag", "test-tag", false},
 		{"valid with underscore", "test_tag", false},
 		{"valid alphanumeric", "test123", false},
+		{"valid with hash", "C#", false},
+		{"valid with hash and plus", "C#+", false},
+		{"valid with dots", "test.tag", false},
+		{"valid with mixed", "C#.NET-Core", false},
 		{"empty tag", "", true},
 		{"too long", strings.Repeat("a", 51), true},
 		{"with spaces", "test tag", false},
-		{"with special chars", "test@tag", true},
-		{"with dots", "test.tag", true},
+		{"with special chars @", "test@tag", true},
+		{"with special chars $", "test$tag", true},
 	}
 
 	for _, tt := range tests {

@@ -91,7 +91,7 @@ func (r *TagRepository) List(ctx context.Context) ([]models.Tag, error) {
 		        INNER JOIN snippets s ON s.id = st.snippet_id 
 		        WHERE st.tag_id = t.id AND s.is_archived = 0) as snippet_count
 		FROM tags t
-		ORDER BY t.name ASC
+		ORDER BY snippet_count DESC, t.name ASC
 	`
 
 	rows, err := r.db.QueryContext(ctx, query)
