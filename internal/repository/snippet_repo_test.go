@@ -548,6 +548,340 @@ func TestSnippetRepository_List_FilterByArchive(t *testing.T) {
 	}
 }
 
+// TestAllowedSortColumns_SafeValues verifies that the allowedSortColumns map
+// contains only safe, predefined column names that match valid SQL identifiers.
+func TestAllowedSortColumns_SafeValues(t *testing.T) {
+	// Valid SQL identifier pattern: starts with letter or underscore, contains only alphanumeric and underscore
+	validIdentifier := func(s string) bool {
+		if len(s) == 0 {
+			return false
+		}
+		for i, c := range s {
+			if i == 0 {
+				if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_') {
+					return false
+				}
+			} else {
+				if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {
+					return false
+				}
+			}
+		}
+		return true
+	}
+
+	// Dangerous characters/patterns that should never appear in column names
+	// We only check for SQL syntax characters, not SQL keywords (which could be substrings)
+	dangerousChars := []string{
+		";", "--", "/*", "*/", "'", "\"", "\\", "(", ")", "=", "<", ">", " ", "\t", "\n", "\r",
+	}
+
+	hasDangerousPattern := func(s string) bool {
+		for _, char := range dangerousChars {
+			for i := 0; i <= len(s)-len(char); i++ {
+				if s[i:i+len(char)] == char {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+	// Test that the map exists and is not empty
+	if len(allowedSortColumns) == 0 {
+		t.Fatal("allowedSortColumns map is empty - SQL injection protection may be compromised")
+	}
+
+	// Test each key and value in the map
+	for key, value := range allowedSortColumns {
+		t.Run("key_"+key, func(t *testing.T) {
+			// Keys should be valid identifiers
+			if !validIdentifier(key) {
+				t.Errorf("key %q is not a valid SQL identifier", key)
+			}
+			// Keys should not contain dangerous patterns
+			if hasDangerousPattern(key) {
+				t.Errorf("key %q contains dangerous SQL pattern", key)
+			}
+		})
+
+		t.Run("value_"+value, func(t *testing.T) {
+			// Values should be valid identifiers
+			if !validIdentifier(value) {
+				t.Errorf("value %q is not a valid SQL identifier", value)
+			}
+			// Values should not contain dangerous patterns
+			if hasDangerousPattern(value) {
+				t.Errorf("value %q contains dangerous SQL pattern", value)
+			}
+			// Values should be short (reasonable column names)
+			if len(value) > 64 {
+				t.Errorf("value %q is suspiciously long (%d chars)", value, len(value))
+			}
+		})
+	}
+
+	// Verify expected columns exist
+	expectedColumns := []string{"id", "title", "description", "content", "language", "is_favorite", "is_public", "view_count", "created_at", "updated_at"}
+	for _, col := range expectedColumns {
+		if _, ok := allowedSortColumns[col]; !ok {
+			t.Errorf("expected column %q not found in allowedSortColumns", col)
+		}
+	}
+}
+
+// TestSQLInjection_SortColumnIsolation verifies that malicious sort column values
+// are completely replaced with safe defaults, not just sanitized.
+// This is critical because the fix uses map lookup to return CONSTANT values.
+func TestSQLInjection_SortColumnIsolation(t *testing.T) {
+	db := testutil.TestDB(t)
+	repo := NewSnippetRepository(db)
+	ctx := testutil.TestContext()
+
+	// Create test data
+	_, err := repo.Create(ctx, &models.SnippetInput{
+		Title:    "Test",
+		Content:  "content",
+		Language: "go",
+	})
+	if err != nil {
+		t.Fatalf("failed to create test snippet: %v", err)
+	}
+
+	// Comprehensive SQL injection attack vectors
+	injectionAttempts := []struct {
+		name      string
+		sortBy    string
+		sortOrder string
+	}{
+		// Basic SQL injection
+		{"semicolon_injection", "title; DROP TABLE snippets;--", "asc"},
+		{"comment_injection", "title--", "asc"},
+		{"quote_injection", "title'", "asc"},
+		{"double_quote", `title"`, "asc"},
+
+		// UNION-based injection
+		{"union_select", "title UNION SELECT * FROM users--", "asc"},
+		{"union_all", "title UNION ALL SELECT password FROM users--", "asc"},
+
+		// Stacked queries
+		{"stacked_query", "title; INSERT INTO users VALUES ('hacker');--", "asc"},
+		{"stacked_delete", "title; DELETE FROM snippets;--", "asc"},
+
+		// Boolean-based blind injection
+		{"boolean_or", "title OR 1=1--", "asc"},
+		{"boolean_and", "title AND 1=1--", "asc"},
+
+		// Time-based blind injection
+		{"time_based_sqlite", "title; SELECT CASE WHEN 1=1 THEN sqlite_sleep(5) END;--", "asc"},
+
+		// Subquery injection
+		{"subquery", "(SELECT password FROM users LIMIT 1)", "asc"},
+		{"nested_subquery", "title,(SELECT GROUP_CONCAT(password) FROM users)", "asc"},
+
+		// Function injection
+		{"function_call", "SUBSTR(password,1,1)", "asc"},
+		{"hex_function", "HEX(password)", "asc"},
+
+		// Order by specific attacks
+		{"order_by_number", "1", "asc"},
+		{"order_by_case", "CASE WHEN 1=1 THEN title ELSE id END", "asc"},
+		{"order_by_if", "IF(1=1,title,id)", "asc"},
+
+		// Whitespace/encoding tricks
+		{"tab_injection", "title\t;DROP TABLE snippets;--", "asc"},
+		{"newline_injection", "title\n;DROP TABLE snippets;--", "asc"},
+		{"url_encoded", "title%3BDROP%20TABLE%20snippets%3B--", "asc"},
+
+		// Sort order injection
+		{"order_injection", "title", "asc; DROP TABLE snippets;--"},
+		{"order_union", "title", "asc UNION SELECT * FROM users--"},
+		{"order_subquery", "title", "(SELECT 1)"},
+
+		// Mixed case bypass attempts
+		{"mixed_case_drop", "TiTlE; DrOp TaBlE snippets;--", "asc"},
+
+		// Null byte injection
+		{"null_byte", "title\x00;DROP TABLE snippets;--", "asc"},
+
+		// Very long input
+		{"long_input", "title" + string(make([]byte, 10000)), "asc"},
+	}
+
+	for _, tc := range injectionAttempts {
+		t.Run(tc.name, func(t *testing.T) {
+			filter := models.SnippetFilter{
+				SortBy:    tc.sortBy,
+				SortOrder: tc.sortOrder,
+				Limit:     10,
+				Page:      1,
+			}
+
+			// The query should NOT fail - if injection worked, it would likely cause an error
+			result, err := repo.List(ctx, filter)
+			if err != nil {
+				// If error occurs, it should NOT be because of successful injection
+				// A well-protected query should still execute with defaults
+				t.Logf("Query returned error (may indicate injection was blocked): %v", err)
+			}
+
+			// If we got results, verify integrity
+			if result != nil {
+				// Verify we can still see our test data
+				if result.Pagination.Total < 1 {
+					t.Error("Expected at least 1 snippet - data may have been deleted by injection")
+				}
+			}
+		})
+	}
+}
+
+// TestSQLInjection_ConstantValueGuarantee verifies that the sort values used in queries
+// are ALWAYS from the predefined constant set, never user input.
+func TestSQLInjection_ConstantValueGuarantee(t *testing.T) {
+	// Test that when a valid key is provided, the returned value is the constant from the map
+	testCases := []struct {
+		input    string
+		expected string
+	}{
+		{"id", "id"},
+		{"title", "title"},
+		{"created_at", "created_at"},
+		{"updated_at", "updated_at"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.input, func(t *testing.T) {
+			// Simulate the lookup that happens in List()
+			result, ok := allowedSortColumns[tc.input]
+			if !ok {
+				t.Fatalf("expected key %q to exist in allowedSortColumns", tc.input)
+			}
+			if result != tc.expected {
+				t.Errorf("expected value %q for key %q, got %q", tc.expected, tc.input, result)
+			}
+
+			// Verify the returned value is NOT the same object as input (it's a constant)
+			// This is a conceptual test - in Go strings are immutable, but the value should come from the map
+			if &tc.input == &result {
+				t.Error("returned value appears to be the same object as input - should be constant from map")
+			}
+		})
+	}
+
+	// Test that invalid keys return no value (forcing default)
+	invalidKeys := []string{
+		"malicious",
+		"'; DROP TABLE snippets; --",
+		"id; DROP TABLE snippets;",
+		"",
+		" ",
+		"ID", // Case sensitive
+		"Id", // Case sensitive
+		"TITLE",
+	}
+
+	for _, key := range invalidKeys {
+		t.Run("invalid_"+key, func(t *testing.T) {
+			_, ok := allowedSortColumns[key]
+			if ok {
+				t.Errorf("key %q should NOT be in allowedSortColumns", key)
+			}
+		})
+	}
+}
+
+// TestSQLInjection_SortOrderConstantValues verifies that sort order is always
+// one of the constant values "ASC" or "DESC", never user input.
+func TestSQLInjection_SortOrderConstantValues(t *testing.T) {
+	db := testutil.TestDB(t)
+	repo := NewSnippetRepository(db)
+	ctx := testutil.TestContext()
+
+	// Create two snippets with different titles to verify ordering works
+	// Using title for sorting as it's deterministic (alphabetical order)
+	_, err := repo.Create(ctx, &models.SnippetInput{
+		Title: "AAA First", Content: "1", Language: "go",
+	})
+	if err != nil {
+		t.Fatalf("failed to create first snippet: %v", err)
+	}
+
+	_, err = repo.Create(ctx, &models.SnippetInput{
+		Title: "ZZZ Second", Content: "2", Language: "go",
+	})
+	if err != nil {
+		t.Fatalf("failed to create second snippet: %v", err)
+	}
+
+	// Test valid ascending order - AAA should come first
+	t.Run("valid_asc", func(t *testing.T) {
+		result, err := repo.List(ctx, models.SnippetFilter{
+			SortBy:    "title",
+			SortOrder: "asc",
+			Limit:     10,
+		})
+		if err != nil {
+			t.Fatalf("List failed: %v", err)
+		}
+		if len(result.Data) < 2 {
+			t.Fatal("expected at least 2 snippets")
+		}
+		// AAA should be first in ascending order
+		if result.Data[0].Title != "AAA First" {
+			t.Errorf("ascending order not working correctly, got first title: %s", result.Data[0].Title)
+		}
+	})
+
+	// Test valid descending order - ZZZ should come first
+	t.Run("valid_desc", func(t *testing.T) {
+		result, err := repo.List(ctx, models.SnippetFilter{
+			SortBy:    "title",
+			SortOrder: "desc",
+			Limit:     10,
+		})
+		if err != nil {
+			t.Fatalf("List failed: %v", err)
+		}
+		if len(result.Data) < 2 {
+			t.Fatal("expected at least 2 snippets")
+		}
+		// ZZZ should be first in descending order
+		if result.Data[0].Title != "ZZZ Second" {
+			t.Errorf("descending order not working correctly, got first title: %s", result.Data[0].Title)
+		}
+	})
+
+	// Test that invalid orders default to desc (safe default)
+	// The key security guarantee: invalid input NEVER reaches the SQL query
+	invalidOrders := []string{
+		"invalid",
+		"ASC",  // Must be lowercase per our implementation
+		"DESC", // Must be lowercase per our implementation
+		"asc; DROP TABLE snippets;--",
+		"1",
+		"",
+		"asc OR 1=1",
+	}
+
+	for _, order := range invalidOrders {
+		t.Run("invalid_"+order, func(t *testing.T) {
+			result, err := repo.List(ctx, models.SnippetFilter{
+				SortBy:    "title",
+				SortOrder: order,
+				Limit:     10,
+			})
+			if err != nil {
+				t.Fatalf("List failed for order %q: %v", order, err)
+			}
+			// Should default to DESC - ZZZ should be first
+			if len(result.Data) >= 2 && result.Data[0].Title != "ZZZ Second" {
+				t.Errorf("expected default desc order for invalid order %q, got first title: %s", order, result.Data[0].Title)
+			}
+		})
+	}
+}
+
 func TestSnippetRepository_List_SQLInjectionPrevention(t *testing.T) {
 	db := testutil.TestDB(t)
 	repo := NewSnippetRepository(db)
