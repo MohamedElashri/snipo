@@ -6,6 +6,59 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.3.4] - 29/01/2026
+
+### Web App
+
+#### Added
+
+- NA
+
+#### Fixed
+
+- Fix: Allow special characters in tag names (e.g., C#, C++) (#127)
+- Fix: Add configurable database memory settings to resolve 'out of memory' errors (#111)
+
+#### Removed
+
+- NA
+  
+#### Security
+
+- Prevent SQL injection in snippet list query (#128)
+- Add URL validation and snippet ID sanitization (#112)
+- Security updates and hardening (#108, #114)
+
+### Snippy TUI
+
+#### Added
+
+- NA
+
+#### Fixed
+
+- NA
+
+#### Removed
+
+- NA
+
+### Web Extension
+
+#### Added
+
+- NA
+
+#### Fixed
+
+- NA
+  
+#### Removed
+
+- NA
+
+---
+
 ## [1.3.3] - 07/01/2026
 
 ### Web App
