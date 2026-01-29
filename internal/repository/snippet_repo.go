@@ -177,33 +177,38 @@ func (r *SnippetRepository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+// Allowed sort columns - maps user input to safe SQL column identifiers
+// This prevents SQL injection by only allowing predefined column names
+var allowedSortColumns = map[string]string{
+	"id":          "id",
+	"title":       "title",
+	"description": "description",
+	"content":     "content",
+	"language":    "language",
+	"is_favorite": "is_favorite",
+	"is_public":   "is_public",
+	"view_count":  "view_count",
+	"created_at":  "created_at",
+	"updated_at":  "updated_at",
+}
+
 // List retrieves snippets with filtering and pagination
 func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilter) (*models.SnippetListResponse, error) {
 	if filter.Limit <= 0 {
 		filter.Limit = 20
 	}
 
-	// Validate sort column to prevent SQL injection
-	validSortColumns := map[string]bool{
-		"id":          true,
-		"title":       true,
-		"description": true,
-		"content":     true,
-		"language":    true,
-		"is_favorite": true,
-		"is_public":   true,
-		"view_count":  true,
-		"created_at":  true,
-		"updated_at":  true,
+	// Map user-provided sort column to safe SQL column name
+	// This prevents SQL injection by using a constant value from allowedSortColumns
+	sortColumn, ok := allowedSortColumns[filter.SortBy]
+	if !ok {
+		sortColumn = "updated_at"
 	}
 
-	if filter.SortBy == "" || !validSortColumns[filter.SortBy] {
-		filter.SortBy = "updated_at"
-	}
-
-	// Validate sort order
-	if filter.SortOrder != "asc" && filter.SortOrder != "desc" {
-		filter.SortOrder = "desc"
+	// Validate sort order using constant values
+	sortOrder := "DESC"
+	if filter.SortOrder == "asc" {
+		sortOrder = "ASC"
 	}
 	if filter.Page <= 0 {
 		filter.Page = 1
@@ -307,7 +312,7 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 	// Calculate offset
 	offset := (filter.Page - 1) * filter.Limit
 
-	// Build main query
+	// Build main query using safe column names from allowedSortColumns map
 	query := fmt.Sprintf(`
 		SELECT s.id, s.title, s.description, s.content, s.language, s.is_favorite, s.is_public,
 		       s.view_count, s.s3_key, s.checksum, s.is_archived, s.created_at, s.updated_at
@@ -315,7 +320,7 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 		%s
 		ORDER BY s.%s %s
 		LIMIT ? OFFSET ?
-	`, whereClause, filter.SortBy, filter.SortOrder)
+	`, whereClause, sortColumn, sortOrder)
 
 	args = append(args, filter.Limit, offset)
 
