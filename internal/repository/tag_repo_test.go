@@ -164,6 +164,125 @@ func TestTagRepository_List(t *testing.T) {
 	}
 }
 
+func TestTagRepository_List_OrderBySnippetCount(t *testing.T) {
+	db := testutil.TestDB(t)
+	tagRepo := NewTagRepository(db)
+	snippetRepo := NewSnippetRepository(db)
+	ctx := testutil.TestContext()
+
+	// Create tags with special characters
+	tagNames := []string{"C#", "Python", "Go", "JavaScript", "C++"}
+	for _, name := range tagNames {
+		input := &models.TagInput{Name: name, Color: "#000000"}
+		_, err := tagRepo.Create(ctx, input)
+		if err != nil {
+			t.Fatalf("Create tag failed: %v", err)
+		}
+	}
+
+	// Create snippets and assign tags with different counts
+	// C# - 5 snippets (most popular)
+	for i := 0; i < 5; i++ {
+		snippet, err := snippetRepo.Create(ctx, &models.SnippetInput{
+			Title:    "Test Snippet",
+			Content:  "content",
+			Language: "plaintext",
+		})
+		if err != nil {
+			t.Fatalf("Create snippet failed: %v", err)
+		}
+		if err := tagRepo.SetSnippetTags(ctx, snippet.ID, []string{"C#"}); err != nil {
+			t.Fatalf("SetSnippetTags failed: %v", err)
+		}
+	}
+
+	// Python - 3 snippets
+	for i := 0; i < 3; i++ {
+		snippet, err := snippetRepo.Create(ctx, &models.SnippetInput{
+			Title:    "Test Snippet",
+			Content:  "content",
+			Language: "plaintext",
+		})
+		if err != nil {
+			t.Fatalf("Create snippet failed: %v", err)
+		}
+		if err := tagRepo.SetSnippetTags(ctx, snippet.ID, []string{"Python"}); err != nil {
+			t.Fatalf("SetSnippetTags failed: %v", err)
+		}
+	}
+
+	// JavaScript - 3 snippets (same count as Python)
+	for i := 0; i < 3; i++ {
+		snippet, err := snippetRepo.Create(ctx, &models.SnippetInput{
+			Title:    "Test Snippet",
+			Content:  "content",
+			Language: "plaintext",
+		})
+		if err != nil {
+			t.Fatalf("Create snippet failed: %v", err)
+		}
+		if err := tagRepo.SetSnippetTags(ctx, snippet.ID, []string{"JavaScript"}); err != nil {
+			t.Fatalf("SetSnippetTags failed: %v", err)
+		}
+	}
+
+	// Go - 1 snippet
+	snippet, err := snippetRepo.Create(ctx, &models.SnippetInput{
+		Title:    "Test Snippet",
+		Content:  "content",
+		Language: "plaintext",
+	})
+	if err != nil {
+		t.Fatalf("Create snippet failed: %v", err)
+	}
+	if err := tagRepo.SetSnippetTags(ctx, snippet.ID, []string{"Go"}); err != nil {
+		t.Fatalf("SetSnippetTags failed: %v", err)
+	}
+
+	// C++ - 0 snippets (no assignment)
+
+	// List all tags
+	tags, err := tagRepo.List(ctx)
+	if err != nil {
+		t.Fatalf("List failed: %v", err)
+	}
+
+	if len(tags) != 5 {
+		t.Errorf("expected 5 tags, got %d", len(tags))
+	}
+
+	// Verify ordering: should be ordered by snippet count DESC, then alphabetically ASC
+	// Expected order: C# (5), JavaScript (3), Python (3), Go (1), C++ (0)
+	expectedOrder := []struct {
+		name  string
+		count int
+	}{
+		{"C#", 5},
+		{"JavaScript", 3}, // JavaScript comes before Python alphabetically
+		{"Python", 3},
+		{"Go", 1},
+		{"C++", 0},
+	}
+
+	for i, expected := range expectedOrder {
+		if i >= len(tags) {
+			t.Fatalf("not enough tags returned")
+		}
+		if tags[i].Name != expected.name {
+			t.Errorf("position %d: expected tag %q, got %q", i, expected.name, tags[i].Name)
+		}
+		if tags[i].SnippetCount != expected.count {
+			t.Errorf("tag %q: expected count %d, got %d", tags[i].Name, expected.count, tags[i].SnippetCount)
+		}
+	}
+
+	// Verify that tags with special characters like C# are not sorted purely alphabetically
+	// (which would put them at the top regardless of count)
+	if tags[0].Name != "C#" {
+		t.Errorf("C# with most snippets should be first, but got %q", tags[0].Name)
+	}
+}
+
 func TestTagRepository_Update(t *testing.T) {
 	db := testutil.TestDB(t)
 	repo := NewTagRepository(db)
