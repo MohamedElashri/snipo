@@ -7,7 +7,7 @@ A lightweight, self-hosted snippet manager designed for single-user deployments.
 [![CI](https://github.com/MohamedElashri/snipo/actions/workflows/snipo-ci.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/snipo-ci.yml)
 [![CI](https://github.com/MohamedElashri/snipo/actions/workflows/snippy-ci.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/snippy-ci.yml)
 [![Release](https://github.com/MohamedElashri/snipo/actions/workflows/release.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/release.yml)
-[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![GitHub release](https://img.shields.io/github/v/release/MohamedElashri/snipo?include_prereleases)](https://github.com/MohamedElashri/snipo/releases)
 
@@ -60,6 +60,38 @@ export SNIPO_ENCRYPTION_SALT=$(openssl rand -base64 32)
 ./snipo serve
 ```
 
+### Hardened Image Variant
+
+For better security, a hardened image variant is available based on [Docker Hardened Images](https://dhi.io). This variant:
+- Runs as a non-root user with UID **65532** (nonroot)
+- Contains minimal packages (no shell, no package manager)
+- Reduces attack surface to absolute minimum
+- Tracks CVEs fixes automatically
+
+**Versioning:**
+In addition to the `:hardened` rolling tag, versioned tags are available matching the standard release cycles:
+- `:vX.Y.Z-hardened` (e.g., `v1.0.0-hardened`)
+- `:vX.Y-hardened` (e.g., `v1.0-hardened`)
+
+**Usage:**
+
+```bash
+docker run -d \
+  -p 8080:8080 \
+  -v snipo-data:/data \
+  -e SNIPO_MASTER_PASSWORD=your-secure-password \
+  -e SNIPO_SESSION_SECRET=$(openssl rand -hex 32) \
+  --name snipo \
+  ghcr.io/mohamedelashri/snipo:hardened
+```
+
+**Important: Permissions**
+Since the hardened image runs as UID 65532, you must ensure the data volume is writable by this user:
+
+```bash
+# Set ownership for the data directory
+sudo chown -R 65532:65532 ./snipo-data
+```
 ## Configuration
 
 ### Essential
