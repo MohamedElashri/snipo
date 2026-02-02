@@ -10,6 +10,7 @@
 /data
 cookies.txt
 bin/*
+*.db
 
 ## Coverage
 coverage.out
