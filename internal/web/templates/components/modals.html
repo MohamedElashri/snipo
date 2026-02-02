@@ -1,6 +1,6 @@
 {{define "modals"}}
 <!-- Delete confirmation modal -->
-<div class="modal-backdrop" x-show="showDeleteModal" x-cloak @click.self="showDeleteModal = false">
+<div class="snipo-modal-backdrop" x-show="showDeleteModal" x-cloak @click.self="showDeleteModal = false">
     <div class="modal">
         <div class="modal-header">
             <h3>Delete Snippet</h3>
@@ -26,7 +26,7 @@
 </div>
 
 <!-- Settings modal -->
-<div class="modal-backdrop" x-show="showSettings" x-cloak @click.self="closeSettings()">
+<div class="snipo-modal-backdrop" x-show="showSettings" x-cloak @click.self="closeSettings()">
     <div class="modal settings-modal">
         <div class="modal-header">
             <h3>Settings</h3>
@@ -828,7 +828,7 @@
 </div>
 
 <!-- New Folder modal -->
-<div class="modal-backdrop" x-show="showFolderModal" x-cloak @click.self="showFolderModal = false">
+<div class="snipo-modal-backdrop" x-show="showFolderModal" x-cloak @click.self="showFolderModal = false">
     <div class="modal" style="max-width: 400px;">
         <div class="modal-header">
             <h3 x-text="editingFolder?.id ? 'Rename Folder' : 'New Folder'"></h3>
@@ -862,7 +862,7 @@
 </div>
 
 <!-- Rename Tag modal -->
-<div class="modal-backdrop" x-show="showTagModal" x-cloak @click.self="showTagModal = false">
+<div class="snipo-modal-backdrop" x-show="showTagModal" x-cloak @click.self="showTagModal = false">
     <div class="modal" style="max-width: 400px;">
         <div class="modal-header">
             <h3>Rename Tag</h3>
@@ -887,7 +887,7 @@
 </div>
 
 <!-- History modal -->
-<div class="modal-backdrop" x-show="showHistory" x-cloak @click.self="closeHistory()">
+<div class="snipo-modal-backdrop" x-show="showHistory" x-cloak @click.self="closeHistory()">
     <div class="modal" style="max-width: 900px; max-height: 80vh;">
         <div class="modal-header">
             <h3>Snippet History</h3>
@@ -946,7 +946,7 @@
 </div>
 
 <!-- History Detail modal -->
-<div class="modal-backdrop" x-show="showHistoryDetail" x-cloak @click.self="closeHistoryDetail()">
+<div class="snipo-modal-backdrop" x-show="showHistoryDetail" x-cloak @click.self="closeHistoryDetail()">
     <div class="modal" style="max-width: 1000px; max-height: 85vh;">
         <div class="modal-header">
             <div>
@@ -1027,7 +1027,7 @@
 </div>
 
 <!-- Restore Confirmation modal -->
-<div class="modal-backdrop" x-show="showRestoreConfirm" x-cloak @click.self="showRestoreConfirm = false">
+<div class="snipo-modal-backdrop" x-show="showRestoreConfirm" x-cloak @click.self="showRestoreConfirm = false">
     <div class="modal" style="max-width: 500px;">
         <div class="modal-header">
             <h3>Confirm Restore</h3>
@@ -1083,7 +1083,7 @@
 </div>
 
 <!-- Token Password Confirmation Modal (unified for create and delete) -->
-<div x-show="tokenPasswordAction !== null" class="modal-overlay" style="z-index: 1001;"
+<div x-show="tokenPasswordAction !== null" class="snipo-modal-overlay" style="z-index: 1001;"
     @click.self="cancelTokenPassword()" x-transition:enter="transition ease-out duration-200"
     x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
     x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
@@ -1164,7 +1164,7 @@
 </div>
 
 <!-- Font Size Help Modal -->
-<div class="modal-backdrop" x-show="showFontSizeHelp" x-cloak @click.self="showFontSizeHelp = false">
+<div class="snipo-modal-backdrop" x-show="showFontSizeHelp" x-cloak @click.self="showFontSizeHelp = false">
     <div class="modal" style="max-width: 600px;">
         <div class="modal-header">
             <h3>Browser Minimum Font Size Settings</h3>
