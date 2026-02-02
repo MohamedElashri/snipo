@@ -253,12 +253,12 @@ func (r *SnippetRepository) CleanupDeleted(ctx context.Context, days int) (int64
 	for rows.Next() {
 		var id string
 		if err := rows.Scan(&id); err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return 0, err
 		}
 		ids = append(ids, id)
 	}
-	rows.Close()
+	_ = rows.Close()
 
 	if len(ids) == 0 {
 		return 0, nil
