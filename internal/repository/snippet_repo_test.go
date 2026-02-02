@@ -174,19 +174,36 @@ func TestSnippetRepository_Delete(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	// Delete it
+	// Delete it (soft)
 	err = repo.Delete(ctx, created.ID, false)
 	if err != nil {
-		t.Fatalf("Delete failed: %v", err)
+		t.Fatalf("Delete (soft) failed: %v", err)
 	}
 
-	// Verify it's gone
+	// Verify it's soft deleted
 	snippet, err := repo.GetByID(ctx, created.ID)
 	if err != nil {
 		t.Fatalf("GetByID failed: %v", err)
 	}
+	if snippet == nil {
+		t.Error("expected snippet to exist after soft delete")
+	} else if snippet.DeletedAt == nil {
+		t.Error("expected deleted_at to be set")
+	}
+
+	// Delete it (permanent)
+	err = repo.Delete(ctx, created.ID, true)
+	if err != nil {
+		t.Fatalf("Delete (permanent) failed: %v", err)
+	}
+
+	// Verify it's gone
+	snippet, err = repo.GetByID(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("GetByID failed: %v", err)
+	}
 	if snippet != nil {
-		t.Error("expected snippet to be deleted")
+		t.Error("expected snippet to be permanently deleted")
 	}
 }
 

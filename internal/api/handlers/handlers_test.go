@@ -428,10 +428,12 @@ func TestSnippetHandler_Delete(t *testing.T) {
 		t.Errorf("expected status %d, got %d", http.StatusNoContent, w.Code)
 	}
 
-	// Verify deleted
+	// Verify deleted (soft delete)
 	deleted, _ := repo.GetByID(ctx, snippet.ID)
-	if deleted != nil {
-		t.Error("expected snippet to be deleted")
+	if deleted == nil {
+		t.Error("expected snippet to still exist (soft deleted)")
+	} else if deleted.DeletedAt == nil {
+		t.Error("expected snippet to be marked as deleted")
 	}
 }
 

@@ -152,13 +152,15 @@ func TestIntegration_SnippetCRUDFlow(t *testing.T) {
 		t.Fatalf("Delete failed: expected status %d, got %d", http.StatusNoContent, w.Code)
 	}
 
-	// Verify deletion
+	// Verify deletion (soft delete)
 	deletedSnippet, err := snippetRepo.GetByID(context.Background(), snippetID)
 	if err != nil {
 		t.Fatalf("Error checking if snippet was deleted: %v", err)
 	}
-	if deletedSnippet != nil {
-		t.Error("Expected snippet to be deleted, but it still exists")
+	if deletedSnippet == nil {
+		t.Error("Expected snippet to exist (soft deleted)")
+	} else if deletedSnippet.DeletedAt == nil {
+		t.Error("Expected snippet to be marked as deleted")
 	}
 
 	t.Log("Integration test completed successfully!")
