@@ -21,6 +21,7 @@ A lightweight, self-hosted snippet manager designed for single-user deployments.
 - **Powerful Search**: Fuzzy search across titles, descriptions, and file content.
 - **Organization**: Organize snippets with folders and tags.
 - **Public Sharing**: Share snippets publicly with granular file-level access.
+- **Trash & Recovery**: Soft delete mechanism with restore capabilities.
 - **GitHub Gist Sync**: Two-way synchronization with GitHub Gists for backup.
 - **Developer Friendly**: RESTful API with tokens and granular permissions.
 - **Docker Ready**: Easy deployment with Docker and standard or hardened images.

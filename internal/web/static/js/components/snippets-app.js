@@ -1,19 +1,19 @@
 // Snippets App Alpine component
 import { api } from '../modules/api.js';
 import { showToast } from '../modules/toast.js';
-import { 
-  highlightAll, 
+import {
+  highlightAll,
   highlightCode,
-  renderMarkdown, 
-  formatDate, 
+  renderMarkdown,
+  formatDate,
   formatFileSize,
   getLanguageColor,
   autoResizeTextarea
 } from '../utils/helpers.js';
-import { 
-  getAceMode, 
-  getFileExtension, 
-  detectLanguageFromFilename 
+import {
+  getAceMode,
+  getFileExtension,
+  detectLanguageFromFilename
 } from '../utils/ace-utils.js';
 import { theme } from '../modules/theme.js';
 
@@ -54,23 +54,24 @@ export function initSnippetsApp(Alpine) {
     },
     activeFileIndex: 0,
     editorHeaderVisible: true,
-    
+
     fileManagerState: {
       operationInProgress: false,
       editorDirty: false,
       lastSyncedContent: '',
       pendingOperation: null
     },
-    
+
     filter: {
       query: '',
       tagId: null,
       folderId: null,
       language: '',
       isFavorite: null,
-      isArchived: null
+      isArchived: null,
+      isDeleted: null
     },
-    
+
     pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
     totalSnippets: 0,
     favoritesCount: 0,
@@ -82,13 +83,13 @@ export function initSnippetsApp(Alpine) {
     showDeleteModal: false,
     deleteTarget: null,
     showSearchHelp: false,
-    
+
     foldersCollapsed: false,
     tagsCollapsed: false,
-    
+
     aceEditor: null,
     aceIgnoreChange: false,
-    settings: { archive_enabled: false, history_enabled: true },
+    settings: { archive_enabled: false, history_enabled: true, trash_enabled: true },
 
     // Lifecycle
     async init() {
@@ -99,7 +100,7 @@ export function initSnippetsApp(Alpine) {
         this.loadFavoritesCount(),
         this.loadSettings()
       ]);
-      
+
       this.totalSnippets = this.pagination.total;
       this.loading = false;
       this.$nextTick(() => highlightAll());
@@ -122,7 +123,7 @@ export function initSnippetsApp(Alpine) {
       const sidebar = event.target.closest('.sidebar');
       const handle = event.target;
       handle.classList.add('resizing');
-      
+
       const startX = event.clientX;
       const startWidth = sidebar.offsetWidth;
       const minWidth = 180;
@@ -150,7 +151,7 @@ export function initSnippetsApp(Alpine) {
       const params = new URLSearchParams();
       params.set('page', this.pagination.page);
       params.set('limit', this.pagination.limit);
-      
+
       // Handle sorting
       if (this.sortBy) {
         if (this.sortBy === 'title_desc') {
@@ -163,13 +164,14 @@ export function initSnippetsApp(Alpine) {
           params.set('sort', this.sortBy);
         }
       }
-      
+
       if (this.filter.query) params.set('q', this.filter.query);
       if (this.filter.tagId) params.set('tag_id', this.filter.tagId);
       if (this.filter.folderId) params.set('folder_id', this.filter.folderId);
       if (this.filter.language) params.set('language', this.filter.language);
       if (this.filter.isFavorite !== null) params.set('favorite', this.filter.isFavorite);
       if (this.filter.isArchived !== null) params.set('is_archived', this.filter.isArchived);
+      if (this.filter.isDeleted !== null) params.set('is_deleted', this.filter.isDeleted);
 
       const result = await api.get(`/api/v1/snippets?${params}`);
       if (result) {
@@ -242,7 +244,7 @@ export function initSnippetsApp(Alpine) {
 
     async clearFilters() {
       this.showEditor = false;
-      this.filter = { query: '', tagId: null, folderId: null, language: '', isFavorite: null, isArchived: null };
+      this.filter = { query: '', tagId: null, folderId: null, language: '', isFavorite: null, isArchived: null, isDeleted: null };
       this.pagination.page = 1;
       await this.loadSnippets();
       this.totalSnippets = this.pagination.total;
@@ -262,11 +264,25 @@ export function initSnippetsApp(Alpine) {
     async showArchive() {
       this.showEditor = false;
       this.filter.isArchived = true;
+      this.filter.isDeleted = null;
       this.filter.tagId = null;
       this.filter.folderId = null;
       this.filter.isFavorite = null;
       this.pagination.page = 1;
       await this.loadSnippets();
+      this.updateUrl();
+    },
+
+    async showTrash() {
+      this.showEditor = false;
+      this.filter.isDeleted = true;
+      this.filter.isArchived = null;
+      this.filter.tagId = null;
+      this.filter.folderId = null;
+      this.filter.isFavorite = null;
+      this.pagination.page = 1;
+      await this.loadSnippets();
+      this.updateUrl({ trash: true });
     },
 
     setViewMode(mode) {
@@ -301,12 +317,14 @@ export function initSnippetsApp(Alpine) {
       url.searchParams.delete('folder');
       url.searchParams.delete('tag');
       url.searchParams.delete('favorites');
+      url.searchParams.delete('trash');
 
       if (params.snippet) url.searchParams.set('snippet', params.snippet);
       if (params.edit) url.searchParams.set('edit', 'true');
       if (params.folder) url.searchParams.set('folder', params.folder);
       if (params.tag) url.searchParams.set('tag', params.tag);
       if (params.favorites) url.searchParams.set('favorites', 'true');
+      if (params.trash) url.searchParams.set('trash', 'true');
 
       history.pushState({}, '', url);
     },
@@ -318,6 +336,7 @@ export function initSnippetsApp(Alpine) {
       const folderId = params.get('folder');
       const tagId = params.get('tag');
       const favorites = params.get('favorites') === 'true';
+      const trash = params.get('trash') === 'true';
 
       if (folderId) {
         this.filter.folderId = parseInt(folderId);
@@ -334,6 +353,8 @@ export function initSnippetsApp(Alpine) {
         this.filter.tagId = null;
         this.filter.folderId = null;
         await this.loadSnippets();
+      } else if (trash) {
+        await this.showTrash();
       }
 
       if (snippetId) {
@@ -406,7 +427,7 @@ export function initSnippetsApp(Alpine) {
         if (!contentToCopy && snippet.files && snippet.files.length > 0) {
           contentToCopy = snippet.files[0].content || '';
         }
-        
+
         // Check if setting to exclude first line is enabled
         if (this.settings?.exclude_first_line_on_copy) {
           const lines = contentToCopy.split('\n');
@@ -414,7 +435,7 @@ export function initSnippetsApp(Alpine) {
             contentToCopy = lines.slice(1).join('\n');
           }
         }
-        
+
         await navigator.clipboard.writeText(contentToCopy);
         showToast('Copied to clipboard');
       } catch (err) {
@@ -425,7 +446,7 @@ export function initSnippetsApp(Alpine) {
     async copyFileFromCard(snippet, file) {
       try {
         let contentToCopy = file.content;
-        
+
         // Check if setting to exclude first line is enabled
         if (this.settings?.exclude_first_line_on_copy) {
           const lines = contentToCopy.split('\n');
@@ -433,7 +454,7 @@ export function initSnippetsApp(Alpine) {
             contentToCopy = lines.slice(1).join('\n');
           }
         }
-        
+
         await navigator.clipboard.writeText(contentToCopy);
         showToast(`Copied ${file.filename} to clipboard`);
       } catch (err) {

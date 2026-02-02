@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/MohamedElashri/snipo/internal/models"
 )
@@ -26,7 +27,7 @@ func (r *SnippetRepository) Create(ctx context.Context, input *models.SnippetInp
 		INSERT INTO snippets (title, description, content, language, is_public, is_archived)
 		VALUES (?, ?, ?, ?, ?, ?)
 		RETURNING id, title, description, content, language, is_favorite, is_public, 
-		          view_count, s3_key, checksum, is_archived, created_at, updated_at
+		          view_count, s3_key, checksum, is_archived, created_at, updated_at, deleted_at
 	`
 
 	snippet := &models.Snippet{}
@@ -51,6 +52,7 @@ func (r *SnippetRepository) Create(ctx context.Context, input *models.SnippetInp
 		&snippet.IsArchived,
 		&snippet.CreatedAt,
 		&snippet.UpdatedAt,
+		&snippet.DeletedAt,
 	)
 
 	if err != nil {
@@ -64,7 +66,7 @@ func (r *SnippetRepository) Create(ctx context.Context, input *models.SnippetInp
 func (r *SnippetRepository) GetByID(ctx context.Context, id string) (*models.Snippet, error) {
 	query := `
 		SELECT id, title, description, content, language, is_favorite, is_public,
-		       view_count, s3_key, checksum, is_archived, created_at, updated_at
+		       view_count, s3_key, checksum, is_archived, created_at, updated_at, deleted_at
 		FROM snippets
 		WHERE id = ?
 	`
@@ -84,6 +86,7 @@ func (r *SnippetRepository) GetByID(ctx context.Context, id string) (*models.Sni
 		&snippet.IsArchived,
 		&snippet.CreatedAt,
 		&snippet.UpdatedAt,
+		&snippet.DeletedAt,
 	)
 
 	if err == sql.ErrNoRows {
@@ -103,7 +106,7 @@ func (r *SnippetRepository) Update(ctx context.Context, id string, input *models
 		SET title = ?, description = ?, content = ?, language = ?, is_public = ?, is_archived = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
 		RETURNING id, title, description, content, language, is_favorite, is_public,
-		          view_count, s3_key, checksum, is_archived, created_at, updated_at
+		          view_count, s3_key, checksum, is_archived, created_at, updated_at, deleted_at
 	`
 
 	snippet := &models.Snippet{}
@@ -129,6 +132,7 @@ func (r *SnippetRepository) Update(ctx context.Context, id string, input *models
 		&snippet.IsArchived,
 		&snippet.CreatedAt,
 		&snippet.UpdatedAt,
+		&snippet.DeletedAt,
 	)
 
 	if err == sql.ErrNoRows {
@@ -141,8 +145,38 @@ func (r *SnippetRepository) Update(ctx context.Context, id string, input *models
 	return snippet, nil
 }
 
-// Delete removes a snippet by ID and cleans up related data
-func (r *SnippetRepository) Delete(ctx context.Context, id string) error {
+// Delete removes a snippet by ID (soft delete if trash enabled)
+// If permanent is true, it forces a hard delete regardless of settings
+func (r *SnippetRepository) Delete(ctx context.Context, id string, permanent bool) error {
+	// Check if trash is enabled
+	var trashEnabled bool
+	err := r.db.QueryRowContext(ctx, "SELECT trash_enabled FROM settings WHERE id = 1").Scan(&trashEnabled)
+	if err != nil {
+		return fmt.Errorf("failed to check trash settings: %w", err)
+	}
+
+	// Soft delete if enabled and not forced permanent
+	if trashEnabled && !permanent {
+		query := `
+            UPDATE snippets 
+            SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP 
+            WHERE id = ? AND deleted_at IS NULL
+        `
+		result, err := r.db.ExecContext(ctx, query, id)
+		if err != nil {
+			return fmt.Errorf("failed to soft delete snippet: %w", err)
+		}
+		rows, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("failed to get rows affected: %w", err)
+		}
+		if rows == 0 {
+			return sql.ErrNoRows
+		}
+		return nil
+	}
+
+	// Hard delete (original logic)
 	// Start transaction for atomic delete
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -177,6 +211,86 @@ func (r *SnippetRepository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+// Restore restores a soft-deleted snippet
+func (r *SnippetRepository) Restore(ctx context.Context, id string) error {
+	query := `
+        UPDATE snippets 
+        SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ? AND deleted_at IS NOT NULL
+    `
+	result, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to restore snippet: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+// CleanupDeleted permanently deletes snippets older than the specified duration
+func (r *SnippetRepository) CleanupDeleted(ctx context.Context, days int) (int64, error) {
+	cutoff := time.Now().AddDate(0, 0, -days)
+
+	// Using transaction for safety
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Find IDs to delete
+	rows, err := tx.QueryContext(ctx, "SELECT id FROM snippets WHERE deleted_at < ?", cutoff)
+	if err != nil {
+		return 0, fmt.Errorf("failed to query old snippets: %w", err)
+	}
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			_ = rows.Close()
+			return 0, err
+		}
+		ids = append(ids, id)
+	}
+	_ = rows.Close()
+
+	if len(ids) == 0 {
+		return 0, nil
+	}
+
+	// Delete related data
+	// Note: This could be optimized with batch deletes or ensuring cascading deletes work
+	for _, id := range ids {
+		_, _ = tx.ExecContext(ctx, "DELETE FROM snippet_tags WHERE snippet_id = ?", id)
+		_, _ = tx.ExecContext(ctx, "DELETE FROM snippet_folders WHERE snippet_id = ?", id)
+		_, _ = tx.ExecContext(ctx, "DELETE FROM snippet_files WHERE snippet_id = ?", id)
+	}
+
+	// Delete snippets
+	query := fmt.Sprintf("DELETE FROM snippets WHERE id IN ('%s')", strings.Join(ids, "','"))
+	result, err := tx.ExecContext(ctx, query)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete snippets: %w", err)
+	}
+
+	deletedCount, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return deletedCount, nil
+}
+
 // Allowed sort columns - maps user input to safe SQL column identifiers
 // This prevents SQL injection by only allowing predefined column names
 var allowedSortColumns = map[string]string{
@@ -190,6 +304,7 @@ var allowedSortColumns = map[string]string{
 	"view_count":  "view_count",
 	"created_at":  "created_at",
 	"updated_at":  "updated_at",
+	"deleted_at":  "deleted_at",
 }
 
 // List retrieves snippets with filtering and pagination
@@ -217,6 +332,13 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 	// Build query
 	var conditions []string
 	var args []interface{}
+
+	// Filter by deletion status
+	if filter.IsDeleted != nil && *filter.IsDeleted {
+		conditions = append(conditions, "s.deleted_at IS NOT NULL")
+	} else {
+		conditions = append(conditions, "s.deleted_at IS NULL")
+	}
 
 	// Fuzzy search on title, description, content, and snippet files
 	if filter.Query != "" {
@@ -266,8 +388,10 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 		} else {
 			args = append(args, 0)
 		}
-	} else {
-		// Default: hide archived
+	} else if filter.IsDeleted == nil || !*filter.IsDeleted {
+		// Default: hide archived unless we are looking at deleted items (which might be archived?) or explicitly filtering
+		// Actually typical behavior: Archive view shows archived, All view hides archived.
+		// If IsArchived is nil, we default to hidden.
 		conditions = append(conditions, "s.is_archived = 0")
 	}
 
@@ -315,7 +439,7 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 	// Build main query using safe column names from allowedSortColumns map
 	query := fmt.Sprintf(`
 		SELECT s.id, s.title, s.description, s.content, s.language, s.is_favorite, s.is_public,
-		       s.view_count, s.s3_key, s.checksum, s.is_archived, s.created_at, s.updated_at
+		       s.view_count, s.s3_key, s.checksum, s.is_archived, s.created_at, s.updated_at, s.deleted_at
 		FROM snippets s
 		%s
 		ORDER BY s.%s %s
@@ -351,6 +475,7 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 			&s.IsArchived,
 			&s.CreatedAt,
 			&s.UpdatedAt,
+			&s.DeletedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan snippet: %w", err)
 		}
@@ -385,7 +510,7 @@ func (r *SnippetRepository) ToggleFavorite(ctx context.Context, id string) (*mod
 		SET is_favorite = NOT is_favorite
 		WHERE id = ?
 		RETURNING id, title, description, content, language, is_favorite, is_public,
-		          view_count, s3_key, checksum, is_archived, created_at, updated_at
+		          view_count, s3_key, checksum, is_archived, created_at, updated_at, deleted_at
 	`
 
 	snippet := &models.Snippet{}
@@ -403,6 +528,7 @@ func (r *SnippetRepository) ToggleFavorite(ctx context.Context, id string) (*mod
 		&snippet.IsArchived,
 		&snippet.CreatedAt,
 		&snippet.UpdatedAt,
+		&snippet.DeletedAt,
 	)
 
 	if err == sql.ErrNoRows {
@@ -424,7 +550,7 @@ func (r *SnippetRepository) ToggleArchive(ctx context.Context, id string) (*mode
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
 		RETURNING id, title, description, content, language, is_favorite, is_public,
-		          view_count, s3_key, checksum, is_archived, created_at, updated_at
+		          view_count, s3_key, checksum, is_archived, created_at, updated_at, deleted_at
 	`
 
 	snippet := &models.Snippet{}
@@ -442,6 +568,7 @@ func (r *SnippetRepository) ToggleArchive(ctx context.Context, id string) (*mode
 		&snippet.IsArchived,
 		&snippet.CreatedAt,
 		&snippet.UpdatedAt,
+		&snippet.DeletedAt,
 	)
 
 	if err == sql.ErrNoRows {
@@ -471,11 +598,12 @@ func (r *SnippetRepository) Search(ctx context.Context, query string, limit int)
 
 	sqlQuery := `
 		SELECT s.id, s.title, s.description, s.content, s.language, s.is_favorite, s.is_public,
-		       s.view_count, s.s3_key, s.checksum, s.is_archived, s.created_at, s.updated_at
+		       s.view_count, s.s3_key, s.checksum, s.is_archived, s.created_at, s.updated_at, s.deleted_at
 		FROM snippets s
 		WHERE s.rowid IN (
 			SELECT rowid FROM snippets_fts WHERE snippets_fts MATCH ?
 		)
+        AND s.deleted_at IS NULL
 		LIMIT ?
 	`
 
@@ -506,6 +634,7 @@ func (r *SnippetRepository) Search(ctx context.Context, query string, limit int)
 			&s.IsArchived,
 			&s.CreatedAt,
 			&s.UpdatedAt,
+			&s.DeletedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan snippet: %w", err)
 		}

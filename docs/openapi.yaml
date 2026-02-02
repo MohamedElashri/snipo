@@ -435,6 +435,12 @@ paths:
           schema:
             type: boolean
           example: false
+        - name: is_deleted
+          in: query
+          description: Filter by deleted status (default is false). Set to true to see trash.
+          schema:
+            type: boolean
+          example: false
         - name: sort
           in: query
           description: Sort field
@@ -1213,6 +1219,12 @@ paths:
           required: true
           schema:
             type: string
+        - name: permanent
+          in: query
+          description: If true, permanently deletes the snippet. If false (default), soft deletes (moves to trash).
+          schema:
+            type: boolean
+            default: false
       responses:
         '204':
           description: Snippet deleted successfully
@@ -1590,6 +1602,55 @@ paths:
                     error:
                       code: "INTERNAL_ERROR"
                       message: "An internal server error occurred"
+
+  /api/v1/snippets/{id}/restore:
+    post:
+      tags: [Snippets]
+      summary: Restore snippet
+      description: |
+        Restore a soft-deleted snippet from the trash.
+        Requires write or admin permission.
+      operationId: restoreSnippet
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Snippet ID
+      responses:
+        '200':
+          description: Snippet restored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: restored
+        '400':
+          description: Bad request - missing ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /api/v1/snippets/{id}/history:
     get:
