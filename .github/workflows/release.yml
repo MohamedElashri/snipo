@@ -92,6 +92,9 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
+      - name: Lowercase Repo Name
+        run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -187,7 +190,7 @@ jobs:
           echo "## Docker" >> CHANGELOG.md
           echo "" >> CHANGELOG.md
           echo '```bash' >> CHANGELOG.md
-          echo "docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}" >> CHANGELOG.md
+          echo "docker pull ghcr.io/${GITHUB_REPOSITORY,,}:${{ github.ref_name }}" >> CHANGELOG.md
           echo '```' >> CHANGELOG.md
 
       - name: Create release
