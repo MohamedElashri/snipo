@@ -1,6 +1,6 @@
 /* Modals - Modal dialog styles */
 
-.modal-backdrop {
+.snipo-modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
@@ -128,7 +128,7 @@
     width: 100%;
     margin: 0;
   }
-  
+
   .settings-tabs {
     padding: 0 0.5rem;
   }
@@ -215,7 +215,7 @@
 }
 
 /* Modal overlay for centered modals */
-.modal-overlay {
+.snipo-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -326,7 +326,7 @@
   color: var(--pico-color);
 }
 
-.help-card > p {
+.help-card>p {
   margin: 0 0 0.75rem 0;
   font-size: 0.8rem;
   color: var(--pico-muted-color);
@@ -367,24 +367,24 @@
   background: var(--pico-background-color);
   border: 1px solid var(--pico-muted-border-color);
   border-radius: 4px;
-  box-shadow: 0 1px 0 rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.1) inset;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
   margin-right: 0.25rem;
   font-weight: 600;
 }
 
 @media (max-width: 768px) {
-  .modal-overlay {
+  .snipo-modal-overlay {
     padding: 0.5rem;
   }
-  
+
   .search-help-dialog {
     max-height: calc(100vh - 2rem);
   }
-  
+
   .search-help-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .search-help-body {
     padding: 1rem;
   }
@@ -394,11 +394,11 @@
   .search-help-dialog {
     max-height: calc(100vh - 2rem);
   }
-  
+
   .search-help-header {
     padding: 1rem 1.25rem;
   }
-  
+
   .search-help-body {
     padding: 1rem;
   }

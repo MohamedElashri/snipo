@@ -242,8 +242,8 @@ These variables control the overall application appearance:
 ### Modal Components
 
 ```css
-.modal-backdrop            /* Modal background overlay */
-.modal-overlay             /* Alternative modal overlay (used in newer modals) */
+.snipo-modal-backdrop    /* Modal background overlay */
+.snipo-modal-overlay     /* Alternative modal overlay (used in newer modals) */
 .modal                     /* Modal container */
 .modal-header              /* Modal header */
 .modal-body                /* Modal body content */
