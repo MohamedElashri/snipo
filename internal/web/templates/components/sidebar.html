@@ -1,6 +1,7 @@
 {{define "sidebar"}}
 <!-- Sidebar -->
-<aside class="sidebar" :class="{ 'open': $store.app.sidebarOpen, 'closed': !$store.app.sidebarOpen }" x-init="initSidebarResize()">
+<aside class="sidebar" :class="{ 'open': $store.app.sidebarOpen, 'closed': !$store.app.sidebarOpen }"
+    x-init="initSidebarResize()">
     <div class="sidebar-resize-handle" @mousedown="startSidebarResize($event)"></div>
     <a href="{{.BasePath}}/" class="sidebar-header" title="Go to Home">
         <img src="{{.BasePath}}/static/logo.png" alt="Snipo" class="logo" width="24" height="24">
@@ -21,8 +22,7 @@
                 <span>All Snippets</span>
                 <span class="sidebar-item-count" x-text="totalSnippets"></span>
             </div>
-            <div class="sidebar-item favorites-item" @click="showFavorites()"
-                :class="{ 'active': filter.isFavorite }">
+            <div class="sidebar-item favorites-item" @click="showFavorites()" :class="{ 'active': filter.isFavorite }">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="star-icon">
                     <polygon
                         points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
@@ -40,13 +40,21 @@
                 </svg>
                 <span>Archive</span>
             </div>
+            <div class="sidebar-item" @click="showTrash()" :class="{ 'active': filter.isDeleted }"
+                x-show="settings.trash_enabled" style="display: none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Trash</span>
+            </div>
         </div>
 
         <!-- Folders -->
         <div class="sidebar-section">
             <div class="sidebar-section-header" @click="foldersCollapsed = !foldersCollapsed">
-                <svg class="collapse-icon" :class="{ 'collapsed': foldersCollapsed }" viewBox="0 0 24 24"
-                    fill="none" stroke="currentColor" stroke-width="2">
+                <svg class="collapse-icon" :class="{ 'collapsed': foldersCollapsed }" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
                     <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
                 <span class="sidebar-section-title">Folders</span>
@@ -93,8 +101,7 @@
                         <template x-for="child in folder.children || []" :key="child.id">
                             <div class="sidebar-item folder-item nested"
                                 :class="{ 'active': filter.folderId === child.id }">
-                                <div class="sidebar-item-main" @click="filterByFolder(child.id)"
-                                    :title="child.name">
+                                <div class="sidebar-item-main" @click="filterByFolder(child.id)" :title="child.name">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path
                                             d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z">
@@ -144,7 +151,9 @@
                     <div class="sidebar-item" :class="{ 'active': filter.tagId === tag.id }">
                         <div class="sidebar-item-main" @click="filterByTag(tag.id)" :title="tag.name">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                                <path
+                                    d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z">
+                                </path>
                                 <line x1="7" y1="7" x2="7.01" y2="7"></line>
                             </svg>
                             <span x-text="tag.name"></span>
@@ -152,15 +161,15 @@
                         </div>
                         <div class="sidebar-item-actions">
                             <button @click.stop="renameTag(tag)" title="Rename">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    width="14" height="14">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
+                                    height="14">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                 </svg>
                             </button>
                             <button @click.stop="deleteTag(tag)" title="Delete">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    width="14" height="14">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
+                                    height="14">
                                     <polyline points="3 6 5 6 21 6"></polyline>
                                     <path
                                         d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">

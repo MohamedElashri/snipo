@@ -303,8 +303,8 @@ func (s *SnippetService) Update(ctx context.Context, id string, input *models.Sn
 }
 
 // Delete removes a snippet
-func (s *SnippetService) Delete(ctx context.Context, id string) error {
-	err := s.repo.Delete(ctx, id)
+func (s *SnippetService) Delete(ctx context.Context, id string, permanent bool) error {
+	err := s.repo.Delete(ctx, id, permanent)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrSnippetNotFound
@@ -314,6 +314,21 @@ func (s *SnippetService) Delete(ctx context.Context, id string) error {
 	}
 
 	s.logger.Info("snippet deleted", "id", id)
+	return nil
+}
+
+// Restore restores a soft-deleted snippet
+func (s *SnippetService) Restore(ctx context.Context, id string) error {
+	err := s.repo.Restore(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrSnippetNotFound
+		}
+		s.logger.Error("failed to restore snippet", "id", id, "error", err)
+		return err
+	}
+
+	s.logger.Info("snippet restored", "id", id)
 	return nil
 }
 

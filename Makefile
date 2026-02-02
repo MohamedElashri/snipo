@@ -1,4 +1,4 @@
-.PHONY: all build run test test-coverage test-short coverage coverage-func lint clean docker docker-multiarch docker-run docker-stop dev migrate migrate-down vendor-install vendor-sync vendor-check vendor-update vendor-update-major
+.PHONY: all build run run-test test test-coverage test-short coverage coverage-func lint clean docker docker-multiarch docker-run docker-stop dev migrate migrate-down vendor-install vendor-sync vendor-check vendor-update vendor-update-major
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -12,6 +12,9 @@ build:
 
 run: build
 	./bin/snipo serve
+
+run-test: build
+	SNIPO_DISABLE_AUTH=true SNIPO_DB_PATH=./snipo.db ./bin/snipo serve
 
 dev:
 	go run ./cmd/server serve
@@ -62,6 +65,9 @@ docker-stop:
 migrate:
 	go run ./cmd/server migrate
 
+migrate-test:
+	SNIPO_DISABLE_AUTH=true SNIPO_DB_PATH=./snipo.db go run ./cmd/server migrate
+
 migrate-down:
 	go run ./cmd/server migrate down
 
@@ -98,6 +104,7 @@ help:
 	@echo "Available commands:"
 	@echo "  build          - Build the application"
 	@echo "  run            - Run the application"
+	@echo "  run-test       - Run the application (no auth, test db)"
 	@echo "  dev            - Run in development mode"
 	@echo "  test           - Run all tests"
 	@echo "  test-short     - Run short tests"
@@ -107,6 +114,7 @@ help:
 	@echo "  docker-run     - Run with Docker Compose"
 	@echo "  docker-stop    - Stop Docker Compose"
 	@echo "  migrate        - Run database migrations"
+	@echo "  migrate-test   - Run database migrations (no auth, test db)"
 	@echo "  vendor-install - Install npm dependencies"
 	@echo "  vendor-sync    - Sync vendor files"
 	@echo "  vendor-check   - Check for outdated packages"

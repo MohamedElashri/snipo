@@ -175,7 +175,7 @@ func TestSnippetRepository_Delete(t *testing.T) {
 	}
 
 	// Delete it
-	err = repo.Delete(ctx, created.ID)
+	err = repo.Delete(ctx, created.ID, false)
 	if err != nil {
 		t.Fatalf("Delete failed: %v", err)
 	}
@@ -195,7 +195,7 @@ func TestSnippetRepository_Delete_NotFound(t *testing.T) {
 	repo := NewSnippetRepository(db)
 	ctx := testutil.TestContext()
 
-	err := repo.Delete(ctx, "nonexistent")
+	err := repo.Delete(ctx, "nonexistent", false)
 	if err == nil {
 		t.Error("expected error for nonexistent snippet")
 	}

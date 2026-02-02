@@ -15,8 +15,8 @@
 
         <!-- Edit mode: show title input (as textarea for dynamic resize) -->
         <div class="editor-title-wrapper" x-show="isEditing">
-            <textarea class="editor-title-input" x-model="editingSnippet.title" placeholder="Snippet title..."
-                rows="1" @input="scheduleAutoSave(); autoResizeTextarea($event.target)"
+            <textarea class="editor-title-input" x-model="editingSnippet.title" placeholder="Snippet title..." rows="1"
+                @input="scheduleAutoSave(); autoResizeTextarea($event.target)"
                 x-init="$watch('isEditing', (v) => { if(v) $nextTick(() => autoResizeTextarea($el)) })"></textarea>
         </div>
 
@@ -94,19 +94,31 @@
             <button class="btn-action" x-show="isEditing" @click="openEditorSettings()" title="Editor Settings">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                     <circle cx="12" cy="12" r="3"></circle>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                    </path>
                 </svg>
                 <span>Settings</span>
             </button>
 
             <!-- Edit button (preview mode) -->
-            <button class="btn-action primary" x-show="!isEditing" @click="startEditing()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"
-                    height="16">
+            <button class="btn-action primary" x-show="!isEditing && !editingSnippet?.deleted_at"
+                @click="startEditing()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                 </svg>
                 <span>Edit</span>
+            </button>
+
+            <!-- Restore button (deleted mode) -->
+            <button class="btn-action primary" x-show="editingSnippet?.deleted_at"
+                @click="restoreSnippet(editingSnippet)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                    <path d="M3 3v5h5"></path>
+                </svg>
+                <span>Restore</span>
             </button>
 
             <!-- Save button (edit mode) -->
@@ -173,8 +185,7 @@
                 <button class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"
                     @click="editorHeaderVisible = !editorHeaderVisible" title="Focus Mode (Toggle Header)"
                     style="padding: 2px;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"
-                        height="16">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                         <path d="M15 3h6v6"></path>
                         <path d="M14 10l6.1-6.1"></path>
                         <path d="M9 21H3v-6"></path>
@@ -187,8 +198,7 @@
         <!-- File bar for multi-file preview -->
         <div class="preview-file-bar" x-show="editingSnippet.files && editingSnippet.files.length > 0">
             <div class="preview-file-current">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
-                    height="14">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                     <polyline points="14 2 14 8 20 8"></polyline>
                 </svg>
@@ -212,8 +222,7 @@
                 x-html="renderMarkdown(activeFile?.content || editingSnippet.content)">
             </div>
             <!-- Code view for non-markdown -->
-            <div class="preview-code-scroll"
-                x-show="(activeFile?.language || editingSnippet.language) !== 'markdown'">
+            <div class="preview-code-scroll" x-show="(activeFile?.language || editingSnippet.language) !== 'markdown'">
                 <pre><code :class="'language-' + (activeFile?.language || editingSnippet.language)" x-html="highlightCode(activeFile?.content || editingSnippet.content, activeFile?.language || editingSnippet.language)"></code></pre>
             </div>
         </div>
@@ -317,20 +326,18 @@
                             <input type="text" class="filename-input" x-ref="filenameInput" x-show="isRenaming"
                                 :value="activeFile?.filename || ''"
                                 @input="updateActiveFilename($event.target.value); autoResizeInput($event.target)"
-                                @blur="validateFilename(); isRenaming = false"
-                                @keydown.enter="$event.target.blur()"
+                                @blur="validateFilename(); isRenaming = false" @keydown.enter="$event.target.blur()"
                                 @keydown.escape="isRenaming = false; $event.target.value = activeFile?.filename || ''"
                                 x-init="$watch('isRenaming', val => { if(val) $nextTick(() => autoResizeInput($el)) })"
                                 placeholder="filename.ext">
                         </div>
                         <span class="filename-placeholder"
-                            x-show="!editingSnippet.files || editingSnippet.files.length === 0"
-                            @click="addFile()">+ Add file</span>
+                            x-show="!editingSnippet.files || editingSnippet.files.length === 0" @click="addFile()">+ Add
+                            file</span>
                     </div>
 
                     <!-- File tabs (when multiple files) -->
-                    <div class="file-tabs-compact"
-                        x-show="editingSnippet.files && editingSnippet.files.length > 1">
+                    <div class="file-tabs-compact" x-show="editingSnippet.files && editingSnippet.files.length > 1">
                         <template x-for="(file, index) in editingSnippet.files" :key="index">
                             <button class="file-tab-compact" :class="{ 'active': activeFileIndex === index }"
                                 @click="selectFile(index)" :title="file.filename">
@@ -394,8 +401,7 @@
                     x-show="tags.filter(t => !editingSnippet.tags.includes(t.name)).length > 0">
                     <label class="tags-suggestions-label">Quick add:</label>
                     <div class="tags-suggestions-list">
-                        <template
-                            x-for="tag in tags.filter(t => !editingSnippet.tags.includes(t.name)).slice(0, 12)"
+                        <template x-for="tag in tags.filter(t => !editingSnippet.tags.includes(t.name)).slice(0, 12)"
                             :key="tag.id">
                             <button class="tag-suggestion" @click="addTag(tag.name)" :title="tag.name">
                                 <span class="tag-dot" :style="{ background: tag.color }"></span>

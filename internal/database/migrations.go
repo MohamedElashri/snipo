@@ -332,6 +332,18 @@ CREATE INDEX IF NOT EXISTS idx_gist_mappings_status ON snippet_gist_mappings(syn
 CREATE INDEX IF NOT EXISTS idx_gist_conflicts_resolved ON gist_sync_conflicts(resolved);
 `
 
+// Migration 10: Add soft delete support
+const addSoftDeleteSQL = `
+-- Add deleted_at column to snippets table
+ALTER TABLE snippets ADD COLUMN deleted_at DATETIME DEFAULT NULL;
+
+-- Add trash_enabled column to settings table (default 1 = enabled)
+ALTER TABLE settings ADD COLUMN trash_enabled INTEGER DEFAULT 1;
+
+-- Index for deleted_at to speed up cleanup and filtering
+CREATE INDEX IF NOT EXISTS idx_snippets_deleted_at ON snippets(deleted_at);
+`
+
 // getMigrations returns all available migrations in order
 func getMigrations() []Migration {
 	return []Migration{
@@ -344,5 +356,6 @@ func getMigrations() []Migration {
 		{Version: 7, Name: "add_disable_login", SQL: addDisableLoginSQL},
 		{Version: 8, Name: "add_exclude_first_line", SQL: addExcludeFirstLineSQL},
 		{Version: 9, Name: "add_gist_sync", SQL: addGistSyncSQL},
+		{Version: 10, Name: "add_soft_delete", SQL: addSoftDeleteSQL},
 	}
 }
