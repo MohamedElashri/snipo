@@ -3,7 +3,7 @@
 # ============================================================================
 # Build stage
 # ============================================================================
-FROM dhi.io/golang:1.25-alpine3.22-dev AS builder
+FROM dhi.io/golang:1-alpine3.23-dev AS builder
 
 # Build arguments for target platform (automatically set by Docker Buildx)
 ARG TARGETOS
@@ -14,7 +14,7 @@ ARG VERSION=dev
 ARG COMMIT=unknown
 
 # Install build dependencies
-# Note: DHI dev images have apk (package manager)
+# Note: DHI dev images have apk (alpine)
 RUN apk add --no-cache git ca-certificates tzdata file
 
 WORKDIR /src
@@ -48,7 +48,7 @@ RUN mkdir -p /data /tmp && \
 # ============================================================================
 # Production stage - hardened runtime image
 # ============================================================================
-FROM dhi.io/golang:1.25-alpine3.22
+FROM dhi.io/golang:1-alpine3.23
 
 # DHI runtime images:
 # - Run as nonroot by default
@@ -71,9 +71,9 @@ WORKDIR /data
 
 # Add security labels
 LABEL org.opencontainers.image.source="https://github.com/MohamedElashri/snipo" \
-      org.opencontainers.image.description="Self-hosted snippet manager" \
-      org.opencontainers.image.licenses="Affero General Public License v3.0" \
-      org.opencontainers.image.vendor="Mohamed Elashri"
+    org.opencontainers.image.description="Self-hosted snippet manager" \
+    org.opencontainers.image.licenses="Affero General Public License v3.0" \
+    org.opencontainers.image.vendor="Mohamed Elashri"
 
 # Expose the default port
 EXPOSE 8080
