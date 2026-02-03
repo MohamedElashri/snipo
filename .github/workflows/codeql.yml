@@ -1,10 +1,13 @@
 name: "CodeQL Analysis"
 
-on:
   push:
-    branches: [dev, main]
+    branches: [main]
   pull_request:
     branches: [dev, main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
   schedule:
     - cron: '20 14 * * 1'
   workflow_dispatch:

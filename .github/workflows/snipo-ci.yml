@@ -2,7 +2,7 @@ name: snipo CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
     paths-ignore:
       - 'tui/**'
       - 'extension/**'
@@ -11,6 +11,10 @@ on:
     paths-ignore:
       - 'tui/**'
       - 'extension/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
