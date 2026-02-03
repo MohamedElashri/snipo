@@ -1,5 +1,6 @@
 name: Extension CI
 
+on:
   push:
     branches: [main]
     paths:

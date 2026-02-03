@@ -1,5 +1,6 @@
 name: snippy CI
 
+on:
   push:
     branches: [main]
     paths:
