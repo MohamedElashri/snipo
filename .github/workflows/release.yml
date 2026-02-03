@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag to build (e.g. v1.2.3)'
+        required: true
 
 permissions:
   contents: write
@@ -15,11 +20,13 @@ env:
 
 jobs:
   test:
-    name: Test
+    name: Run Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name }}
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -45,6 +52,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag_name }}
           fetch-depth: 0
 
       - name: Setup Go
@@ -55,7 +63,12 @@ jobs:
 
       - name: Get version
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ inputs.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build
         env:
@@ -81,9 +94,19 @@ jobs:
           path: snipo_${{ matrix.goos }}_${{ matrix.goarch }}.*
 
   build-docker:
-    name: Build Docker Image
+    name: Build Docker Image (${{ matrix.name }})
     runs-on: ubuntu-latest
     needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: standard
+            dockerfile: Dockerfile
+            suffix: ""
+          - name: hardened
+            dockerfile: Dockerfile.hardened
+            suffix: "-hardened"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -108,55 +131,39 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Login to DHI Registry
+        if: matrix.name == 'hardened'
+        uses: docker/login-action@v3
+        with:
+          registry: dhi.io
+          username: ${{ secrets.DHI_USERNAME }}
+          password: ${{ secrets.DHI_API_KEY }}
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            suffix=${{ matrix.suffix }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=raw,value=latest,enable=true
 
-      - name: Extract metadata
-        id: meta-hardened
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          flavor: |
-            suffix=-hardened
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest,enable=true
-      - name: Build and push standard image
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile
+          file: ${{ matrix.dockerfile }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
             VERSION=${{ steps.version.outputs.VERSION }}
             COMMIT=${{ github.sha }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          cache-to: type=inline
-
-      - name: Build and push hardened image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.hardened
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta-hardened.outputs.tags }}
-          build-args: |
-            VERSION=${{ steps.version.outputs.VERSION }}
-            COMMIT=${{ github.sha }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:hardened
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest${{ matrix.suffix }}
           cache-to: type=inline
 
   release:
@@ -193,8 +200,14 @@ jobs:
           echo "" >> CHANGELOG.md
           echo "## Docker" >> CHANGELOG.md
           echo "" >> CHANGELOG.md
+          echo "### Standard" >> CHANGELOG.md
           echo '```bash' >> CHANGELOG.md
-          echo "docker pull ghcr.io/${GITHUB_REPOSITORY,,}:${{ github.ref_name }}" >> CHANGELOG.md
+          echo "docker pull ghcr.io/${GITHUB_REPOSITORY,,}:${{ inputs.tag_name || github.ref_name }}" >> CHANGELOG.md
+          echo '```' >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### Hardened" >> CHANGELOG.md
+          echo '```bash' >> CHANGELOG.md
+          echo "docker pull ghcr.io/${GITHUB_REPOSITORY,,}:${{ inputs.tag_name || github.ref_name }}-hardened" >> CHANGELOG.md
           echo '```' >> CHANGELOG.md
 
       - name: Create release
