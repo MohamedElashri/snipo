@@ -139,6 +139,12 @@ jobs:
           username: ${{ secrets.DHI_USERNAME }}
           password: ${{ secrets.DHI_API_KEY }}
 
+      - name: Debug DHI Pull
+        if: matrix.name == 'hardened'
+        run: |
+          docker pull dhi.io/golang:1-alpine3.23
+          docker pull dhi.io/golang:1-alpine3.23-dev
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
