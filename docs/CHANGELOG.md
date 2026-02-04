@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.6] - 2026-02-04
+
+### Fixed
+
+- Corrected hardened image release workflow to include conditional debug pulls
+
+## [1.3.5] - 2026-02-02
+
+### Added
+
+- Hardened Docker image build (#132)
+- Soft delete for snippets with trash management (#135)
+
+### Fixed
+
+- Ensure API token lists are always arrays (#134)
+- Rename modal CSS classes to `snipo-modal-backdrop` to avoid adblocker detection (#136)
+- various other fixes and improvements
+
+
 ## [1.3.4] - 2026-01-29
 
 ### Fixed
