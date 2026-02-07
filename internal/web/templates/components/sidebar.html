@@ -2,10 +2,18 @@
 <!-- Sidebar -->
 <aside class="sidebar" :class="{ 'open': $store.app.sidebarOpen, 'closed': !$store.app.sidebarOpen }" x-init="initSidebarResize()">
     <div class="sidebar-resize-handle" @mousedown="startSidebarResize($event)"></div>
-    <a href="{{.BasePath}}/" class="sidebar-header" title="Go to Home">
-        <img src="{{.BasePath}}/static/logo.png" alt="Snipo" class="logo" width="24" height="24">
-        <h1>Snipo</h1>
-    </a>
+    <div class="sidebar-header-row">
+        <a href="{{.BasePath}}/" class="sidebar-header" title="Go to Home">
+            <img src="{{.BasePath}}/static/logo.png" alt="Snipo" class="logo" width="24" height="24">
+            <h1>Snipo</h1>
+        </a>
+        <button class="btn-icon mobile-sidebar-close" @click="$store.app.toggleSidebar()" title="Close Sidebar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
 
     <nav class="sidebar-nav">
         <!-- Quick actions -->

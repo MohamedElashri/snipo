@@ -33,9 +33,15 @@
   opacity: 0.5;
 }
 
+.sidebar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
 .sidebar-header {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--sidebar-border);
   
   display: flex;
   align-items: center;
@@ -44,6 +50,14 @@
   color: inherit;
   cursor: pointer;
   transition: opacity 0.15s;
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-sidebar-close {
+  display: none;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
 }
 
 .sidebar-header:hover {
@@ -288,5 +302,9 @@
 
   .sidebar.open {
     transform: translateX(0);
+  }
+
+  .mobile-sidebar-close {
+    display: flex;
   }
 }

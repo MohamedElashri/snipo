@@ -41,14 +41,3 @@
     display: none !important;
   }
 }
-
-/* Mobile responsive */
-@media (max-width: 768px) {
-  .main-content {
-    margin-left: 0;
-  }
-
-  .desktop-sidebar-toggle {
-    display: none !important;
-  }
-}
