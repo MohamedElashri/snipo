@@ -180,6 +180,23 @@
                     <span>Public</span>
                 </label>
             </div>
+            <!-- Gist Sync toggle in preview mode -->
+            <div class="preview-meta-item" x-show="editingSnippet?.id && isGistConfigured()">
+                <label class="gist-toggle-switch-preview" title="Sync this snippet to GitHub Gist">
+                    <input type="checkbox" :checked="isGistSyncEnabled(editingSnippet.id)" @change="toggleGistSyncForSnippet(editingSnippet.id)">
+                    <div class="gist-switch-track">
+                        <div class="gist-switch-thumb"></div>
+                    </div>
+                    <span>Gist</span>
+                </label>
+                <a x-show="getGistUrl(editingSnippet.id)" :href="getGistUrl(editingSnippet.id)" target="_blank" class="gist-link-icon" title="View on GitHub">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
+            </div>
             <!-- Toggle Focus Mode -->
             <div class="preview-meta-item" style="margin-left: auto;">
                 <button class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"
@@ -287,6 +304,22 @@
                     <div class="public-switch-thumb"></div>
                 </div>
                 <span>Public</span>
+            </label>
+
+            <!-- Gist Sync toggle in edit mode -->
+            <label class="gist-toggle-switch" title="Sync this snippet to GitHub Gist" x-show="editingSnippet?.id && isGistConfigured()">
+                <input type="checkbox" :checked="isGistSyncEnabled(editingSnippet.id)" @change="toggleGistSyncForSnippet(editingSnippet.id)">
+                <div class="gist-switch-track">
+                    <div class="gist-switch-thumb"></div>
+                </div>
+                <span>Gist</span>
+                <a x-show="getGistUrl(editingSnippet.id)" :href="getGistUrl(editingSnippet.id)" target="_blank" class="gist-link-icon" title="View on GitHub" @click.stop>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
             </label>
 
             <button class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"
