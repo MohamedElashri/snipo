@@ -65,4 +65,5 @@ type SettingsInput struct {
 	EditorEnableLiveAutocompletion bool   `json:"editor_enable_live_autocompletion"`
 	MarkdownFontSize               int    `json:"markdown_font_size"`
 	ExcludeFirstLineOnCopy         bool   `json:"exclude_first_line_on_copy"`
+	Password                       string `json:"password,omitempty"`
 }
