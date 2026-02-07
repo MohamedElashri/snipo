@@ -58,6 +58,11 @@ func (h *SnippetHandler) List(w http.ResponseWriter, r *http.Request) {
 		filter.IsArchived = &isArchived
 	}
 
+	if deleted := r.URL.Query().Get("is_deleted"); deleted != "" {
+		isDeleted := deleted == "true" || deleted == "1"
+		filter.IsDeleted = &isDeleted
+	}
+
 	if tagID := r.URL.Query().Get("tag_id"); tagID != "" {
 		if id, err := strconv.ParseInt(tagID, 10, 64); err == nil && id > 0 {
 			filter.TagID = id
@@ -208,7 +213,8 @@ func (h *SnippetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.Delete(r.Context(), id)
+	permanent := r.URL.Query().Get("permanent") == "true"
+	err := h.service.Delete(r.Context(), id, permanent)
 	if err != nil {
 		if errors.Is(err, services.ErrSnippetNotFound) {
 			NotFound(w, r, "Snippet not found")
@@ -219,6 +225,27 @@ func (h *SnippetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	NoContent(w)
+}
+
+// Restore handles POST /api/v1/snippets/{id}/restore
+func (h *SnippetHandler) Restore(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
+		return
+	}
+
+	err := h.service.Restore(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, services.ErrSnippetNotFound) {
+			NotFound(w, r, "Snippet not found")
+			return
+		}
+		InternalError(w, r)
+		return
+	}
+
+	OK(w, r, map[string]string{"status": "restored"})
 }
 
 // ToggleFavorite handles POST /api/v1/snippets/{id}/favorite

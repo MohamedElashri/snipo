@@ -3,7 +3,7 @@
 # ============================================================================
 # Build stage
 # ============================================================================
-FROM golang:1.25-alpine AS builder
+FROM dhi.io/golang:1-alpine3.23-dev AS builder
 
 # Build arguments for target platform (automatically set by Docker Buildx)
 ARG TARGETOS
@@ -14,6 +14,7 @@ ARG VERSION=dev
 ARG COMMIT=unknown
 
 # Install build dependencies
+# Note: DHI dev images have apk (alpine)
 RUN apk add --no-cache git ca-certificates tzdata file
 
 WORKDIR /src
@@ -25,51 +26,61 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Verify platform information
+# Verify platform information (helps with debugging multi-arch builds)
 RUN echo "Building for TARGETOS=${TARGETOS} TARGETARCH=${TARGETARCH}"
 
 # Build the binary with optimizations
+# Force fresh build by using unique build ID
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
     -ldflags="-w -s -X main.Version=${VERSION} -X main.Commit=${COMMIT}" \
     -o /snipo \
     ./cmd/server
 
-# Verify the built binary
+# Verify the built binary architecture
 RUN file /snipo && ls -lh /snipo
 
+# Prepare data directories with correct permissions for runtime
+# We create a .keep file to ensure COPY copies something and creates the directory
+RUN mkdir -p /data /tmp && \
+    touch /data/.keep /tmp/.keep && \
+    chmod 777 /data /tmp
+
 # ============================================================================
-# Final stage - minimal runtime image
+# Production stage - hardened runtime image
 # ============================================================================
-FROM alpine:3.23
+FROM dhi.io/golang:1-alpine3.23
 
-# Install ca-certificates and timezone data
-# Create non-root user (UID 1000)
-RUN apk add --no-cache ca-certificates tzdata \
-    && adduser -D -u 1000 snipo \
-    && mkdir -p /data /tmp \
-    && chown -R snipo:snipo /data /tmp
+# DHI runtime images:
+# - Run as nonroot by default
+# - Do not have package managers (no apk)
+# - Include CA certificates
 
-# Copy the binary with proper permissions
-COPY --from=builder --chown=root:root --chmod=755 /snipo /snipo
+# Copy tzdata from builder
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 
-# Work directory
+# Copy directories with permissions from builder
+# We use numeric ID 65532 (nonroot) which is standard for DHI/distroless images
+COPY --from=builder --chown=65532:65532 /data /data
+COPY --from=builder --chown=65532:65532 /tmp /tmp
+
+# Copy the binary
+COPY --from=builder /snipo /snipo
+
+
 WORKDIR /data
 
 # Add security labels
 LABEL org.opencontainers.image.source="https://github.com/MohamedElashri/snipo" \
-      org.opencontainers.image.description="Self-hosted snippet manager" \
-      org.opencontainers.image.licenses="Affero General Public License v3.0" \
-      org.opencontainers.image.vendor="Mohamed Elashri"
+    org.opencontainers.image.description="Self-hosted snippet manager" \
+    org.opencontainers.image.licenses="Affero General Public License v3.0" \
+    org.opencontainers.image.vendor="Mohamed Elashri"
 
-# Expose port
+# Expose the default port
 EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD ["/snipo", "health"]
-
-# Run as non-root user (snipo: UID 1000)
-USER snipo
 
 # Default environment variables
 ENV SNIPO_HOST=0.0.0.0 \

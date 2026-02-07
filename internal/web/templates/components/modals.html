@@ -1,6 +1,6 @@
 {{define "modals"}}
 <!-- Delete confirmation modal -->
-<div class="modal-backdrop" x-show="showDeleteModal" x-cloak @click.self="showDeleteModal = false">
+<div class="snipo-modal-backdrop" x-show="showDeleteModal" x-cloak @click.self="showDeleteModal = false">
     <div class="modal">
         <div class="modal-header">
             <h3>Delete Snippet</h3>
@@ -26,7 +26,7 @@
 </div>
 
 <!-- Settings modal -->
-<div class="modal-backdrop" x-show="showSettings" x-cloak @click.self="closeSettings()">
+<div class="snipo-modal-backdrop" x-show="showSettings" x-cloak @click.self="closeSettings()">
     <div class="modal settings-modal">
         <div class="modal-header">
             <h3>Settings</h3>
@@ -58,15 +58,14 @@
                 </svg>
                 Appearance
             </button>
-            <button class="settings-tab" :class="{ active: settingsTab === 'editor' }"
-                @click="settingsTab = 'editor'">
+            <button class="settings-tab" :class="{ active: settingsTab === 'editor' }" @click="settingsTab = 'editor'">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                 </svg>
                 Editor
             </button>
-                        <button class="settings-tab" :class="{ active: settingsTab === 'apikeys' }"
+            <button class="settings-tab" :class="{ active: settingsTab === 'apikeys' }"
                 @click="settingsTab = 'apikeys'">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                     <path
@@ -87,7 +86,9 @@
             <button class="settings-tab" :class="{ active: settingsTab === 'gist' }"
                 @click="settingsTab = 'gist'; loadGistConfig(); loadGistMappings()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                    <path
+                        d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22">
+                    </path>
                 </svg>
                 GitHub Gist
             </button>
@@ -110,7 +111,18 @@
                         <input type="checkbox" x-model="settings.history_enabled" @change="updateSettings()">
                         <span>Enable Modification History</span>
                     </label>
-                    <p class="text-sm text-muted" style="margin-top: 0.25rem;">Track all changes to snippets. Previous versions can be viewed and restored at any time.</p>
+                    <p class="text-sm text-muted" style="margin-top: 0.25rem;">Track all changes to snippets. Previous
+                        versions can be viewed and restored at any time.</p>
+                </div>
+                <div class="editor-field" style="margin-top: 1rem;">
+                    <label class="checkbox-label">
+                        <input type="checkbox" x-model="settings.trash_enabled" @change="updateSettings()">
+                        <span>Enable Trash</span>
+                    </label>
+                    <p class="text-sm text-muted" style="margin-top: 0.25rem;">
+                        Move deleted snippets to trash instead of deleting them permanently. Snippets in trash are
+                        automatically deleted after 30 days.
+                    </p>
                 </div>
                 <div class="editor-field" style="margin-top: 1rem;">
                     <label class="checkbox-label">
@@ -118,7 +130,7 @@
                         <span>Disable Login Page</span>
                     </label>
                     <p class="text-sm text-muted" style="margin-top: 0.25rem;">
-                        Hide the login page and allow direct access to the application without session authentication. 
+                        Hide the login page and allow direct access to the application without session authentication.
                         <strong>Note:</strong> API token operations always require password verification for security.
                     </p>
                 </div>
@@ -128,7 +140,8 @@
                         <span>Exclude First Line When Copying</span>
                     </label>
                     <p class="text-sm text-muted" style="margin-top: 0.25rem;">
-                        When copying snippets, automatically exclude the first line (useful for shebang lines like <code>#!/usr/bin/bash</code> or <code>&lt;?php</code>).
+                        When copying snippets, automatically exclude the first line (useful for shebang lines like
+                        <code>#!/usr/bin/bash</code> or <code>&lt;?php</code>).
                     </p>
                 </div>
             </div>
@@ -142,7 +155,8 @@
 
                 <div class="editor-field">
                     <label>Markdown Preview Font Size</label>
-                    <select x-model.number="settings.markdown_font_size" @change="updateSettings(); applyMarkdownFontSize()">
+                    <select x-model.number="settings.markdown_font_size"
+                        @change="updateSettings(); applyMarkdownFontSize()">
                         <option value="10">10px</option>
                         <option value="11">11px</option>
                         <option value="12">12px</option>
@@ -154,7 +168,8 @@
                         <option value="20">20px</option>
                         <option value="22">22px</option>
                     </select>
-                    <p class="text-sm text-muted" style="margin-top: 0.25rem;">Adjust the font size for markdown file previews.</p>
+                    <p class="text-sm text-muted" style="margin-top: 0.25rem;">Adjust the font size for markdown file
+                        previews.</p>
                 </div>
 
                 <div class="editor-field" style="margin-top: 1.5rem;">
@@ -164,13 +179,9 @@
                             (Advanced)
                         </span>
                     </label>
-                    <textarea 
-                        x-model="settings.custom_css" 
-                        @input="customCssChanged = true"
-                        placeholder="/* Add your custom CSS here */"
-                        rows="10"
-                        style="font-family: var(--font-mono); font-size: 13px; resize: vertical; min-height: 150px;"
-                    ></textarea>
+                    <textarea x-model="settings.custom_css" @input="customCssChanged = true"
+                        placeholder="/* Add your custom CSS here */" rows="10"
+                        style="font-family: var(--font-mono); font-size: 13px; resize: vertical; min-height: 150px;"></textarea>
                     <div style="margin-top: 0.5rem;">
                         <p class="text-sm text-muted" style="margin-bottom: 0.5rem;">
                             Override default styles with custom CSS. Changes apply immediately after saving.
@@ -179,9 +190,12 @@
                             <summary class="text-sm" style="cursor: pointer; user-select: none; font-weight: 500;">
                                 <span style="color: var(--snipo-accent);">📖 View CSS Customization Guide</span>
                             </summary>
-                            <div style="margin-top: 0.75rem; padding: 1rem; background: var(--snipo-bg-secondary); border-radius: 8px;">
-                                <p class="text-sm" style="margin-bottom: 0.75rem;"><strong>Available CSS Variables:</strong></p>
-                                <pre class="text-sm" style="margin: 0; padding: 0.75rem; background: var(--snipo-bg-primary); border-radius: 4px; overflow-x: auto; font-size: 12px;">--snipo-primary: Main theme color
+                            <div
+                                style="margin-top: 0.75rem; padding: 1rem; background: var(--snipo-bg-secondary); border-radius: 8px;">
+                                <p class="text-sm" style="margin-bottom: 0.75rem;"><strong>Available CSS
+                                        Variables:</strong></p>
+                                <pre class="text-sm"
+                                    style="margin: 0; padding: 0.75rem; background: var(--snipo-bg-primary); border-radius: 4px; overflow-x: auto; font-size: 12px;">--snipo-primary: Main theme color
 --snipo-accent: Accent/highlight color
 --snipo-bg-primary: Primary background
 --snipo-bg-secondary: Secondary background
@@ -190,12 +204,16 @@
 --snipo-border: Border color
 --snipo-danger: Error/delete color
 --snipo-success: Success color</pre>
-                                <p class="text-sm" style="margin-top: 0.75rem; margin-bottom: 0.5rem;"><strong>Example - Change accent color:</strong></p>
-                                <pre class="text-sm" style="margin: 0; padding: 0.75rem; background: var(--snipo-bg-primary); border-radius: 4px; overflow-x: auto; font-size: 12px;">:root {
+                                <p class="text-sm" style="margin-top: 0.75rem; margin-bottom: 0.5rem;"><strong>Example -
+                                        Change accent color:</strong></p>
+                                <pre class="text-sm"
+                                    style="margin: 0; padding: 0.75rem; background: var(--snipo-bg-primary); border-radius: 4px; overflow-x: auto; font-size: 12px;">:root {
   --snipo-accent: #ff6b6b;
 }</pre>
-                                <p class="text-sm" style="margin-top: 0.75rem; margin-bottom: 0.5rem;"><strong>Example - Custom sidebar styling:</strong></p>
-                                <pre class="text-sm" style="margin: 0; padding: 0.75rem; background: var(--snipo-bg-primary); border-radius: 4px; overflow-x: auto; font-size: 12px;">.sidebar {
+                                <p class="text-sm" style="margin-top: 0.75rem; margin-bottom: 0.5rem;"><strong>Example -
+                                        Custom sidebar styling:</strong></p>
+                                <pre class="text-sm"
+                                    style="margin: 0; padding: 0.75rem; background: var(--snipo-bg-primary); border-radius: 4px; overflow-x: auto; font-size: 12px;">.sidebar {
   background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
 }
 
@@ -203,25 +221,25 @@
   background: rgba(255, 107, 107, 0.1);
 }</pre>
                                 <p class="text-sm text-muted" style="margin-top: 0.75rem;">
-                                    💡 <strong>Tip:</strong> Use browser DevTools (F12) to inspect elements and find class names.
-                                    See <a href="https://github.com/MohamedElashri/snipo/blob/main/docs/customization.md" target="_blank" style="color: var(--snipo-accent);">full documentation</a> for more examples.
+                                    💡 <strong>Tip:</strong> Use browser DevTools (F12) to inspect elements and find
+                                    class names.
+                                    See <a
+                                        href="https://github.com/MohamedElashri/snipo/blob/main/docs/customization.md"
+                                        target="_blank" style="color: var(--snipo-accent);">full documentation</a> for
+                                    more examples.
                                 </p>
                             </div>
                         </details>
                     </div>
-                    <button 
-                        @click="saveAndApplyCustomCSS()" 
-                        class="btn-primary" 
-                        style="margin-top: 0.75rem; width: 100%;"
-                        :disabled="!customCssChanged"
-                    >
+                    <button @click="saveAndApplyCustomCSS()" class="btn-primary"
+                        style="margin-top: 0.75rem; width: 100%;" :disabled="!customCssChanged">
                         <span x-show="!customCssChanged">Custom CSS Saved</span>
                         <span x-show="customCssChanged">Save and Apply Custom CSS</span>
                     </button>
                 </div>
             </div>
 
-            
+
             <!-- API Keys tab -->
             <div x-show="settingsTab === 'apikeys'">
                 <!-- Create new token -->
@@ -235,8 +253,7 @@
                         <div style="display: flex; gap: 0.5rem;">
                             <input type="text" :value="createdToken" readonly
                                 style="font-family: var(--font-mono); font-size: 0.8rem;">
-                            <button class="btn-primary" @click="copyToken()"
-                                style="white-space: nowrap;">Copy</button>
+                            <button class="btn-primary" @click="copyToken()" style="white-space: nowrap;">Copy</button>
                         </div>
                     </div>
 
@@ -323,8 +340,7 @@
                         </div>
                     </div>
 
-                    <button class="btn-primary" @click="exportBackup()" :disabled="backupLoading"
-                        style="width: 100%;">
+                    <button class="btn-primary" @click="exportBackup()" :disabled="backupLoading" style="width: 100%;">
                         <span x-show="!backupLoading">Download Backup</span>
                         <span x-show="backupLoading">Exporting...</span>
                     </button>
@@ -353,8 +369,7 @@
                         </div>
                         <div class="editor-field">
                             <label>Password (if encrypted)</label>
-                            <input type="password" x-model="importOptions.password"
-                                placeholder="Decryption password">
+                            <input type="password" x-model="importOptions.password" placeholder="Decryption password">
                         </div>
                     </div>
 
@@ -427,8 +442,7 @@
                                             </div>
                                         </div>
                                         <div style="display: flex; gap: 0.5rem;">
-                                            <button class="btn-icon" @click="restoreFromS3(backup.key)"
-                                                title="Restore">
+                                            <button class="btn-icon" @click="restoreFromS3(backup.key)" title="Restore">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                                     stroke-width="2" width="16" height="16">
                                                     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8">
@@ -459,17 +473,20 @@
             <div x-show="settingsTab === 'gist'">
                 <h4 style="margin-bottom: 1rem; font-size: 1rem;">GitHub Gist Sync</h4>
                 <p class="text-sm text-muted" style="margin-bottom: 1.5rem;">
-                    Sync your snippets with GitHub Gists. Requires a GitHub Personal Access Token with <code>gist</code> scope.
+                    Sync your snippets with GitHub Gists. Requires a GitHub Personal Access Token with <code>gist</code>
+                    scope.
                 </p>
 
                 <!-- Connection Status -->
                 <div class="backup-section">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <div>
                             <h5 style="margin: 0; font-size: 0.9rem;">Connection Status</h5>
                             <p class="text-sm text-muted" style="margin: 0.25rem 0 0 0;">
                                 <template x-if="gistConfig.has_token && gistConfig.enabled">
-                                    <span style="color: var(--snipo-success);">✓ Connected as <strong x-text="gistConfig.github_username"></strong></span>
+                                    <span style="color: var(--snipo-success);">✓ Connected as <strong
+                                            x-text="gistConfig.github_username"></strong></span>
                                 </template>
                                 <template x-if="!gistConfig.has_token || !gistConfig.enabled">
                                     <span style="color: var(--snipo-text-secondary);">Not connected</span>
@@ -477,7 +494,8 @@
                             </p>
                         </div>
                         <template x-if="gistConfig.has_token">
-                            <button class="btn-secondary" @click="testGistConnection()" :disabled="gistTestingConnection">
+                            <button class="btn-secondary" @click="testGistConnection()"
+                                :disabled="gistTestingConnection">
                                 <span x-show="!gistTestingConnection">Test Connection</span>
                                 <span x-show="gistTestingConnection">Testing...</span>
                             </button>
@@ -488,16 +506,16 @@
                     <div class="editor-field" style="margin-bottom: 1rem;">
                         <label>GitHub Personal Access Token</label>
                         <div style="display: flex; gap: 0.5rem;">
-                            <input type="password" x-model="gistTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" 
-                                   style="flex: 1;" x-show="showGistTokenInput || !gistConfig.has_token">
-                            <button class="btn-secondary" @click="showGistTokenInput = !showGistTokenInput" 
-                                    x-show="gistConfig.has_token && !showGistTokenInput">
+                            <input type="password" x-model="gistTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                                style="flex: 1;" x-show="showGistTokenInput || !gistConfig.has_token">
+                            <button class="btn-secondary" @click="showGistTokenInput = !showGistTokenInput"
+                                x-show="gistConfig.has_token && !showGistTokenInput">
                                 Change Token
                             </button>
                         </div>
                         <small class="text-sm text-muted" style="display: block; margin-top: 0.25rem;">
-                            <a href="https://github.com/settings/tokens/new?scopes=gist&description=Snipo" 
-                               target="_blank" style="color: var(--snipo-primary);">Generate token</a> 
+                            <a href="https://github.com/settings/tokens/new?scopes=gist&description=Snipo"
+                                target="_blank" style="color: var(--snipo-primary);">Generate token</a>
                             with <code>gist</code> scope
                         </small>
                     </div>
@@ -513,7 +531,8 @@
                     <!-- Auto Sync -->
                     <div class="editor-field" style="margin-bottom: 1rem;">
                         <label class="checkbox-label">
-                            <input type="checkbox" x-model="gistConfig.auto_sync_enabled" :disabled="!gistConfig.enabled">
+                            <input type="checkbox" x-model="gistConfig.auto_sync_enabled"
+                                :disabled="!gistConfig.enabled">
                             <span>Enable Automatic Background Sync</span>
                         </label>
                     </div>
@@ -555,11 +574,13 @@
                         <button class="btn-primary" @click="saveGistConfig()" style="flex: 1; min-width: 150px;">
                             Save Configuration
                         </button>
-                        <button class="btn-primary" @click="enableSyncForAll()" :disabled="!gistConfig.enabled || gistSyncing" style="flex: 1; min-width: 150px;">
+                        <button class="btn-primary" @click="enableSyncForAll()"
+                            :disabled="!gistConfig.enabled || gistSyncing" style="flex: 1; min-width: 150px;">
                             <span x-show="!gistSyncing">Enable Sync for All</span>
                             <span x-show="gistSyncing">Processing...</span>
                         </button>
-                        <button class="btn-primary" @click="syncAllGists()" :disabled="!gistConfig.enabled || gistSyncing" style="flex: 1; min-width: 150px;">
+                        <button class="btn-primary" @click="syncAllGists()"
+                            :disabled="!gistConfig.enabled || gistSyncing" style="flex: 1; min-width: 150px;">
                             <span x-show="!gistSyncing">Sync Now</span>
                             <span x-show="gistSyncing">Syncing...</span>
                         </button>
@@ -569,50 +590,65 @@
                             </button>
                         </template>
                     </div>
-                    
+
                     <!-- Progress Bar -->
                     <div x-show="gistSyncing" style="margin-top: 1rem;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                            <span class="text-sm" x-text="gistSyncProgress.message" style="color: var(--snipo-text-secondary);"></span>
-                            <span class="text-sm" x-show="gistSyncProgress.total > 0" style="color: var(--snipo-text-secondary);">
-                                <span x-text="gistSyncProgress.current"></span>/<span x-text="gistSyncProgress.total"></span>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span class="text-sm" x-text="gistSyncProgress.message"
+                                style="color: var(--snipo-text-secondary);"></span>
+                            <span class="text-sm" x-show="gistSyncProgress.total > 0"
+                                style="color: var(--snipo-text-secondary);">
+                                <span x-text="gistSyncProgress.current"></span>/<span
+                                    x-text="gistSyncProgress.total"></span>
                             </span>
                         </div>
-                        <div style="width: 100%; height: 8px; background: var(--snipo-border); border-radius: 4px; overflow: hidden;">
-                            <div style="height: 100%; background: var(--snipo-primary); transition: width 0.3s ease;" 
-                                 :style="`width: ${gistSyncProgress.total > 0 ? (gistSyncProgress.current / gistSyncProgress.total * 100) : 0}%`">
+                        <div
+                            style="width: 100%; height: 8px; background: var(--snipo-border); border-radius: 4px; overflow: hidden;">
+                            <div style="height: 100%; background: var(--snipo-primary); transition: width 0.3s ease;"
+                                :style="`width: ${gistSyncProgress.total > 0 ? (gistSyncProgress.current / gistSyncProgress.total * 100) : 0}%`">
                             </div>
                         </div>
                     </div>
-                    
+
                     <p class="text-sm text-muted" style="margin-top: 0.5rem;">
-                        <strong>Enable Sync for All:</strong> Creates gists for all snippets. <strong>Sync Now:</strong> Syncs already-enabled snippets.
+                        <strong>Enable Sync for All:</strong> Creates gists for all snippets. <strong>Sync Now:</strong>
+                        Syncs already-enabled snippets.
                     </p>
                 </div>
 
                 <!-- Mappings Section -->
                 <div class="backup-section" style="margin-top: 1.5rem;">
-                    <h5 style="margin-bottom: 0.75rem; font-size: 0.9rem;">Synced Snippets (<span x-text="gistMappings.length"></span>)</h5>
+                    <h5 style="margin-bottom: 0.75rem; font-size: 0.9rem;">Synced Snippets (<span
+                            x-text="gistMappings.length"></span>)</h5>
                     <div style="max-height: 300px; overflow-y: auto;">
                         <template x-if="gistMappings.length === 0">
                             <p class="text-sm text-muted">No snippets synced yet.</p>
                         </template>
                         <template x-for="mapping in gistMappings" :key="mapping.id">
-                            <div style="padding: 0.75rem; border: 1px solid var(--snipo-border); border-radius: 6px; margin-bottom: 0.5rem;">
+                            <div
+                                style="padding: 0.75rem; border: 1px solid var(--snipo-border); border-radius: 6px; margin-bottom: 0.5rem;">
                                 <div style="display: flex; justify-content: space-between; align-items: start;">
                                     <div style="flex: 1;">
-                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                                            <span :class="getSyncStatusBadge(mapping.sync_status).class" x-text="getSyncStatusBadge(mapping.sync_status).icon"></span>
+                                        <div
+                                            style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                            <span :class="getSyncStatusBadge(mapping.sync_status).class"
+                                                x-text="getSyncStatusBadge(mapping.sync_status).icon"></span>
                                             <strong style="font-size: 0.875rem;" x-text="mapping.snippet_id"></strong>
                                         </div>
-                                        <a :href="mapping.gist_url" target="_blank" class="text-sm" style="color: var(--snipo-primary);">
+                                        <a :href="mapping.gist_url" target="_blank" class="text-sm"
+                                            style="color: var(--snipo-primary);">
                                             View on GitHub →
                                         </a>
                                     </div>
-                                    <button class="btn-icon" @click="deleteGistMapping(mapping.id)" title="Remove mapping">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                    <button class="btn-icon" @click="deleteGistMapping(mapping.id)"
+                                        title="Remove mapping">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                            width="16" height="16">
                                             <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                            <path
+                                                d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                            </path>
                                         </svg>
                                     </button>
                                 </div>
@@ -628,15 +664,19 @@
                             ⚠ Conflicts (<span x-text="gistConflicts.length"></span>)
                         </h5>
                         <template x-for="conflict in gistConflicts" :key="conflict.id">
-                            <div style="padding: 0.75rem; border: 1px solid var(--snipo-warning); border-radius: 6px; margin-bottom: 0.5rem; background: rgba(var(--snipo-warning-rgb), 0.05);">
+                            <div
+                                style="padding: 0.75rem; border: 1px solid var(--snipo-warning); border-radius: 6px; margin-bottom: 0.5rem; background: rgba(var(--snipo-warning-rgb), 0.05);">
                                 <p style="font-size: 0.875rem; margin-bottom: 0.5rem;">
                                     <strong x-text="conflict.snippet_id"></strong>
                                 </p>
                                 <div style="display: flex; gap: 0.5rem;">
-                                    <button class="btn-secondary" @click="resolveGistConflict(conflict.id, 'snipo_wins')" style="flex: 1; font-size: 0.8rem;">
+                                    <button class="btn-secondary"
+                                        @click="resolveGistConflict(conflict.id, 'snipo_wins')"
+                                        style="flex: 1; font-size: 0.8rem;">
                                         Keep Snipo
                                     </button>
-                                    <button class="btn-secondary" @click="resolveGistConflict(conflict.id, 'gist_wins')" style="flex: 1; font-size: 0.8rem;">
+                                    <button class="btn-secondary" @click="resolveGistConflict(conflict.id, 'gist_wins')"
+                                        style="flex: 1; font-size: 0.8rem;">
                                         Keep Gist
                                     </button>
                                 </div>
@@ -656,11 +696,12 @@
                 <!-- Visual Settings -->
                 <div style="margin-bottom: 1.5rem;">
                     <h5 style="margin-bottom: 0.75rem; font-size: 0.9rem;">Visual</h5>
-                    
+
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                         <div class="editor-field">
                             <label>Font Size</label>
-                            <select x-model.number="settings.editor_font_size" @change="updateSettings(); applyEditorSettings()">
+                            <select x-model.number="settings.editor_font_size"
+                                @change="updateSettings(); applyEditorSettings()">
                                 <option value="10">10px</option>
                                 <option value="11">11px</option>
                                 <option value="12">12px</option>
@@ -672,9 +713,13 @@
                                 <option value="20">20px</option>
                                 <option value="22">22px</option>
                             </select>
-                            <small style="color: var(--pico-muted-color); font-size: 0.75rem; margin-top: 0.25rem; display: block;">
-                                Note: Your browser's minimum font size setting may prevent smaller sizes from displaying.
-                                <a href="#" @click.prevent="showFontSizeHelp = true" style="color: var(--snipo-primary); text-decoration: underline; margin-left: 0.25rem;">How to change?</a>
+                            <small
+                                style="color: var(--pico-muted-color); font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+                                Note: Your browser's minimum font size setting may prevent smaller sizes from
+                                displaying.
+                                <a href="#" @click.prevent="showFontSizeHelp = true"
+                                    style="color: var(--snipo-primary); text-decoration: underline; margin-left: 0.25rem;">How
+                                    to change?</a>
                             </small>
                         </div>
 
@@ -704,34 +749,42 @@
 
                     <div class="editor-field">
                         <label class="checkbox-label">
-                            <input type="checkbox" x-model="settings.editor_show_gutter" @change="updateSettings(); applyEditorSettings()">
+                            <input type="checkbox" x-model="settings.editor_show_gutter"
+                                @change="updateSettings(); applyEditorSettings()">
                             <span>Show Line Numbers</span>
                         </label>
-                        <p class="text-sm text-muted" style="margin-top: 0.25rem;">Display line numbers in the editor gutter.</p>
+                        <p class="text-sm text-muted" style="margin-top: 0.25rem;">Display line numbers in the editor
+                            gutter.</p>
                     </div>
 
                     <div class="editor-field" style="margin-top: 1rem;">
                         <label class="checkbox-label">
-                            <input type="checkbox" x-model="settings.editor_highlight_active_line" @change="updateSettings(); applyEditorSettings()">
+                            <input type="checkbox" x-model="settings.editor_highlight_active_line"
+                                @change="updateSettings(); applyEditorSettings()">
                             <span>Highlight Active Line</span>
                         </label>
-                        <p class="text-sm text-muted" style="margin-top: 0.25rem;">Highlight the line where the cursor is located.</p>
+                        <p class="text-sm text-muted" style="margin-top: 0.25rem;">Highlight the line where the cursor
+                            is located.</p>
                     </div>
 
                     <div class="editor-field" style="margin-top: 1rem;">
                         <label class="checkbox-label">
-                            <input type="checkbox" x-model="settings.editor_show_indent_guides" @change="updateSettings(); applyEditorSettings()">
+                            <input type="checkbox" x-model="settings.editor_show_indent_guides"
+                                @change="updateSettings(); applyEditorSettings()">
                             <span>Show Indent Guides</span>
                         </label>
-                        <p class="text-sm text-muted" style="margin-top: 0.25rem;">Display vertical guides for indentation levels.</p>
+                        <p class="text-sm text-muted" style="margin-top: 0.25rem;">Display vertical guides for
+                            indentation levels.</p>
                     </div>
 
                     <div class="editor-field" style="margin-top: 1rem;">
                         <label class="checkbox-label">
-                            <input type="checkbox" x-model="settings.editor_show_print_margin" @change="updateSettings(); applyEditorSettings()">
+                            <input type="checkbox" x-model="settings.editor_show_print_margin"
+                                @change="updateSettings(); applyEditorSettings()">
                             <span>Show Print Margin</span>
                         </label>
-                        <p class="text-sm text-muted" style="margin-top: 0.25rem;">Display a vertical line at column 80.</p>
+                        <p class="text-sm text-muted" style="margin-top: 0.25rem;">Display a vertical line at column 80.
+                        </p>
                     </div>
                 </div>
 
@@ -741,7 +794,8 @@
 
                     <div class="editor-field">
                         <label>Tab Size</label>
-                        <select x-model.number="settings.editor_tab_size" @change="updateSettings(); applyEditorSettings()">
+                        <select x-model.number="settings.editor_tab_size"
+                            @change="updateSettings(); applyEditorSettings()">
                             <option value="2">2 spaces (Default)</option>
                             <option value="4">4 spaces</option>
                             <option value="8">8 spaces</option>
@@ -750,18 +804,22 @@
 
                     <div class="editor-field" style="margin-top: 1rem;">
                         <label class="checkbox-label">
-                            <input type="checkbox" x-model="settings.editor_use_soft_tabs" @change="updateSettings(); applyEditorSettings()">
+                            <input type="checkbox" x-model="settings.editor_use_soft_tabs"
+                                @change="updateSettings(); applyEditorSettings()">
                             <span>Use Soft Tabs (Spaces)</span>
                         </label>
-                        <p class="text-sm text-muted" style="margin-top: 0.25rem;">Insert spaces instead of tab characters.</p>
+                        <p class="text-sm text-muted" style="margin-top: 0.25rem;">Insert spaces instead of tab
+                            characters.</p>
                     </div>
 
                     <div class="editor-field" style="margin-top: 1rem;">
                         <label class="checkbox-label">
-                            <input type="checkbox" x-model="settings.editor_word_wrap" @change="updateSettings(); applyEditorSettings()">
+                            <input type="checkbox" x-model="settings.editor_word_wrap"
+                                @change="updateSettings(); applyEditorSettings()">
                             <span>Word Wrap</span>
                         </label>
-                        <p class="text-sm text-muted" style="margin-top: 0.25rem;">Wrap long lines to fit in the editor width.</p>
+                        <p class="text-sm text-muted" style="margin-top: 0.25rem;">Wrap long lines to fit in the editor
+                            width.</p>
                     </div>
                 </div>
             </div>
@@ -770,7 +828,7 @@
 </div>
 
 <!-- New Folder modal -->
-<div class="modal-backdrop" x-show="showFolderModal" x-cloak @click.self="showFolderModal = false">
+<div class="snipo-modal-backdrop" x-show="showFolderModal" x-cloak @click.self="showFolderModal = false">
     <div class="modal" style="max-width: 400px;">
         <div class="modal-header">
             <h3 x-text="editingFolder?.id ? 'Rename Folder' : 'New Folder'"></h3>
@@ -804,7 +862,7 @@
 </div>
 
 <!-- Rename Tag modal -->
-<div class="modal-backdrop" x-show="showTagModal" x-cloak @click.self="showTagModal = false">
+<div class="snipo-modal-backdrop" x-show="showTagModal" x-cloak @click.self="showTagModal = false">
     <div class="modal" style="max-width: 400px;">
         <div class="modal-header">
             <h3>Rename Tag</h3>
@@ -829,7 +887,7 @@
 </div>
 
 <!-- History modal -->
-<div class="modal-backdrop" x-show="showHistory" x-cloak @click.self="closeHistory()">
+<div class="snipo-modal-backdrop" x-show="showHistory" x-cloak @click.self="closeHistory()">
     <div class="modal" style="max-width: 900px; max-height: 80vh;">
         <div class="modal-header">
             <h3>Snippet History</h3>
@@ -862,7 +920,8 @@
                             </div>
                             <div class="history-entry-actions">
                                 <button class="btn-sm" @click="viewHistoryDetail(entry)">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        width="14" height="14">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                         <circle cx="12" cy="12" r="3"></circle>
                                     </svg>
@@ -870,7 +929,8 @@
                                 </button>
                                 <button class="btn-sm btn-primary" @click="confirmRestoreHistory(entry)"
                                     x-show="index > 0">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        width="14" height="14">
                                         <polyline points="1 4 1 10 7 10"></polyline>
                                         <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
                                     </svg>
@@ -886,7 +946,7 @@
 </div>
 
 <!-- History Detail modal -->
-<div class="modal-backdrop" x-show="showHistoryDetail" x-cloak @click.self="closeHistoryDetail()">
+<div class="snipo-modal-backdrop" x-show="showHistoryDetail" x-cloak @click.self="closeHistoryDetail()">
     <div class="modal" style="max-width: 1000px; max-height: 85vh;">
         <div class="modal-header">
             <div>
@@ -911,13 +971,16 @@
             </div>
 
             <!-- Single file/content view -->
-            <div class="history-detail-section" x-show="!viewingHistoryEntry?.files || viewingHistoryEntry?.files.length === 0">
+            <div class="history-detail-section"
+                x-show="!viewingHistoryEntry?.files || viewingHistoryEntry?.files.length === 0">
                 <h4>Content</h4>
                 <div class="history-detail-content">
                     <div class="history-detail-file-header">
-                        <span class="history-file-language" x-text="viewingHistoryEntry?.language || 'plaintext'"></span>
+                        <span class="history-file-language"
+                            x-text="viewingHistoryEntry?.language || 'plaintext'"></span>
                         <button class="btn-sm" @click="copyHistoryContent(viewingHistoryEntry?.content)">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
+                                height="14">
                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                             </svg>
@@ -929,7 +992,8 @@
             </div>
 
             <!-- Multiple files view -->
-            <div class="history-detail-section" x-show="viewingHistoryEntry?.files && viewingHistoryEntry?.files.length > 0">
+            <div class="history-detail-section"
+                x-show="viewingHistoryEntry?.files && viewingHistoryEntry?.files.length > 0">
                 <h4>Files (<span x-text="viewingHistoryEntry?.files.length"></span>)</h4>
                 <template x-for="(file, idx) in viewingHistoryEntry?.files" :key="file.id">
                     <div class="history-detail-content" style="margin-bottom: 1rem;">
@@ -939,7 +1003,8 @@
                                 <span class="history-file-language" x-text="file.language"></span>
                             </div>
                             <button class="btn-sm" @click="copyHistoryContent(file.content)">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
+                                    height="14">
                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                 </svg>
@@ -962,7 +1027,7 @@
 </div>
 
 <!-- Restore Confirmation modal -->
-<div class="modal-backdrop" x-show="showRestoreConfirm" x-cloak @click.self="showRestoreConfirm = false">
+<div class="snipo-modal-backdrop" x-show="showRestoreConfirm" x-cloak @click.self="showRestoreConfirm = false">
     <div class="modal" style="max-width: 500px;">
         <div class="modal-header">
             <h3>Confirm Restore</h3>
@@ -975,8 +1040,10 @@
         </div>
         <div class="modal-body">
             <div class="restore-warning">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48" style="color: var(--snipo-warning);">
-                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48"
+                    style="color: var(--snipo-warning);">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                    </path>
                     <line x1="12" y1="9" x2="12" y2="13"></line>
                     <line x1="12" y1="17" x2="12.01" y2="17"></line>
                 </svg>
@@ -992,7 +1059,8 @@
                 <div class="restore-info-item">
                     <strong>Version from:</strong> <span x-text="formatDate(restoringHistoryEntry?.created_at)"></span>
                 </div>
-                <div class="restore-info-item" x-show="restoringHistoryEntry?.files && restoringHistoryEntry.files.length > 0">
+                <div class="restore-info-item"
+                    x-show="restoringHistoryEntry?.files && restoringHistoryEntry.files.length > 0">
                     <strong>Files:</strong> <span x-text="restoringHistoryEntry?.files.length"></span>
                 </div>
             </div>
@@ -1015,43 +1083,40 @@
 </div>
 
 <!-- Token Password Confirmation Modal (unified for create and delete) -->
-<div x-show="tokenPasswordAction !== null" 
-     class="modal-overlay" 
-     style="z-index: 1001;"
-     @click.self="cancelTokenPassword()"
-     x-transition:enter="transition ease-out duration-200"
-     x-transition:enter-start="opacity-0"
-     x-transition:enter-end="opacity-100"
-     x-transition:leave="transition ease-in duration-150"
-     x-transition:leave-start="opacity-100"
-     x-transition:leave-end="opacity-0">
-    <div class="modal-dialog" 
-         style="max-width: 440px;"
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0 transform scale-95"
-         x-transition:enter-end="opacity-100 transform scale-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100 transform scale-100"
-         x-transition:leave-end="opacity-0 transform scale-95"
-         @click.stop>
+<div x-show="tokenPasswordAction !== null" class="snipo-modal-overlay" style="z-index: 1001;"
+    @click.self="cancelTokenPassword()" x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0">
+    <div class="modal-dialog" style="max-width: 440px;" x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 transform scale-95" x-transition:enter-end="opacity-100 transform scale-100"
+        x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 transform scale-100"
+        x-transition:leave-end="opacity-0 transform scale-95" @click.stop>
         <div class="modal-header" style="border-bottom: 1px solid var(--snipo-border);">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <div :style="`width: 40px; height: 40px; border-radius: 50%; background: rgba(var(${tokenPasswordAction === 'delete' ? '--snipo-danger-rgb' : '--snipo-primary-rgb'}), 0.1); display: flex; align-items: center; justify-content: center;`">
+                <div
+                    :style="`width: 40px; height: 40px; border-radius: 50%; background: rgba(var(${tokenPasswordAction === 'delete' ? '--snipo-danger-rgb' : '--snipo-primary-rgb'}), 0.1); display: flex; align-items: center; justify-content: center;`">
                     <template x-if="tokenPasswordAction === 'delete'">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--snipo-danger)" stroke-width="2" width="20" height="20">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--snipo-danger)" stroke-width="2" width="20"
+                            height="20">
+                            <path
+                                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                            </path>
                             <line x1="12" y1="9" x2="12" y2="13"></line>
                             <line x1="12" y1="17" x2="12.01" y2="17"></line>
                         </svg>
                     </template>
                     <template x-if="tokenPasswordAction === 'create'">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--snipo-primary)" stroke-width="2" width="20" height="20">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--snipo-primary)" stroke-width="2" width="20"
+                            height="20">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                         </svg>
                     </template>
                 </div>
-                <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;" x-text="tokenPasswordAction === 'delete' ? 'Confirm Token Deletion' : 'Confirm Token Creation'"></h3>
+                <h3 style="margin: 0; font-size: 1.125rem; font-weight: 600;"
+                    x-text="tokenPasswordAction === 'delete' ? 'Confirm Token Deletion' : 'Confirm Token Creation'">
+                </h3>
             </div>
             <button class="btn-icon" @click="cancelTokenPassword()" style="margin-left: auto;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1061,26 +1126,26 @@
             </button>
         </div>
         <div class="modal-body" style="padding: 1.5rem;">
-            <p style="margin-bottom: 1.25rem; color: var(--snipo-text-secondary); line-height: 1.6;" x-text="tokenPasswordAction === 'delete' ? 'For security, please enter your master password to confirm deletion of this API token. This action cannot be undone.' : 'For security, please enter your master password to create this API token.'"></p>
+            <p style="margin-bottom: 1.25rem; color: var(--snipo-text-secondary); line-height: 1.6;"
+                x-text="tokenPasswordAction === 'delete' ? 'For security, please enter your master password to confirm deletion of this API token. This action cannot be undone.' : 'For security, please enter your master password to create this API token.'">
+            </p>
             <div class="editor-field" style="margin-bottom: 0;">
                 <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Master Password</label>
-                <input type="password" 
-                       x-model="tokenPassword" 
-                       @keyup.enter="confirmTokenPassword()" 
-                       placeholder="Enter your password"
-                       style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid var(--snipo-border); border-radius: 6px; font-size: 0.9375rem;"
-                       x-init="$nextTick(() => tokenPasswordAction !== null && $el.focus())">
+                <input type="password" x-model="tokenPassword" @keyup.enter="confirmTokenPassword()"
+                    placeholder="Enter your password"
+                    style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid var(--snipo-border); border-radius: 6px; font-size: 0.9375rem;"
+                    x-init="$nextTick(() => tokenPasswordAction !== null && $el.focus())">
             </div>
         </div>
-        <div class="modal-footer" style="background: var(--snipo-bg-secondary); border-top: 1px solid var(--snipo-border); padding: 0.875rem 1.25rem; display: flex; gap: 0.625rem; justify-content: flex-end;">
-            <button class="btn-secondary" 
-                    @click="cancelTokenPassword()"
-                    style="padding: 0.375rem 0.875rem; font-weight: 500; font-size: 0.875rem;">
+        <div class="modal-footer"
+            style="background: var(--snipo-bg-secondary); border-top: 1px solid var(--snipo-border); padding: 0.875rem 1.25rem; display: flex; gap: 0.625rem; justify-content: flex-end;">
+            <button class="btn-secondary" @click="cancelTokenPassword()"
+                style="padding: 0.375rem 0.875rem; font-weight: 500; font-size: 0.875rem;">
                 Cancel
             </button>
             <button :class="tokenPasswordAction === 'delete' ? 'btn-danger' : 'btn-primary'"
-                    @click="confirmTokenPassword()"
-                    style="padding: 0.375rem 0.875rem; font-weight: 500; font-size: 0.875rem; display: flex; align-items: center; gap: 0.375rem;">
+                @click="confirmTokenPassword()"
+                style="padding: 0.375rem 0.875rem; font-weight: 500; font-size: 0.875rem; display: flex; align-items: center; gap: 0.375rem;">
                 <template x-if="tokenPasswordAction === 'delete'">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                         <polyline points="3 6 5 6 21 6"></polyline>
@@ -1099,7 +1164,7 @@
 </div>
 
 <!-- Font Size Help Modal -->
-<div class="modal-backdrop" x-show="showFontSizeHelp" x-cloak @click.self="showFontSizeHelp = false">
+<div class="snipo-modal-backdrop" x-show="showFontSizeHelp" x-cloak @click.self="showFontSizeHelp = false">
     <div class="modal" style="max-width: 600px;">
         <div class="modal-header">
             <h3>Browser Minimum Font Size Settings</h3>
@@ -1112,7 +1177,8 @@
         </div>
         <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
             <p style="margin-bottom: 1.5rem; color: var(--pico-muted-color);">
-                If font sizes below 14px aren't displaying correctly, your browser may have a minimum font size setting enabled. Here's how to change it:
+                If font sizes below 14px aren't displaying correctly, your browser may have a minimum font size setting
+                enabled. Here's how to change it:
             </p>
 
             <!-- Firefox -->
@@ -1126,10 +1192,16 @@
                     Firefox
                 </h4>
                 <ol style="margin-left: 1.5rem; line-height: 1.8;">
-                    <li>Type <code style="background: var(--pico-card-background-color); padding: 0.125rem 0.375rem; border-radius: 3px; font-size: 0.875rem;">about:config</code> in the address bar and press Enter</li>
+                    <li>Type <code
+                            style="background: var(--pico-card-background-color); padding: 0.125rem 0.375rem; border-radius: 3px; font-size: 0.875rem;">about:config</code>
+                        in the address bar and press Enter</li>
                     <li>Accept the warning message</li>
-                    <li>Search for <code style="background: var(--pico-card-background-color); padding: 0.125rem 0.375rem; border-radius: 3px; font-size: 0.875rem;">font.minimum-size</code></li>
-                    <li>Find <code style="background: var(--pico-card-background-color); padding: 0.125rem 0.375rem; border-radius: 3px; font-size: 0.875rem;">font.minimum-size.x-western</code> (or your language variant)</li>
+                    <li>Search for <code
+                            style="background: var(--pico-card-background-color); padding: 0.125rem 0.375rem; border-radius: 3px; font-size: 0.875rem;">font.minimum-size</code>
+                    </li>
+                    <li>Find <code
+                            style="background: var(--pico-card-background-color); padding: 0.125rem 0.375rem; border-radius: 3px; font-size: 0.875rem;">font.minimum-size.x-western</code>
+                        (or your language variant)</li>
                     <li>Double-click and set the value to <strong>0</strong> (or a lower value like 8)</li>
                     <li>Restart Firefox for changes to take effect</li>
                 </ol>
@@ -1172,9 +1244,11 @@
                 </ol>
             </div>
 
-            <div style="background: var(--pico-card-background-color); padding: 1rem; border-radius: 6px; border-left: 3px solid var(--snipo-primary); margin-top: 1.5rem;">
+            <div
+                style="background: var(--pico-card-background-color); padding: 1rem; border-radius: 6px; border-left: 3px solid var(--snipo-primary); margin-top: 1.5rem;">
                 <p style="margin: 0; font-size: 0.875rem; color: var(--pico-muted-color);">
-                    <strong>Note:</strong> These settings are browser-level accessibility features designed to help users with visual impairments. Websites cannot override them by design.
+                    <strong>Note:</strong> These settings are browser-level accessibility features designed to help
+                    users with visual impairments. Websites cannot override them by design.
                 </p>
             </div>
         </div>

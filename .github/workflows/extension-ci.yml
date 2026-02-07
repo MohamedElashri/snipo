@@ -2,13 +2,17 @@ name: Extension CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main]
     paths:
       - 'extension/**'
   pull_request:
     branches: [main, dev]
     paths:
       - 'extension/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

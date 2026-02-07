@@ -18,19 +18,20 @@ type SnippetFile struct {
 
 // Snippet represents a code snippet
 type Snippet struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Content     string    `json:"content"`  // Primary/legacy content (first file)
-	Language    string    `json:"language"` // Primary/legacy language
-	IsFavorite  bool      `json:"is_favorite"`
-	IsPublic    bool      `json:"is_public"`
-	IsArchived  bool      `json:"is_archived"`
-	ViewCount   int       `json:"view_count"`
-	S3Key       *string   `json:"s3_key,omitempty"`
-	Checksum    *string   `json:"checksum,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          string     `json:"id"`
+	Title       string     `json:"title"`
+	Description string     `json:"description"`
+	Content     string     `json:"content"`  // Primary/legacy content (first file)
+	Language    string     `json:"language"` // Primary/legacy language
+	IsFavorite  bool       `json:"is_favorite"`
+	IsPublic    bool       `json:"is_public"`
+	IsArchived  bool       `json:"is_archived"`
+	ViewCount   int        `json:"view_count"`
+	S3Key       *string    `json:"s3_key,omitempty"`
+	Checksum    *string    `json:"checksum,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	DeletedAt   *time.Time `json:"deleted_at,omitempty"`
 
 	// Relationships (populated when needed)
 	Tags    []Tag         `json:"tags,omitempty"`
@@ -70,6 +71,7 @@ type SnippetFilter struct {
 	IsFavorite *bool
 	IsPublic   *bool
 	IsArchived *bool
+	IsDeleted  *bool
 	Page       int
 	Limit      int
 	SortBy     string

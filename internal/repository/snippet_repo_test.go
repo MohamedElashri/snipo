@@ -174,19 +174,36 @@ func TestSnippetRepository_Delete(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	// Delete it
-	err = repo.Delete(ctx, created.ID)
+	// Delete it (soft)
+	err = repo.Delete(ctx, created.ID, false)
 	if err != nil {
-		t.Fatalf("Delete failed: %v", err)
+		t.Fatalf("Delete (soft) failed: %v", err)
 	}
 
-	// Verify it's gone
+	// Verify it's soft deleted
 	snippet, err := repo.GetByID(ctx, created.ID)
 	if err != nil {
 		t.Fatalf("GetByID failed: %v", err)
 	}
+	if snippet == nil {
+		t.Error("expected snippet to exist after soft delete")
+	} else if snippet.DeletedAt == nil {
+		t.Error("expected deleted_at to be set")
+	}
+
+	// Delete it (permanent)
+	err = repo.Delete(ctx, created.ID, true)
+	if err != nil {
+		t.Fatalf("Delete (permanent) failed: %v", err)
+	}
+
+	// Verify it's gone
+	snippet, err = repo.GetByID(ctx, created.ID)
+	if err != nil {
+		t.Fatalf("GetByID failed: %v", err)
+	}
 	if snippet != nil {
-		t.Error("expected snippet to be deleted")
+		t.Error("expected snippet to be permanently deleted")
 	}
 }
 
@@ -195,7 +212,7 @@ func TestSnippetRepository_Delete_NotFound(t *testing.T) {
 	repo := NewSnippetRepository(db)
 	ctx := testutil.TestContext()
 
-	err := repo.Delete(ctx, "nonexistent")
+	err := repo.Delete(ctx, "nonexistent", false)
 	if err == nil {
 		t.Error("expected error for nonexistent snippet")
 	}
@@ -558,11 +575,11 @@ func TestAllowedSortColumns_SafeValues(t *testing.T) {
 		}
 		for i, c := range s {
 			if i == 0 {
-				if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_') {
+				if (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && c != '_' {
 					return false
 				}
 			} else {
-				if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {
+				if (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') && c != '_' {
 					return false
 				}
 			}

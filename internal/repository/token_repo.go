@@ -189,7 +189,7 @@ func (r *TokenRepository) List(ctx context.Context) ([]models.APIToken, error) {
 		}
 	}()
 
-	var tokens []models.APIToken
+	tokens := make([]models.APIToken, 0)
 	for rows.Next() {
 		var token models.APIToken
 		if err := rows.Scan(

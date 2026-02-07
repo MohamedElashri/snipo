@@ -8,7 +8,7 @@ export const editorMixin = {
   // Editor operations (imported from original app.js)
   // This file contains editor-related methods and state
   // Methods: viewSnippet, editSnippet, newSnippet, saveSnippet, startEditing, cancelEditing, etc.
-  
+
   async viewSnippet(snippet) {
     const result = await api.get(`/api/v1/snippets/${snippet.id}`);
     if (result) {
@@ -162,7 +162,7 @@ export const editorMixin = {
     this.destroyAceEditor();
     this.resetEditingSnippet();
     this.clearDraft();
-    
+
     if (this.filter.folderId) {
       this.updateUrl({ folder: this.filter.folderId });
     } else if (this.filter.tagId) {
@@ -203,11 +203,19 @@ export const editorMixin = {
   async deleteSnippet() {
     if (!this.deleteTarget) return;
 
-    await api.delete(`/api/v1/snippets/${this.deleteTarget.id}`);
-    showToast('Snippet deleted');
+    const permanent = this.filter.isDeleted === true;
+    const url = `/api/v1/snippets/${this.deleteTarget.id}` + (permanent ? '?permanent=true' : '');
+
+    await api.delete(url);
+    showToast(permanent ? 'Snippet permanently deleted' : 'Snippet moved to trash');
     this.showDeleteModal = false;
     this.showEditor = false;
     this.deleteTarget = null;
+    // Don't nullify immediately to avoid Alpine errors during transition
+    // this.editingSnippet = null; 
+    setTimeout(() => {
+      this.editingSnippet = { files: [], tags: [] };
+    }, 100);
 
     await Promise.all([
       this.loadSnippets(),
@@ -217,6 +225,14 @@ export const editorMixin = {
     ]);
 
     this.totalSnippets = this.snippets.length;
+  },
+
+  async restoreSnippet(snippet) {
+    const result = await api.post(`/api/v1/snippets/${snippet.id}/restore`);
+    if (result) {
+      showToast('Snippet restored');
+      await this.loadSnippets();
+    }
   },
 
   async toggleFavorite(snippet) {
@@ -242,7 +258,7 @@ export const editorMixin = {
       if (!contentToCopy && snippet.files && snippet.files.length > 0) {
         contentToCopy = snippet.files[0].content || '';
       }
-      
+
       // Check if setting to exclude first line is enabled
       if (this.settings?.exclude_first_line_on_copy) {
         const lines = contentToCopy.split('\n');
@@ -250,7 +266,7 @@ export const editorMixin = {
           contentToCopy = lines.slice(1).join('\n');
         }
       }
-      
+
       await navigator.clipboard.writeText(contentToCopy);
       showToast('Copied to clipboard');
     } catch (err) {
@@ -313,7 +329,7 @@ export const editorMixin = {
 
     if (result) {
       showToast(result.is_public ? 'Snippet is now public' : 'Snippet is now private');
-      
+
       // Update the snippet in the list
       const idx = this.snippets.findIndex(s => s.id === this.editingSnippet.id);
       if (idx !== -1) {
@@ -356,7 +372,7 @@ export const editorMixin = {
       : (this.editingSnippet.language || 'javascript');
 
     const aceMode = getAceMode(language);
-    
+
     // Determine theme based on settings
     let aceTheme = 'ace/theme/chrome';
     const editorTheme = this.settings?.editor_theme || 'auto';
@@ -429,7 +445,7 @@ export const editorMixin = {
 
     try {
       const settings = this.settings;
-      
+
       // Apply visual settings
       this.aceEditor.setOptions({
         fontSize: settings.editor_font_size || 14,

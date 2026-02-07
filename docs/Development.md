@@ -4,7 +4,7 @@ This document covers building, testing, and contributing to Snipo.
 
 ## Prerequisites
 
-- **Go 1.24+**
+- **Go 1.25+**
 - **Make** (optional, for convenience commands)
 - **Docker** (optional, for containerized builds)
 
@@ -49,6 +49,7 @@ The Docker deployment implements multiple security layers:
 - **Dropped capabilities**: All Linux capabilities removed (`cap_drop: ALL`)
 - **No privilege escalation**: `no-new-privileges:true` prevents gaining elevated privileges
 - **Minimal base image**: Alpine Linux 3.20 with only essential packages
+- **Hardened Variant**: Available via `:hardened` tag, running as UID 65532 (nonroot) with even fewer packages (no shell, no apk) based on DHI images.
 
 **Filesystem Security:**
 - Binary owned by root with 755 permissions (executable but not writable)
@@ -352,7 +353,9 @@ Follow [Semantic Versioning](https://semver.org/):
 Each release includes:
 - `snipo_linux_amd64.tar.gz` - Linux x86_64 binary
 - `snipo_linux_arm64.tar.gz` - Linux ARM64 binary
-- Docker images: `ghcr.io/mohamedelashri/snipo:v1.0.0`, `:v1.0`, `:v1`, `:latest`
+- Docker images: 
+  - Standard: `ghcr.io/mohamedelashri/snipo:v1.0.0`, `:v1.0`, `:v1`, `:latest`
+  - Hardened: `ghcr.io/mohamedelashri/snipo:v1.0.0-hardened`, `:v1.0-hardened`, `:v1-hardened`, `:hardened`
 
 ## Contributing
 

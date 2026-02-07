@@ -198,6 +198,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/favorite", snippetHandler.ToggleFavorite)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/archive", snippetHandler.ToggleArchive)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/duplicate", snippetHandler.Duplicate)
+				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/restore", snippetHandler.Restore)
 
 				// History routes
 				r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead).Get("/history", snippetHandler.GetHistory)

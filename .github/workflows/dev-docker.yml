@@ -35,7 +35,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6.1.0
         with:
-          go-version: '1.24'
+          go-version: '1.25'
           cache: true
 
       - name: Run tests
@@ -69,10 +69,11 @@ jobs:
           echo "DATE=$(date -u +'%Y%m%d')" >> $GITHUB_OUTPUT
           echo "IMAGE_NAME_LOWER=$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Build and push
+      - name: Build and push standard image
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
@@ -81,6 +82,21 @@ jobs:
             VERSION=dev-${{ steps.commit.outputs.SHORT_SHA }}
             COMMIT=${{ github.sha }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing
+          cache-to: type=inline
+
+      - name: Build and push hardened image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.hardened
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing-hardened
+          build-args: |
+            VERSION=dev-${{ steps.commit.outputs.SHORT_SHA }}
+            COMMIT=${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing-hardened
           cache-to: type=inline
 
       - name: Image digest

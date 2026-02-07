@@ -15,6 +15,7 @@ type Settings struct {
 	S3Region                       string    `json:"s3_region"`
 	BackupEncryptionEnabled        bool      `json:"backup_encryption_enabled"`
 	ArchiveEnabled                 bool      `json:"archive_enabled"`
+	TrashEnabled                   bool      `json:"trash_enabled"`
 	HistoryEnabled                 bool      `json:"history_enabled"`
 	DisableLogin                   bool      `json:"disable_login"`
 	EditorFontSize                 int       `json:"editor_font_size"`
@@ -48,6 +49,7 @@ type SettingsInput struct {
 	S3SecretAccessKey              string `json:"s3_secret_access_key,omitempty"` // Optional, only for updates
 	BackupEncryptionEnabled        bool   `json:"backup_encryption_enabled"`
 	ArchiveEnabled                 bool   `json:"archive_enabled"`
+	TrashEnabled                   bool   `json:"trash_enabled"`
 	HistoryEnabled                 bool   `json:"history_enabled"`
 	DisableLogin                   bool   `json:"disable_login"`
 	EditorFontSize                 int    `json:"editor_font_size"`

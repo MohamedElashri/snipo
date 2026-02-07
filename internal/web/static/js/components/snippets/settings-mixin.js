@@ -39,8 +39,10 @@ export const settingsMixin = {
   async loadApiTokens() {
     const result = await api.get('/api/v1/tokens');
     if (result) {
-      // Handle both {data: [...]} and [...] formats
-      this.apiTokens = result.data || result;
+      // Handle both {data: [...]} and [...] formats, ensuring array
+      // This should be fixing (https://github.com/MohamedElashri/snipo/issues/133)
+      const tokens = result.data || result;
+      this.apiTokens = Array.isArray(tokens) ? tokens : [];
     }
   },
 
@@ -89,11 +91,13 @@ export const settingsMixin = {
   },
 
   async performCreateToken(password) {
-    const payload = { ...this.pendingTokenData || {
-      name: this.newToken.name,
-      permissions: this.newToken.permissions,
-      expires_in_days: parseInt(this.newToken.expires_in_days) || null
-    }};
+    const payload = {
+      ...this.pendingTokenData || {
+        name: this.newToken.name,
+        permissions: this.newToken.permissions,
+        expires_in_days: parseInt(this.newToken.expires_in_days) || null
+      }
+    };
 
     // Always include password for security
     if (password) {
@@ -152,7 +156,7 @@ export const settingsMixin = {
   async saveAndApplyCustomCSS() {
     // Validate custom CSS
     const validation = theme.validateCustomCSS(this.settings.custom_css);
-    
+
     if (!validation.valid) {
       showToast('Invalid CSS: ' + validation.warnings.join(', '), 'error');
       return;
@@ -161,8 +165,8 @@ export const settingsMixin = {
     // Show warnings if any
     if (validation.warnings.length > 0) {
       const proceed = confirm(
-        'CSS validation warnings:\n\n' + 
-        validation.warnings.join('\n') + 
+        'CSS validation warnings:\n\n' +
+        validation.warnings.join('\n') +
         '\n\nDo you want to proceed anyway?'
       );
       if (!proceed) return;
@@ -178,18 +182,18 @@ export const settingsMixin = {
       } catch (e) {
         // Ignore storage errors
       }
-      
+
       // Apply custom CSS immediately
       theme.applyCustomCSS(this.settings.custom_css);
       this.customCssChanged = false;
-      
+
       showToast('Custom CSS saved and applied successfully');
     }
   },
 
   applyMarkdownFontSize() {
     if (!this.settings) return;
-    
+
     const fontSize = this.settings.markdown_font_size || 14;
     document.documentElement.style.setProperty('--markdown-font-size', `${fontSize}px`);
   }
