@@ -98,7 +98,9 @@ export function initSnippetsApp(Alpine) {
         this.loadTags(),
         this.loadFolders(),
         this.loadFavoritesCount(),
-        this.loadSettings()
+        this.loadSettings(),
+        this.loadGistConfig(),
+        this.loadGistMappings()
       ]);
 
       this.totalSnippets = this.pagination.total;

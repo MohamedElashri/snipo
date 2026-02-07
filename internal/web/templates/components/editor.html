@@ -90,17 +90,6 @@
                 <span>Delete</span>
             </button>
 
-            <!-- Editor Settings button (edit mode) -->
-            <button class="btn-action" x-show="isEditing" @click="openEditorSettings()" title="Editor Settings">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <path
-                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
-                    </path>
-                </svg>
-                <span>Settings</span>
-            </button>
-
             <!-- Edit button (preview mode) -->
             <button class="btn-action primary" x-show="!isEditing && !editingSnippet?.deleted_at"
                 @click="startEditing()">
@@ -144,12 +133,15 @@
 
     <!-- PREVIEW MODE: Full-width code preview with metadata -->
     <div class="preview-mode" x-show="!isEditing">
-        <!-- Metadata bar -->
-        <div class="preview-metadata">
-            <div class="preview-meta-item" x-show="editingSnippet.description">
+        <!-- Metadata row 1: Description -->
+        <div class="preview-metadata-row" x-show="editingSnippet.description">
+            <div class="preview-meta-item">
                 <span class="preview-meta-label">Description</span>
                 <span x-text="editingSnippet.description"></span>
             </div>
+        </div>
+        <!-- Metadata row 2: Language, Folder, Tags, Toggles -->
+        <div class="preview-metadata-row">
             <div class="preview-meta-item">
                 <span class="preview-meta-label"
                     x-text="(editingSnippet.files && editingSnippet.files.length > 0) ? 'File' : 'Language'">Language</span>
@@ -179,6 +171,23 @@
                     </div>
                     <span>Public</span>
                 </label>
+            </div>
+            <!-- Gist Sync toggle in preview mode -->
+            <div class="preview-meta-item" x-show="editingSnippet?.id && isGistConfigured()">
+                <label class="gist-toggle-switch-preview" title="Sync this snippet to GitHub Gist">
+                    <input type="checkbox" :checked="isGistSyncEnabled(editingSnippet.id)" @change="toggleGistSyncForSnippet(editingSnippet.id)">
+                    <div class="gist-switch-track">
+                        <div class="gist-switch-thumb"></div>
+                    </div>
+                    <span>Gist</span>
+                </label>
+                <a x-show="getGistUrl(editingSnippet.id)" :href="getGistUrl(editingSnippet.id)" target="_blank" class="gist-link-icon" title="View on GitHub">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
             </div>
             <!-- Toggle Focus Mode -->
             <div class="preview-meta-item" style="margin-left: auto;">
@@ -230,14 +239,16 @@
 
     <!-- EDIT MODE: Split view with editor left, tags sidebar -->
     <div class="edit-mode" x-show="isEditing">
-        <!-- Compact metadata bar -->
-        <div class="editor-metadata">
+        <!-- Metadata row 1: Description -->
+        <div class="editor-metadata-row">
             <div class="editor-field-inline description-field">
                 <span class="editor-label">Description</span>
                 <textarea x-model="editingSnippet.description" placeholder="Description (optional)" rows="1"
                     class="description-textarea" @input="autoResizeTextarea($event.target)"></textarea>
             </div>
-
+        </div>
+        <!-- Metadata row 2: Language, Folder, Toggles -->
+        <div class="editor-metadata-row">
             <div class="editor-field-inline compact">
                 <span class="editor-label">Language</span>
                 <select :value="activeFile?.language || editingSnippet.language"
@@ -287,6 +298,22 @@
                     <div class="public-switch-thumb"></div>
                 </div>
                 <span>Public</span>
+            </label>
+
+            <!-- Gist Sync toggle in edit mode -->
+            <label class="gist-toggle-switch" title="Sync this snippet to GitHub Gist" x-show="editingSnippet?.id && isGistConfigured()">
+                <input type="checkbox" :checked="isGistSyncEnabled(editingSnippet.id)" @change="toggleGistSyncForSnippet(editingSnippet.id)">
+                <div class="gist-switch-track">
+                    <div class="gist-switch-thumb"></div>
+                </div>
+                <span>Gist</span>
+                <a x-show="getGistUrl(editingSnippet.id)" :href="getGistUrl(editingSnippet.id)" target="_blank" class="gist-link-icon" title="View on GitHub" @click.stop>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
             </label>
 
             <button class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"

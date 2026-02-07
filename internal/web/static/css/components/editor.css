@@ -76,13 +76,14 @@
   min-width: 0;
 }
 
-.preview-metadata {
+.preview-metadata-row {
   display: flex;
   flex-wrap: wrap;
   gap: 1.5rem;
-  padding: 1rem;
+  padding: 0.5rem 1rem;
   background: var(--pico-card-background-color);
   border-bottom: 1px solid var(--pico-muted-border-color);
+  align-items: center;
 }
 
 .preview-meta-item {
@@ -569,11 +570,11 @@
   font-family: var(--font-mono) !important;
 }
 
-/* Editor metadata bar */
-.editor-metadata {
+/* Editor metadata rows */
+.editor-metadata-row {
   display: flex;
   gap: 0.5rem;
-  padding: 0.5rem;
+  padding: 0.35rem 0.5rem;
   background: var(--pico-card-background-color);
   border-bottom: 1px solid var(--pico-muted-border-color);
   flex-wrap: wrap;
@@ -581,6 +582,13 @@
   position: relative;
   z-index: 20;
   flex-shrink: 0;
+}
+
+.editor-metadata-row:first-child {
+  box-shadow: none;
+}
+
+.editor-metadata-row:last-of-type {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
@@ -795,6 +803,84 @@
 
 .public-toggle-switch-preview input:checked + .public-switch-track .public-switch-thumb {
   transform: translateX(14px);
+}
+
+/* Gist Sync toggle in edit mode */
+.gist-toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--pico-muted-color);
+}
+
+.gist-switch-track {
+  width: 32px;
+  height: 18px;
+  background: var(--pico-muted-border-color);
+  border-radius: 999px;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.gist-switch-thumb {
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.gist-toggle-switch input {
+  display: none;
+}
+
+.gist-toggle-switch input:checked + .gist-switch-track {
+  background: var(--snipo-primary);
+}
+
+.gist-toggle-switch input:checked + .gist-switch-track .gist-switch-thumb {
+  transform: translateX(14px);
+}
+
+/* Gist Sync toggle in preview mode */
+.gist-toggle-switch-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--pico-color);
+}
+
+.gist-toggle-switch-preview input {
+  display: none;
+}
+
+.gist-toggle-switch-preview input:checked + .gist-switch-track {
+  background: var(--snipo-primary);
+}
+
+.gist-toggle-switch-preview input:checked + .gist-switch-track .gist-switch-thumb {
+  transform: translateX(14px);
+}
+
+/* Gist link icon */
+.gist-link-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--pico-muted-color);
+  transition: color 0.2s;
+  margin-left: 0.25rem;
+}
+
+.gist-link-icon:hover {
+  color: var(--snipo-primary);
 }
 
 .editor-field {
