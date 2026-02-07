@@ -1911,6 +1911,63 @@ paths:
           content:
             application/json:
               schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_auth:
+                  summary: No authentication provided
+                  value:
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required"
+                invalid_token:
+                  summary: Invalid or expired token
+                  value:
+                    error:
+                      code: "INVALID_TOKEN"
+                      message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                insufficient_permissions:
+                  summary: Write permission required
+                  value:
+                    error:
+                      code: "FORBIDDEN"
+                      message: "Insufficient permissions to perform this action"
+        '404':
+          description: Snippet not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                not_found:
+                  summary: Snippet not found
+                  value:
+                    error:
+                      code: "NOT_FOUND"
+                      message: "Snippet not found"
+
+  /api/v1/tags:
+    get:
+      tags: [Tags]
+      summary: List tags
+      description: Get all tags with snippet counts
+      operationId: listTags
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      responses:
+        '200':
+          description: List of tags
+          content:
+            application/json:
+              schema:
                 type: object
                 properties:
                   data:

@@ -3,7 +3,7 @@
 # ============================================================================
 # Build stage
 # ============================================================================
-FROM golang:1.25-alpine3.22 AS builder
+FROM golang:1.25-alpine AS builder
 
 # Build arguments for target platform (automatically set by Docker Buildx)
 ARG TARGETOS
@@ -40,7 +40,7 @@ RUN file /snipo && ls -lh /snipo
 # ============================================================================
 # Final stage - minimal runtime image
 # ============================================================================
-FROM alpine:3.22
+FROM alpine:3.23
 
 # Install ca-certificates and timezone data
 # Create non-root user (UID 1000)
@@ -57,9 +57,9 @@ WORKDIR /data
 
 # Add security labels
 LABEL org.opencontainers.image.source="https://github.com/MohamedElashri/snipo" \
-    org.opencontainers.image.description="Self-hosted snippet manager" \
-    org.opencontainers.image.licenses="Affero General Public License v3.0" \
-    org.opencontainers.image.vendor="Mohamed Elashri"
+      org.opencontainers.image.description="Self-hosted snippet manager" \
+      org.opencontainers.image.licenses="Affero General Public License v3.0" \
+      org.opencontainers.image.vendor="Mohamed Elashri"
 
 # Expose port
 EXPOSE 8080
