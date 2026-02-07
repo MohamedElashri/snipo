@@ -144,12 +144,15 @@
 
     <!-- PREVIEW MODE: Full-width code preview with metadata -->
     <div class="preview-mode" x-show="!isEditing">
-        <!-- Metadata bar -->
-        <div class="preview-metadata">
-            <div class="preview-meta-item" x-show="editingSnippet.description">
+        <!-- Metadata row 1: Description -->
+        <div class="preview-metadata-row" x-show="editingSnippet.description">
+            <div class="preview-meta-item">
                 <span class="preview-meta-label">Description</span>
                 <span x-text="editingSnippet.description"></span>
             </div>
+        </div>
+        <!-- Metadata row 2: Language, Folder, Tags, Toggles -->
+        <div class="preview-metadata-row">
             <div class="preview-meta-item">
                 <span class="preview-meta-label"
                     x-text="(editingSnippet.files && editingSnippet.files.length > 0) ? 'File' : 'Language'">Language</span>
@@ -247,14 +250,16 @@
 
     <!-- EDIT MODE: Split view with editor left, tags sidebar -->
     <div class="edit-mode" x-show="isEditing">
-        <!-- Compact metadata bar -->
-        <div class="editor-metadata">
+        <!-- Metadata row 1: Description -->
+        <div class="editor-metadata-row">
             <div class="editor-field-inline description-field">
                 <span class="editor-label">Description</span>
                 <textarea x-model="editingSnippet.description" placeholder="Description (optional)" rows="1"
                     class="description-textarea" @input="autoResizeTextarea($event.target)"></textarea>
             </div>
-
+        </div>
+        <!-- Metadata row 2: Language, Folder, Toggles -->
+        <div class="editor-metadata-row">
             <div class="editor-field-inline compact">
                 <span class="editor-label">Language</span>
                 <select :value="activeFile?.language || editingSnippet.language"

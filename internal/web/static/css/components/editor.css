@@ -76,13 +76,14 @@
   min-width: 0;
 }
 
-.preview-metadata {
+.preview-metadata-row {
   display: flex;
   flex-wrap: wrap;
   gap: 1.5rem;
-  padding: 1rem;
+  padding: 0.5rem 1rem;
   background: var(--pico-card-background-color);
   border-bottom: 1px solid var(--pico-muted-border-color);
+  align-items: center;
 }
 
 .preview-meta-item {
@@ -569,11 +570,11 @@
   font-family: var(--font-mono) !important;
 }
 
-/* Editor metadata bar */
-.editor-metadata {
+/* Editor metadata rows */
+.editor-metadata-row {
   display: flex;
   gap: 0.5rem;
-  padding: 0.5rem;
+  padding: 0.35rem 0.5rem;
   background: var(--pico-card-background-color);
   border-bottom: 1px solid var(--pico-muted-border-color);
   flex-wrap: wrap;
@@ -581,6 +582,13 @@
   position: relative;
   z-index: 20;
   flex-shrink: 0;
+}
+
+.editor-metadata-row:first-child {
+  box-shadow: none;
+}
+
+.editor-metadata-row:last-of-type {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
