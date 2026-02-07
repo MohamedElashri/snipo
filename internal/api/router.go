@@ -131,7 +131,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	healthHandler := handlers.NewHealthHandler(cfg.DB, cfg.Version, cfg.Commit, featureFlags)
 
 	backupHandler := handlers.NewBackupHandler(backupService, s3SyncService)
-	settingsHandler := handlers.NewSettingsHandler(settingsRepo)
+	settingsHandler := handlers.NewSettingsHandler(settingsRepo, cfg.AuthService)
 
 	// Create encryption service for gist sync (using encryption salt as key for persistence)
 	encryptionKey := services.DeriveEncryptionKey(cfg.Config.Auth.EncryptionSalt)

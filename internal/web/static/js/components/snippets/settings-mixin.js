@@ -14,6 +14,8 @@ export const settingsMixin = {
   tokenPassword: '',
   pendingTokenData: null, // Stores data for create/delete action
   customCssChanged: false,
+  showDisableLoginPassword: false,
+  disableLoginPassword: '',
 
   async openSettings() {
     this.showSettings = true;
@@ -137,6 +139,51 @@ export const settingsMixin = {
   formatTokenDate(dateStr) {
     if (!dateStr) return 'Never';
     return new Date(dateStr).toLocaleDateString();
+  },
+
+  promptDisableLoginPassword() {
+    this.disableLoginPassword = '';
+    this.showDisableLoginPassword = true;
+  },
+
+  async confirmDisableLoginPassword() {
+    if (!this.disableLoginPassword) {
+      showToast('Password is required', 'error');
+      return;
+    }
+
+    const payload = { ...this.settings, password: this.disableLoginPassword };
+    const result = await api.put('/api/v1/settings', payload);
+    if (result && !result.error) {
+      this.settings = result;
+      try {
+        sessionStorage.setItem('snipo-settings', JSON.stringify(result));
+      } catch (e) {
+        // Ignore storage errors
+      }
+      showToast('Settings updated');
+      this.showDisableLoginPassword = false;
+      this.disableLoginPassword = '';
+    } else {
+      const errorCode = result?.error?.code;
+      if (errorCode === 'INVALID_PASSWORD') {
+        showToast('Invalid password. Please try again.', 'error');
+        this.disableLoginPassword = '';
+      } else {
+        showToast(result?.error?.message || 'Failed to update setting', 'error');
+        // Revert the checkbox since the update failed
+        this.settings.disable_login = !this.settings.disable_login;
+        this.showDisableLoginPassword = false;
+        this.disableLoginPassword = '';
+      }
+    }
+  },
+
+  cancelDisableLoginPassword() {
+    // Revert the checkbox since the user cancelled
+    this.settings.disable_login = !this.settings.disable_login;
+    this.showDisableLoginPassword = false;
+    this.disableLoginPassword = '';
   },
 
   async updateSettings() {
