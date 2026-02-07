@@ -40,7 +40,7 @@ RUN file /snipo && ls -lh /snipo
 # ============================================================================
 # Final stage - minimal runtime image
 # ============================================================================
-FROM alpine:3.22
+FROM alpine:3.23
 
 # Install ca-certificates and timezone data
 # Create non-root user (UID 1000)
