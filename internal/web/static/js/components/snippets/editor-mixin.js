@@ -141,7 +141,9 @@ export const editorMixin = {
     }
 
     if (result && !result.error) {
-      showToast(this.editingSnippet.id ? 'Snippet updated' : 'Snippet created');
+      const wasUpdate = !!this.editingSnippet.id;
+      const snippetId = result.id || this.editingSnippet.id;
+      showToast(wasUpdate ? 'Snippet updated' : 'Snippet created');
       this.showEditor = false;
       this.isEditing = false;
       this.destroyAceEditor();
@@ -151,6 +153,11 @@ export const editorMixin = {
       await this.loadSnippets();
       await this.loadTags();
       await this.loadFavoritesCount();
+
+      // Auto-sync to gist if sync is enabled for this snippet
+      if (wasUpdate && snippetId && this.isGistSyncEnabled && this.isGistSyncEnabled(snippetId)) {
+        this.syncSnippetToGist(snippetId);
+      }
     } else if (result?.error) {
       showToast(result.error.message || 'Error saving snippet', 'error');
     }

@@ -198,6 +198,27 @@ export const gistSyncMixin = {
     }
   },
 
+  isGistSyncEnabled(snippetId) {
+    if (!snippetId) return false;
+    const id = String(snippetId);
+    const mapping = this.gistMappings.find(m => String(m.snippet_id) === id);
+    return mapping ? mapping.sync_enabled : false;
+  },
+
+  isGistConfigured() {
+    return this.gistConfig && this.gistConfig.enabled && this.gistConfig.has_token;
+  },
+
+  async toggleGistSyncForSnippet(snippetId) {
+    if (!snippetId) return;
+    const currentlyEnabled = this.isGistSyncEnabled(snippetId);
+    if (currentlyEnabled) {
+      await this.disableGistSyncForSnippet(snippetId);
+    } else {
+      await this.enableGistSyncForSnippet(snippetId);
+    }
+  },
+
   async syncSnippetToGist(snippetId) {
     const result = await api.post(`/api/v1/gist/sync/snippet/${snippetId}`);
     if (result && !result.error) {
@@ -215,7 +236,9 @@ export const gistSyncMixin = {
   },
 
   getGistUrl(snippetId) {
-    const mapping = this.gistMappings.find(m => m.snippet_id === snippetId);
+    if (!snippetId) return null;
+    const id = String(snippetId);
+    const mapping = this.gistMappings.find(m => String(m.snippet_id) === id);
     return mapping?.gist_url || null;
   },
 
