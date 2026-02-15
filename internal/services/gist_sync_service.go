@@ -91,6 +91,11 @@ func (s *GistSyncService) SyncSnippetToGist(ctx context.Context, snippetID strin
 	} else {
 		gist, err = s.githubClient.UpdateGist(ctx, mapping.GistID, gistReq)
 		if err != nil {
+			if IsGistNotFound(err) {
+				// Gist was deleted on GitHub - remove mapping, snippet is preserved
+				_ = s.handleGistDeleted(ctx, mapping)
+				return fmt.Errorf("gist %s was deleted on GitHub - mapping removed", mapping.GistID)
+			}
 			s.logError(ctx, snippetID, mapping.GistID, models.SyncOpUpdate, err)
 			errMsg := err.Error()
 			mapping.ErrorMessage = &errMsg
@@ -131,6 +136,10 @@ func (s *GistSyncService) SyncGistToSnippet(ctx context.Context, gistID string) 
 
 	gist, err := s.githubClient.GetGist(ctx, gistID)
 	if err != nil {
+		if IsGistNotFound(err) {
+			_ = s.handleGistDeleted(ctx, mapping)
+			return fmt.Errorf("gist %s was deleted on GitHub - mapping removed", gistID)
+		}
 		s.logError(ctx, mapping.SnippetID, gistID, models.SyncOpSync, err)
 		return fmt.Errorf("failed to get gist: %w", err)
 	}
@@ -204,6 +213,9 @@ func (s *GistSyncService) DetectChanges(ctx context.Context, snippetID string) (
 
 	gist, err := s.githubClient.GetGist(ctx, mapping.GistID)
 	if err != nil {
+		if IsGistNotFound(err) {
+			return models.GistDeleted, nil
+		}
 		return models.NoSync, fmt.Errorf("failed to get gist: %w", err)
 	}
 
@@ -279,6 +291,13 @@ func (s *GistSyncService) SyncAll(ctx context.Context) (*models.SyncResult, erro
 			} else {
 				result.Synced++
 			}
+		case models.GistDeleted:
+			if err := s.handleGistDeleted(ctx, mapping); err != nil {
+				result.Errors++
+				result.ErrorMessages = append(result.ErrorMessages, fmt.Sprintf("deleted gist %s: %v", mapping.GistID, err))
+			} else {
+				result.Synced++
+			}
 		case models.Conflict:
 			if err := s.handleConflict(ctx, mapping); err != nil {
 				result.Errors++
@@ -339,6 +358,17 @@ func (s *GistSyncService) handleConflict(ctx context.Context, mapping *models.Sn
 	return nil
 }
 
+// handleGistDeleted handles the case where a gist was deleted on GitHub.
+// It removes the mapping but keeps the snippet intact.
+func (s *GistSyncService) handleGistDeleted(ctx context.Context, mapping *models.SnippetGistMapping) error {
+	if err := s.syncRepo.DeleteMapping(ctx, mapping.ID); err != nil {
+		return fmt.Errorf("failed to delete mapping for deleted gist: %w", err)
+	}
+
+	s.logSuccess(ctx, mapping.SnippetID, mapping.GistID, models.SyncOpDelete, "Gist deleted on GitHub - mapping removed, snippet preserved")
+	return nil
+}
+
 // ResolveConflict resolves a conflict with the given strategy
 func (s *GistSyncService) ResolveConflict(ctx context.Context, conflictID int64, resolution string) error {
 	conflict, err := s.syncRepo.GetConflict(ctx, conflictID)
@@ -377,6 +407,17 @@ func (s *GistSyncService) EnableSyncForSnippet(ctx context.Context, snippetID st
 	}
 	if mapping == nil {
 		return s.SyncSnippetToGist(ctx, snippetID)
+	}
+
+	// Verify the gist still exists on GitHub before re-enabling
+	_, err = s.githubClient.GetGist(ctx, mapping.GistID)
+	if err != nil {
+		if IsGistNotFound(err) {
+			// Gist was deleted on GitHub - remove stale mapping and create a fresh gist
+			_ = s.handleGistDeleted(ctx, mapping)
+			return s.SyncSnippetToGist(ctx, snippetID)
+		}
+		return fmt.Errorf("failed to verify gist exists: %w", err)
 	}
 
 	mapping.SyncEnabled = true

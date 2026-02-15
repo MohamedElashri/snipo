@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -169,15 +170,25 @@ func Load() (*Config, error) {
 	cfg.Auth.RateLimit = getEnvInt("SNIPO_RATE_LIMIT", 100)
 	cfg.Auth.RateLimitWindow = getEnvDuration("SNIPO_RATE_WINDOW", 1*time.Minute)
 
-	// Encryption salt for backups
+	// Encryption salt for backups and token encryption
+	// Priority: env var > persisted file > generate new (and persist)
 	encryptionSalt := os.Getenv("SNIPO_ENCRYPTION_SALT")
 	if encryptionSalt == "" {
-		salt, err := generateSecret()
-		if err != nil {
-			return nil, err
+		saltFilePath := filepath.Join(filepath.Dir(cfg.Database.Path), ".encryption_salt")
+		if data, err := os.ReadFile(saltFilePath); err == nil && len(strings.TrimSpace(string(data))) > 0 {
+			encryptionSalt = strings.TrimSpace(string(data))
+		} else {
+			salt, err := generateSecret()
+			if err != nil {
+				return nil, err
+			}
+			encryptionSalt = salt
+			cfg.Auth.EncryptionSaltGenerated = true
+			// Persist the generated salt so it survives restarts
+			if err := os.MkdirAll(filepath.Dir(saltFilePath), 0700); err == nil {
+				_ = os.WriteFile(saltFilePath, []byte(encryptionSalt), 0600)
+			}
 		}
-		encryptionSalt = salt
-		cfg.Auth.EncryptionSaltGenerated = true
 	}
 	cfg.Auth.EncryptionSalt = encryptionSalt
 

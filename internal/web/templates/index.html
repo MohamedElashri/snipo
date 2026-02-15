@@ -3,6 +3,10 @@
     <!-- Sidebar Component -->
     {{template "sidebar" .}}
 
+    <!-- Mobile sidebar overlay (closes sidebar when tapping outside) -->
+    <div class="sidebar-overlay" x-show="$store.app.sidebarOpen" x-cloak
+        @click="$store.app.sidebarOpen = false"></div>
+
     <!-- Main content -->
     <main class="main-content" :class="{ 'expanded': !$store.app.sidebarOpen }">
         <!-- Header Component -->

@@ -183,6 +183,9 @@ export const gistSyncMixin = {
     if (result && !result.error) {
       showToast('Gist sync enabled for snippet', 'success');
       await this.loadGistMappings();
+    } else if (result?.error?.code === 'GIST_DELETED') {
+      showToast('Previous gist was deleted on GitHub — a new gist will be created', 'info');
+      await this.loadGistMappings();
     } else {
       showToast(result?.error?.message || 'Failed to enable sync', 'error');
     }
@@ -223,6 +226,9 @@ export const gistSyncMixin = {
     const result = await api.post(`/api/v1/gist/sync/snippet/${snippetId}`);
     if (result && !result.error) {
       showToast('Snippet synced to gist', 'success');
+      await this.loadGistMappings();
+    } else if (result?.error?.code === 'GIST_DELETED') {
+      showToast('Gist was deleted on GitHub — sync mapping removed', 'info');
       await this.loadGistMappings();
     } else {
       showToast(result?.error?.message || 'Failed to sync snippet', 'error');

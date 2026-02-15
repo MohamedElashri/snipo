@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
@@ -234,6 +235,10 @@ func (h *GistSyncHandler) SyncSnippet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := syncService.SyncSnippetToGist(r.Context(), snippetID); err != nil {
+		if strings.Contains(err.Error(), "was deleted on GitHub") {
+			Error(w, r, http.StatusGone, "GIST_DELETED", "The gist was deleted on GitHub. The sync mapping has been removed.")
+			return
+		}
 		Error(w, r, http.StatusInternalServerError, "SYNC_FAILED", err.Error())
 		return
 	}
