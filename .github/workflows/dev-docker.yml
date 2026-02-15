@@ -42,9 +42,19 @@ jobs:
         run: go test -v -race ./...
 
   build-and-push-testing:
-    name: Build and Push Testing Image
+    name: Build and Push Testing Image (${{ matrix.name }})
     runs-on: ubuntu-latest
     needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: standard
+            dockerfile: Dockerfile
+            tag_suffix: ""
+          - name: hardened
+            dockerfile: Dockerfile.hardened
+            tag_suffix: "-hardened"
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.1
@@ -69,39 +79,22 @@ jobs:
           echo "DATE=$(date -u +'%Y%m%d')" >> $GITHUB_OUTPUT
           echo "IMAGE_NAME_LOWER=$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Build and push standard image
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile
+          file: ${{ matrix.dockerfile }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing
+            ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing${{ matrix.tag_suffix }}
           build-args: |
             VERSION=dev-${{ steps.commit.outputs.SHORT_SHA }}
             COMMIT=${{ github.sha }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing
-          cache-to: type=inline
-
-      - name: Build and push hardened image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.hardened
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing-hardened
-          build-args: |
-            VERSION=dev-${{ steps.commit.outputs.SHORT_SHA }}
-            COMMIT=${{ github.sha }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing-hardened
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing${{ matrix.tag_suffix }}
           cache-to: type=inline
 
       - name: Image digest
         run: |
-          echo "✅ Image pushed to GitHub Container Registry"
-          echo "Tags:"
-          echo "  - ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing"
-          echo "  - ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing-${{ steps.commit.outputs.DATE }}-${{ steps.commit.outputs.SHORT_SHA }}"
+          echo "✅ ${{ matrix.name }} image pushed to GitHub Container Registry"
+          echo "Tag: ${{ env.REGISTRY }}/${{ steps.commit.outputs.IMAGE_NAME_LOWER }}:testing${{ matrix.tag_suffix }}"
