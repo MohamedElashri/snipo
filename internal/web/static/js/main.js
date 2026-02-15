@@ -18,23 +18,38 @@ import { initKeyboardShortcuts } from './utils/keyboard.js';
 // Initialize theme on load
 theme.init();
 
-// Initialize Alpine.js components and stores
+// Expose globals for compatibility with inline handlers
+window.api = api;
+window.showToast = showToast;
+window.theme = theme;
+
+// Register alpine:init listener BEFORE loading Alpine scripts.
+// When Alpine auto-starts it will fire this event and our components
+// will be registered in time.
 document.addEventListener('alpine:init', () => {
-  // Initialize stores
   initAppStore(Alpine);
-  
-  // Initialize components
   initSnippetsApp(Alpine);
   initLoginForm(Alpine);
   initPublicSnippet(Alpine);
 });
 
-// Initialize keyboard shortcuts after DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  initKeyboardShortcuts();
-});
+// Dynamically load Alpine.js (and collapse plugin) so that the
+// alpine:init listener above is guaranteed to be in place before
+// Alpine auto-starts. This fixes the race condition where defer
+// scripts execute before module scripts per the HTML spec.
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.body.appendChild(s);
+  });
+}
 
-// Expose globals for compatibility with inline handlers
-window.api = api;
-window.showToast = showToast;
-window.theme = theme;
+const basePath = window.SNIPO_CONFIG?.basePath || '';
+await loadScript(basePath + '/static/vendor/js/alpine-collapse.min.js');
+await loadScript(basePath + '/static/vendor/js/alpine.min.js');
+
+// Initialize keyboard shortcuts (DOM is already ready when modules execute)
+initKeyboardShortcuts();

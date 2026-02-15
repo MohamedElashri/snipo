@@ -78,11 +78,12 @@
     <script src="{{.BasePath}}/static/vendor/js/prism-markdown.min.js"></script>
     <script src="{{.BasePath}}/static/vendor/js/prism-cuda.min.js"></script>
     
-    <!-- App JS - Modular structure with ES6 modules -->
+    <!--
+      App JS module registers Alpine components, then dynamically loads
+      Alpine.js so that components are guaranteed to be registered before
+      Alpine auto-starts. This avoids the race condition where defer scripts
+      (Alpine) execute before module scripts (main.js) per the HTML spec.
+    -->
     <script type="module" src="{{.BasePath}}/static/js/main.js"></script>
-    
-    <!-- Alpine.js with collapse plugin (load last after app.js) -->
-    <script defer src="{{.BasePath}}/static/vendor/js/alpine-collapse.min.js"></script>
-    <script defer src="{{.BasePath}}/static/vendor/js/alpine.min.js"></script>
 </body>
 </html>
