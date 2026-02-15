@@ -136,6 +136,16 @@ export const gistSyncMixin = {
     }
   },
 
+  async verifyGistMappings() {
+    if (!this.gistConfig || !this.gistConfig.has_token) return;
+
+    const result = await api.post('/api/v1/gist/sync/verify');
+    if (result && !result.error && result.removed > 0) {
+      showToast(`${result.removed} gist(s) deleted on GitHub — mappings removed`, 'info');
+      await this.loadGistMappings();
+    }
+  },
+
   async deleteGistMapping(mappingId) {
     if (!confirm('Remove this gist mapping? The gist will remain on GitHub.')) {
       return;

@@ -358,6 +358,30 @@ func (s *GistSyncService) handleConflict(ctx context.Context, mapping *models.Sn
 	return nil
 }
 
+// VerifyMappings checks all mappings against GitHub and removes any whose gists
+// have been deleted. Returns the number of removed mappings.
+func (s *GistSyncService) VerifyMappings(ctx context.Context) (int, error) {
+	mappings, err := s.syncRepo.ListMappings(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to list mappings: %w", err)
+	}
+
+	removed := 0
+	for _, mapping := range mappings {
+		_, err := s.githubClient.GetGist(ctx, mapping.GistID)
+		if err != nil {
+			if IsGistNotFound(err) {
+				if delErr := s.handleGistDeleted(ctx, mapping); delErr == nil {
+					removed++
+				}
+			}
+			// For non-404 errors (network issues etc.), skip silently
+		}
+	}
+
+	return removed, nil
+}
+
 // handleGistDeleted handles the case where a gist was deleted on GitHub.
 // It removes the mapping but keeps the snippet intact.
 func (s *GistSyncService) handleGistDeleted(ctx context.Context, mapping *models.SnippetGistMapping) error {

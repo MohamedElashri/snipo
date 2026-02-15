@@ -351,6 +351,30 @@ func (h *GistSyncHandler) EnableSyncForAll(w http.ResponseWriter, r *http.Reques
 	})
 }
 
+// VerifyMappings checks all mappings against GitHub and removes any whose gists were deleted
+func (h *GistSyncHandler) VerifyMappings(w http.ResponseWriter, r *http.Request) {
+	syncService, err := h.createSyncService(r.Context())
+	if err != nil {
+		// No token configured - just return mappings as-is without verification
+		OK(w, r, map[string]interface{}{
+			"removed": 0,
+			"message": "Skipped verification: no GitHub token configured",
+		})
+		return
+	}
+
+	removed, err := syncService.VerifyMappings(r.Context())
+	if err != nil {
+		Error(w, r, http.StatusInternalServerError, "VERIFY_FAILED", err.Error())
+		return
+	}
+
+	OK(w, r, map[string]interface{}{
+		"removed": removed,
+		"message": fmt.Sprintf("Verified mappings: %d stale mappings removed", removed),
+	})
+}
+
 // ListMappings lists all snippet-gist mappings
 func (h *GistSyncHandler) ListMappings(w http.ResponseWriter, r *http.Request) {
 	mappings, err := h.syncRepo.ListMappings(r.Context())
