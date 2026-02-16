@@ -281,6 +281,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 					r.Post("/sync/enable/{id}", gistSyncHandler.EnableSync)
 					r.Post("/sync/enable-all", gistSyncHandler.EnableSyncForAll)
 					r.Post("/sync/disable/{id}", gistSyncHandler.DisableSync)
+					r.Post("/sync/verify", gistSyncHandler.VerifyMappings)
 				})
 
 				// Mappings and conflicts (read permission)

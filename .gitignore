@@ -11,6 +11,7 @@
 cookies.txt
 bin/*
 *.db
+.encryption_salt
 
 ## Coverage
 coverage.out

@@ -83,9 +83,9 @@ func runServer() {
 	}
 
 	if cfg.Auth.EncryptionSaltGenerated {
-		logger.Warn("SECURITY WARNING: SNIPO_ENCRYPTION_SALT not set - using auto-generated salt",
+		logger.Warn("SECURITY NOTICE: SNIPO_ENCRYPTION_SALT not set - generated and persisted a new salt",
 			"recommendation", "Set SNIPO_ENCRYPTION_SALT environment variable for production. Generate with: openssl rand -hex 32",
-			"impact", "GitHub sync tokens will not persist across restarts without a persistent encryption salt")
+			"note", "Auto-generated salt is saved to .encryption_salt in the data directory and will persist across restarts if the data volume is mounted")
 	}
 
 	// Connect to database

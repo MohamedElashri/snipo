@@ -54,11 +54,6 @@
   min-width: 0;
 }
 
-.mobile-sidebar-close {
-  display: none;
-  margin-right: 0.75rem;
-  flex-shrink: 0;
-}
 
 .sidebar-header:hover {
   opacity: 0.8;
@@ -304,7 +299,22 @@
     transform: translateX(0);
   }
 
-  .mobile-sidebar-close {
-    display: flex;
+}
+
+/* Mobile sidebar overlay */
+.sidebar-overlay {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 99;
   }
 }

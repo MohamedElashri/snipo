@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +17,21 @@ const (
 	githubAPIBaseURL = "https://api.github.com"
 	githubAPIVersion = "2022-11-28"
 )
+
+// GistNotFoundError indicates a gist was not found (deleted or never existed)
+type GistNotFoundError struct {
+	GistID string
+}
+
+func (e *GistNotFoundError) Error() string {
+	return fmt.Sprintf("gist %s not found (may have been deleted)", e.GistID)
+}
+
+// IsGistNotFound checks if an error is a GistNotFoundError
+func IsGistNotFound(err error) bool {
+	var notFound *GistNotFoundError
+	return errors.As(err, &notFound)
+}
 
 // GitHubClient handles GitHub API operations
 type GitHubClient struct {
@@ -90,6 +106,9 @@ func (c *GitHubClient) UpdateGist(ctx context.Context, gistID string, req *model
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, &GistNotFoundError{GistID: gistID}
+	}
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, string(bodyBytes))
@@ -120,6 +139,9 @@ func (c *GitHubClient) GetGist(ctx context.Context, gistID string) (*models.Gist
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, &GistNotFoundError{GistID: gistID}
+	}
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, string(bodyBytes))

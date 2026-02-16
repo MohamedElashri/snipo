@@ -110,6 +110,9 @@ export function initSnippetsApp(Alpine) {
       await this.restoreFromUrl();
       window.addEventListener('popstate', () => this.restoreFromUrl());
       this.loadDraft();
+
+      // Verify gist mappings in background (removes stale mappings for deleted gists)
+      this.verifyGistMappings();
     },
 
     // Sidebar resize functionality
