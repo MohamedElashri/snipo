@@ -151,6 +151,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
+            latest=false
             suffix=${{ matrix.suffix }}
           tags: |
             type=semver,pattern={{version}}
