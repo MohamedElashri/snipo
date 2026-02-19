@@ -25,10 +25,11 @@ type Handler struct {
 	settingsRepo *repository.SettingsRepository
 	demoMode     bool
 	basePath     string
+	version      string
 }
 
 // NewHandler creates a new web handler
-func NewHandler(authService *auth.Service, settingsRepo *repository.SettingsRepository) (*Handler, error) {
+func NewHandler(authService *auth.Service, settingsRepo *repository.SettingsRepository, version string) (*Handler, error) {
 	// Parse templates including components
 	tmpl, err := template.ParseFS(templatesFS, "templates/*.html", "templates/components/*.html")
 	if err != nil {
@@ -41,6 +42,7 @@ func NewHandler(authService *auth.Service, settingsRepo *repository.SettingsRepo
 		settingsRepo: settingsRepo,
 		demoMode:     false,
 		basePath:     "",
+		version:      version,
 	}, nil
 }
 
@@ -68,13 +70,14 @@ type PageData struct {
 	Title    string
 	DemoMode bool
 	BasePath string
+	Version  string
 }
 
 // Index serves the main application page
 func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	// Skip authentication check if auth is completely disabled
 	if h.authService.IsAuthDisabled() {
-		data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath}
+		data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version}
 		h.render(w, "layout.html", "index.html", data)
 		return
 	}
@@ -84,7 +87,7 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	settings, err := h.settingsRepo.Get(ctx)
 	if err == nil && settings.DisableLogin {
 		// Login is disabled via settings - allow access without session
-		data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath}
+		data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version}
 		h.render(w, "layout.html", "index.html", data)
 		return
 	}
@@ -96,7 +99,7 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath}
+	data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version}
 	h.render(w, "layout.html", "index.html", data)
 }
 
@@ -124,13 +127,13 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := PageData{Title: "Login", DemoMode: h.demoMode, BasePath: h.basePath}
+	data := PageData{Title: "Login", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version}
 	h.render(w, "layout.html", "login.html", data)
 }
 
 // PublicSnippet serves the public snippet view page (no auth required)
 func (h *Handler) PublicSnippet(w http.ResponseWriter, r *http.Request) {
-	data := PageData{Title: "Shared Snippet", DemoMode: h.demoMode, BasePath: h.basePath}
+	data := PageData{Title: "Shared Snippet", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version}
 	h.render(w, "layout.html", "public.html", data)
 }
 

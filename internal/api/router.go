@@ -305,7 +305,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	})
 
 	// Web UI routes
-	webHandler, err := web.NewHandler(cfg.AuthService, settingsRepo)
+	webHandler, err := web.NewHandler(cfg.AuthService, settingsRepo, cfg.Version)
 	if err != nil {
 		cfg.Logger.Error("failed to create web handler", "error", err)
 	} else {

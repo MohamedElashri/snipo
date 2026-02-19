@@ -1,6 +1,6 @@
 .PHONY: all build run run-test test test-coverage test-short coverage coverage-func lint clean docker docker-multiarch docker-run docker-stop dev migrate migrate-down vendor-install vendor-sync vendor-check vendor-update vendor-update-major
 
-VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+VERSION ?= $(shell grep 'const Current =' internal/version/version.go | cut -d '"' -f 2)
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 LDFLAGS := -ldflags="-w -s -X main.Version=$(VERSION) -X main.Commit=$(COMMIT)"
 

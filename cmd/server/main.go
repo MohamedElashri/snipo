@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/MohamedElashri/snipo/internal/demo"
 	"github.com/MohamedElashri/snipo/internal/repository"
 	"github.com/MohamedElashri/snipo/internal/services"
+	"github.com/MohamedElashri/snipo/internal/version"
 )
 
 // Build-time variables
@@ -27,6 +29,13 @@ var (
 )
 
 func main() {
+	// If version is dev, use the constant from version package
+	if Version == "dev" {
+		Version = version.Current
+	}
+	// Ensure version doesn't have "v" prefix (standardize storage as 1.2.3)
+	Version = strings.TrimPrefix(Version, "v")
+
 	// Check for subcommands
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
