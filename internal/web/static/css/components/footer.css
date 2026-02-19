@@ -16,7 +16,7 @@
   max-width: 1200px;
   margin: 0 auto;
   flex-wrap: wrap;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 }
 
 .footer-text {
@@ -42,8 +42,8 @@
 }
 
 .footer-icon {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 /* Mobile responsive */

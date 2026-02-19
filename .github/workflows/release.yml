@@ -28,6 +28,28 @@ jobs:
         with:
           ref: ${{ inputs.tag_name }}
 
+      - name: Verify Version Match
+        run: |
+          # Extract version from internal/version/version.go
+          CODE_VERSION=$(grep 'const Current =' internal/version/version.go | cut -d '"' -f 2)
+          
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG_VERSION="${{ inputs.tag_name }}"
+          else
+            TAG_VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          
+          # Remove 'v' prefix if present from tag for comparison
+          CLEAN_TAG_VERSION=${TAG_VERSION#v}
+          
+          echo "Code version: $CODE_VERSION"
+          echo "Tag version: $TAG_VERSION (Clean: $CLEAN_TAG_VERSION)"
+          
+          if [ "$CODE_VERSION" != "$CLEAN_TAG_VERSION" ]; then
+            echo "::error::Version mismatch! internal/version/version.go ($CODE_VERSION) does not match tag ($TAG_VERSION)"
+            exit 1
+          fi
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
