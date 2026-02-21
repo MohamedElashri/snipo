@@ -65,9 +65,24 @@ jobs:
           working-directory: tui
           args: --timeout=5m
 
+  govulncheck:
+    name: Vulnerability Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run Govulncheck
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: '1.25'
+          check-latest: true
+          work-dir: tui
+          go-package: ./...
+
   build:
     name: Build
     runs-on: ubuntu-latest
+    needs: [test, lint, govulncheck]
     defaults:
       run:
         working-directory: ./tui
