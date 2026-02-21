@@ -2,10 +2,13 @@ package ui
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/MohamedElashri/snipo/tui/internal/api"
 	"github.com/MohamedElashri/snipo/tui/internal/config"
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -31,12 +34,12 @@ type Model struct {
 	err     error
 	message string
 
-	snippets     []api.Snippet
-	selectedIdx  int
-	currentPage  int
-	totalPages   int
-	searchQuery  string
-	filterTags   []int
+	snippets    []api.Snippet
+	selectedIdx int
+	currentPage int
+	totalPages  int
+	searchQuery string
+	filterTags  []int
 
 	detailSnippet   *api.Snippet
 	detailScroll    int
@@ -46,6 +49,7 @@ type Model struct {
 	folders []api.Folder
 
 	inputs       []textinput.Model
+	textarea     textarea.Model
 	focusedInput int
 	formData     map[string]interface{}
 
@@ -242,6 +246,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tagsLoadedMsg:
 		m.tags = msg.tags
+
+	case editorFinishedMsg:
+		if msg.err != nil {
+			m.err = fmt.Errorf("editor error: %w", msg.err)
+		} else {
+			m.textarea.SetValue(msg.content)
+		}
 
 	case foldersLoadedMsg:
 		m.folders = msg.folders
@@ -474,6 +485,11 @@ func (m *Model) initCreateForm() {
 	m.inputs[2].Placeholder = "Description (optional)"
 	m.inputs[2].CharLimit = 1000
 
+	m.textarea = textarea.New()
+	m.textarea.Placeholder = "Snippet content..."
+	m.textarea.SetWidth(m.width - 8)
+	m.textarea.SetHeight(10)
+
 	m.focusedInput = 0
 	m.formData = make(map[string]interface{})
 }
@@ -497,10 +513,14 @@ func (m *Model) initEditForm(snippet *api.Snippet) {
 	m.inputs[2].SetValue(snippet.Description)
 	m.inputs[2].CharLimit = 1000
 
+	m.textarea = textarea.New()
+	m.textarea.Placeholder = "Snippet content..."
+	m.textarea.SetValue(snippet.Content)
+	m.textarea.SetWidth(m.width - 8)
+	m.textarea.SetHeight(10)
+
 	m.focusedInput = 0
-	m.formData = map[string]interface{}{
-		"content": snippet.Content,
-	}
+	m.formData = make(map[string]interface{})
 }
 
 func (m *Model) initSearchForm() {
@@ -534,12 +554,17 @@ func (m *Model) initSettingsForm() {
 }
 
 func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
+	var cmds []tea.Cmd
 
 	switch msg.String() {
 	case "esc":
 		m.mode = ViewList
+		m.err = nil
+		m.message = ""
 		return m, nil
+
+	case "ctrl+e":
+		return m.openEditor()
 
 	case "tab", "shift+tab":
 		if msg.String() == "tab" {
@@ -548,22 +573,29 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.focusedInput--
 		}
 
-		if m.focusedInput >= len(m.inputs) {
+		numInputs := len(m.inputs) + 1 // +1 for textarea
+		if m.focusedInput >= numInputs {
 			m.focusedInput = 0
 		} else if m.focusedInput < 0 {
-			m.focusedInput = len(m.inputs) - 1
+			m.focusedInput = numInputs - 1
 		}
 
 		for i := range m.inputs {
 			if i == m.focusedInput {
 				m.inputs[i].Focus()
 				m.inputs[i].TextStyle = focusedInputStyle
-				m.inputs[i].PromptStyle = focusedInputStyle
+				m.inputs[i].PromptStyle = focusedPromptStyle
 			} else {
 				m.inputs[i].Blur()
 				m.inputs[i].TextStyle = inputStyle
 				m.inputs[i].PromptStyle = inputStyle
 			}
+		}
+
+		if m.focusedInput == len(m.inputs) {
+			m.textarea.Focus()
+		} else {
+			m.textarea.Blur()
 		}
 
 		return m, nil
@@ -572,11 +604,65 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.submitForm()
 	}
 
-	m.inputs[m.focusedInput], cmd = m.inputs[m.focusedInput].Update(msg)
-	return m, cmd
+	if m.focusedInput < len(m.inputs) {
+		var cmd tea.Cmd
+		m.inputs[m.focusedInput], cmd = m.inputs[m.focusedInput].Update(msg)
+		cmds = append(cmds, cmd)
+	} else {
+		var cmd tea.Cmd
+		m.textarea, cmd = m.textarea.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
+	return m, tea.Batch(cmds...)
+}
+
+type editorFinishedMsg struct {
+	err     error
+	content string
+}
+
+func (m Model) openEditor() (tea.Model, tea.Cmd) {
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vim"
+	}
+
+	tempFile, err := os.CreateTemp("", "snippy-*.txt")
+	if err != nil {
+		m.err = fmt.Errorf("could not create temp file: %w", err)
+		return m, nil
+	}
+
+	_, err = tempFile.WriteString(m.textarea.Value())
+	if err != nil {
+		m.err = fmt.Errorf("could not write to temp file: %w", err)
+		return m, nil
+	}
+	tempFile.Close()
+
+	cmd := exec.Command(editor, tempFile.Name())
+
+	return m, tea.ExecProcess(cmd, func(err error) tea.Msg {
+		if err != nil {
+			return editorFinishedMsg{err: err}
+		}
+
+		content, err := os.ReadFile(tempFile.Name())
+		if err != nil {
+			return editorFinishedMsg{err: err}
+		}
+
+		os.Remove(tempFile.Name())
+
+		return editorFinishedMsg{content: string(content)}
+	})
 }
 
 func (m Model) submitForm() (tea.Model, tea.Cmd) {
+	m.err = nil
+	m.message = ""
+
 	if len(m.inputs) < 2 {
 		return m, nil
 	}
@@ -593,18 +679,15 @@ func (m Model) submitForm() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	content := ""
-	if val, ok := m.formData["content"]; ok {
-		if str, ok := val.(string); ok {
-			content = str
-		}
-	}
+	content := strings.TrimSpace(m.textarea.Value())
 
 	input := api.SnippetInput{
 		Title:       title,
 		Description: description,
 		Language:    language,
 		Content:     content,
+		IsPublic:    false,      // Default for now
+		Tags:        []string{}, // Default for now
 	}
 
 	if m.mode == ViewCreate {
@@ -622,6 +705,8 @@ func (m Model) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
 		m.mode = ViewList
+		m.err = nil
+		m.message = ""
 		return m, nil
 
 	case "enter":
@@ -641,6 +726,8 @@ func (m Model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
 		m.mode = ViewList
+		m.err = nil
+		m.message = ""
 		return m, nil
 
 	case "tab", "shift+tab":
@@ -724,7 +811,8 @@ func (m Model) View() string {
 		s.WriteString("\n\n")
 	}
 
-	if m.err != nil {
+	// Only show global error if not in form modes (forms render their own inline errors)
+	if m.err != nil && m.mode != ViewCreate && m.mode != ViewEdit {
 		s.WriteString(errorStyle.Render(fmt.Sprintf("Error: %s", m.err)))
 		s.WriteString("\n\n")
 	}
@@ -802,7 +890,7 @@ func (m Model) viewList() string {
 	}
 
 	s.WriteString("\n")
-	s.WriteString(helpStyle.Render("↑/k up • ↓/j down • ←/h prev page • →/l next page • enter view • / search • s settings • r refresh • q quit • ? help"))
+	s.WriteString(helpStyle.Width(m.width).Render("↑/k up • ↓/j down • ←/h prev page • →/l next page • enter view • / search • s settings • r refresh • q quit • ? help"))
 
 	return s.String()
 }
@@ -965,7 +1053,7 @@ func (m Model) viewDetail() string {
 	if len(m.detailSnippet.Files) > 1 {
 		helpText = "←/h prev file • →/l next file • " + helpText
 	}
-	s.WriteString(helpStyle.Render(helpText))
+	s.WriteString(helpStyle.Width(m.width).Render(helpText))
 
 	return s.String()
 }
@@ -986,9 +1074,15 @@ func (m Model) viewCreateForm() string {
 	}
 
 	formContent.WriteString("\n\n")
-	formContent.WriteString(dimmedStyle.Render("Note: Content editing in external editor coming soon"))
+
+	if m.err != nil {
+		formContent.WriteString(errorStyle.Render(fmt.Sprintf("Error: %s", m.err)))
+		formContent.WriteString("\n\n")
+	}
+
+	formContent.WriteString(m.textarea.View())
 	formContent.WriteString("\n\n")
-	formContent.WriteString(helpStyle.Render("tab next field • ctrl+s save • esc cancel"))
+	formContent.WriteString(helpStyle.Width(m.width - 8).Render("tab next field • ctrl+e open external editor • ctrl+s save • esc cancel"))
 
 	s.WriteString(borderStyle.Render(formContent.String()))
 	return s.String()
@@ -1010,9 +1104,15 @@ func (m Model) viewEditForm() string {
 	}
 
 	formContent.WriteString("\n\n")
-	formContent.WriteString(dimmedStyle.Render("Note: Content editing in external editor coming soon"))
+
+	if m.err != nil {
+		formContent.WriteString(errorStyle.Render(fmt.Sprintf("Error: %s", m.err)))
+		formContent.WriteString("\n\n")
+	}
+
+	formContent.WriteString(m.textarea.View())
 	formContent.WriteString("\n\n")
-	formContent.WriteString(helpStyle.Render("tab next field • ctrl+s save • esc cancel"))
+	formContent.WriteString(helpStyle.Width(m.width - 8).Render("tab next field • ctrl+e open external editor • ctrl+s save • esc cancel"))
 
 	s.WriteString(borderStyle.Render(formContent.String()))
 	return s.String()
@@ -1027,7 +1127,7 @@ func (m Model) viewSearchForm() string {
 	s.WriteString(m.inputs[0].View())
 	s.WriteString("\n\n")
 
-	s.WriteString(helpStyle.Render("enter search • esc cancel"))
+	s.WriteString(helpStyle.Width(m.width).Render("enter search • esc cancel"))
 
 	return s.String()
 }
@@ -1073,7 +1173,7 @@ func (m Model) viewSettings() string {
 	s.WriteString(dimmedStyle.Render("─────────────────────────────────────────────────────────"))
 
 	s.WriteString("\n\n")
-	s.WriteString(helpStyle.Render("tab/shift+tab navigate • ctrl+s save • esc cancel"))
+	s.WriteString(helpStyle.Width(m.width - 4).Render("tab/shift+tab navigate • ctrl+s save • esc cancel"))
 
 	return s.String()
 }
@@ -1109,7 +1209,7 @@ func (m Model) viewHelp() string {
 	}
 
 	s.WriteString("\n")
-	s.WriteString(helpStyle.Render("Press ? to close help"))
+	s.WriteString(helpStyle.Width(m.width).Render("Press ? to close help"))
 
 	return s.String()
 }

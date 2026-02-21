@@ -18,8 +18,8 @@ var (
 				PaddingLeft(2)
 
 	normalItemStyle = lipgloss.NewStyle().
-			// No Foreground set implies terminal default (Best for adaptive text)
-			PaddingLeft(2)
+		// No Foreground set implies terminal default (Best for adaptive text)
+		PaddingLeft(2)
 
 	dimmedStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("8")) // Bright Black (ANSI 8)
@@ -64,21 +64,24 @@ var (
 			MarginBottom(1)
 
 	codeBlockStyle = lipgloss.NewStyle().
-			// No Foreground set - adapt to terminal default logic
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("5")). // Magenta (ANSI 5)
-			Padding(1, 2).
-			MarginTop(1).
-			MarginBottom(1)
+		// No Foreground set - adapt to terminal default logic
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("5")). // Magenta (ANSI 5)
+		Padding(1, 2).
+		MarginTop(1).
+		MarginBottom(1)
 
 	inputStyle = lipgloss.NewStyle().
-			// Default foreground
-			Foreground(lipgloss.Color("7")). // White/Light Grey (standard text)
-			Padding(0, 1)
+		// Default foreground
+		Foreground(lipgloss.Color("7")). // White/Light Grey (standard text)
+		Padding(0, 1)
 
 	focusedInputStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("15")). // Bright White
-				Padding(0, 1).
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("5")) // Magenta
+				Padding(0, 1)
+
+	focusedPromptStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("5")). // Magenta
+				Bold(true).
+				Padding(0, 1)
 )
