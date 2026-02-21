@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/atotto/clipboard"
+
 	"github.com/MohamedElashri/snipo/tui/internal/api"
 	"github.com/MohamedElashri/snipo/tui/internal/config"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -58,6 +60,10 @@ type Model struct {
 
 type errMsg struct{ err error }
 type successMsg struct{ message string }
+type copyResultMsg struct {
+	message string
+	err     error
+}
 type snippetsLoadedMsg struct {
 	snippets   []api.Snippet
 	pagination *api.Pagination
@@ -188,15 +194,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
-			if m.mode == ViewList || m.mode == ViewHelp {
+		case "ctrl+c":
+			m.quitting = true
+			return m, tea.Quit
+
+		case "q":
+			if m.mode == ViewList || m.mode == ViewDetail || m.mode == ViewHelp {
 				m.quitting = true
 				return m, tea.Quit
 			}
-			m.mode = ViewList
-			m.err = nil
-			m.message = ""
-			return m, nil
+			// Let 'q' pass through to forms/search where it could be a valid character
+			// Note: For other views that don't capture text, 'q' might still go unhandled,
+			// but at least for ViewDetail it will now quit rather than dropping out of the app frame.
 
 		case "?":
 			if m.mode != ViewHelp {
@@ -261,6 +270,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.message = msg.message
 		m.mode = ViewList
 		cmds = append(cmds, loadSnippets(m.client, m.currentPage, 20, m.searchQuery, m.filterTags, nil, "", nil, nil))
+
+	case copyResultMsg:
+		if msg.err != nil {
+			m.err = msg.err
+		} else {
+			m.message = msg.message
+			m.err = nil
+		}
 
 	case errMsg:
 		m.err = msg.err
@@ -792,7 +809,11 @@ func (m Model) saveSettings() (tea.Model, tea.Cmd) {
 
 func copyToClipboard(content string) tea.Cmd {
 	return func() tea.Msg {
-		return successMsg{message: "Content copied to clipboard (feature requires clipboard package)"}
+		err := clipboard.WriteAll(content)
+		if err != nil {
+			return copyResultMsg{err: fmt.Errorf("failed to copy: %w", err)}
+		}
+		return copyResultMsg{message: "Content copied to clipboard!"}
 	}
 }
 
