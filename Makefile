@@ -1,4 +1,4 @@
-.PHONY: all build run run-test test test-coverage test-short coverage coverage-func lint clean docker docker-multiarch docker-run docker-stop dev migrate migrate-down vendor-install vendor-sync vendor-check vendor-update vendor-update-major
+.PHONY: all build run run-test test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate migrate-down vendor-install vendor-sync vendor-check vendor-update vendor-update-major
 
 VERSION ?= $(shell grep 'const Current =' internal/version/version.go | cut -d '"' -f 2)
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -39,6 +39,9 @@ coverage-func:
 
 lint:
 	golangci-lint run
+
+govulncheck:
+	govulncheck ./...
 
 clean:
 	rm -rf bin/ coverage.out coverage.html data/
@@ -109,6 +112,7 @@ help:
 	@echo "  test           - Run all tests"
 	@echo "  test-short     - Run short tests"
 	@echo "  lint           - Run linter"
+	@echo "  govulncheck    - Run vulnerability check"
 	@echo "  clean          - Clean build artifacts"
 	@echo "  docker         - Build Docker image"
 	@echo "  docker-run     - Run with Docker Compose"
