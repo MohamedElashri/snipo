@@ -183,6 +183,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
+		// Update textarea dimensions dynamically if in form mode
+		if m.mode == ViewCreate || m.mode == ViewEdit {
+			m.textarea.SetWidth(m.width - 8)
+			textAreaHeight := m.height - 11
+			if textAreaHeight < 10 {
+				textAreaHeight = 10
+			}
+			m.textarea.SetHeight(textAreaHeight)
+		}
+
 	case tea.MouseMsg:
 		// Handle mouse events for scrolling
 		switch m.mode {
@@ -203,9 +213,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.quitting = true
 				return m, tea.Quit
 			}
-			// Let 'q' pass through to forms/search where it could be a valid character
-			// Note: For other views that don't capture text, 'q' might still go unhandled,
-			// but at least for ViewDetail it will now quit rather than dropping out of the app frame.
 
 		case "?":
 			if m.mode != ViewHelp {
@@ -421,7 +428,7 @@ func (m Model) calculateMaxScroll() int {
 	contentLines := strings.Split(wrappedContent, "\n")
 
 	// Calculate available height
-	availableHeight := m.height - 18
+	availableHeight := m.height - 16
 	if availableHeight < 5 {
 		availableHeight = 5
 	}
@@ -505,7 +512,11 @@ func (m *Model) initCreateForm() {
 	m.textarea = textarea.New()
 	m.textarea.Placeholder = "Snippet content..."
 	m.textarea.SetWidth(m.width - 8)
-	m.textarea.SetHeight(10)
+	textAreaHeight := m.height - 11
+	if textAreaHeight < 10 {
+		textAreaHeight = 10
+	}
+	m.textarea.SetHeight(textAreaHeight)
 
 	m.focusedInput = 0
 	m.formData = make(map[string]interface{})
@@ -534,7 +545,11 @@ func (m *Model) initEditForm(snippet *api.Snippet) {
 	m.textarea.Placeholder = "Snippet content..."
 	m.textarea.SetValue(snippet.Content)
 	m.textarea.SetWidth(m.width - 8)
-	m.textarea.SetHeight(10)
+	textAreaHeight := m.height - 11
+	if textAreaHeight < 10 {
+		textAreaHeight = 10
+	}
+	m.textarea.SetHeight(textAreaHeight)
 
 	m.focusedInput = 0
 	m.formData = make(map[string]interface{})
@@ -1016,7 +1031,7 @@ func (m Model) viewDetail() string {
 
 	// Handle scrolling for large content
 	contentLines := strings.Split(wrappedContent, "\n")
-	availableHeight := m.height - 18 // Reserve more space for file tabs
+	availableHeight := m.height - 16 // Reserve more space for file tabs
 
 	if availableHeight < 5 {
 		availableHeight = 5
@@ -1086,19 +1101,14 @@ func (m Model) viewCreateForm() string {
 	s.WriteString("\n\n")
 
 	formContent := strings.Builder{}
-	for i, input := range m.inputs {
+	for _, input := range m.inputs {
 		formContent.WriteString(input.View())
 		formContent.WriteString("\n")
-		if i < len(m.inputs)-1 {
-			formContent.WriteString("\n")
-		}
 	}
-
-	formContent.WriteString("\n\n")
 
 	if m.err != nil {
 		formContent.WriteString(errorStyle.Render(fmt.Sprintf("Error: %s", m.err)))
-		formContent.WriteString("\n\n")
+		formContent.WriteString("\n")
 	}
 
 	formContent.WriteString(m.textarea.View())
@@ -1116,19 +1126,14 @@ func (m Model) viewEditForm() string {
 	s.WriteString("\n\n")
 
 	formContent := strings.Builder{}
-	for i, input := range m.inputs {
+	for _, input := range m.inputs {
 		formContent.WriteString(input.View())
 		formContent.WriteString("\n")
-		if i < len(m.inputs)-1 {
-			formContent.WriteString("\n")
-		}
 	}
-
-	formContent.WriteString("\n\n")
 
 	if m.err != nil {
 		formContent.WriteString(errorStyle.Render(fmt.Sprintf("Error: %s", m.err)))
-		formContent.WriteString("\n\n")
+		formContent.WriteString("\n")
 	}
 
 	formContent.WriteString(m.textarea.View())
