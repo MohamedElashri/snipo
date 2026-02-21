@@ -1,6 +1,10 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+)
 
 var (
 	titleStyle = lipgloss.NewStyle().
@@ -85,3 +89,22 @@ var (
 				Bold(true).
 				Padding(0, 1)
 )
+
+func renderHelpText(text string) string {
+	parts := strings.Split(text, " • ")
+	var renderedParts []string
+
+	shortcutKeyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("5"))  // Magenta
+	shortcutDescStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8")) // Grey
+
+	for _, part := range parts {
+		fields := strings.SplitN(part, " ", 2)
+		if len(fields) == 2 {
+			renderedParts = append(renderedParts, shortcutKeyStyle.Render(fields[0])+" "+shortcutDescStyle.Render(fields[1]))
+		} else {
+			renderedParts = append(renderedParts, shortcutDescStyle.Render(part))
+		}
+	}
+
+	return strings.Join(renderedParts, shortcutDescStyle.Render(" • "))
+}

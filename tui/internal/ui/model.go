@@ -890,7 +890,7 @@ func (m Model) viewList() string {
 	}
 
 	s.WriteString("\n")
-	s.WriteString(helpStyle.Width(m.width).Render("↑/k up • ↓/j down • ←/h prev page • →/l next page • enter view • / search • s settings • r refresh • q quit • ? help"))
+	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText("↑/k up • ↓/j down • ←/h prev page • →/l next page • enter view • / search • s settings • r refresh • q quit • ? help")))
 
 	return s.String()
 }
@@ -1053,7 +1053,7 @@ func (m Model) viewDetail() string {
 	if len(m.detailSnippet.Files) > 1 {
 		helpText = "←/h prev file • →/l next file • " + helpText
 	}
-	s.WriteString(helpStyle.Width(m.width).Render(helpText))
+	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText(helpText)))
 
 	return s.String()
 }
@@ -1082,7 +1082,7 @@ func (m Model) viewCreateForm() string {
 
 	formContent.WriteString(m.textarea.View())
 	formContent.WriteString("\n\n")
-	formContent.WriteString(helpStyle.Width(m.width - 8).Render("tab next field • ctrl+e open external editor • ctrl+s save • esc cancel"))
+	formContent.WriteString(helpStyle.Width(m.width - 8).Render(renderHelpText("tab next field • ctrl+e open external editor • ctrl+s save • esc cancel")))
 
 	s.WriteString(borderStyle.Render(formContent.String()))
 	return s.String()
@@ -1112,7 +1112,7 @@ func (m Model) viewEditForm() string {
 
 	formContent.WriteString(m.textarea.View())
 	formContent.WriteString("\n\n")
-	formContent.WriteString(helpStyle.Width(m.width - 8).Render("tab next field • ctrl+e open external editor • ctrl+s save • esc cancel"))
+	formContent.WriteString(helpStyle.Width(m.width - 8).Render(renderHelpText("tab next field • ctrl+e open external editor • ctrl+s save • esc cancel")))
 
 	s.WriteString(borderStyle.Render(formContent.String()))
 	return s.String()
@@ -1127,7 +1127,7 @@ func (m Model) viewSearchForm() string {
 	s.WriteString(m.inputs[0].View())
 	s.WriteString("\n\n")
 
-	s.WriteString(helpStyle.Width(m.width).Render("enter search • esc cancel"))
+	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText("enter search • esc cancel")))
 
 	return s.String()
 }
@@ -1173,7 +1173,7 @@ func (m Model) viewSettings() string {
 	s.WriteString(dimmedStyle.Render("─────────────────────────────────────────────────────────"))
 
 	s.WriteString("\n\n")
-	s.WriteString(helpStyle.Width(m.width - 4).Render("tab/shift+tab navigate • ctrl+s save • esc cancel"))
+	s.WriteString(helpStyle.Width(m.width - 4).Render(renderHelpText("tab/shift+tab navigate • ctrl+s save • esc cancel")))
 
 	return s.String()
 }
@@ -1209,7 +1209,7 @@ func (m Model) viewHelp() string {
 	}
 
 	s.WriteString("\n")
-	s.WriteString(helpStyle.Width(m.width).Render("Press ? to close help"))
+	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText("? close help")))
 
 	return s.String()
 }
