@@ -1,6 +1,10 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+)
 
 var (
 	titleStyle = lipgloss.NewStyle().
@@ -18,8 +22,8 @@ var (
 				PaddingLeft(2)
 
 	normalItemStyle = lipgloss.NewStyle().
-			// No Foreground set implies terminal default (Best for adaptive text)
-			PaddingLeft(2)
+		// No Foreground set implies terminal default (Best for adaptive text)
+		PaddingLeft(2)
 
 	dimmedStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("8")) // Bright Black (ANSI 8)
@@ -64,21 +68,43 @@ var (
 			MarginBottom(1)
 
 	codeBlockStyle = lipgloss.NewStyle().
-			// No Foreground set - adapt to terminal default logic
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("5")). // Magenta (ANSI 5)
-			Padding(1, 2).
-			MarginTop(1).
-			MarginBottom(1)
+		// No Foreground set - adapt to terminal default logic
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("5")). // Magenta (ANSI 5)
+		Padding(1, 2).
+		MarginTop(1).
+		MarginBottom(1)
 
 	inputStyle = lipgloss.NewStyle().
-			// Default foreground
-			Foreground(lipgloss.Color("7")). // White/Light Grey (standard text)
-			Padding(0, 1)
+		// Default foreground
+		Foreground(lipgloss.Color("7")). // White/Light Grey (standard text)
+		Padding(0, 1)
 
 	focusedInputStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("15")). // Bright White
-				Padding(0, 1).
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("5")) // Magenta
+				Padding(0, 1)
+
+	focusedPromptStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("5")). // Magenta
+				Bold(true).
+				Padding(0, 1)
 )
+
+func renderHelpText(text string) string {
+	parts := strings.Split(text, " • ")
+	var renderedParts []string
+
+	shortcutKeyStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("5"))  // Magenta
+	shortcutDescStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8")) // Grey
+
+	for _, part := range parts {
+		fields := strings.SplitN(part, " ", 2)
+		if len(fields) == 2 {
+			renderedParts = append(renderedParts, shortcutKeyStyle.Render(fields[0])+" "+shortcutDescStyle.Render(fields[1]))
+		} else {
+			renderedParts = append(renderedParts, shortcutDescStyle.Render(part))
+		}
+	}
+
+	return strings.Join(renderedParts, shortcutDescStyle.Render(" • "))
+}

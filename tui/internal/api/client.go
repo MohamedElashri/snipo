@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -62,7 +63,21 @@ func (c *Client) doRequest(method, path string, body interface{}, result interfa
 		if err := json.Unmarshal(respBody, &errResp); err != nil {
 			return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
 		}
-		return fmt.Errorf("API error: %s", errResp.Error.Message)
+		errMsg := errResp.Error.Message
+		if errResp.Error.Details != nil {
+			if detailsSlice, ok := errResp.Error.Details.([]interface{}); ok {
+				var detStrs []string
+				for _, d := range detailsSlice {
+					detStrs = append(detStrs, fmt.Sprint(d))
+				}
+				if len(detStrs) > 0 {
+					errMsg = fmt.Sprintf("%s: %s", errMsg, strings.Join(detStrs, ", "))
+				}
+			} else {
+				errMsg = fmt.Sprintf("%s: %v", errMsg, errResp.Error.Details)
+			}
+		}
+		return fmt.Errorf("API error: %s", errMsg)
 	}
 
 	if result != nil && len(respBody) > 0 {

@@ -92,10 +92,10 @@ type SnippetInput struct {
 	Description string      `json:"description,omitempty"`
 	Language    string      `json:"language"`
 	Content     string      `json:"content"`
-	IsFavorite  bool        `json:"is_favorite"`
+	Tags        []string    `json:"tags,omitempty"`
+	FolderID    *int64      `json:"folder_id,omitempty"`
 	IsPublic    bool        `json:"is_public"`
-	FolderID    *int        `json:"folder_id,omitempty"`
-	TagIDs      []int       `json:"tag_ids,omitempty"`
+	IsArchived  bool        `json:"is_archived,omitempty"`
 	Files       []FileInput `json:"files,omitempty"`
 }
 
