@@ -54,21 +54,33 @@ export const settingsMixin = {
       return;
     }
 
-    // Always show password prompt for security
-    this.tokenPasswordAction = 'create';
-    this.tokenPassword = '';
     this.pendingTokenData = {
       name: this.newToken.name,
       permissions: this.newToken.permissions,
       expires_in_days: parseInt(this.newToken.expires_in_days) || null
     };
+
+    if (window.SNIPO_CONFIG?.authDisabled) {
+      await this.performCreateToken('');
+      return;
+    }
+
+    // Always show password prompt for security
+    this.tokenPasswordAction = 'create';
+    this.tokenPassword = '';
   },
 
   async deleteApiToken(tokenId) {
+    this.pendingTokenData = tokenId;
+
+    if (window.SNIPO_CONFIG?.authDisabled) {
+      await this.performDeleteToken(tokenId, '');
+      return;
+    }
+
     // Always show password prompt for security
     this.tokenPasswordAction = 'delete';
     this.tokenPassword = '';
-    this.pendingTokenData = tokenId;
   },
 
   async confirmTokenPassword() {

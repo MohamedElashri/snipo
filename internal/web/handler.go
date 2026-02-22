@@ -67,17 +67,18 @@ func StaticHandler(basePath string) http.Handler {
 
 // PageData holds data passed to templates
 type PageData struct {
-	Title    string
-	DemoMode bool
-	BasePath string
-	Version  string
+	Title        string
+	DemoMode     bool
+	BasePath     string
+	Version      string
+	AuthDisabled bool
 }
 
 // Index serves the main application page
 func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	// Skip authentication check if auth is completely disabled
 	if h.authService.IsAuthDisabled() {
-		data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version}
+		data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version, AuthDisabled: true}
 		h.render(w, "layout.html", "index.html", data)
 		return
 	}
@@ -87,7 +88,7 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	settings, err := h.settingsRepo.Get(ctx)
 	if err == nil && settings.DisableLogin {
 		// Login is disabled via settings - allow access without session
-		data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version}
+		data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version, AuthDisabled: h.authService.IsAuthDisabled()}
 		h.render(w, "layout.html", "index.html", data)
 		return
 	}
@@ -99,7 +100,7 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version}
+	data := PageData{Title: "Snippets", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version, AuthDisabled: h.authService.IsAuthDisabled()}
 	h.render(w, "layout.html", "index.html", data)
 }
 
@@ -127,13 +128,13 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := PageData{Title: "Login", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version}
+	data := PageData{Title: "Login", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version, AuthDisabled: h.authService.IsAuthDisabled()}
 	h.render(w, "layout.html", "login.html", data)
 }
 
 // PublicSnippet serves the public snippet view page (no auth required)
 func (h *Handler) PublicSnippet(w http.ResponseWriter, r *http.Request) {
-	data := PageData{Title: "Shared Snippet", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version}
+	data := PageData{Title: "Shared Snippet", DemoMode: h.demoMode, BasePath: h.basePath, Version: h.version, AuthDisabled: h.authService.IsAuthDisabled()}
 	h.render(w, "layout.html", "public.html", data)
 }
 
