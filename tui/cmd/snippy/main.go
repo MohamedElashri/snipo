@@ -10,9 +10,8 @@ import (
 	"github.com/MohamedElashri/snipo/tui/internal/config"
 )
 
-
 var (
-	Version = "beta_dev"
+	Version = "0.1.0"
 	Commit  = "none"
 )
 
@@ -25,7 +24,7 @@ func main() {
 				os.Exit(1)
 			}
 			return
-		case "version":
+		case "version", "-v", "--version":
 			fmt.Printf("Snippy %s (%s)\n", Version, Commit)
 			return
 		}
@@ -58,7 +57,7 @@ func runConfigWizard() error {
 	if cfg.APIKey != "" {
 		keyHint = "(set)"
 	}
-	fmt.Printf("API Key %s: ", keyHint) 
+	fmt.Printf("API Key %s: ", keyHint)
 	key, _ := reader.ReadString('\n')
 	key = strings.TrimSpace(key)
 	if key != "" {

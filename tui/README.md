@@ -39,7 +39,35 @@ Enter your server URL and API key when prompted.
 
 ## Installation
 
-### System-wide Install
+### Recommended: Homebrew (macOS / Linux)
+
+If you use Homebrew, you can install Snippy directly through the tap:
+
+```bash
+brew install MohamedElashri/snippy/snippy
+```
+
+### Pre-compiled Binaries (Linux, macOS, Windows)
+
+You can download the pre-compiled binaries from the [Releases page](https://github.com/MohamedElashri/snipo/releases).
+We also provide `.deb` and `.rpm` packages for Linux users inside the release assets.
+
+```bash
+# Example for Linux AMD64
+curl -LO https://github.com/MohamedElashri/snipo/releases/download/snippy-v0.1.0/snippy_Linux_x86_64.tar.gz
+tar xzf snippy_Linux_x86_64.tar.gz
+sudo mv snippy /usr/local/bin/
+```
+
+### Build from Source (go install)
+
+If you have Go 1.25+ installed, you can automatically build and install the latest version:
+
+```bash
+go install github.com/MohamedElashri/snipo/tui/cmd/snippy@latest
+```
+
+### Build from Source (Makefile)
 
 ```bash
 make install
@@ -50,9 +78,10 @@ Then run from anywhere:
 snippy
 ```
 
-### Manual Install
+### Manual Source Install
 
 ```bash
+make build
 sudo cp bin/snippy /usr/local/bin/
 sudo chmod +x /usr/local/bin/snippy
 ```

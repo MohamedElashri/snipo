@@ -23,7 +23,8 @@ deps:
 build: deps
 	@echo "Building snippy..."
 	@mkdir -p $(BUILD_DIR)
-	@go build -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/snippy
+	@COMMIT=$$(git rev-parse --short HEAD 2>/dev/null || echo "none") && \
+	go build -ldflags="-s -w -X main.Commit=$$COMMIT" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/snippy
 	@echo "Binary built: $(BUILD_DIR)/$(BINARY_NAME)"
 
 install: build
