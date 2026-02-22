@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type ViewMode int
@@ -557,6 +558,17 @@ func (m *Model) initCreateForm() {
 	}
 	m.textarea.SetHeight(textAreaHeight)
 
+	// Custom line numbers with vertical separator
+	m.textarea.ShowLineNumbers = false
+	m.textarea.Prompt = ""
+	m.textarea.SetPromptFunc(6, func(lineIdx int) string {
+		lineNum := fmt.Sprintf("%3d │ ", lineIdx+1)
+		if lineIdx == m.textarea.Line() {
+			return lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Render(lineNum)
+		}
+		return dimmedStyle.Render(lineNum)
+	})
+
 	m.focusedInput = 0
 	m.formData = make(map[string]interface{})
 }
@@ -591,6 +603,17 @@ func (m *Model) initEditForm(snippet *api.Snippet) {
 		textAreaHeight = 10
 	}
 	m.textarea.SetHeight(textAreaHeight)
+
+	// Custom line numbers with vertical separator
+	m.textarea.ShowLineNumbers = false
+	m.textarea.Prompt = ""
+	m.textarea.SetPromptFunc(6, func(lineIdx int) string {
+		lineNum := fmt.Sprintf("%3d │ ", lineIdx+1)
+		if lineIdx == m.textarea.Line() {
+			return lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Render(lineNum)
+		}
+		return dimmedStyle.Render(lineNum)
+	})
 
 	m.focusedInput = 0
 	m.formData = make(map[string]interface{})
