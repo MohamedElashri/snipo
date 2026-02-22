@@ -52,7 +52,9 @@ nfpms:
     bindir: /usr/bin
 
 brews:
-  - name: snippy
+  - repository:
+      owner: MohamedElashri
+      name: homebrew-snippy
     directory: Formula
     homepage: "https://github.com/MohamedElashri/snipo"
     description: "A rich terminal user interface (TUI) for Snipo - your self-hosted snippet manager."
