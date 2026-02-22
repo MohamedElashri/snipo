@@ -1,0 +1,66 @@
+name: Snippy Release
+
+on:
+  push:
+    tags:
+      - 'snippy-v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag to build (e.g. snippy-v0.1.0)'
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    name: Release Snippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+          cache-dependency-path: tui/go.sum
+
+      - name: Verify Version Match
+        run: |
+          # Extract version from tui/cmd/snippy/main.go
+          CODE_VERSION=$(grep 'Version = ' tui/cmd/snippy/main.go | cut -d '"' -f 2)
+          
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG_VERSION="${{ inputs.tag_name }}"
+          else
+            TAG_VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          
+          # Remove 'snippy-v' prefix if present from tag for comparison
+          CLEAN_TAG_VERSION=${TAG_VERSION#snippy-v}
+          
+          echo "Code version: $CODE_VERSION"
+          echo "Tag version: $TAG_VERSION (Clean: $CLEAN_TAG_VERSION)"
+          
+          if [ "$CODE_VERSION" != "$CLEAN_TAG_VERSION" ]; then
+            echo "::error::Version mismatch! tui/cmd/snippy/main.go ($CODE_VERSION) does not match tag ($TAG_VERSION)"
+            exit 1
+          fi
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+          workdir: ./tui
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Used to push formulas to the Homebrew tap
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}

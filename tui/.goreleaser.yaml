@@ -1,0 +1,71 @@
+# tui/.goreleaser.yaml
+version: 2
+
+project_name: snippy
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod download
+
+builds:
+  - id: snippy
+    dir: .
+    main: ./cmd/snippy
+    binary: snippy
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}}
+
+archives:
+  - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+nfpms:
+  - vendor: Mohamed Elashri
+    homepage: https://github.com/MohamedElashri/snipo
+    maintainer: Mohamed Elashri <snippy@elashri.com>
+    description: A rich terminal user interface (TUI) for Snipo - your self-hosted snippet manager.
+    license: AGPL-3.0
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+
+brews:
+  - repository:
+      owner: MohamedElashri
+      name: homebrew-snippy
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/MohamedElashri/snipo"
+    description: "A rich terminal user interface (TUI) for Snipo - your self-hosted snippet manager."
+    license: "AGPL-3.0"
+    test: |
+      system "#{bin}/snippy version"
