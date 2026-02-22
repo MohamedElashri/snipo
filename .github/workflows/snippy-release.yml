@@ -52,6 +52,9 @@ jobs:
             echo "::error::Version mismatch! tui/cmd/snippy/main.go ($CODE_VERSION) does not match tag ($TAG_VERSION)"
             exit 1
           fi
+          
+          echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_ENV
+          echo "CLEAN_TAG_VERSION=$CLEAN_TAG_VERSION" >> $GITHUB_ENV
 
       - name: Create local tag for GoReleaser
         run: |
