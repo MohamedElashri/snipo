@@ -37,6 +37,7 @@ export const editorMixin = {
       folder_id: null,
       is_public: false,
       is_favorite: false,
+      sync_to_gist: this.gistConfig?.auto_sync_enabled || false,
       files: [{
         id: 0,
         filename: 'snippet.txt',
@@ -143,6 +144,8 @@ export const editorMixin = {
     if (result && !result.error) {
       const wasUpdate = !!this.editingSnippet.id;
       const snippetId = result.id || this.editingSnippet.id;
+      const shouldSyncToGist = this.editingSnippet.sync_to_gist;
+
       showToast(wasUpdate ? 'Snippet updated' : 'Snippet created');
       this.showEditor = false;
       this.isEditing = false;
@@ -157,6 +160,10 @@ export const editorMixin = {
       // Auto-sync to gist if sync is enabled for this snippet
       if (wasUpdate && snippetId && this.isGistSyncEnabled && this.isGistSyncEnabled(snippetId)) {
         this.syncSnippetToGist(snippetId);
+      } else if (!wasUpdate && snippetId && shouldSyncToGist && this.isGistConfigured && this.isGistConfigured()) {
+        if (this.enableGistSyncForSnippet) {
+          this.enableGistSyncForSnippet(snippetId);
+        }
       }
     } else if (result?.error) {
       showToast(result.error.message || 'Error saving snippet', 'error');
@@ -192,6 +199,7 @@ export const editorMixin = {
       folder_id: null,
       is_public: false,
       is_favorite: false,
+      sync_to_gist: false,
       files: [{
         id: 0,
         filename: 'snippet.txt',
