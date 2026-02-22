@@ -89,11 +89,6 @@ var (
 	focusedInputStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("15")). // Bright White
 				Padding(0, 1)
-
-	focusedPromptStyle = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("5")). // Magenta
-				Bold(true).
-				Padding(0, 1)
 )
 
 func renderHelpText(text string) string {

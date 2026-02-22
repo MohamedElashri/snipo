@@ -1,8 +1,11 @@
+//go:build ignore
+
 package main
 
 import (
-"fmt"
-"github.com/charmbracelet/bubbles/textinput"
+	"fmt"
+
+	"github.com/charmbracelet/bubbles/textinput"
 )
 
 func main() {

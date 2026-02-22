@@ -844,7 +844,10 @@ func (m Model) openEditor() (tea.Model, tea.Cmd) {
 		m.err = fmt.Errorf("could not write to temp file: %w", err)
 		return m, nil
 	}
-	tempFile.Close()
+	if err := tempFile.Close(); err != nil {
+		m.err = fmt.Errorf("could not close temp file: %w", err)
+		return m, nil
+	}
 
 	cmd := exec.Command(editor, tempFile.Name())
 
@@ -858,7 +861,7 @@ func (m Model) openEditor() (tea.Model, tea.Cmd) {
 			return editorFinishedMsg{err: err}
 		}
 
-		os.Remove(tempFile.Name())
+		_ = os.Remove(tempFile.Name())
 
 		return editorFinishedMsg{content: string(content)}
 	})
@@ -881,7 +884,7 @@ func (m *Model) validateLanguage() error {
 	}
 
 	if !validLang {
-		return fmt.Errorf("Invalid language '%s'. Please enter precisely one valid language. Comma-separated or unsupported languages are not allowed.", language)
+		return fmt.Errorf("invalid language '%s': please enter precisely one valid language (comma-separated or unsupported languages are not allowed)", language)
 	}
 
 	return nil
@@ -898,7 +901,7 @@ func (m *Model) updateTagSuggestions() {
 
 	lastCommaIdx := strings.LastIndex(val, ",")
 	prefix := ""
-	currentTerm := val
+	var currentTerm string
 
 	if lastCommaIdx != -1 {
 		prefix = val[:lastCommaIdx+1]
@@ -1544,9 +1547,9 @@ func (m Model) viewHelp() string {
 	}
 
 	for _, h := range help {
-		s.WriteString(fmt.Sprintf("  %s  %s\n",
+		fmt.Fprintf(&s, "  %s  %s\n",
 			selectedItemStyle.Render(h.key),
-			normalItemStyle.Render(h.desc)))
+			normalItemStyle.Render(h.desc))
 	}
 
 	s.WriteString("\n")
