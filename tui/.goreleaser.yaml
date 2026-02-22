@@ -3,10 +3,6 @@ version: 2
 
 project_name: snippy
 
-monorepo:
-  tag_prefix: snippy-v
-  dir: .
-
 before:
   hooks:
     - go mod tidy
@@ -44,13 +40,6 @@ archives:
       - goos: windows
         format: zip
 
-changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
-
 nfpms:
   - vendor: Mohamed Elashri
     homepage: https://github.com/MohamedElashri/snipo
@@ -63,13 +52,11 @@ nfpms:
     bindir: /usr/bin
 
 brews:
-  - repository:
-      owner: MohamedElashri
-      name: homebrew-snippy
-      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+  - name: snippy
     directory: Formula
     homepage: "https://github.com/MohamedElashri/snipo"
     description: "A rich terminal user interface (TUI) for Snipo - your self-hosted snippet manager."
     license: "AGPL-3.0"
+    url_template: "https://github.com/MohamedElashri/snipo/releases/download/snippy-v{{ .Version }}/{{ .ArtifactName }}"
     test: |
       system "#{bin}/snippy version"
