@@ -305,3 +305,25 @@ func (c *Client) CreateFolder(input FolderInput) (*Folder, error) {
 
 	return &folder, nil
 }
+
+// GetLanguages fetches the list of allowed snippet programming languages from the backend
+func (c *Client) GetLanguages() ([]string, error) {
+	var response APIResponse
+	if err := c.doRequest("GET", "/api/v1/metadata/languages", nil, &response); err != nil {
+		return nil, err
+	}
+
+	dataBytes, err := json.Marshal(response.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	var data struct {
+		Languages []string `json:"languages"`
+	}
+	if err := json.Unmarshal(dataBytes, &data); err != nil {
+		return nil, err
+	}
+
+	return data.Languages, nil
+}

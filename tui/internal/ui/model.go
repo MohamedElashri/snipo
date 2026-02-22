@@ -55,6 +55,9 @@ type Model struct {
 	focusedInput int
 	formData     map[string]interface{}
 
+	// Allowed snippet languages fetched dynamically from backend
+	allowedLanguages []string
+
 	quitting bool
 }
 
@@ -71,6 +74,7 @@ type snippetsLoadedMsg struct {
 type snippetLoadedMsg struct{ snippet *api.Snippet }
 type tagsLoadedMsg struct{ tags []api.Tag }
 type foldersLoadedMsg struct{ folders []api.Folder }
+type languagesLoadedMsg struct{ languages []string }
 
 func (e errMsg) Error() string { return e.err.Error() }
 
@@ -78,12 +82,13 @@ func NewModel(cfg *config.Config) Model {
 	client := api.NewClient(cfg.ServerURL, cfg.APIKey)
 
 	return Model{
-		client:      client,
-		config:      cfg,
-		mode:        ViewList,
-		snippets:    []api.Snippet{},
-		currentPage: 1,
-		formData:    make(map[string]interface{}),
+		client:           client,
+		config:           cfg,
+		mode:             ViewList,
+		snippets:         []api.Snippet{},
+		allowedLanguages: []string{},
+		currentPage:      1,
+		formData:         make(map[string]interface{}),
 	}
 }
 
@@ -92,6 +97,7 @@ func (m Model) Init() tea.Cmd {
 		loadSnippets(m.client, 1, 20, "", nil, nil, "", nil, nil),
 		loadTags(m.client),
 		loadFolders(m.client),
+		loadLanguages(m.client),
 	)
 }
 
@@ -132,6 +138,16 @@ func loadFolders(client *api.Client) tea.Cmd {
 			return errMsg{err}
 		}
 		return foldersLoadedMsg{folders: folders}
+	}
+}
+
+func loadLanguages(client *api.Client) tea.Cmd {
+	return func() tea.Msg {
+		langs, err := client.GetLanguages()
+		if err != nil {
+			return errMsg{err}
+		}
+		return languagesLoadedMsg{languages: langs}
 	}
 }
 
@@ -236,6 +252,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateSettings(msg)
 		case ViewHelp:
 			return m, nil
+		}
+
+	case languagesLoadedMsg:
+		m.allowedLanguages = msg.languages
+		// If edit/create form is already open, update suggestions immediately
+		if len(m.inputs) > 1 {
+			m.inputs[1].ShowSuggestions = true
+			m.inputs[1].SetSuggestions(m.allowedLanguages)
 		}
 
 	case snippetsLoadedMsg:
@@ -504,6 +528,8 @@ func (m *Model) initCreateForm() {
 	m.inputs[1] = textinput.New()
 	m.inputs[1].Placeholder = "Language (e.g., go, python, javascript)"
 	m.inputs[1].CharLimit = 50
+	m.inputs[1].ShowSuggestions = true
+	m.inputs[1].SetSuggestions(m.allowedLanguages)
 
 	m.inputs[2] = textinput.New()
 	m.inputs[2].Placeholder = "Description (optional)"
@@ -535,6 +561,8 @@ func (m *Model) initEditForm(snippet *api.Snippet) {
 	m.inputs[1].Placeholder = "Language"
 	m.inputs[1].SetValue(snippet.Language)
 	m.inputs[1].CharLimit = 50
+	m.inputs[1].ShowSuggestions = true
+	m.inputs[1].SetSuggestions(m.allowedLanguages)
 
 	m.inputs[2] = textinput.New()
 	m.inputs[2].Placeholder = "Description"
@@ -598,7 +626,58 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "ctrl+e":
 		return m.openEditor()
 
+	case "up", "down":
+		// Handle up/down arrow cycling for the Language field like a proper select dropdown
+		if m.focusedInput == 1 && len(m.allowedLanguages) > 0 {
+			currentVal := m.inputs[1].Value()
+			idx := -1
+			for i, l := range m.allowedLanguages {
+				if l == currentVal {
+					idx = i
+					break
+				}
+			}
+
+			if msg.String() == "down" {
+				idx++
+				if idx >= len(m.allowedLanguages) {
+					idx = 0
+				}
+			} else {
+				idx--
+				if idx < 0 {
+					idx = len(m.allowedLanguages) - 1
+				}
+			}
+			m.inputs[1].SetValue(m.allowedLanguages[idx])
+			m.inputs[1].SetCursor(len(m.allowedLanguages[idx]))
+
+			// Clear any previous language validation error since we just selected a valid one
+			if m.err != nil && strings.Contains(m.err.Error(), "Invalid language") {
+				m.err = nil
+			}
+			return m, nil
+		}
+
 	case "tab", "shift+tab":
+		// Auto-complete suggestion if present instead of switching inputs
+		if msg.String() == "tab" && m.focusedInput == 1 {
+			if suggestion := m.inputs[1].CurrentSuggestion(); suggestion != "" && m.inputs[1].Value() != suggestion {
+				m.inputs[1].SetValue(suggestion)
+				m.inputs[1].SetCursor(len(suggestion))
+				return m, nil
+			}
+		}
+
+		// Validate language field upon exit
+		if m.focusedInput == 1 {
+			if err := m.validateLanguage(); err != nil {
+				m.err = err
+			} else {
+				m.err = nil
+			}
+		}
+
 		if msg.String() == "tab" {
 			m.focusedInput++
 		} else {
@@ -691,6 +770,29 @@ func (m Model) openEditor() (tea.Model, tea.Cmd) {
 	})
 }
 
+// validateLanguage ensures the inputted language exactly matches the strictly supported backend list.
+// It explicitly rejects comma-separated values unless supported by the backend.
+func (m *Model) validateLanguage() error {
+	language := strings.ToLower(strings.TrimSpace(m.inputs[1].Value()))
+	if language == "" {
+		return nil // Server handles defaulting to plaintext
+	}
+
+	validLang := false
+	for _, l := range m.allowedLanguages {
+		if l == language {
+			validLang = true
+			break
+		}
+	}
+
+	if !validLang {
+		return fmt.Errorf("Invalid language '%s'. Please enter precisely one valid language. Comma-separated or unsupported languages are not allowed.", language)
+	}
+
+	return nil
+}
+
 func (m Model) submitForm() (tea.Model, tea.Cmd) {
 	m.err = nil
 	m.message = ""
@@ -700,15 +802,19 @@ func (m Model) submitForm() (tea.Model, tea.Cmd) {
 	}
 
 	title := strings.TrimSpace(m.inputs[0].Value())
-	language := strings.TrimSpace(m.inputs[1].Value())
-	description := ""
-	if len(m.inputs) > 2 {
-		description = strings.TrimSpace(m.inputs[2].Value())
-	}
+	language := strings.ToLower(strings.TrimSpace(m.inputs[1].Value()))
+	description := strings.TrimSpace(m.inputs[2].Value())
 
 	if title == "" {
-		m.err = fmt.Errorf("title is required")
+		m.err = fmt.Errorf("title cannot be empty")
 		return m, nil
+	}
+
+	if language != "" {
+		if err := m.validateLanguage(); err != nil {
+			m.err = err
+			return m, nil
+		}
 	}
 
 	content := strings.TrimSpace(m.textarea.Value())
@@ -1107,7 +1213,7 @@ func (m Model) viewCreateForm() string {
 	}
 
 	if m.err != nil {
-		formContent.WriteString(errorStyle.Render(fmt.Sprintf("Error: %s", m.err)))
+		formContent.WriteString(errorStyle.Width(m.width - 10).Render(fmt.Sprintf("Error: %s", m.err)))
 		formContent.WriteString("\n")
 	}
 
@@ -1132,7 +1238,7 @@ func (m Model) viewEditForm() string {
 	}
 
 	if m.err != nil {
-		formContent.WriteString(errorStyle.Render(fmt.Sprintf("Error: %s", m.err)))
+		formContent.WriteString(errorStyle.Width(m.width - 10).Render(fmt.Sprintf("Error: %s", m.err)))
 		formContent.WriteString("\n")
 	}
 
