@@ -361,7 +361,49 @@ paths:
                       code: "UNAUTHORIZED"
                       message: "Authentication required"
 
-  
+  /api/v1/metadata/languages:
+    get:
+      tags: [Snippets]
+      summary: Get supported languages
+      description: Returns a list of strictly supported programming languages for snippet syntax highlighting
+      operationId: getLanguages
+      responses:
+        '200':
+          description: List of supported languages
+          headers:
+            X-Request-ID:
+              description: Unique request identifier
+              schema:
+                type: string
+                format: uuid
+            X-API-Version:
+              description: API version
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+              examples:
+                success:
+                  summary: Languages retrieved successfully
+                  value:
+                    data:
+                      languages:
+                        - "go"
+                        - "python"
+                        - "javascript"
+                    meta:
+                      request_id: "550e8400-e29b-41d4-a716-446655440000"
+                      timestamp: "2024-12-24T10:30:00Z"
+                      version: "1.0"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/v1/snippets:
     get:
       tags: [Snippets]

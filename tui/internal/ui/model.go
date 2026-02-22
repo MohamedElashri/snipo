@@ -2,12 +2,18 @@ package ui
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
 	"strings"
+
+	"github.com/atotto/clipboard"
 
 	"github.com/MohamedElashri/snipo/tui/internal/api"
 	"github.com/MohamedElashri/snipo/tui/internal/config"
+	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type ViewMode int
@@ -31,12 +37,12 @@ type Model struct {
 	err     error
 	message string
 
-	snippets     []api.Snippet
-	selectedIdx  int
-	currentPage  int
-	totalPages   int
-	searchQuery  string
-	filterTags   []int
+	snippets    []api.Snippet
+	selectedIdx int
+	currentPage int
+	totalPages  int
+	searchQuery string
+	filterTags  []int
 
 	detailSnippet   *api.Snippet
 	detailScroll    int
@@ -46,14 +52,23 @@ type Model struct {
 	folders []api.Folder
 
 	inputs       []textinput.Model
+	textarea     textarea.Model
 	focusedInput int
 	formData     map[string]interface{}
+
+	// Allowed snippet languages fetched dynamically from backend
+	allowedLanguages []string
+	autoEdit         bool
 
 	quitting bool
 }
 
 type errMsg struct{ err error }
 type successMsg struct{ message string }
+type copyResultMsg struct {
+	message string
+	err     error
+}
 type snippetsLoadedMsg struct {
 	snippets   []api.Snippet
 	pagination *api.Pagination
@@ -61,6 +76,7 @@ type snippetsLoadedMsg struct {
 type snippetLoadedMsg struct{ snippet *api.Snippet }
 type tagsLoadedMsg struct{ tags []api.Tag }
 type foldersLoadedMsg struct{ folders []api.Folder }
+type languagesLoadedMsg struct{ languages []string }
 
 func (e errMsg) Error() string { return e.err.Error() }
 
@@ -68,12 +84,13 @@ func NewModel(cfg *config.Config) Model {
 	client := api.NewClient(cfg.ServerURL, cfg.APIKey)
 
 	return Model{
-		client:      client,
-		config:      cfg,
-		mode:        ViewList,
-		snippets:    []api.Snippet{},
-		currentPage: 1,
-		formData:    make(map[string]interface{}),
+		client:           client,
+		config:           cfg,
+		mode:             ViewList,
+		snippets:         []api.Snippet{},
+		allowedLanguages: []string{},
+		currentPage:      1,
+		formData:         make(map[string]interface{}),
 	}
 }
 
@@ -82,6 +99,7 @@ func (m Model) Init() tea.Cmd {
 		loadSnippets(m.client, 1, 20, "", nil, nil, "", nil, nil),
 		loadTags(m.client),
 		loadFolders(m.client),
+		loadLanguages(m.client),
 	)
 }
 
@@ -122,6 +140,16 @@ func loadFolders(client *api.Client) tea.Cmd {
 			return errMsg{err}
 		}
 		return foldersLoadedMsg{folders: folders}
+	}
+}
+
+func loadLanguages(client *api.Client) tea.Cmd {
+	return func() tea.Msg {
+		langs, err := client.GetLanguages()
+		if err != nil {
+			return errMsg{err}
+		}
+		return languagesLoadedMsg{languages: langs}
 	}
 }
 
@@ -173,6 +201,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
+		// Update textarea dimensions dynamically if in form mode
+		if m.mode == ViewCreate || m.mode == ViewEdit {
+			m.textarea.SetWidth(m.width - 8)
+			textAreaHeight := m.height - 11
+			if textAreaHeight < 10 {
+				textAreaHeight = 10
+			}
+			m.textarea.SetHeight(textAreaHeight)
+		}
+
 	case tea.MouseMsg:
 		// Handle mouse events for scrolling
 		switch m.mode {
@@ -184,15 +222,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
-			if m.mode == ViewList || m.mode == ViewHelp {
+		case "ctrl+c":
+			m.quitting = true
+			return m, tea.Quit
+
+		case "q":
+			if m.mode == ViewList || m.mode == ViewDetail || m.mode == ViewHelp {
 				m.quitting = true
 				return m, tea.Quit
 			}
-			m.mode = ViewList
-			m.err = nil
-			m.message = ""
-			return m, nil
 
 		case "?":
 			if m.mode != ViewHelp {
@@ -218,6 +256,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
+	case languagesLoadedMsg:
+		m.allowedLanguages = msg.languages
+		// If edit/create form is already open, update suggestions immediately
+		if len(m.inputs) > 1 {
+			m.inputs[1].ShowSuggestions = true
+			m.inputs[1].SetSuggestions(m.allowedLanguages)
+		}
+
 	case snippetsLoadedMsg:
 		m.snippets = msg.snippets
 		if msg.pagination != nil {
@@ -231,7 +277,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.detailSnippet = msg.snippet
 		m.detailScroll = 0    // Reset scroll when loading new snippet
 		m.selectedFileIdx = 0 // Reset file selection
-		if m.mode == ViewList {
+
+		if m.autoEdit {
+			m.autoEdit = false
+			m.mode = ViewEdit
+			m.initEditForm(m.detailSnippet)
+		} else if m.mode == ViewList {
 			for i, s := range m.snippets {
 				if s.ID == msg.snippet.ID {
 					m.snippets[i] = *msg.snippet
@@ -243,6 +294,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tagsLoadedMsg:
 		m.tags = msg.tags
 
+	case editorFinishedMsg:
+		if msg.err != nil {
+			m.err = fmt.Errorf("editor error: %w", msg.err)
+		} else {
+			m.textarea.SetValue(msg.content)
+		}
+
 	case foldersLoadedMsg:
 		m.folders = msg.folders
 
@@ -250,6 +308,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.message = msg.message
 		m.mode = ViewList
 		cmds = append(cmds, loadSnippets(m.client, m.currentPage, 20, m.searchQuery, m.filterTags, nil, "", nil, nil))
+
+	case copyResultMsg:
+		if msg.err != nil {
+			m.err = msg.err
+		} else {
+			m.message = msg.message
+			m.err = nil
+		}
 
 	case errMsg:
 		m.err = msg.err
@@ -278,6 +344,13 @@ func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		if len(m.snippets) > 0 {
 			m.mode = ViewDetail
+			m.autoEdit = false
+			return m, loadSnippet(m.client, m.snippets[m.selectedIdx].ID)
+		}
+
+	case "e":
+		if len(m.snippets) > 0 {
+			m.autoEdit = true
 			return m, loadSnippet(m.client, m.snippets[m.selectedIdx].ID)
 		}
 
@@ -393,7 +466,7 @@ func (m Model) calculateMaxScroll() int {
 	contentLines := strings.Split(wrappedContent, "\n")
 
 	// Calculate available height
-	availableHeight := m.height - 18
+	availableHeight := m.height - 16
 	if availableHeight < 5 {
 		availableHeight = 5
 	}
@@ -459,48 +532,123 @@ func (m Model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) initCreateForm() {
-	m.inputs = make([]textinput.Model, 3)
+	m.inputs = make([]textinput.Model, 4)
 
 	m.inputs[0] = textinput.New()
+	m.inputs[0].Prompt = "Title:       "
 	m.inputs[0].Placeholder = "Snippet Title"
 	m.inputs[0].Focus()
 	m.inputs[0].CharLimit = 200
+	m.inputs[0].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Bold(true).Padding(0, 1) // Cyan + Bold
 
 	m.inputs[1] = textinput.New()
-	m.inputs[1].Placeholder = "Language (e.g., go, python, javascript)"
+	m.inputs[1].Prompt = "Language:    "
+	m.inputs[1].Placeholder = "Language (e.g., go, python)"
 	m.inputs[1].CharLimit = 50
+	m.inputs[1].ShowSuggestions = true
+	m.inputs[1].SetSuggestions(m.allowedLanguages)
+	m.inputs[1].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Padding(0, 1) // Magenta
 
 	m.inputs[2] = textinput.New()
-	m.inputs[2].Placeholder = "Description (optional)"
-	m.inputs[2].CharLimit = 1000
+	m.inputs[2].Prompt = "Tags:        "
+	m.inputs[2].Placeholder = "Tags (comma-separated, e.g., web, backend, auth)"
+	m.inputs[2].CharLimit = 200
+	m.inputs[2].ShowSuggestions = true
+	m.inputs[2].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Padding(0, 1) // Green
+
+	m.inputs[3] = textinput.New()
+	m.inputs[3].Prompt = "Description: "
+	m.inputs[3].Placeholder = "Description (optional)"
+	m.inputs[3].CharLimit = 1000
+	m.inputs[3].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Padding(0, 1) // Yellow
+
+	m.textarea = textarea.New()
+	m.textarea.Placeholder = "Snippet content..."
+	m.textarea.SetWidth(m.width - 8)
+	textAreaHeight := m.height - 11
+	if textAreaHeight < 10 {
+		textAreaHeight = 10
+	}
+	m.textarea.SetHeight(textAreaHeight)
+
+	// Custom line numbers with vertical separator
+	m.textarea.ShowLineNumbers = false
+	m.textarea.Prompt = ""
+	m.textarea.SetPromptFunc(6, func(lineIdx int) string {
+		lineNum := fmt.Sprintf("%3d │ ", lineIdx+1)
+		if lineIdx == m.textarea.Line() {
+			return lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Render(lineNum)
+		}
+		return dimmedStyle.Render(lineNum)
+	})
 
 	m.focusedInput = 0
 	m.formData = make(map[string]interface{})
 }
 
 func (m *Model) initEditForm(snippet *api.Snippet) {
-	m.inputs = make([]textinput.Model, 3)
+	m.inputs = make([]textinput.Model, 4)
 
 	m.inputs[0] = textinput.New()
+	m.inputs[0].Prompt = "Title:       "
 	m.inputs[0].Placeholder = "Snippet Title"
 	m.inputs[0].SetValue(snippet.Title)
 	m.inputs[0].Focus()
 	m.inputs[0].CharLimit = 200
+	m.inputs[0].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Bold(true).Padding(0, 1) // Cyan + Bold
 
 	m.inputs[1] = textinput.New()
+	m.inputs[1].Prompt = "Language:    "
 	m.inputs[1].Placeholder = "Language"
 	m.inputs[1].SetValue(snippet.Language)
 	m.inputs[1].CharLimit = 50
+	m.inputs[1].ShowSuggestions = true
+	m.inputs[1].SetSuggestions(m.allowedLanguages)
+	m.inputs[1].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Padding(0, 1) // Magenta
+
+	var tagStrs []string
+	for _, tag := range snippet.Tags {
+		tagStrs = append(tagStrs, tag.Name)
+	}
 
 	m.inputs[2] = textinput.New()
-	m.inputs[2].Placeholder = "Description"
-	m.inputs[2].SetValue(snippet.Description)
-	m.inputs[2].CharLimit = 1000
+	m.inputs[2].Prompt = "Tags:        "
+	m.inputs[2].Placeholder = "Tags (comma-separated, e.g., web, backend, auth)"
+	m.inputs[2].SetValue(strings.Join(tagStrs, ", "))
+	m.inputs[2].CharLimit = 200
+	m.inputs[2].ShowSuggestions = true
+	m.inputs[2].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Padding(0, 1) // Green
+
+	m.inputs[3] = textinput.New()
+	m.inputs[3].Prompt = "Description: "
+	m.inputs[3].Placeholder = "Description"
+	m.inputs[3].SetValue(snippet.Description)
+	m.inputs[3].CharLimit = 1000
+	m.inputs[3].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Padding(0, 1) // Yellow
+
+	m.textarea = textarea.New()
+	m.textarea.Placeholder = "Snippet content..."
+	m.textarea.SetValue(snippet.Content)
+	m.textarea.SetWidth(m.width - 8)
+	textAreaHeight := m.height - 11
+	if textAreaHeight < 10 {
+		textAreaHeight = 10
+	}
+	m.textarea.SetHeight(textAreaHeight)
+
+	// Custom line numbers with vertical separator
+	m.textarea.ShowLineNumbers = false
+	m.textarea.Prompt = ""
+	m.textarea.SetPromptFunc(6, func(lineIdx int) string {
+		lineNum := fmt.Sprintf("%3d │ ", lineIdx+1)
+		if lineIdx == m.textarea.Line() {
+			return lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Render(lineNum)
+		}
+		return dimmedStyle.Render(lineNum)
+	})
 
 	m.focusedInput = 0
-	m.formData = map[string]interface{}{
-		"content": snippet.Content,
-	}
+	m.formData = make(map[string]interface{})
 }
 
 func (m *Model) initSearchForm() {
@@ -534,36 +682,114 @@ func (m *Model) initSettingsForm() {
 }
 
 func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
+	var cmds []tea.Cmd
 
 	switch msg.String() {
 	case "esc":
 		m.mode = ViewList
+		m.err = nil
+		m.message = ""
 		return m, nil
 
+	case "ctrl+e":
+		return m.openEditor()
+
+	case "up", "down":
+		// Handle up/down arrow cycling for the Language field like a proper select dropdown
+		if m.focusedInput == 1 && len(m.allowedLanguages) > 0 {
+			currentVal := m.inputs[1].Value()
+			idx := -1
+			for i, l := range m.allowedLanguages {
+				if l == currentVal {
+					idx = i
+					break
+				}
+			}
+
+			if msg.String() == "down" {
+				idx++
+				if idx >= len(m.allowedLanguages) {
+					idx = 0
+				}
+			} else {
+				idx--
+				if idx < 0 {
+					idx = len(m.allowedLanguages) - 1
+				}
+			}
+			m.inputs[1].SetValue(m.allowedLanguages[idx])
+			m.inputs[1].SetCursor(len(m.allowedLanguages[idx]))
+
+			// Clear any previous language validation error since we just selected a valid one
+			if m.err != nil && strings.Contains(m.err.Error(), "Invalid language") {
+				m.err = nil
+			}
+			return m, nil
+		}
+
 	case "tab", "shift+tab":
+		// Auto-complete suggestion if present instead of switching inputs
+		if msg.String() == "tab" && m.focusedInput == 1 {
+			if suggestion := m.inputs[1].CurrentSuggestion(); suggestion != "" && m.inputs[1].Value() != suggestion {
+				m.inputs[1].SetValue(suggestion)
+				m.inputs[1].SetCursor(len(suggestion))
+				return m, nil
+			}
+		}
+
+		// Validate language field upon exit
+		if m.focusedInput == 1 {
+			if err := m.validateLanguage(); err != nil {
+				m.err = err
+			} else {
+				m.err = nil
+			}
+		}
+
 		if msg.String() == "tab" {
 			m.focusedInput++
 		} else {
 			m.focusedInput--
 		}
 
-		if m.focusedInput >= len(m.inputs) {
+		numInputs := len(m.inputs) + 1 // +1 for textarea
+		if m.focusedInput >= numInputs {
 			m.focusedInput = 0
 		} else if m.focusedInput < 0 {
-			m.focusedInput = len(m.inputs) - 1
+			m.focusedInput = numInputs - 1
 		}
 
 		for i := range m.inputs {
+			// Base colors for prompts to make them distinct
+			var baseColor lipgloss.Color
+			switch i {
+			case 0:
+				baseColor = lipgloss.Color("6") // Cyan for Title
+			case 1:
+				baseColor = lipgloss.Color("5") // Magenta for Language
+			case 2:
+				baseColor = lipgloss.Color("2") // Green for Tags
+			case 3:
+				baseColor = lipgloss.Color("3") // Yellow for Description
+			default:
+				baseColor = lipgloss.Color("7") // Default White
+			}
+
 			if i == m.focusedInput {
 				m.inputs[i].Focus()
 				m.inputs[i].TextStyle = focusedInputStyle
-				m.inputs[i].PromptStyle = focusedInputStyle
+				m.inputs[i].PromptStyle = lipgloss.NewStyle().Foreground(baseColor).Bold(true).Padding(0, 1)
 			} else {
 				m.inputs[i].Blur()
 				m.inputs[i].TextStyle = inputStyle
-				m.inputs[i].PromptStyle = inputStyle
+				m.inputs[i].PromptStyle = lipgloss.NewStyle().Foreground(baseColor).Padding(0, 1)
 			}
+		}
+
+		if m.focusedInput == len(m.inputs) {
+			m.textarea.Focus()
+		} else {
+			m.textarea.Blur()
 		}
 
 		return m, nil
@@ -572,39 +798,184 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.submitForm()
 	}
 
-	m.inputs[m.focusedInput], cmd = m.inputs[m.focusedInput].Update(msg)
-	return m, cmd
+	if m.focusedInput < len(m.inputs) {
+		var cmd tea.Cmd
+		m.inputs[m.focusedInput], cmd = m.inputs[m.focusedInput].Update(msg)
+		cmds = append(cmds, cmd)
+
+		// Dynamically update tag autocomplete suggestions if typing in the tags field
+		if m.focusedInput == 2 {
+			m.updateTagSuggestions()
+		}
+	} else {
+		var cmd tea.Cmd
+		m.textarea, cmd = m.textarea.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
+	return m, tea.Batch(cmds...)
+}
+
+type editorFinishedMsg struct {
+	err     error
+	content string
+}
+
+func (m Model) openEditor() (tea.Model, tea.Cmd) {
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vim"
+	}
+
+	ext := ".txt"
+	if len(m.inputs) > 1 {
+		lang := strings.TrimSpace(m.inputs[1].Value())
+		ext = GetExtensionFromLanguage(lang)
+	}
+
+	tempFile, err := os.CreateTemp("", "snippy-*"+ext)
+	if err != nil {
+		m.err = fmt.Errorf("could not create temp file: %w", err)
+		return m, nil
+	}
+
+	_, err = tempFile.WriteString(m.textarea.Value())
+	if err != nil {
+		m.err = fmt.Errorf("could not write to temp file: %w", err)
+		return m, nil
+	}
+	if err := tempFile.Close(); err != nil {
+		m.err = fmt.Errorf("could not close temp file: %w", err)
+		return m, nil
+	}
+
+	cmd := exec.Command(editor, tempFile.Name())
+
+	return m, tea.ExecProcess(cmd, func(err error) tea.Msg {
+		if err != nil {
+			return editorFinishedMsg{err: err}
+		}
+
+		content, err := os.ReadFile(tempFile.Name())
+		if err != nil {
+			return editorFinishedMsg{err: err}
+		}
+
+		_ = os.Remove(tempFile.Name())
+
+		return editorFinishedMsg{content: string(content)}
+	})
+}
+
+// validateLanguage ensures the inputted language exactly matches the strictly supported backend list.
+// It explicitly rejects comma-separated values unless supported by the backend.
+func (m *Model) validateLanguage() error {
+	language := strings.ToLower(strings.TrimSpace(m.inputs[1].Value()))
+	if language == "" {
+		return nil // Server handles defaulting to plaintext
+	}
+
+	validLang := false
+	for _, l := range m.allowedLanguages {
+		if l == language {
+			validLang = true
+			break
+		}
+	}
+
+	if !validLang {
+		return fmt.Errorf("invalid language '%s': please enter precisely one valid language (comma-separated or unsupported languages are not allowed)", language)
+	}
+
+	return nil
+}
+
+// updateTagSuggestions dynamically recalculates autocomplete suggestions for the Tags field
+// to support comma-separated multi-tag inputs against the existing backend tags list.
+func (m *Model) updateTagSuggestions() {
+	if len(m.inputs) <= 2 || len(m.tags) == 0 {
+		return
+	}
+
+	val := m.inputs[2].Value()
+
+	lastCommaIdx := strings.LastIndex(val, ",")
+	prefix := ""
+	var currentTerm string
+
+	if lastCommaIdx != -1 {
+		prefix = val[:lastCommaIdx+1]
+		currentTerm = strings.TrimSpace(val[lastCommaIdx+1:])
+	} else {
+		currentTerm = strings.TrimSpace(val)
+	}
+
+	var suggestions []string
+	if currentTerm != "" {
+		for _, t := range m.tags {
+			if strings.HasPrefix(strings.ToLower(t.Name), strings.ToLower(currentTerm)) {
+				suggestions = append(suggestions, prefix+" "+t.Name)
+			}
+		}
+	} else {
+		for _, t := range m.tags {
+			if prefix != "" {
+				suggestions = append(suggestions, prefix+" "+t.Name)
+			} else {
+				suggestions = append(suggestions, t.Name)
+			}
+		}
+	}
+
+	m.inputs[2].SetSuggestions(suggestions)
 }
 
 func (m Model) submitForm() (tea.Model, tea.Cmd) {
+	m.err = nil
+	m.message = ""
+
 	if len(m.inputs) < 2 {
 		return m, nil
 	}
 
 	title := strings.TrimSpace(m.inputs[0].Value())
-	language := strings.TrimSpace(m.inputs[1].Value())
-	description := ""
-	if len(m.inputs) > 2 {
-		description = strings.TrimSpace(m.inputs[2].Value())
+	language := strings.ToLower(strings.TrimSpace(m.inputs[1].Value()))
+	tagsRaw := strings.TrimSpace(m.inputs[2].Value())
+	description := strings.TrimSpace(m.inputs[3].Value())
+
+	// Parse CSV tags
+	var finalTags []string
+	if tagsRaw != "" {
+		parts := strings.Split(tagsRaw, ",")
+		for _, part := range parts {
+			cleaned := strings.TrimSpace(part)
+			if cleaned != "" {
+				finalTags = append(finalTags, strings.ToLower(cleaned))
+			}
+		}
 	}
 
 	if title == "" {
-		m.err = fmt.Errorf("title is required")
+		m.err = fmt.Errorf("title cannot be empty")
 		return m, nil
 	}
 
-	content := ""
-	if val, ok := m.formData["content"]; ok {
-		if str, ok := val.(string); ok {
-			content = str
+	if language != "" {
+		if err := m.validateLanguage(); err != nil {
+			m.err = err
+			return m, nil
 		}
 	}
+
+	content := strings.TrimSpace(m.textarea.Value())
 
 	input := api.SnippetInput{
 		Title:       title,
 		Description: description,
 		Language:    language,
 		Content:     content,
+		IsPublic:    false, // Default for now
+		Tags:        finalTags,
 	}
 
 	if m.mode == ViewCreate {
@@ -622,6 +993,8 @@ func (m Model) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
 		m.mode = ViewList
+		m.err = nil
+		m.message = ""
 		return m, nil
 
 	case "enter":
@@ -641,6 +1014,8 @@ func (m Model) updateSettings(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
 		m.mode = ViewList
+		m.err = nil
+		m.message = ""
 		return m, nil
 
 	case "tab", "shift+tab":
@@ -705,7 +1080,11 @@ func (m Model) saveSettings() (tea.Model, tea.Cmd) {
 
 func copyToClipboard(content string) tea.Cmd {
 	return func() tea.Msg {
-		return successMsg{message: "Content copied to clipboard (feature requires clipboard package)"}
+		err := clipboard.WriteAll(content)
+		if err != nil {
+			return copyResultMsg{err: fmt.Errorf("failed to copy: %w", err)}
+		}
+		return copyResultMsg{message: "Content copied to clipboard!"}
 	}
 }
 
@@ -724,7 +1103,8 @@ func (m Model) View() string {
 		s.WriteString("\n\n")
 	}
 
-	if m.err != nil {
+	// Only show global error if not in form modes (forms render their own inline errors)
+	if m.err != nil && m.mode != ViewCreate && m.mode != ViewEdit {
 		s.WriteString(errorStyle.Render(fmt.Sprintf("Error: %s", m.err)))
 		s.WriteString("\n\n")
 	}
@@ -802,7 +1182,7 @@ func (m Model) viewList() string {
 	}
 
 	s.WriteString("\n")
-	s.WriteString(helpStyle.Render("↑/k up • ↓/j down • ←/h prev page • →/l next page • enter view • / search • s settings • r refresh • q quit • ? help"))
+	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText("↑/k up • ↓/j down • ←/h prev page • →/l next page • enter view • e edit • / search • s settings • r refresh • q quit • ? help")))
 
 	return s.String()
 }
@@ -907,7 +1287,7 @@ func (m Model) viewDetail() string {
 
 	// Handle scrolling for large content
 	contentLines := strings.Split(wrappedContent, "\n")
-	availableHeight := m.height - 18 // Reserve more space for file tabs
+	availableHeight := m.height - 16 // Reserve more space for file tabs
 
 	if availableHeight < 5 {
 		availableHeight = 5
@@ -961,11 +1341,11 @@ func (m Model) viewDetail() string {
 
 	s.WriteString("\n\n")
 
-	helpText := "↑/k up • ↓/j down • esc back • c copy • q quit"
+	helpText := "↑/k up • ↓/j down • esc back • e edit • c copy • q quit"
 	if len(m.detailSnippet.Files) > 1 {
 		helpText = "←/h prev file • →/l next file • " + helpText
 	}
-	s.WriteString(helpStyle.Render(helpText))
+	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText(helpText)))
 
 	return s.String()
 }
@@ -980,15 +1360,47 @@ func (m Model) viewCreateForm() string {
 	for i, input := range m.inputs {
 		formContent.WriteString(input.View())
 		formContent.WriteString("\n")
-		if i < len(m.inputs)-1 {
-			formContent.WriteString("\n")
+
+		// Render colored tag preview directly below the Tags input field
+		if i == 2 {
+			tagsStr := strings.TrimSpace(input.Value())
+			if tagsStr != "" {
+				parsedTags := strings.Split(tagsStr, ",")
+				previewStr := strings.Builder{}
+				previewStr.WriteString("  Preview: ")
+				for _, pt := range parsedTags {
+					pt = strings.TrimSpace(pt)
+					if pt == "" {
+						continue
+					}
+					exists := false
+					for _, existingTag := range m.tags {
+						if strings.EqualFold(existingTag.Name, pt) {
+							exists = true
+							break
+						}
+					}
+					if exists {
+						previewStr.WriteString(tagStyle.Render(pt))
+					} else {
+						previewStr.WriteString(newTagStyle.Render(pt))
+					}
+					previewStr.WriteString(" ")
+				}
+				formContent.WriteString(previewStr.String())
+				formContent.WriteString("\n")
+			}
 		}
 	}
 
+	if m.err != nil {
+		formContent.WriteString(errorStyle.Width(m.width - 10).Render(fmt.Sprintf("Error: %s", m.err)))
+		formContent.WriteString("\n")
+	}
+
+	formContent.WriteString(m.textarea.View())
 	formContent.WriteString("\n\n")
-	formContent.WriteString(dimmedStyle.Render("Note: Content editing in external editor coming soon"))
-	formContent.WriteString("\n\n")
-	formContent.WriteString(helpStyle.Render("tab next field • ctrl+s save • esc cancel"))
+	formContent.WriteString(helpStyle.Width(m.width - 8).Render(renderHelpText("tab next field • ctrl+e open external editor • ctrl+s save • esc cancel")))
 
 	s.WriteString(borderStyle.Render(formContent.String()))
 	return s.String()
@@ -1004,15 +1416,47 @@ func (m Model) viewEditForm() string {
 	for i, input := range m.inputs {
 		formContent.WriteString(input.View())
 		formContent.WriteString("\n")
-		if i < len(m.inputs)-1 {
-			formContent.WriteString("\n")
+
+		// Render colored tag preview directly below the Tags input field
+		if i == 2 {
+			tagsStr := strings.TrimSpace(input.Value())
+			if tagsStr != "" {
+				parsedTags := strings.Split(tagsStr, ",")
+				previewStr := strings.Builder{}
+				previewStr.WriteString("  Preview: ")
+				for _, pt := range parsedTags {
+					pt = strings.TrimSpace(pt)
+					if pt == "" {
+						continue
+					}
+					exists := false
+					for _, existingTag := range m.tags {
+						if strings.EqualFold(existingTag.Name, pt) {
+							exists = true
+							break
+						}
+					}
+					if exists {
+						previewStr.WriteString(tagStyle.Render(pt))
+					} else {
+						previewStr.WriteString(newTagStyle.Render(pt))
+					}
+					previewStr.WriteString(" ")
+				}
+				formContent.WriteString(previewStr.String())
+				formContent.WriteString("\n")
+			}
 		}
 	}
 
+	if m.err != nil {
+		formContent.WriteString(errorStyle.Width(m.width - 10).Render(fmt.Sprintf("Error: %s", m.err)))
+		formContent.WriteString("\n")
+	}
+
+	formContent.WriteString(m.textarea.View())
 	formContent.WriteString("\n\n")
-	formContent.WriteString(dimmedStyle.Render("Note: Content editing in external editor coming soon"))
-	formContent.WriteString("\n\n")
-	formContent.WriteString(helpStyle.Render("tab next field • ctrl+s save • esc cancel"))
+	formContent.WriteString(helpStyle.Width(m.width - 8).Render(renderHelpText("tab next field • ctrl+e open external editor • ctrl+s save • esc cancel")))
 
 	s.WriteString(borderStyle.Render(formContent.String()))
 	return s.String()
@@ -1027,7 +1471,7 @@ func (m Model) viewSearchForm() string {
 	s.WriteString(m.inputs[0].View())
 	s.WriteString("\n\n")
 
-	s.WriteString(helpStyle.Render("enter search • esc cancel"))
+	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText("enter search • esc cancel")))
 
 	return s.String()
 }
@@ -1073,7 +1517,7 @@ func (m Model) viewSettings() string {
 	s.WriteString(dimmedStyle.Render("─────────────────────────────────────────────────────────"))
 
 	s.WriteString("\n\n")
-	s.WriteString(helpStyle.Render("tab/shift+tab navigate • ctrl+s save • esc cancel"))
+	s.WriteString(helpStyle.Width(m.width - 4).Render(renderHelpText("tab/shift+tab navigate • ctrl+s save • esc cancel")))
 
 	return s.String()
 }
@@ -1103,13 +1547,13 @@ func (m Model) viewHelp() string {
 	}
 
 	for _, h := range help {
-		s.WriteString(fmt.Sprintf("  %s  %s\n",
+		fmt.Fprintf(&s, "  %s  %s\n",
 			selectedItemStyle.Render(h.key),
-			normalItemStyle.Render(h.desc)))
+			normalItemStyle.Render(h.desc))
 	}
 
 	s.WriteString("\n")
-	s.WriteString(helpStyle.Render("Press ? to close help"))
+	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText("? close help")))
 
 	return s.String()
 }
