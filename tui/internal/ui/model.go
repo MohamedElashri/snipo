@@ -532,7 +532,7 @@ func (m Model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) initCreateForm() {
-	m.inputs = make([]textinput.Model, 3)
+	m.inputs = make([]textinput.Model, 4)
 
 	m.inputs[0] = textinput.New()
 	m.inputs[0].Placeholder = "Snippet Title"
@@ -546,8 +546,13 @@ func (m *Model) initCreateForm() {
 	m.inputs[1].SetSuggestions(m.allowedLanguages)
 
 	m.inputs[2] = textinput.New()
-	m.inputs[2].Placeholder = "Description (optional)"
-	m.inputs[2].CharLimit = 1000
+	m.inputs[2].Placeholder = "Tags (comma-separated, e.g., web, backend, auth)"
+	m.inputs[2].CharLimit = 200
+	m.inputs[2].ShowSuggestions = true
+
+	m.inputs[3] = textinput.New()
+	m.inputs[3].Placeholder = "Description (optional)"
+	m.inputs[3].CharLimit = 1000
 
 	m.textarea = textarea.New()
 	m.textarea.Placeholder = "Snippet content..."
@@ -574,7 +579,7 @@ func (m *Model) initCreateForm() {
 }
 
 func (m *Model) initEditForm(snippet *api.Snippet) {
-	m.inputs = make([]textinput.Model, 3)
+	m.inputs = make([]textinput.Model, 4)
 
 	m.inputs[0] = textinput.New()
 	m.inputs[0].Placeholder = "Snippet Title"
@@ -589,10 +594,21 @@ func (m *Model) initEditForm(snippet *api.Snippet) {
 	m.inputs[1].ShowSuggestions = true
 	m.inputs[1].SetSuggestions(m.allowedLanguages)
 
+	var tagStrs []string
+	for _, tag := range snippet.Tags {
+		tagStrs = append(tagStrs, tag.Name)
+	}
+
 	m.inputs[2] = textinput.New()
-	m.inputs[2].Placeholder = "Description"
-	m.inputs[2].SetValue(snippet.Description)
-	m.inputs[2].CharLimit = 1000
+	m.inputs[2].Placeholder = "Tags (comma-separated, e.g., web, backend, auth)"
+	m.inputs[2].SetValue(strings.Join(tagStrs, ", "))
+	m.inputs[2].CharLimit = 200
+	m.inputs[2].ShowSuggestions = true
+
+	m.inputs[3] = textinput.New()
+	m.inputs[3].Placeholder = "Description"
+	m.inputs[3].SetValue(snippet.Description)
+	m.inputs[3].CharLimit = 1000
 
 	m.textarea = textarea.New()
 	m.textarea.Placeholder = "Snippet content..."
@@ -755,6 +771,11 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.inputs[m.focusedInput], cmd = m.inputs[m.focusedInput].Update(msg)
 		cmds = append(cmds, cmd)
+
+		// Dynamically update tag autocomplete suggestions if typing in the tags field
+		if m.focusedInput == 2 {
+			m.updateTagSuggestions()
+		}
 	} else {
 		var cmd tea.Cmd
 		m.textarea, cmd = m.textarea.Update(msg)
@@ -835,6 +856,46 @@ func (m *Model) validateLanguage() error {
 	return nil
 }
 
+// updateTagSuggestions dynamically recalculates autocomplete suggestions for the Tags field
+// to support comma-separated multi-tag inputs against the existing backend tags list.
+func (m *Model) updateTagSuggestions() {
+	if len(m.inputs) <= 2 || len(m.tags) == 0 {
+		return
+	}
+
+	val := m.inputs[2].Value()
+
+	lastCommaIdx := strings.LastIndex(val, ",")
+	prefix := ""
+	currentTerm := val
+
+	if lastCommaIdx != -1 {
+		prefix = val[:lastCommaIdx+1]
+		currentTerm = strings.TrimSpace(val[lastCommaIdx+1:])
+	} else {
+		currentTerm = strings.TrimSpace(val)
+	}
+
+	var suggestions []string
+	if currentTerm != "" {
+		for _, t := range m.tags {
+			if strings.HasPrefix(strings.ToLower(t.Name), strings.ToLower(currentTerm)) {
+				suggestions = append(suggestions, prefix+" "+t.Name)
+			}
+		}
+	} else {
+		for _, t := range m.tags {
+			if prefix != "" {
+				suggestions = append(suggestions, prefix+" "+t.Name)
+			} else {
+				suggestions = append(suggestions, t.Name)
+			}
+		}
+	}
+
+	m.inputs[2].SetSuggestions(suggestions)
+}
+
 func (m Model) submitForm() (tea.Model, tea.Cmd) {
 	m.err = nil
 	m.message = ""
@@ -845,7 +906,20 @@ func (m Model) submitForm() (tea.Model, tea.Cmd) {
 
 	title := strings.TrimSpace(m.inputs[0].Value())
 	language := strings.ToLower(strings.TrimSpace(m.inputs[1].Value()))
-	description := strings.TrimSpace(m.inputs[2].Value())
+	tagsRaw := strings.TrimSpace(m.inputs[2].Value())
+	description := strings.TrimSpace(m.inputs[3].Value())
+
+	// Parse CSV tags
+	var finalTags []string
+	if tagsRaw != "" {
+		parts := strings.Split(tagsRaw, ",")
+		for _, part := range parts {
+			cleaned := strings.TrimSpace(part)
+			if cleaned != "" {
+				finalTags = append(finalTags, strings.ToLower(cleaned))
+			}
+		}
+	}
 
 	if title == "" {
 		m.err = fmt.Errorf("title cannot be empty")
@@ -866,8 +940,8 @@ func (m Model) submitForm() (tea.Model, tea.Cmd) {
 		Description: description,
 		Language:    language,
 		Content:     content,
-		IsPublic:    false,      // Default for now
-		Tags:        []string{}, // Default for now
+		IsPublic:    false, // Default for now
+		Tags:        finalTags,
 	}
 
 	if m.mode == ViewCreate {
@@ -1249,9 +1323,40 @@ func (m Model) viewCreateForm() string {
 	s.WriteString("\n\n")
 
 	formContent := strings.Builder{}
-	for _, input := range m.inputs {
+	for i, input := range m.inputs {
 		formContent.WriteString(input.View())
 		formContent.WriteString("\n")
+
+		// Render colored tag preview directly below the Tags input field
+		if i == 2 {
+			tagsStr := strings.TrimSpace(input.Value())
+			if tagsStr != "" {
+				parsedTags := strings.Split(tagsStr, ",")
+				previewStr := strings.Builder{}
+				previewStr.WriteString("  Preview: ")
+				for _, pt := range parsedTags {
+					pt = strings.TrimSpace(pt)
+					if pt == "" {
+						continue
+					}
+					exists := false
+					for _, existingTag := range m.tags {
+						if strings.EqualFold(existingTag.Name, pt) {
+							exists = true
+							break
+						}
+					}
+					if exists {
+						previewStr.WriteString(tagStyle.Render(pt))
+					} else {
+						previewStr.WriteString(newTagStyle.Render(pt))
+					}
+					previewStr.WriteString(" ")
+				}
+				formContent.WriteString(previewStr.String())
+				formContent.WriteString("\n")
+			}
+		}
 	}
 
 	if m.err != nil {
@@ -1274,9 +1379,40 @@ func (m Model) viewEditForm() string {
 	s.WriteString("\n\n")
 
 	formContent := strings.Builder{}
-	for _, input := range m.inputs {
+	for i, input := range m.inputs {
 		formContent.WriteString(input.View())
 		formContent.WriteString("\n")
+
+		// Render colored tag preview directly below the Tags input field
+		if i == 2 {
+			tagsStr := strings.TrimSpace(input.Value())
+			if tagsStr != "" {
+				parsedTags := strings.Split(tagsStr, ",")
+				previewStr := strings.Builder{}
+				previewStr.WriteString("  Preview: ")
+				for _, pt := range parsedTags {
+					pt = strings.TrimSpace(pt)
+					if pt == "" {
+						continue
+					}
+					exists := false
+					for _, existingTag := range m.tags {
+						if strings.EqualFold(existingTag.Name, pt) {
+							exists = true
+							break
+						}
+					}
+					if exists {
+						previewStr.WriteString(tagStyle.Render(pt))
+					} else {
+						previewStr.WriteString(newTagStyle.Render(pt))
+					}
+					previewStr.WriteString(" ")
+				}
+				formContent.WriteString(previewStr.String())
+				formContent.WriteString("\n")
+			}
+		}
 	}
 
 	if m.err != nil {

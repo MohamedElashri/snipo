@@ -51,6 +51,12 @@ var (
 			Padding(0, 1).
 			MarginRight(1)
 
+	newTagStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("0")). // Black text (ANSI 0)
+			Background(lipgloss.Color("2")). // Green background (ANSI 2)
+			Padding(0, 1).
+			MarginRight(1)
+
 	favoriteStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("3")). // Yellow (ANSI 3)
 			Bold(true)
