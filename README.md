@@ -27,6 +27,12 @@ A lightweight, self-hosted snippet manager designed for single-user deployments.
 - **Docker Ready**: Easy deployment with Docker and standard or hardened images.
 - **Customizable**: Extensive theming support via custom CSS.
 
+## Client Integrations
+
+The Snipo RESTful API enables extensive client integration. As an example, the repository includes a ready-to-use Terminal User Interface (TUI) client:
+
+- **[Snippy](tui/README.md)**: A rich TUI client showcasing a seamless, keyboard-driven integration with a running Snipo server.
+
 ## Quick Start
 ### Docker (Recommended)
 
