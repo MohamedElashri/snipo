@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.11] - 2026-02-22
+
+### Added
+
+- Added a new public endpoint (`GET /api/v1/metadata/languages`) to the `Snipo` backend, dynamically exposing the canonical list of languages valid for syntax highlighting to any connected client.
+- **TUI**: Added editing and writing capabilities to the TUI interface so it is no longer read-only.
+
+### Fixed
+
+- Fix `SNIPO_DISABLE_AUTH=true` still prompting for password when we try to delete or create a token.
+
+
+
 ## [1.3.10] - 2026-02-19
 
 ### Added

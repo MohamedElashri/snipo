@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -62,7 +63,21 @@ func (c *Client) doRequest(method, path string, body interface{}, result interfa
 		if err := json.Unmarshal(respBody, &errResp); err != nil {
 			return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
 		}
-		return fmt.Errorf("API error: %s", errResp.Error.Message)
+		errMsg := errResp.Error.Message
+		if errResp.Error.Details != nil {
+			if detailsSlice, ok := errResp.Error.Details.([]interface{}); ok {
+				var detStrs []string
+				for _, d := range detailsSlice {
+					detStrs = append(detStrs, fmt.Sprint(d))
+				}
+				if len(detStrs) > 0 {
+					errMsg = fmt.Sprintf("%s: %s", errMsg, strings.Join(detStrs, ", "))
+				}
+			} else {
+				errMsg = fmt.Sprintf("%s: %v", errMsg, errResp.Error.Details)
+			}
+		}
+		return fmt.Errorf("API error: %s", errMsg)
 	}
 
 	if result != nil && len(respBody) > 0 {
@@ -289,4 +304,26 @@ func (c *Client) CreateFolder(input FolderInput) (*Folder, error) {
 	}
 
 	return &folder, nil
+}
+
+// GetLanguages fetches the list of allowed snippet programming languages from the backend
+func (c *Client) GetLanguages() ([]string, error) {
+	var response APIResponse
+	if err := c.doRequest("GET", "/api/v1/metadata/languages", nil, &response); err != nil {
+		return nil, err
+	}
+
+	dataBytes, err := json.Marshal(response.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	var data struct {
+		Languages []string `json:"languages"`
+	}
+	if err := json.Unmarshal(dataBytes, &data); err != nil {
+		return nil, err
+	}
+
+	return data.Languages, nil
 }

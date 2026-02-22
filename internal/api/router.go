@@ -132,6 +132,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	backupHandler := handlers.NewBackupHandler(backupService, s3SyncService)
 	settingsHandler := handlers.NewSettingsHandler(settingsRepo, cfg.AuthService)
+	languageHandler := handlers.NewLanguageHandler()
 
 	// Create encryption service for gist sync (using encryption salt as key for persistence)
 	encryptionKey := services.DeriveEncryptionKey(cfg.Config.Auth.EncryptionSalt)
@@ -160,6 +161,9 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		// Public snippet access
 		r.Get("/api/v1/snippets/public/{id}", snippetHandler.GetPublic)
 		r.Get("/api/v1/snippets/public/{id}/files/{filename}", snippetHandler.GetPublicFile)
+
+		// Public metadata
+		r.Get("/api/v1/metadata/languages", languageHandler.GetLanguages)
 
 		// Auth endpoints (with rate limiting)
 		r.Group(func(r chi.Router) {
