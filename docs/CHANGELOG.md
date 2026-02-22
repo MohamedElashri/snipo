@@ -11,10 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added a new public endpoint (`GET /api/v1/metadata/languages`) to the `Snipo` backend, dynamically exposing the canonical list of languages valid for syntax highlighting to any connected client.
 - **TUI**: Added editing and writing capabilities to the TUI interface so it is no longer read-only.
+- Update vendor JS dependencies including Ace editor components, Alpine, and Marked.
 
 ### Fixed
 
 - Fix `SNIPO_DISABLE_AUTH=true` still prompting for password when we try to delete or create a token.
+- Fix Gist sync button does not work with new snippets.
+
 
 
 
