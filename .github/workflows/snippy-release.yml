@@ -64,7 +64,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --snapshot --clean
+          args: release --skip=publish --clean
           workdir: ./tui
         env:
           GORELEASER_CURRENT_TAG: v${{ env.CLEAN_TAG_VERSION }}
