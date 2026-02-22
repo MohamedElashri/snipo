@@ -739,7 +739,13 @@ func (m Model) openEditor() (tea.Model, tea.Cmd) {
 		editor = "vim"
 	}
 
-	tempFile, err := os.CreateTemp("", "snippy-*.txt")
+	ext := ".txt"
+	if len(m.inputs) > 1 {
+		lang := strings.TrimSpace(m.inputs[1].Value())
+		ext = GetExtensionFromLanguage(lang)
+	}
+
+	tempFile, err := os.CreateTemp("", "snippy-*"+ext)
 	if err != nil {
 		m.err = fmt.Errorf("could not create temp file: %w", err)
 		return m, nil

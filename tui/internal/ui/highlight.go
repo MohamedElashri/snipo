@@ -24,7 +24,7 @@ func registerTransparentStyle(baseName, newName string) {
 	baseStyle := styles.Get(baseName)
 	if baseStyle != nil {
 		builder := baseStyle.Builder()
-		
+
 		// 1. Unset global background
 		bgEntry := builder.Get(chroma.Background)
 		builder.Add(chroma.Background, bgEntry.Colour.String())
@@ -49,7 +49,7 @@ func registerTransparentStyle(baseName, newName string) {
 			chroma.Operator,
 			chroma.Punctuation,
 		}
-		
+
 		for _, t := range tokens {
 			if entry := builder.Get(t); entry.Background.IsSet() {
 				// Re-add with only foreground (removing background)
@@ -109,7 +109,7 @@ func HighlightCode(code, language string) string {
 	}
 
 	// Create a terminal formatter (ANSI 16 colors) to respect user terminal theme
-	formatter := formatters.Get("terminal") 
+	formatter := formatters.Get("terminal")
 	if formatter == nil {
 		formatter = formatters.Fallback
 	}
@@ -150,6 +150,30 @@ func GetLanguageFromFilename(filename string) string {
 	return ""
 }
 
+// GetExtensionFromLanguage extracts a typical filename extension for a given language
+func GetExtensionFromLanguage(language string) string {
+	if language == "" {
+		return ".txt"
+	}
+
+	lexer := lexers.Get(language)
+	if lexer != nil {
+		config := lexer.Config()
+		if config != nil && len(config.Filenames) > 0 {
+			ext := config.Filenames[0]
+			if strings.HasPrefix(ext, "*") {
+				return ext[1:] // e.g. "*.go" -> ".go"
+			}
+			if strings.HasPrefix(ext, ".") {
+				return ext // e.g. ".go"
+			}
+			return "." + ext // e.g. "go" -> ".go"
+		}
+	}
+
+	return ".txt"
+}
+
 // CreateHighlightedCodeBlock wraps highlighted code in a styled block
 func CreateHighlightedCodeBlock(code, language string) string {
 	highlighted := HighlightCode(code, language)
@@ -187,7 +211,7 @@ func IsMarkdown(language, filename string) bool {
 // getUniversalANSIStyle returns a glamour style config strictly using ANSI 0-15 colors
 func getUniversalANSIStyle() ansi.StyleConfig {
 	s := ansi.StyleConfig{}
-	
+
 	// Headers - Magenta (ANSI 5)
 	headerColor := pointer("5")
 	s.H1.Color = headerColor
@@ -196,27 +220,27 @@ func getUniversalANSIStyle() ansi.StyleConfig {
 	s.H2.Bold = pointer(true)
 	s.H3.Color = headerColor
 	s.H3.Bold = pointer(true)
-	
+
 	// Links - Blue (ANSI 4)
 	s.Link.Color = pointer("4")
 	s.LinkText.Color = pointer("4")
-	
+
 	// Code - Cyan (ANSI 6) for inline, no background
 	s.Code.Color = pointer("6")
 	s.Code.BackgroundColor = nil
 	s.Code.BlockPrefix = ""
 	s.Code.BlockSuffix = ""
-	
+
 	// Code Block - Transparent, syntax highlighted
 	s.CodeBlock.BackgroundColor = nil
 	s.CodeBlock.Margin = pointer(uint(0))
-	
+
 	// Text - Default (nil) means strictly terminal foreground
 	// Emphasis/Strong
 	s.Strong.Bold = pointer(true)
 	s.Emph.Italic = pointer(true)
 	s.Emph.Color = pointer("3") // Yellow for emphasis instead of grey
-	
+
 	// Lists
 	s.Item.Color = pointer("5") // Magenta bullet points
 	s.Enumeration.Color = pointer("5")
@@ -224,13 +248,13 @@ func getUniversalANSIStyle() ansi.StyleConfig {
 	// BlockQuote - Blue (ANSI 4) instead of grey
 	s.BlockQuote.Color = pointer("4")
 	s.BlockQuote.Indent = pointer(uint(1))
-	
+
 	// Horizontal Rule - Magenta (ANSI 5)
 	s.HorizontalRule.Color = pointer("5")
-	
+
 	// Table - Magenta (ANSI 5)
 	s.Table.Color = pointer("5")
-	
+
 	return s
 }
 
@@ -242,7 +266,7 @@ func pointer[T any](v T) *T {
 func RenderMarkdown(content string, width int) string {
 	// Use universal ANSI style
 	styleConfig := getUniversalANSIStyle()
-	
+
 	// Maintain dynamic chroma theme selection for best contrast within code blocks
 	// even though the container is transparent.
 	themeName := "snipo-dark"
@@ -269,7 +293,6 @@ func RenderMarkdown(content string, width int) string {
 
 	return strings.TrimSpace(rendered)
 }
-
 
 // RenderContent renders content based on type (markdown or code with syntax highlighting)
 func RenderContent(content, language, filename string, width int) string {
