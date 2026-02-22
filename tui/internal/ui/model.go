@@ -535,24 +535,32 @@ func (m *Model) initCreateForm() {
 	m.inputs = make([]textinput.Model, 4)
 
 	m.inputs[0] = textinput.New()
+	m.inputs[0].Prompt = "Title:       "
 	m.inputs[0].Placeholder = "Snippet Title"
 	m.inputs[0].Focus()
 	m.inputs[0].CharLimit = 200
+	m.inputs[0].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Bold(true).Padding(0, 1) // Cyan + Bold
 
 	m.inputs[1] = textinput.New()
-	m.inputs[1].Placeholder = "Language (e.g., go, python, javascript)"
+	m.inputs[1].Prompt = "Language:    "
+	m.inputs[1].Placeholder = "Language (e.g., go, python)"
 	m.inputs[1].CharLimit = 50
 	m.inputs[1].ShowSuggestions = true
 	m.inputs[1].SetSuggestions(m.allowedLanguages)
+	m.inputs[1].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Padding(0, 1) // Magenta
 
 	m.inputs[2] = textinput.New()
+	m.inputs[2].Prompt = "Tags:        "
 	m.inputs[2].Placeholder = "Tags (comma-separated, e.g., web, backend, auth)"
 	m.inputs[2].CharLimit = 200
 	m.inputs[2].ShowSuggestions = true
+	m.inputs[2].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Padding(0, 1) // Green
 
 	m.inputs[3] = textinput.New()
+	m.inputs[3].Prompt = "Description: "
 	m.inputs[3].Placeholder = "Description (optional)"
 	m.inputs[3].CharLimit = 1000
+	m.inputs[3].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Padding(0, 1) // Yellow
 
 	m.textarea = textarea.New()
 	m.textarea.Placeholder = "Snippet content..."
@@ -582,17 +590,21 @@ func (m *Model) initEditForm(snippet *api.Snippet) {
 	m.inputs = make([]textinput.Model, 4)
 
 	m.inputs[0] = textinput.New()
+	m.inputs[0].Prompt = "Title:       "
 	m.inputs[0].Placeholder = "Snippet Title"
 	m.inputs[0].SetValue(snippet.Title)
 	m.inputs[0].Focus()
 	m.inputs[0].CharLimit = 200
+	m.inputs[0].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Bold(true).Padding(0, 1) // Cyan + Bold
 
 	m.inputs[1] = textinput.New()
+	m.inputs[1].Prompt = "Language:    "
 	m.inputs[1].Placeholder = "Language"
 	m.inputs[1].SetValue(snippet.Language)
 	m.inputs[1].CharLimit = 50
 	m.inputs[1].ShowSuggestions = true
 	m.inputs[1].SetSuggestions(m.allowedLanguages)
+	m.inputs[1].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Padding(0, 1) // Magenta
 
 	var tagStrs []string
 	for _, tag := range snippet.Tags {
@@ -600,15 +612,19 @@ func (m *Model) initEditForm(snippet *api.Snippet) {
 	}
 
 	m.inputs[2] = textinput.New()
+	m.inputs[2].Prompt = "Tags:        "
 	m.inputs[2].Placeholder = "Tags (comma-separated, e.g., web, backend, auth)"
 	m.inputs[2].SetValue(strings.Join(tagStrs, ", "))
 	m.inputs[2].CharLimit = 200
 	m.inputs[2].ShowSuggestions = true
+	m.inputs[2].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Padding(0, 1) // Green
 
 	m.inputs[3] = textinput.New()
+	m.inputs[3].Prompt = "Description: "
 	m.inputs[3].Placeholder = "Description"
 	m.inputs[3].SetValue(snippet.Description)
 	m.inputs[3].CharLimit = 1000
+	m.inputs[3].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Padding(0, 1) // Yellow
 
 	m.textarea = textarea.New()
 	m.textarea.Placeholder = "Snippet content..."
@@ -744,14 +760,29 @@ func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 		for i := range m.inputs {
+			// Base colors for prompts to make them distinct
+			var baseColor lipgloss.Color
+			switch i {
+			case 0:
+				baseColor = lipgloss.Color("6") // Cyan for Title
+			case 1:
+				baseColor = lipgloss.Color("5") // Magenta for Language
+			case 2:
+				baseColor = lipgloss.Color("2") // Green for Tags
+			case 3:
+				baseColor = lipgloss.Color("3") // Yellow for Description
+			default:
+				baseColor = lipgloss.Color("7") // Default White
+			}
+
 			if i == m.focusedInput {
 				m.inputs[i].Focus()
 				m.inputs[i].TextStyle = focusedInputStyle
-				m.inputs[i].PromptStyle = focusedPromptStyle
+				m.inputs[i].PromptStyle = lipgloss.NewStyle().Foreground(baseColor).Bold(true).Padding(0, 1)
 			} else {
 				m.inputs[i].Blur()
 				m.inputs[i].TextStyle = inputStyle
-				m.inputs[i].PromptStyle = inputStyle
+				m.inputs[i].PromptStyle = lipgloss.NewStyle().Foreground(baseColor).Padding(0, 1)
 			}
 		}
 
