@@ -57,6 +57,7 @@ type Model struct {
 
 	// Allowed snippet languages fetched dynamically from backend
 	allowedLanguages []string
+	autoEdit         bool
 
 	quitting bool
 }
@@ -275,7 +276,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.detailSnippet = msg.snippet
 		m.detailScroll = 0    // Reset scroll when loading new snippet
 		m.selectedFileIdx = 0 // Reset file selection
-		if m.mode == ViewList {
+
+		if m.autoEdit {
+			m.autoEdit = false
+			m.mode = ViewEdit
+			m.initEditForm(m.detailSnippet)
+		} else if m.mode == ViewList {
 			for i, s := range m.snippets {
 				if s.ID == msg.snippet.ID {
 					m.snippets[i] = *msg.snippet
@@ -337,6 +343,13 @@ func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		if len(m.snippets) > 0 {
 			m.mode = ViewDetail
+			m.autoEdit = false
+			return m, loadSnippet(m.client, m.snippets[m.selectedIdx].ID)
+		}
+
+	case "e":
+		if len(m.snippets) > 0 {
+			m.autoEdit = true
 			return m, loadSnippet(m.client, m.snippets[m.selectedIdx].ID)
 		}
 
@@ -1038,7 +1051,7 @@ func (m Model) viewList() string {
 	}
 
 	s.WriteString("\n")
-	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText("↑/k up • ↓/j down • ←/h prev page • →/l next page • enter view • / search • s settings • r refresh • q quit • ? help")))
+	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText("↑/k up • ↓/j down • ←/h prev page • →/l next page • enter view • e edit • / search • s settings • r refresh • q quit • ? help")))
 
 	return s.String()
 }
@@ -1197,7 +1210,7 @@ func (m Model) viewDetail() string {
 
 	s.WriteString("\n\n")
 
-	helpText := "↑/k up • ↓/j down • esc back • c copy • q quit"
+	helpText := "↑/k up • ↓/j down • esc back • e edit • c copy • q quit"
 	if len(m.detailSnippet.Files) > 1 {
 		helpText = "←/h prev file • →/l next file • " + helpText
 	}
