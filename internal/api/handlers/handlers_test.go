@@ -13,7 +13,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/MohamedElashri/snipo/internal/api/middleware"
-	"github.com/MohamedElashri/snipo/internal/config"
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
 	"github.com/MohamedElashri/snipo/internal/services"
@@ -744,7 +743,7 @@ func TestFolderHandler_ListTree(t *testing.T) {
 
 func TestHealthHandler_Ping(t *testing.T) {
 	db := testutil.TestDB(t)
-	handler := NewHealthHandler(db, "1.0.0", "abc123", nil)
+	handler := NewHealthHandler(db)
 
 	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
 	w := httptest.NewRecorder()
@@ -762,7 +761,7 @@ func TestHealthHandler_Ping(t *testing.T) {
 
 func TestHealthHandler_Health(t *testing.T) {
 	db := testutil.TestDB(t)
-	handler := NewHealthHandler(db, "1.0.0", "abc123", nil)
+	handler := NewHealthHandler(db)
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	req = withRequestID(req)
@@ -793,62 +792,5 @@ func TestHealthHandler_Health(t *testing.T) {
 
 	if response["status"] != "healthy" {
 		t.Errorf("expected status 'healthy', got %v", response["status"])
-	}
-	if response["version"] != "1.0.0" {
-		t.Errorf("expected version '1.0.0', got %v", response["version"])
-	}
-}
-
-func TestHealthHandler_Health_WithFeatureFlags(t *testing.T) {
-	db := testutil.TestDB(t)
-
-	// Test with all features enabled
-	features := &config.FeatureFlags{
-		PublicSnippets: true,
-		S3Sync:         true,
-		APITokens:      true,
-		BackupRestore:  true,
-	}
-	handler := NewHealthHandler(db, "1.0.0", "abc123", features)
-
-	req := httptest.NewRequest(http.MethodGet, "/health", nil)
-	req = withRequestID(req)
-	w := httptest.NewRecorder()
-
-	handler.Health(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("expected status %d, got %d", http.StatusOK, w.Code)
-	}
-
-	var envelope testAPIResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &envelope); err != nil {
-		t.Fatalf("failed to unmarshal response: %v", err)
-	}
-
-	// Unmarshal data field
-	dataBytes, _ := json.Marshal(envelope.Data)
-	var response map[string]interface{}
-	if err := json.Unmarshal(dataBytes, &response); err != nil {
-		t.Fatalf("failed to unmarshal data: %v", err)
-	}
-
-	// Check feature flags
-	featuresMap, ok := response["features"].(map[string]interface{})
-	if !ok {
-		t.Fatal("expected features field to be present")
-	}
-
-	if featuresMap["public_snippets"] != true {
-		t.Errorf("expected public_snippets to be true, got %v", featuresMap["public_snippets"])
-	}
-	if featuresMap["s3_sync"] != true {
-		t.Errorf("expected s3_sync to be true, got %v", featuresMap["s3_sync"])
-	}
-	if featuresMap["api_tokens"] != true {
-		t.Errorf("expected api_tokens to be true, got %v", featuresMap["api_tokens"])
-	}
-	if featuresMap["backup_restore"] != true {
-		t.Errorf("expected backup_restore to be true, got %v", featuresMap["backup_restore"])
 	}
 }
