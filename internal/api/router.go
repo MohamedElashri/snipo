@@ -123,12 +123,8 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	tokenHandler := handlers.NewTokenHandler(tokenRepo, settingsRepo, cfg.AuthService).WithDemoMode(cfg.Config.Demo.Enabled)
 	authHandler := handlers.NewAuthHandler(cfg.AuthService).WithDemoMode(cfg.Config.Demo.Enabled)
 
-	// Create health handler with feature flags
-	var featureFlags *config.FeatureFlags
-	if cfg.Config != nil {
-		featureFlags = &cfg.Config.Features
-	}
-	healthHandler := handlers.NewHealthHandler(cfg.DB, cfg.Version, cfg.Commit, featureFlags)
+	// Create health handler
+	healthHandler := handlers.NewHealthHandler(cfg.DB)
 
 	backupHandler := handlers.NewBackupHandler(backupService, s3SyncService)
 	settingsHandler := handlers.NewSettingsHandler(settingsRepo, cfg.AuthService)
