@@ -1182,7 +1182,7 @@ func (m Model) viewList() string {
 	}
 
 	s.WriteString("\n")
-	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText("↑/k up • ↓/j down • ←/h prev page • →/l next page • enter view • e edit • / search • s settings • r refresh • q quit • ? help")))
+	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText("↑/k up • ↓/j down • ←/h prev page • →/l next page • enter view • e edit • n new • / search • s settings • r refresh • q quit • ? help")))
 
 	return s.String()
 }
