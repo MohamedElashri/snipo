@@ -1,6 +1,6 @@
 {
   "name": "snipo-frontend-vendor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Frontend vendor dependencies for Snipo - managed locally for privacy",
   "private": true,
   "scripts": {
@@ -11,14 +11,14 @@
   },
   "dependencies": {
     "htmx.org": "^2.0.8",
-    "alpinejs": "^3.15.3",
-    "@alpinejs/collapse": "^3.15.3",
-    "ace-builds": "^1.43.5",
+    "alpinejs": "^3.15.8",
+    "@alpinejs/collapse": "^3.15.8",
+    "ace-builds": "^1.43.6",
     "prismjs": "^1.30.0",
-    "marked": "^17.0.1",
+    "marked": "^17.0.4",
     "@picocss/pico": "^2.1.1"
   },
   "devDependencies": {
-    "fs-extra": "^11.3.3"
+    "fs-extra": "^11.3.4"
   }
 }
