@@ -8,7 +8,8 @@ import {
   formatDate,
   formatFileSize,
   getLanguageColor,
-  autoResizeTextarea
+  autoResizeTextarea,
+  isArabicText
 } from '../utils/helpers.js';
 import {
   getAceMode,
@@ -478,6 +479,7 @@ export function initSnippetsApp(Alpine) {
     getAceMode,
     getFileExtension,
     detectLanguageFromFilename,
+    isArabicText,
 
     // Mix in other functionality
     ...editorMixin,

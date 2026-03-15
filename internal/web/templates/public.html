@@ -63,8 +63,12 @@
         
         <!-- Snippet info -->
         <div class="public-info">
-            <h1 class="public-title" x-text="snippet.title"></h1>
-            <p class="public-description" x-show="snippet.description" x-text="snippet.description"></p>
+            <h1 class="public-title"
+                :class="{ 'rtl': isArabicText(snippet.title) }"
+                x-text="snippet.title"></h1>
+            <p class="public-description"
+                :class="{ 'rtl': isArabicText(snippet.description) }"
+                x-show="snippet.description" x-text="snippet.description"></p>
             
             <div class="public-meta">
                 <span class="language-badge" :style="{ background: getLanguageColor(snippet.language) }" x-text="snippet.language"></span>

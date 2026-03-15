@@ -11,11 +11,15 @@
         </button>
 
         <!-- Preview mode: show title as text -->
-        <h2 class="editor-title-display" x-show="!isEditing" x-text="editingSnippet.title || 'Untitled'"></h2>
+        <h2 class="editor-title-display"
+            :class="{ 'rtl': isArabicText(editingSnippet.title) }"
+            x-show="!isEditing" x-text="editingSnippet.title || 'Untitled'"></h2>
 
         <!-- Edit mode: show title input (as textarea for dynamic resize) -->
         <div class="editor-title-wrapper" x-show="isEditing">
-            <textarea class="editor-title-input" x-model="editingSnippet.title" placeholder="Snippet title..." rows="1"
+            <textarea class="editor-title-input"
+                :class="{ 'rtl': isArabicText(editingSnippet.title) }"
+                x-model="editingSnippet.title" placeholder="Snippet title..." rows="1"
                 @input="scheduleAutoSave(); autoResizeTextarea($event.target)"
                 x-init="$watch('isEditing', (v) => { if(v) $nextTick(() => autoResizeTextarea($el)) })"></textarea>
         </div>
@@ -229,6 +233,7 @@
         <div class="preview-code-wrapper">
             <!-- Rendered markdown view -->
             <div class="preview-markdown-scroll"
+                :class="{ 'rtl': isArabicText(activeFile?.content || editingSnippet.content) }"
                 x-show="(activeFile?.language || editingSnippet.language) === 'markdown'"
                 x-html="renderMarkdown(activeFile?.content || editingSnippet.content)">
             </div>
@@ -245,7 +250,9 @@
         <div class="editor-metadata-row">
             <div class="editor-field-inline description-field">
                 <span class="editor-label">Description</span>
-                <textarea x-model="editingSnippet.description" placeholder="Description (optional)" rows="1"
+                <textarea x-model="editingSnippet.description"
+                    :class="{ 'rtl': isArabicText(editingSnippet.description) }"
+                    placeholder="Description (optional)" rows="1"
                     class="description-textarea" @input="autoResizeTextarea($event.target)"></textarea>
             </div>
         </div>

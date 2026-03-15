@@ -570,6 +570,67 @@
   font-family: var(--font-mono) !important;
 }
 
+/* RTL support for Ace Editor */
+.ace-editor-container.rtl {
+  direction: rtl;
+  unicode-bidi: embed;
+}
+
+.ace-editor-container.rtl .ace_editor {
+  direction: rtl !important;
+  text-align: right !important;
+  font-family: var(--font-arabic) !important;
+}
+
+.ace-editor-container.rtl .ace_text-layer {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+.ace-editor-container.rtl .ace_line {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+.ace-editor-container.rtl .ace_gutter {
+  direction: ltr !important;
+}
+
+.ace-editor-container.rtl .ace_gutter-cell {
+  direction: ltr !important;
+  text-align: right !important;
+}
+
+.ace-editor-container.rtl .ace_cursor {
+  border-left: 2px solid var(--pico-color) !important;
+  border-right: none !important;
+}
+
+.ace-editor-container.rtl .ace_selection {
+  border-radius: 2px;
+}
+
+/* Mixed RTL/LTR content - better bidirectional support */
+.ace-editor-container.rtl.mixed .ace_editor {
+  /* Allow Unicode bidirectional algorithm to work naturally */
+  unicode-bidi: plaintext;
+}
+
+.ace-editor-container.rtl.mixed .ace_text-layer {
+  unicode-bidi: plaintext;
+}
+
+.ace-editor-container.rtl.mixed .ace_line {
+  unicode-bidi: plaintext;
+}
+
+/* For mixed content, use a font stack that supports both Arabic and Latin well */
+.ace-editor-container.rtl.mixed .ace_editor,
+.ace-editor-container.rtl.mixed .ace_text-layer,
+.ace-editor-container.rtl.mixed .ace_line {
+  font-family: 'Fira Code', 'Noto Sans Arabic', 'JetBrains Mono', 'Monaco', 'Consolas', monospace !important;
+}
+
 /* Editor metadata rows */
 .editor-metadata-row {
   display: flex;

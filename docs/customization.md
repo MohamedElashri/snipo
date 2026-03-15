@@ -1448,6 +1448,85 @@ If the app becomes slow after adding custom CSS:
 - **External imports**: External `@import` URLs are flagged as security risks
 - **Large CSS**: Files over 50KB may impact performance
 
+## RTL (Right-to-Left) Customization
+
+Snipo automatically detects and applies RTL styling for Arabic and other RTL languages. You can customize this behavior with custom CSS.
+
+### RTL CSS Classes
+
+The following classes are automatically applied when RTL content is detected:
+
+- `.rtl` - Applied to elements with RTL direction
+- `.rtl.mixed` - Applied to mixed RTL/LTR content (uses Unicode bidirectional algorithm)
+- `.ltr` - Applied to elements with LTR direction
+
+### Customizing RTL Styles
+
+**Override RTL font family:**
+```css
+/* Custom Arabic font */
+.rtl,
+.arabic-text {
+  font-family: 'Your Arabic Font', 'Noto Sans Arabic', sans-serif !important;
+}
+
+/* Mixed content font */
+.rtl.mixed .ace_editor {
+  font-family: 'Your Monospace Font', 'Fira Code', monospace !important;
+}
+```
+
+**Adjust RTL text alignment:**
+```css
+/* Force center alignment for RTL titles */
+.editor-title-input.rtl {
+  text-align: center !important;
+}
+
+/* Adjust RTL markdown padding */
+.preview-markdown-scroll.rtl {
+  padding-left: 2rem;
+  padding-right: 1rem;
+}
+```
+
+**Customize RTL editor appearance:**
+```css
+/* RTL editor background */
+.ace-editor-container.rtl {
+  background-color: #your-color;
+}
+
+/* RTL cursor styling */
+.ace-editor-container.rtl .ace_cursor {
+  border-color: #your-color;
+  border-width: 3px;
+}
+```
+
+**Theme-specific RTL styles:**
+```css
+/* Dark theme RTL */
+[data-theme="dark"] .rtl .ace_editor {
+  background-color: #1a1a1a;
+}
+
+/* Light theme RTL */
+[data-theme="light"] .rtl .ace_editor {
+  background-color: #ffffff;
+}
+```
+
+### RTL CSS Variables
+
+These CSS variables affect RTL rendering:
+
+```css
+:root {
+  --font-arabic: 'Noto Sans Arabic', 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+}
+```
+
 ## Additional Resources
 
 - **CSS Variables Reference**: [MDN CSS Custom Properties](https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties)

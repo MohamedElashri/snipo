@@ -118,8 +118,33 @@ export function renderMarkdown(content) {
   return content;
 }
 
+// Detect Arabic/RTL text
+export function isArabicText(text) {
+  if (!text) return false;
+  const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+  return arabicPattern.test(text);
+}
+
+// Detect if text is predominantly Arabic (more than 30% Arabic characters)
+export function isPredominantlyArabic(text, threshold = 0.3) {
+  if (!text || text.length === 0) return false;
+  
+  const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g;
+  const matches = text.match(arabicPattern);
+  
+  if (!matches) return false;
+  
+  const arabicCharCount = matches.length;
+  const totalChars = text.length;
+  const ratio = arabicCharCount / totalChars;
+  
+  return ratio >= threshold;
+}
+
 // Expose helpers globally
 window.autoResizeInput = autoResizeInput;
 window.autoResizeSelect = autoResizeSelect;
 window.autoResizeTextarea = autoResizeTextarea;
 window.highlightCode = highlightCode;
+window.isArabicText = isArabicText;
+window.isPredominantlyArabic = isPredominantlyArabic;

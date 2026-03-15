@@ -3,6 +3,7 @@ import { api } from '../../modules/api.js';
 import { showToast } from '../../modules/toast.js';
 import { getAceMode } from '../../utils/ace-utils.js';
 import { theme } from '../../modules/theme.js';
+import { isArabicText, isPredominantlyArabic } from '../../utils/helpers.js';
 
 export const editorMixin = {
   // Editor operations (imported from original app.js)
@@ -22,7 +23,10 @@ export const editorMixin = {
       this.showEditor = true;
       this.isEditing = false;
       this.updateUrl({ snippet: snippet.id });
-      this.$nextTick(() => this.highlightAll());
+      this.$nextTick(() => {
+        this.highlightAll();
+        this.updateTextDirection();
+      });
     }
   },
 
@@ -57,6 +61,7 @@ export const editorMixin = {
         input.focus();
         input.select();
       }
+      this.updateTextDirection();
     });
   },
 
@@ -76,6 +81,7 @@ export const editorMixin = {
       this.$nextTick(() => {
         this.updateAceEditor();
         this.highlightAll();
+        this.updateTextDirection();
       });
     }
   },
@@ -88,6 +94,7 @@ export const editorMixin = {
     this.$nextTick(() => {
       this.updateAceEditor();
       this.highlightAll();
+      this.updateTextDirection();
     });
   },
 
@@ -398,6 +405,10 @@ export const editorMixin = {
       aceTheme = `ace/theme/${editorTheme}`;
     }
 
+    // Check if content is predominantly Arabic for RTL support
+    const isArabic = isArabicText(content);
+    const isPredominantlyArabicContent = isPredominantlyArabic(content);
+
     if (!this.aceEditor) {
       if (typeof ace === 'undefined') {
         console.error('Ace Editor not loaded');
@@ -416,6 +427,23 @@ export const editorMixin = {
         this.aceEditor.session.setMode(aceMode);
         this.aceEditor.setValue(content, -1);
 
+        // Enable RTL for predominantly Arabic text
+        // For mixed content, we enable RTL but allow Unicode bidirectional algorithm to work
+        if (isPredominantlyArabicContent) {
+          this.aceEditor.setOption('rtl', true);
+          container.classList.add('rtl');
+          container.classList.remove('mixed');
+        } else if (isArabic) {
+          // Mixed content: enable RTL but use unicode-bidi for proper handling
+          this.aceEditor.setOption('rtl', true);
+          container.classList.add('rtl');
+          container.classList.add('mixed');
+        } else {
+          this.aceEditor.setOption('rtl', false);
+          container.classList.remove('rtl');
+          container.classList.remove('mixed');
+        }
+
         // Apply settings from database
         this.applyEditorSettings();
 
@@ -430,6 +458,9 @@ export const editorMixin = {
             self.editingSnippet.content = value;
             self.scheduleAutoSave();
           }
+          
+          // Update text direction when content changes
+          self.updateTextDirection();
         });
       } catch (e) {
         console.error('Ace Editor initialization error:', e);
@@ -442,6 +473,22 @@ export const editorMixin = {
         this.aceEditor.setValue(content, -1);
         this.aceEditor.session.setMode(aceMode);
         this.aceEditor.setTheme(aceTheme);
+        
+        // Update RTL setting based on content
+        if (isPredominantlyArabicContent) {
+          this.aceEditor.setOption('rtl', true);
+          container.classList.add('rtl');
+          container.classList.remove('mixed');
+        } else if (isArabic) {
+          // Mixed content
+          this.aceEditor.setOption('rtl', true);
+          container.classList.add('rtl');
+          container.classList.add('mixed');
+        } else {
+          this.aceEditor.setOption('rtl', false);
+          container.classList.remove('rtl');
+          container.classList.remove('mixed');
+        }
       } catch (e) {
         console.warn('Ace Editor update error:', e);
       }
@@ -503,6 +550,102 @@ export const editorMixin = {
         // Ignore errors during cleanup
       }
       this.aceEditor = null;
+    }
+  },
+
+  // Arabic/RTL text detection and support
+  updateTextDirection() {
+    this.$nextTick(() => {
+      const title = this.editingSnippet?.title || '';
+      const description = this.editingSnippet?.description || '';
+      const content = this.activeFile?.content || this.editingSnippet?.content || '';
+
+      const isTitleArabic = isArabicText(title);
+      const isDescriptionArabic = isArabicText(description);
+      const isContentArabic = isArabicText(content);
+      const isContentPredominantlyArabic = isPredominantlyArabic(content);
+
+      // Update title input direction
+      const titleInput = document.querySelector('.editor-title-input');
+      if (titleInput) {
+        titleInput.classList.toggle('rtl', isTitleArabic);
+        titleInput.classList.toggle('ltr', !isTitleArabic);
+      }
+
+      // Update title display direction
+      const titleDisplay = document.querySelector('.editor-title-display');
+      if (titleDisplay) {
+        titleDisplay.classList.toggle('rtl', isTitleArabic);
+        titleDisplay.classList.toggle('ltr', !isTitleArabic);
+      }
+
+      // Update description textarea direction
+      const descriptionTextarea = document.querySelector('.description-textarea');
+      if (descriptionTextarea) {
+        descriptionTextarea.classList.toggle('rtl', isDescriptionArabic);
+        descriptionTextarea.classList.toggle('ltr', !isDescriptionArabic);
+      }
+
+      // Update markdown preview direction
+      const markdownPreview = document.querySelector('.preview-markdown-scroll');
+      if (markdownPreview) {
+        const isMarkdown = (this.activeFile?.language || this.editingSnippet?.language) === 'markdown';
+        if (isMarkdown && isContentArabic) {
+          markdownPreview.classList.add('rtl');
+          // Add mixed class for better bidirectional handling
+          if (isContentPredominantlyArabic) {
+            markdownPreview.classList.remove('mixed');
+          } else {
+            markdownPreview.classList.add('mixed');
+          }
+        } else {
+          markdownPreview.classList.remove('rtl');
+          markdownPreview.classList.remove('mixed');
+        }
+      }
+
+      // Update filename input direction (always LTR for filenames)
+      const filenameInput = document.querySelector('.filename-input');
+      if (filenameInput) {
+        filenameInput.classList.add('ltr');
+        filenameInput.classList.remove('rtl');
+      }
+
+      // Update tags inline direction
+      const tagsInline = document.querySelector('.tags-inline');
+      if (tagsInline) {
+        tagsInline.classList.toggle('rtl', isTitleArabic || isDescriptionArabic);
+      }
+    });
+  },
+
+  renderMarkdown(content) {
+    if (typeof marked === 'undefined' || !content) {
+      return content || '';
+    }
+
+    try {
+      const html = marked.parse(content);
+
+      // Check if content is Arabic and apply RTL class
+      if (this.isArabicText(content)) {
+        // Create a temporary div to parse the HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+
+        // Add RTL class to the markdown preview if content is Arabic
+        this.$nextTick(() => {
+          const preview = document.querySelector('.preview-markdown-scroll');
+          if (preview) {
+            preview.classList.add('rtl');
+          }
+        });
+      }
+
+      return html;
+    } catch (e) {
+      console.error('Error rendering markdown:', e);
+      return content;
     }
   }
 };

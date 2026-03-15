@@ -9,6 +9,13 @@ function sanitizeFilename(filename) {
     .replace(/_+/g, '_');   // Replace multiple underscores with single underscore
 }
 
+// Arabic/RTL text detection
+function isArabicText(text) {
+  if (!text) return false;
+  const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+  return arabicPattern.test(text);
+}
+
 export function initPublicSnippet(Alpine) {
   Alpine.data('publicSnippet', () => ({
     snippet: null,
@@ -52,6 +59,8 @@ export function initPublicSnippet(Alpine) {
             if (typeof Prism !== 'undefined') {
               Prism.highlightAll();
             }
+            // Apply RTL direction if content is Arabic
+            this.applyTextDirection();
           });
         } else {
           this.error = true;
@@ -63,6 +72,28 @@ export function initPublicSnippet(Alpine) {
       }
 
       this.loading = false;
+    },
+
+    applyTextDirection() {
+      const title = this.snippet?.title || '';
+      const description = this.snippet?.description || '';
+      const content = this.getCurrentContent();
+
+      const container = document.querySelector('.public-snippet');
+      const titleEl = document.querySelector('.public-title');
+      const descriptionEl = document.querySelector('.public-description');
+
+      if (container && isArabicText(title)) {
+        container.classList.add('rtl');
+      }
+
+      if (titleEl && isArabicText(title)) {
+        titleEl.classList.add('rtl');
+      }
+
+      if (descriptionEl && isArabicText(description)) {
+        descriptionEl.classList.add('rtl');
+      }
     },
 
     async checkAuth() {
@@ -191,6 +222,7 @@ export function initPublicSnippet(Alpine) {
 
     getLanguageColor,
     highlightCode,
+    isArabicText,
 
     formatDate(dateStr) {
       if (!dateStr) return '';
