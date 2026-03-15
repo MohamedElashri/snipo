@@ -181,3 +181,25 @@ All responses include metadata (request ID, timestamp, version) and pagination f
 API documentation:
 - OpenAPI spec: [`openapi.yaml`](openapi.yaml)
 - Interactive docs: `http://localhost:8080/api/v1/openapi.json`
+
+## RTL Support
+
+Snipo includes comprehensive support for Arabic and other RTL (Right-to-Left) languages with intelligent handling of mixed RTL/LTR content.
+
+### Automatic Language Detection
+
+The editor automatically detects Arabic text and applies appropriate formatting:
+
+- **Pure Arabic text** (>30% Arabic characters): Full RTL mode
+- **Mixed content** (<30% Arabic characters): RTL with Unicode bidirectional algorithm
+- **English/Latin text**: Standard LTR mode
+
+### Mixed Content Handling
+
+For content mixing Arabic and English (common in technical documentation):
+
+```
+يمكنك استخدام JavaScript و Python في Snipo بسهولة تامة.
+```
+
+The editor uses `unicode-bidi: plaintext` for natural text flow, proper font stacks, and correct punctuation placement.

@@ -945,3 +945,118 @@
 [data-theme="dark"] .pagination-input-group {
   box-shadow: 0 2px 8px rgba(129, 140, 248, 0.3);
 }
+
+/* RTL (Right-to-Left) Support for Arabic and other RTL languages */
+.rtl {
+  direction: rtl;
+  unicode-bidi: embed;
+}
+
+.ltr {
+  direction: ltr;
+  unicode-bidi: embed;
+}
+
+/* Arabic text styling */
+.arabic-text {
+  font-family: var(--font-arabic);
+  direction: rtl;
+  unicode-bidi: embed;
+  text-align: right;
+}
+
+/* RTL support for markdown preview */
+.preview-markdown-scroll.rtl {
+  direction: rtl;
+  unicode-bidi: embed;
+  text-align: right;
+  font-family: var(--font-arabic);
+}
+
+.preview-markdown-scroll.rtl p {
+  text-align: right;
+}
+
+.preview-markdown-scroll.rtl ul,
+.preview-markdown-scroll.rtl ol {
+  padding-right: 2rem;
+  padding-left: 0;
+}
+
+.preview-markdown-scroll.rtl blockquote {
+  border-left: none;
+  border-right: 4px solid var(--pico-primary);
+  padding: 0.5rem 1rem 0.5rem 0;
+}
+
+.preview-markdown-scroll.rtl li {
+  text-align: right;
+}
+
+/* Mixed RTL/LTR content in markdown */
+.preview-markdown-scroll.rtl.mixed {
+  unicode-bidi: plaintext;
+}
+
+.preview-markdown-scroll.rtl.mixed p {
+  unicode-bidi: plaintext;
+}
+
+/* RTL support for code editor wrapper */
+.code-editor-wrapper.rtl {
+  direction: rtl;
+}
+
+/* RTL support for title input */
+.editor-title-input.rtl {
+  direction: rtl;
+  text-align: right;
+  font-family: var(--font-arabic);
+}
+
+/* RTL support for description textarea */
+.description-textarea.rtl {
+  direction: rtl;
+  text-align: right;
+  font-family: var(--font-arabic);
+}
+
+/* RTL support for filename input */
+.filename-input.rtl,
+.filename-display.rtl {
+  direction: ltr; /* Keep filenames LTR even for Arabic text */
+}
+
+/* RTL support for public snippet view */
+.public-snippet.rtl {
+  direction: rtl;
+  unicode-bidi: embed;
+}
+
+.public-snippet.rtl .public-title,
+.public-snippet.rtl .public-description {
+  text-align: right;
+  font-family: var(--font-arabic);
+}
+
+.public-snippet.rtl .public-meta {
+  flex-direction: row-reverse;
+}
+
+/* Preserve LTR for code blocks even in RTL context */
+.preview-markdown-scroll.rtl pre,
+.preview-markdown-scroll.rtl code,
+.public-code pre,
+.public-code code {
+  direction: ltr;
+  text-align: left;
+}
+
+/* RTL support for tags */
+.tags-inline.rtl {
+  direction: rtl;
+}
+
+.tag-chip.rtl {
+  direction: rtl;
+}
