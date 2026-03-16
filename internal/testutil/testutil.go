@@ -59,11 +59,36 @@ func runTestMigrations(db *sql.DB) error {
 		-- Settings table
 		CREATE TABLE IF NOT EXISTS settings (
 			id INTEGER PRIMARY KEY CHECK (id = 1),
+			app_name TEXT DEFAULT 'Snipo',
+			custom_css TEXT DEFAULT '',
+			theme TEXT DEFAULT 'light',
+			default_language TEXT DEFAULT 'plaintext',
+			s3_enabled INTEGER DEFAULT 0,
+			s3_endpoint TEXT DEFAULT '',
+			s3_bucket TEXT DEFAULT '',
+			s3_region TEXT DEFAULT '',
+			backup_encryption_enabled INTEGER DEFAULT 0,
 			archive_enabled INTEGER DEFAULT 0,
 			trash_enabled INTEGER DEFAULT 1,
+			history_enabled INTEGER DEFAULT 1,
+			disable_login INTEGER DEFAULT 0,
+			editor_font_size INTEGER DEFAULT 14,
+			editor_tab_size INTEGER DEFAULT 4,
+			editor_theme TEXT DEFAULT 'monokai',
+			editor_word_wrap INTEGER DEFAULT 1,
+			editor_show_print_margin INTEGER DEFAULT 0,
+			editor_show_gutter INTEGER DEFAULT 1,
+			editor_show_indent_guides INTEGER DEFAULT 1,
+			editor_highlight_active_line INTEGER DEFAULT 1,
+			editor_use_soft_tabs INTEGER DEFAULT 1,
+			editor_enable_snippets INTEGER DEFAULT 1,
+			editor_enable_live_autocompletion INTEGER DEFAULT 0,
+			markdown_font_size INTEGER DEFAULT 14,
+			exclude_first_line_on_copy INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		);
-		INSERT OR IGNORE INTO settings (id, archive_enabled, trash_enabled) VALUES (1, 0, 1);
+		INSERT OR IGNORE INTO settings (id, archive_enabled, trash_enabled, history_enabled) VALUES (1, 0, 1, 1);
 
 		-- Tags table
 		CREATE TABLE IF NOT EXISTS tags (
@@ -134,6 +159,35 @@ func runTestMigrations(db *sql.DB) error {
 			FOREIGN KEY (snippet_id) REFERENCES snippets(id) ON DELETE CASCADE
 		);
 
+		-- Snippet history tables
+		CREATE TABLE IF NOT EXISTS snippet_history (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			snippet_id TEXT NOT NULL,
+			title TEXT NOT NULL,
+			description TEXT DEFAULT '',
+			content TEXT NOT NULL,
+			language TEXT DEFAULT 'plaintext',
+			is_favorite INTEGER DEFAULT 0,
+			is_public INTEGER DEFAULT 0,
+			is_archived INTEGER DEFAULT 0,
+			change_type TEXT DEFAULT 'update',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (snippet_id) REFERENCES snippets(id) ON DELETE CASCADE
+		);
+
+		CREATE TABLE IF NOT EXISTS snippet_files_history (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			history_id INTEGER NOT NULL,
+			snippet_id TEXT NOT NULL,
+			filename TEXT NOT NULL,
+			content TEXT NOT NULL,
+			language TEXT NOT NULL,
+			sort_order INTEGER DEFAULT 0,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (history_id) REFERENCES snippet_history(id) ON DELETE CASCADE,
+			FOREIGN KEY (snippet_id) REFERENCES snippets(id) ON DELETE CASCADE
+		);
+
 		-- Indexes
 		CREATE INDEX IF NOT EXISTS idx_snippets_language ON snippets(language);
 		CREATE INDEX IF NOT EXISTS idx_snippets_favorite ON snippets(is_favorite);
@@ -146,6 +200,10 @@ func runTestMigrations(db *sql.DB) error {
 		CREATE INDEX IF NOT EXISTS idx_folders_parent ON folders(parent_id);
 		CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 		CREATE INDEX IF NOT EXISTS idx_snippet_files_snippet ON snippet_files(snippet_id);
+		CREATE INDEX IF NOT EXISTS idx_snippet_history_snippet_id ON snippet_history(snippet_id);
+		CREATE INDEX IF NOT EXISTS idx_snippet_history_created ON snippet_history(created_at DESC);
+		CREATE INDEX IF NOT EXISTS idx_snippet_files_history_history_id ON snippet_files_history(history_id);
+		CREATE INDEX IF NOT EXISTS idx_snippet_files_history_snippet_id ON snippet_files_history(snippet_id);
 
 		-- Full-text search
 		CREATE VIRTUAL TABLE IF NOT EXISTS snippets_fts USING fts5(

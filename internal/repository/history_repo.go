@@ -97,11 +97,11 @@ func (r *HistoryRepository) GetSnippetHistory(ctx context.Context, snippetID str
 	}
 
 	query := `
-		SELECT id, snippet_id, title, description, content, language, 
+		SELECT id, snippet_id, title, description, content, language,
 		       is_favorite, is_public, is_archived, change_type, created_at
 		FROM snippet_history
 		WHERE snippet_id = ?
-		ORDER BY created_at DESC
+		ORDER BY id DESC
 		LIMIT ?
 	`
 
