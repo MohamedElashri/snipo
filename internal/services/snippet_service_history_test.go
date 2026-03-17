@@ -369,17 +369,10 @@ func TestSnippetService_SaveHistory_WhenHistoryDisabled(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	// Verify no history was created
-	count, err := historyRepo.GetHistoryCount(ctx, input.Title)
-	if err != nil {
-		// Expected - no history for non-existent snippet with this title
-		count = 0
-	}
-
 	// Get snippet to find its ID
 	snippets, _ := snippetRepo.List(ctx, models.SnippetFilter{Query: "History Disabled Test"})
 	if len(snippets.Data) > 0 {
-		count, err = historyRepo.GetHistoryCount(ctx, snippets.Data[0].ID)
+		count, err := historyRepo.GetHistoryCount(ctx, snippets.Data[0].ID)
 		if err != nil {
 			t.Fatalf("GetHistoryCount failed: %v", err)
 		}
