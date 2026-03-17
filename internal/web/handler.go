@@ -15,7 +15,7 @@ import (
 //go:embed templates/*.html templates/components/*.html
 var templatesFS embed.FS
 
-//go:embed static/css/*.css static/css/components/*.css static/js/*.js static/js/modules/*.js static/js/stores/*.js static/js/components/*.js static/js/components/snippets/*.js static/js/utils/*.js static/vendor/css/*.css static/vendor/js/*.js static/vendor/js/ace/*.js static/vendor/fonts/*.woff2 static/*.ico static/*.png
+//go:embed static/css/*.css static/css/components/*.css static/js/*.js static/js/modules/*.js static/js/stores/*.js static/js/components/*.js static/js/components/snippets/*.js static/js/utils/*.js static/vendor/css/*.css static/vendor/js/*.js static/vendor/js/ace/*.js static/vendor/js/ace/snippets/*.js static/vendor/fonts/*.woff2 static/*.ico static/*.png
 var staticFS embed.FS
 
 // Handler handles web page requests

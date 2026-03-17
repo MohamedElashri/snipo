@@ -4,6 +4,7 @@ import { showToast } from '../../modules/toast.js';
 import { getAceMode } from '../../utils/ace-utils.js';
 import { theme } from '../../modules/theme.js';
 import { isArabicText, isPredominantlyArabic } from '../../utils/helpers.js';
+import { setupEnhancedAutocomplete } from '../../utils/ace-autocomplete.js';
 
 export const editorMixin = {
   // Editor operations (imported from original app.js)
@@ -417,29 +418,95 @@ export const editorMixin = {
 
       try {
         ace.config.set('basePath', '/static/vendor/js/ace');
+        // Enable VSCode-like features
+        ace.config.set('enableBasicAutocompletion', true);
+        ace.config.set('enableLiveAutocompletion', true);
+        ace.config.set('enableSnippets', true);
+        ace.config.set('enableEmmet', true);
 
         if (!container.id) {
           container.id = 'ace-editor-' + Date.now();
         }
 
         this.aceEditor = ace.edit(container.id);
+        
+        // Enable Emmet for HTML/CSS
+        try {
+          const emmet = ace.require('ace/ext/emmet');
+          emmet.setCore(this.aceEditor);
+        } catch (e) {
+          // Emmet not available, skip
+        }
+        
+        // VSCode-like editor settings
+        this.aceEditor.setOptions({
+          fontSize: this.settings?.editor_font_size || 14,
+          showPrintMargin: this.settings?.editor_show_print_margin || false,
+          showGutter: this.settings?.editor_show_gutter !== false,
+          displayIndentGuides: this.settings?.editor_show_indent_guides !== false,
+          highlightActiveLine: this.settings?.editor_highlight_active_line !== false,
+          highlightGutterLine: this.settings?.editor_show_gutter !== false,
+          tabSize: this.settings?.editor_tab_size || 2,
+          useSoftTabs: this.settings?.editor_use_soft_tabs !== false,
+          wrap: this.settings?.editor_word_wrap !== false,
+          // VSCode-like behaviors
+          enableBasicAutocompletion: true,
+          enableLiveAutocompletion: true,
+          enableSnippets: true,
+          enableEmmet: true,
+          // Enhanced editing
+          behavioursEnabled: true,
+          wrapBehavioursEnabled: true,
+          autoScrollEditorIntoView: true,
+          // Performance optimizations
+          animatedScroll: true,
+          scrollPastEnd: 0.5,
+          // Cursor and selection
+          cursorStyle: 'smooth',
+          // Copy without selection
+          copyWithEmptySelection: false,
+          // Show fold widgets
+          showFoldWidgets: true,
+          foldStyle: 'markbegin',
+          // Performance for large files
+          useWorker: false,
+          // Better rendering
+          fadeFoldWidgets: true,
+          // Improved text input
+          enableMultiselect: true,
+          // Better scrolling
+          scrollSpeed: 0.5,
+          hScrollBarAlwaysVisible: false,
+          vScrollBarAlwaysVisible: false
+        });
+
+        // Performance: Set higher limits for large files
+        this.aceEditor.setOption('maxLines', Infinity);
+        this.aceEditor.setOption('minLines', 10);
+        
+        // Optimize renderer
+        this.aceEditor.renderer.setOptions({
+          animatedScroll: true,
+          fadeFoldWidgets: true
+        });
+
         this.aceEditor.setTheme(aceTheme);
         this.aceEditor.session.setMode(aceMode);
         this.aceEditor.setValue(content, -1);
 
-        // Enable RTL for predominantly Arabic text
+        // Setup enhanced autocomplete and keyboard shortcuts
+        setupEnhancedAutocomplete(this.aceEditor);
+
+        // Enable RTL for predominantly Arabic text (via CSS only)
         // For mixed content, we enable RTL but allow Unicode bidirectional algorithm to work
         if (isPredominantlyArabicContent) {
-          this.aceEditor.setOption('rtl', true);
           container.classList.add('rtl');
           container.classList.remove('mixed');
         } else if (isArabic) {
           // Mixed content: enable RTL but use unicode-bidi for proper handling
-          this.aceEditor.setOption('rtl', true);
           container.classList.add('rtl');
           container.classList.add('mixed');
         } else {
-          this.aceEditor.setOption('rtl', false);
           container.classList.remove('rtl');
           container.classList.remove('mixed');
         }
@@ -473,19 +540,16 @@ export const editorMixin = {
         this.aceEditor.setValue(content, -1);
         this.aceEditor.session.setMode(aceMode);
         this.aceEditor.setTheme(aceTheme);
-        
-        // Update RTL setting based on content
+
+        // Update RTL setting based on content (CSS only)
         if (isPredominantlyArabicContent) {
-          this.aceEditor.setOption('rtl', true);
           container.classList.add('rtl');
           container.classList.remove('mixed');
         } else if (isArabic) {
           // Mixed content
-          this.aceEditor.setOption('rtl', true);
           container.classList.add('rtl');
           container.classList.add('mixed');
         } else {
-          this.aceEditor.setOption('rtl', false);
           container.classList.remove('rtl');
           container.classList.remove('mixed');
         }
@@ -515,9 +579,43 @@ export const editorMixin = {
         showGutter: settings.editor_show_gutter !== false,
         displayIndentGuides: settings.editor_show_indent_guides !== false,
         highlightActiveLine: settings.editor_highlight_active_line !== false,
+        highlightGutterLine: settings.editor_show_gutter !== false,
         tabSize: settings.editor_tab_size || 2,
         useSoftTabs: settings.editor_use_soft_tabs !== false,
-        wrap: settings.editor_word_wrap !== false
+        wrap: settings.editor_word_wrap !== false,
+        // VSCode-like behaviors
+        enableBasicAutocompletion: true,
+        enableLiveAutocompletion: true,
+        enableSnippets: true,
+        enableEmmet: true,
+        // Enhanced editing
+        behavioursEnabled: true,
+        wrapBehavioursEnabled: true,
+        autoScrollEditorIntoView: true,
+        // Performance optimizations
+        animatedScroll: true,
+        scrollPastEnd: 0.5,
+        // Cursor and selection
+        cursorStyle: 'smooth',
+        // Show fold widgets
+        showFoldWidgets: true,
+        foldStyle: 'markbegin',
+        // Performance for large files
+        useWorker: false,
+        // Better rendering
+        fadeFoldWidgets: true,
+        // Improved text input
+        enableMultiselect: true,
+        // Better scrolling
+        scrollSpeed: 0.5,
+        hScrollBarAlwaysVisible: false,
+        vScrollBarAlwaysVisible: false
+      });
+
+      // Optimize renderer
+      this.aceEditor.renderer.setOptions({
+        animatedScroll: true,
+        fadeFoldWidgets: true
       });
 
       // Update theme if needed
