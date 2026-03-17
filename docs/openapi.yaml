@@ -1700,7 +1700,27 @@ paths:
       summary: Get snippet history
       description: |
         Retrieve version history for a snippet.
-        Requires read, write, or admin permission.
+        
+        Returns a chronological list of all saved versions for a snippet, ordered by
+        most recent first. Each history entry contains a complete snapshot of the
+        snippet at that point in time, including:
+        
+        - Title, description, and content
+        - Language and visibility settings
+        - All files (for multi-file snippets)
+        - Change type (create/update)
+        - Timestamp
+        
+        **History tracking:**
+        - Automatically enabled by default
+        - Can be disabled via Settings (history_enabled flag)
+        - History is created before each update (pre-update snapshot)
+        - Creation of snippet is also recorded
+        
+        **Pagination:**
+        - Uses limit parameter (default: 50, max: 200)
+        - Returns most recent entries first
+        
       operationId: getSnippetHistory
       security:
         - sessionCookie: []
@@ -1720,7 +1740,7 @@ paths:
             minimum: 1
             maximum: 200
             default: 50
-          description: Maximum number of history entries to return
+          description: Maximum number of history entries to return (default: 50, max: 200)
       responses:
         '200':
           description: Snippet history retrieved successfully
@@ -1821,7 +1841,23 @@ paths:
       summary: Restore from history
       description: |
         Restore a snippet to a previous version from history.
-        Requires write or admin permission.
+        
+        This endpoint restores a snippet to the state captured in a specific history entry.
+        The current state of the snippet is automatically saved to history before restoration,
+        allowing you to undo the restore if needed.
+        
+        **What gets restored:**
+        - Title and description
+        - Content (legacy single-file) or all files (multi-file snippets)
+        - Language settings
+        - Favorite, public, and archive status
+        
+        **Important notes:**
+        - Requires write or admin permission
+        - The history entry must belong to the specified snippet
+        - A new history entry is created before restoration (pre-restore snapshot)
+        - Files are fully restored for multi-file snippets
+        
       operationId: restoreSnippetHistory
       security:
         - sessionCookie: []
@@ -1838,8 +1874,8 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-          description: History entry ID to restore from
+            type: integer
+          description: History entry ID to restore from (must belong to the specified snippet)
       responses:
         '200':
           description: Snippet restored successfully
@@ -1861,7 +1897,7 @@ paths:
                   meta:
                     $ref: '#/components/schemas/Meta'
         '400':
-          description: Bad request - missing or invalid IDs
+          description: Bad request - missing or invalid IDs, or restore failed
           content:
             application/json:
               schema:
@@ -1891,6 +1927,12 @@ paths:
                     error:
                       code: "RESTORE_FAILED"
                       message: "History entry not found"
+                snippet_mismatch:
+                  summary: History entry does not belong to specified snippet
+                  value:
+                    error:
+                      code: "RESTORE_FAILED"
+                      message: "History entry does not belong to this snippet"
         '401':
           description: Unauthorized - authentication required
           content:
@@ -6476,7 +6518,7 @@ components:
       description: Snippet version history entry
       properties:
         id:
-          type: string
+          type: integer
           description: History entry ID
         snippet_id:
           type: string
@@ -6484,19 +6526,67 @@ components:
         title:
           type: string
           description: Snippet title at this version
-        content:
-          type: string
-          description: Snippet content at this version
-        language:
-          type: string
-          description: Language at this version
         description:
           type: string
           description: Description at this version
+        content:
+          type: string
+          description: Snippet content at this version (legacy single-file)
+        language:
+          type: string
+          description: Language at this version (legacy single-file)
+        is_favorite:
+          type: boolean
+          description: Favorite status at this version
+        is_public:
+          type: boolean
+          description: Public visibility status at this version
+        is_archived:
+          type: boolean
+          description: Archive status at this version
+        change_type:
+          type: string
+          enum: [create, update, delete]
+          description: Type of change that created this history entry
         created_at:
           type: string
           format: date-time
           description: When this version was created
+        files:
+          type: array
+          description: Files in this version (for multi-file snippets)
+          items:
+            $ref: '#/components/schemas/HistoryFile'
+
+    HistoryFile:
+      type: object
+      description: File within a snippet version history entry
+      properties:
+        id:
+          type: integer
+          description: File history entry ID
+        history_id:
+          type: integer
+          description: Associated history entry ID
+        snippet_id:
+          type: string
+          description: Associated snippet ID
+        filename:
+          type: string
+          description: Filename
+        content:
+          type: string
+          description: File content
+        language:
+          type: string
+          description: File language
+        sort_order:
+          type: integer
+          description: Sort order of the file
+        created_at:
+          type: string
+          format: date-time
+          description: When this file version was created
 
   responses:
     BadRequest:

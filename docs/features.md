@@ -182,6 +182,78 @@ API documentation:
 - OpenAPI spec: [`openapi.yaml`](openapi.yaml)
 - Interactive docs: `http://localhost:8080/api/v1/openapi.json`
 
+## Version History
+
+Snipo automatically tracks all changes to your snippets with a comprehensive version history system. Every modification is saved, allowing you to view previous versions and restore them at any time.
+
+### How It Works
+
+- **Automatic Tracking**: Every create and update operation is automatically saved to history
+- **Pre-Update Snapshots**: The current state is saved *before* each update, preserving the original version
+- **Multi-File Support**: History includes all files within a snippet, not just the main content
+- **Configurable**: Can be enabled/disabled in Settings → General
+
+### Viewing History
+
+**From the Editor:**
+1. Open any snippet
+2. Click the **History** button in the editor toolbar
+3. Browse the chronological list of versions
+
+**History Entry Details:**
+- **Timestamp**: When the change was made
+- **Change Type**: `Created` or `Updated`
+- **Current Badge**: Marks the current version
+- **Full Content**: View complete content of each version
+
+### Restoring Previous Versions
+
+**Quick Restore:**
+1. Open the history modal
+2. Click **Restore** on any previous version
+3. Confirm the restoration
+
+**View Then Restore:**
+1. Click **View Full** to see complete version details
+2. Review the content and files
+3. Click **Restore This Version** at the bottom
+
+**What Gets Restored:**
+- Title and description
+- All file content and filenames
+- Language settings
+- Public/private status
+- Favorite and archive status
+
+### API Access
+
+History can be accessed programmatically via the REST API:
+
+```bash
+# Get snippet history
+curl -H "Authorization: Bearer <token>" \
+  http://localhost:8080/api/v1/snippets/{id}/history?limit=50
+
+# Restore from history
+curl -X POST \
+  -H "Authorization: Bearer <token>" \
+  http://localhost:8080/api/v1/snippets/{id}/history/{history_id}/restore
+```
+
+### Storage & Performance
+
+- **Efficient Storage**: History entries are stored in SQLite with proper indexing
+- **Automatic Cleanup**: No manual intervention required
+- **Configurable Limits**: API requests can limit results (default: 50, max: 200)
+
+### Limitations
+
+- History is only created when the feature is enabled in settings
+- Disabled history won't retroactively create entries when re-enabled
+- History entries are permanently deleted when the parent snippet is permanently deleted
+
+---
+
 ## RTL Support
 
 Snipo includes comprehensive support for Arabic and other RTL (Right-to-Left) languages with intelligent handling of mixed RTL/LTR content.

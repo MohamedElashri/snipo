@@ -21,12 +21,13 @@ A lightweight, self-hosted snippet manager designed for single-user deployments.
 - **Powerful Search**: Fuzzy search across titles, descriptions, and file content.
 - **Organization**: Organize snippets with folders and tags.
 - **Public Sharing**: Share snippets publicly with granular file-level access.
+- **Version History**: Automatic tracking of all changes with restore capabilities.
 - **Trash & Recovery**: Soft delete mechanism with restore capabilities.
 - **GitHub Gist Sync**: Two-way synchronization with GitHub Gists for backup.
 - **Developer Friendly**: RESTful API with tokens and granular permissions.
 - **Docker Ready**: Easy deployment with Docker and standard or hardened images.
 - **Customizable**: Extensive theming support via custom CSS.
-- **RTL Support**:  Support for  RTL languages with intelligent mixed-content handling.
+- **RTL Support**: Support for RTL languages with intelligent mixed-content handling.
 
 ## Client Integrations
 
