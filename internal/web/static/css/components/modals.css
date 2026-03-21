@@ -11,115 +11,125 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(4px);
 }
 
 .modal {
   background: var(--pico-card-background-color);
-  border-radius: 0.5rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   max-width: 500px;
   width: 90%;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border: 1px solid var(--pico-muted-border-color);
 }
 
 .modal-header {
-  padding: 1rem 1.5rem;
+  padding: 0.875rem 1.25rem;
   border-bottom: 1px solid var(--pico-muted-border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: var(--pico-background-color);
 }
 
 .modal-title {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   margin: 0;
+  color: var(--pico-color);
 }
 
 .modal-close {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   cursor: pointer;
-  padding: 0;
+  padding: 0.25rem;
   color: var(--pico-muted-color);
   line-height: 1;
+  border-radius: 0.25rem;
+  transition: all 0.15s;
 }
 
 .modal-close:hover {
   color: var(--pico-color);
+  background: var(--pico-muted-border-color);
 }
 
 .modal-body {
-  padding: 1.25rem;
+  padding: 1rem;
   overflow-y: auto;
   flex: 1;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  background: var(--pico-card-background-color);
 }
 
 /* Reduce font sizes for all settings modal content */
 .settings-modal .modal-body label,
 .settings-modal .modal-body .checkbox-label span {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .settings-modal .modal-body p,
 .settings-modal .modal-body .text-sm {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .settings-modal .modal-body input,
 .settings-modal .modal-body select,
 .settings-modal .modal-body textarea,
 .settings-modal .modal-body button {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .settings-modal .modal-body .editor-field {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.625rem;
 }
 
 .modal-footer {
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1.25rem;
   border-top: 1px solid var(--pico-muted-border-color);
   display: flex;
   gap: 0.5rem;
   justify-content: flex-end;
+  background: var(--pico-background-color);
 }
 
 .modal-content {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.375rem;
 }
 
 .form-group label {
   font-weight: 500;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
 }
 
-/* Settings modal */
+/* Settings modal - Modern compact design */
 .settings-modal {
-  max-width: 1000px;
+  max-width: 900px;
   width: 95%;
+  max-height: 90vh;
 }
 
 .settings-tabs {
   display: flex;
   flex-wrap: wrap;
+  gap: 0.125rem;
+  padding: 0.5rem 1rem;
+  background: var(--pico-background-color);
   border-bottom: 1px solid var(--pico-muted-border-color);
-  padding: 0 1rem;
-  gap: 0.25rem;
 }
 
 @media (max-width: 768px) {
@@ -127,91 +137,118 @@
     max-width: 100%;
     width: 100%;
     margin: 0;
+    max-height: 100vh;
   }
 
   .settings-tabs {
-    padding: 0 0.5rem;
+    padding: 0.5rem;
   }
 }
 
 .settings-tab {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.65rem 0.85rem;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
   cursor: pointer;
-  color: var(--icon-color);
-  font-size: 0.85rem;
-  transition: color 0.15s, border-color 0.15s;
+  color: var(--pico-muted-color);
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.15s;
 }
 
 .settings-tab:hover {
-  color: var(--icon-hover);
+  color: var(--pico-color);
+  background: var(--pico-muted-border-color);
 }
 
 .settings-tab.active {
   color: var(--snipo-primary);
-  border-bottom-color: var(--snipo-primary);
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.2);
 }
 
 .settings-tab svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 .created-token-box {
-  background: var(--snipo-success);
+  background: linear-gradient(135deg, var(--snipo-success) 0%, #16a34a 100%);
   color: white;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   border-radius: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
+}
+
+.created-token-box p {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.75rem;
+  opacity: 0.95;
 }
 
 .created-token-box input {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
 }
 
 .api-token-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem;
+  padding: 0.625rem 0.75rem;
   background: var(--pico-card-background-color);
   border: 1px solid var(--pico-muted-border-color);
   border-radius: 0.375rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.375rem;
+  transition: all 0.15s;
+}
+
+.api-token-item:hover {
+  border-color: var(--snipo-primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .api-token-info {
   flex: 1;
+  min-width: 0;
 }
 
 .api-token-name {
   font-weight: 600;
   margin-bottom: 0.25rem;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  color: var(--pico-color);
 }
 
 .api-token-meta {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--pico-muted-color);
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .api-token-permission {
   background: var(--snipo-primary);
   color: white;
-  padding: 0.125rem 0.5rem;
+  padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.025em;
 }
 
 /* Modal overlay for centered modals */
@@ -402,4 +439,474 @@
   .search-help-body {
     padding: 1rem;
   }
+}
+
+/* ===== Settings Modal - Enhanced Styles ===== */
+
+/* Section headers */
+.settings-modal h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--pico-color);
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--pico-muted-border-color);
+}
+
+.settings-modal h5 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--pico-color);
+  margin: 0 0 0.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+/* Form fields */
+.editor-field {
+  margin-bottom: 0.75rem;
+}
+
+.editor-field label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--pico-color);
+  margin-bottom: 0.25rem;
+}
+
+.editor-field input[type="text"],
+.editor-field input[type="password"],
+.editor-field input[type="number"],
+.editor-field select {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 0.375rem;
+  background: var(--pico-card-background-color);
+  color: var(--pico-color);
+  transition: all 0.15s;
+  line-height: 1.5;
+  height: 40px;
+  box-sizing: border-box;
+}
+
+.editor-field select {
+  cursor: pointer;
+}
+
+.editor-field input[type="file"] {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 0.375rem;
+  background: var(--pico-card-background-color);
+  color: var(--pico-color);
+  height: 40px;
+  box-sizing: border-box;
+}
+
+.editor-field input[type="file"]::file-selector-button {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  margin-right: 0.5rem;
+  background: var(--pico-muted-border-color);
+  border: none;
+  border-radius: 0.25rem;
+  color: var(--pico-color);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.editor-field input[type="file"]::file-selector-button:hover {
+  background: var(--pico-color);
+  color: var(--pico-background-color);
+}
+
+.editor-field input:focus,
+.editor-field select:focus {
+  outline: none;
+  border-color: var(--snipo-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.editor-field textarea {
+  width: 100%;
+  padding: 0.75rem 0.875rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 0.375rem;
+  background: var(--pico-card-background-color);
+  color: var(--pico-color);
+  transition: all 0.15s;
+  resize: vertical;
+  min-height: 150px;
+  line-height: 1.5;
+}
+
+.editor-field textarea:focus {
+  outline: none;
+  border-color: var(--snipo-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Checkbox styling */
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--snipo-primary);
+}
+
+.checkbox-label span {
+  font-size: 0.8rem;
+  color: var(--pico-color);
+  line-height: 1.3;
+}
+
+/* Text muted */
+.text-muted {
+  color: var(--pico-muted-color);
+}
+
+.text-sm {
+  font-size: 0.75rem;
+}
+
+/* Backup section */
+.backup-section {
+  padding: 0.75rem;
+  background: var(--pico-background-color);
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Button improvements */
+.modal-footer button,
+.editor-field button {
+  padding: 0.625rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+
+.modal-footer button:first-child {
+  background: transparent;
+  border: 1px solid var(--pico-muted-border-color);
+  color: var(--pico-color);
+}
+
+.modal-footer button:first-child:hover {
+  background: var(--pico-muted-border-color);
+}
+
+.modal-footer .btn-primary {
+  background: var(--snipo-primary);
+  border: 1px solid var(--snipo-primary);
+  color: white;
+}
+
+.modal-footer .btn-primary:hover {
+  background: var(--snipo-primary-hover);
+  border-color: var(--snipo-primary-hover);
+}
+
+/* Compact button variant */
+.btn-compact {
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.8rem !important;
+}
+
+.btn-icon.btn-compact {
+  width: 32px;
+  height: 32px;
+}
+
+.btn-icon.btn-compact svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Grid layouts */
+.editor-field[style*="grid-template-columns"],
+div[style*="grid-template-columns"] {
+  gap: 0.5rem;
+}
+
+/* Card-like sections */
+.api-token-form,
+.api-tokens-list {
+  background: var(--pico-background-color);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.api-token-form h4,
+.api-tokens-list h4 {
+  margin-bottom: 0.625rem;
+  font-size: 0.8rem;
+}
+
+/* Backup section improvements */
+.backup-section {
+  padding: 0.75rem;
+  background: var(--pico-background-color);
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.backup-section h4 {
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.backup-section p {
+  margin-bottom: 0.625rem;
+}
+
+/* Backup section buttons */
+.backup-section .btn-primary,
+.backup-section .btn-secondary {
+  padding: 0.625rem 1rem;
+  font-size: 0.85rem;
+}
+
+/* File input styling for backup */
+.backup-section input[type="file"] {
+  padding: 0.5rem 0.625rem;
+  font-size: 0.8rem;
+}
+
+/* Button groups for actions */
+.button-group {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.button-group button {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* Status badges */
+.badge {
+  display: inline-block;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.6rem;
+  font-weight: 600;
+  border-radius: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  height: 20px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+}
+
+.badge-success {
+  background: var(--snipo-success);
+  color: white;
+}
+
+.badge-muted {
+  background: var(--pico-muted-border-color);
+  color: var(--pico-muted-color);
+}
+
+/* S3 backup items */
+.s3-backup-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.625rem;
+  background: var(--pico-card-background-color);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 0.375rem;
+  margin-bottom: 0.375rem;
+  transition: all 0.15s;
+}
+
+.s3-backup-item:hover {
+  border-color: var(--snipo-primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.s3-backup-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.s3-backup-name {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--pico-color);
+  margin-bottom: 0.125rem;
+}
+
+.s3-backup-meta {
+  font-size: 0.65rem;
+  color: var(--pico-muted-color);
+}
+
+/* Import result */
+.import-result {
+  background: var(--pico-background-color);
+  border-radius: 0.375rem;
+}
+
+.import-result ul {
+  margin: 0.25rem 0 0 1rem;
+  padding: 0;
+  list-style: disc;
+}
+
+.import-result li {
+  font-size: 0.7rem;
+  color: var(--pico-color);
+}
+
+/* Details/Summary styling */
+details {
+  margin-top: 0.5rem;
+}
+
+summary {
+  font-size: 0.75rem;
+  color: var(--snipo-primary);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+summary:hover {
+  opacity: 0.8;
+}
+
+/* Pre/code blocks */
+pre {
+  padding: 0.5rem;
+  background: var(--pico-code-background-color);
+  border-radius: 0.25rem;
+  overflow-x: auto;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  margin: 0.25rem 0;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.125rem 0.25rem;
+  background: var(--pico-code-background-color);
+  border-radius: 0.25rem;
+  color: var(--snipo-primary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .settings-modal {
+    width: 100%;
+    max-width: none;
+  }
+
+  .settings-tabs {
+    gap: 0.25rem;
+  }
+
+  .settings-tab {
+    flex: 1 1 auto;
+    justify-content: center;
+    font-size: 0.75rem;
+    padding: 0.5rem;
+  }
+
+  .settings-tab svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .modal-body {
+    padding: 0.75rem;
+  }
+
+  .editor-field input,
+  .editor-field select,
+  .editor-field textarea {
+    font-size: 0.8rem;
+  }
+}
+
+/* Scrollbar styling for modal body */
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: var(--pico-background-color);
+  border-radius: 3px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: var(--pico-muted-border-color);
+  border-radius: 3px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: var(--snipo-secondary);
+}
+
+/* Section dividers */
+.settings-modal hr {
+  border: none;
+  border-top: 1px solid var(--pico-muted-border-color);
+  margin: 1rem 0;
+}
+
+/* Focus states for accessibility */
+.settings-tab:focus,
+.modal-close:focus,
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--snipo-primary);
+  outline-offset: 2px;
+}
+
+/* Animation for tab switching */
+.settings-tab {
+  position: relative;
+}
+
+.settings-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 3px;
+  background: var(--snipo-primary);
+  border-radius: 50%;
 }
