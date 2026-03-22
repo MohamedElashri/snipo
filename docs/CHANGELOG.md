@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.13] - 2026-10-22
+
+### Added 
+- Add RTL and Arabic support with proper mixed-content handling
+- Update vendor JS dependencies
+
+
+### Changed
+- Improve snippet history tracking and restoration feature
+- Improve the settings Modal CSS to make it more user friendly
+
 ## [1.3.12] - 2026-03-09
 
 ### fixed
