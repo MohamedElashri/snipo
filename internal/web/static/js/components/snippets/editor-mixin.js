@@ -296,6 +296,66 @@ export const editorMixin = {
     }
   },
 
+  async copyAsRichText(snippet) {
+    try {
+      if (typeof Prism === 'undefined') {
+        showToast('Syntax highlighter not available', 'error');
+        return;
+      }
+
+      // Get content from either legacy content field or first file
+      let content = snippet.content || '';
+      let language = snippet.language || 'plaintext';
+
+      if (!content && snippet.files && snippet.files.length > 0) {
+        content = snippet.files[0].content || '';
+        language = snippet.files[0].language || language;
+      }
+
+      // Check if setting to exclude first line is enabled
+      if (this.settings?.exclude_first_line_on_copy) {
+        const lines = content.split('\n');
+        if (lines.length > 1) {
+          content = lines.slice(1).join('\n');
+        }
+      }
+
+      // Map language to Prism grammar
+      const prismLangMap = {
+        'javascript': 'javascript', 'js': 'javascript',
+        'typescript': 'typescript', 'ts': 'typescript',
+        'python': 'python', 'py': 'python',
+        'go': 'go', 'golang': 'go',
+        'bash': 'bash', 'sh': 'bash', 'shell': 'bash', 'zsh': 'bash',
+        'powershell': 'powershell', 'ps': 'powershell', 'ps1': 'powershell',
+        'sql': 'sql',
+        'json': 'json',
+        'yaml': 'yaml', 'yml': 'yaml',
+        'markdown': 'markdown', 'md': 'markdown',
+        'cuda': 'cuda', 'cu': 'cuda',
+      };
+
+      const prismLang = prismLangMap[language?.toLowerCase()] || null;
+      const grammar = prismLang ? (Prism.languages[prismLang] || Prism.languages.plain) : Prism.languages.plain;
+      const highlighted = Prism.highlight(content, grammar, prismLang || 'plain');
+
+      // Build themed HTML with inline styles for clipboard compatibility
+      const htmlContent = `<pre style="background:#1e1e1e;color:#d4d4d4;padding:1rem;border-radius:6px;font-family:'Fira Code','JetBrains Mono',Consolas,Monaco,monospace;font-size:13px;line-height:1.5;overflow-x:auto;tab-size:2;"><code class="language-${language || 'plaintext'}">${highlighted}</code></pre>`;
+
+      // Write both HTML and plain text to clipboard
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([htmlContent], { type: 'text/html' }),
+          'text/plain': new Blob([content], { type: 'text/plain' })
+        })
+      ]);
+      showToast('Copied as rich text!');
+    } catch (err) {
+      console.error('Failed to copy as rich text:', err);
+      showToast('Failed to copy as rich text', 'error');
+    }
+  },
+
   async copyShareLink(snippet) {
     if (!snippet?.id || !snippet?.is_public) {
       showToast('Snippet must be public to share', 'warning');
