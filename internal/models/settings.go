@@ -17,6 +17,8 @@ type Settings struct {
 	ArchiveEnabled                 bool      `json:"archive_enabled"`
 	TrashEnabled                   bool      `json:"trash_enabled"`
 	HistoryEnabled                 bool      `json:"history_enabled"`
+	AutoArchiveEnabled             bool      `json:"auto_archive_enabled"`
+	DefaultExpirationDays          int       `json:"default_expiration_days"`
 	DisableLogin                   bool      `json:"disable_login"`
 	EditorFontSize                 int       `json:"editor_font_size"`
 	EditorTabSize                  int       `json:"editor_tab_size"`
@@ -51,6 +53,8 @@ type SettingsInput struct {
 	ArchiveEnabled                 bool   `json:"archive_enabled"`
 	TrashEnabled                   bool   `json:"trash_enabled"`
 	HistoryEnabled                 bool   `json:"history_enabled"`
+	AutoArchiveEnabled             bool   `json:"auto_archive_enabled"`
+	DefaultExpirationDays          int    `json:"default_expiration_days"`
 	DisableLogin                   bool   `json:"disable_login"`
 	EditorFontSize                 int    `json:"editor_font_size"`
 	EditorTabSize                  int    `json:"editor_tab_size"`

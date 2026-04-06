@@ -60,5 +60,15 @@ func (s *CleanupService) cleanup(ctx context.Context) error {
 		s.logger.Info("cleaned up deleted snippets", "count", count)
 	}
 
+	// Auto-archive expired snippets
+	archivedCount, err := s.snippetRepo.AutoArchiveExpired(ctx)
+	if err != nil {
+		return err
+	}
+
+	if archivedCount > 0 {
+		s.logger.Info("auto-archived expired snippets", "count", archivedCount)
+	}
+
 	return nil
 }

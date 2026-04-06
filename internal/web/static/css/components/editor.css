@@ -802,25 +802,39 @@
   height: 14px;
 }
 
-.public-toggle-switch {
-  display: flex;
+/* Toggle control — matches compact select container exactly */
+.toggle-control {
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
   cursor: pointer;
-  font-size: 0.75rem;
-  color: var(--pico-muted-color);
+  height: 34px;
+  min-width: 60px;
+  padding: 0.35rem 0.6rem;
+  background: var(--pico-form-element-background-color);
+  border: 1px solid var(--pico-form-element-border-color);
+  border-radius: 0.25rem;
+  transition: border-color 0.15s;
+  position: relative;
 }
 
-.public-switch-track {
+.toggle-control:hover {
+  border-color: var(--pico-form-element-hover-border-color, var(--pico-muted-border-color));
+}
+
+.toggle-control .control-thumb {
+  display: block;
   width: 32px;
   height: 18px;
   background: var(--pico-muted-border-color);
   border-radius: 999px;
   position: relative;
   transition: background 0.2s;
+  flex-shrink: 0;
 }
 
-.public-switch-thumb {
+.toggle-control .control-thumb::after {
+  content: '';
+  display: block;
   width: 14px;
   height: 14px;
   background: white;
@@ -832,81 +846,45 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.public-toggle-switch input {
+.toggle-control input {
   display: none;
 }
 
-.public-toggle-switch input:checked + .public-switch-track {
-  background: var(--snipo-success);
-}
-
-.public-toggle-switch input:checked + .public-switch-track .public-switch-thumb {
-  transform: translateX(14px);
-}
-
-/* Public toggle in preview mode */
-.public-toggle-switch-preview {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  font-size: 0.85rem;
-  color: var(--pico-color);
-}
-
-.public-toggle-switch-preview input {
-  display: none;
-}
-
-.public-toggle-switch-preview input:checked + .public-switch-track {
-  background: var(--snipo-success);
-}
-
-.public-toggle-switch-preview input:checked + .public-switch-track .public-switch-thumb {
-  transform: translateX(14px);
-}
-
-/* Gist Sync toggle in edit mode */
-.gist-toggle-switch {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  font-size: 0.75rem;
-  color: var(--pico-muted-color);
-}
-
-.gist-switch-track {
-  width: 32px;
-  height: 18px;
-  background: var(--pico-muted-border-color);
-  border-radius: 999px;
-  position: relative;
-  transition: background 0.2s;
-}
-
-.gist-switch-thumb {
-  width: 14px;
-  height: 14px;
-  background: white;
-  border-radius: 50%;
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-.gist-toggle-switch input {
-  display: none;
-}
-
-.gist-toggle-switch input:checked + .gist-switch-track {
+.toggle-control input:checked + .control-thumb {
   background: var(--snipo-primary);
 }
 
-.gist-toggle-switch input:checked + .gist-switch-track .gist-switch-thumb {
+.toggle-control input:checked + .control-thumb::after {
   transform: translateX(14px);
+}
+
+.gist-toggle-control input:checked + .control-thumb {
+  background: var(--snipo-primary);
+}
+
+.gist-link-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--pico-muted-color);
+  transition: color 0.15s;
+  margin-left: 0.25rem;
+}
+
+.gist-link-icon:hover {
+  color: var(--pico-color);
+}
+
+/* Public indicator in preview mode (read-only) */
+.preview-public-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--pico-muted-color);
+}
+
+.preview-public-indicator.is-public {
+  color: var(--snipo-primary);
 }
 
 /* Gist Sync toggle in preview mode */
@@ -1126,4 +1104,82 @@
     bottom: 0;
     z-index: 100;
   }
+}
+
+/* Expiration selector — mirrors editor-field-inline compact */
+.expiration-field select.expiration-select {
+  min-width: 120px;
+  max-width: 160px;
+  padding-right: 1.5rem;
+  text-overflow: ellipsis;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.25rem center;
+  background-size: 14px;
+}
+
+.expiration-custom-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.2rem;
+}
+
+.expiration-date-input {
+  background: var(--pico-background-color);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 4px;
+  padding: 0.15rem 0.35rem;
+  font-size: 0.7rem;
+  color: var(--pico-color);
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.expiration-date-input:focus {
+  outline: none;
+  border-color: var(--snipo-primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.btn-clear-exp {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 1px;
+  color: var(--pico-muted-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+
+.btn-clear-exp:hover {
+  color: var(--pico-danger);
+}
+
+/* Expiration badge in preview mode */
+.expiration-badge-preview {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--pico-muted-color);
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.1);
+  display: inline-block;
+}
+
+.expiration-badge-preview.expired {
+  color: var(--pico-danger);
+  background: rgba(239, 68, 68, 0.12);
+  font-weight: 600;
+}
+
+.expiration-badge-preview.never {
+  color: var(--pico-muted-color);
+  background: var(--pico-muted-border-color);
+  font-style: italic;
 }

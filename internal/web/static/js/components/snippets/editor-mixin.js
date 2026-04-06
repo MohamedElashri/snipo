@@ -15,6 +15,7 @@ export const editorMixin = {
     if (result) {
       this.editingSnippet = {
         ...result,
+        expires_at: this.resolveToShorthand(result.expires_at),
         tags: (result.tags || []).map(t => t.name),
         folder_id: result.folders?.[0]?.id || null,
         files: result.files || []
@@ -31,6 +32,14 @@ export const editorMixin = {
   },
 
   newSnippet() {
+    // Calculate default expiration if auto-archive is enabled and default days is set
+    let defaultExpires = '';
+    if (this.settings?.auto_archive_enabled && this.settings?.default_expiration_days > 0) {
+      const d = new Date();
+      d.setDate(d.getDate() + this.settings.default_expiration_days);
+      defaultExpires = d.toISOString().split('T')[0];
+    }
+
     this.editingSnippet = {
       id: null,
       title: '',
@@ -41,6 +50,7 @@ export const editorMixin = {
       folder_id: null,
       is_public: false,
       is_favorite: false,
+      expires_at: defaultExpires,
       sync_to_gist: this.gistConfig?.auto_sync_enabled || false,
       files: [{
         id: 0,
@@ -70,6 +80,7 @@ export const editorMixin = {
     if (result) {
       this.editingSnippet = {
         ...result,
+        expires_at: this.resolveToShorthand(result.expires_at),
         tags: (result.tags || []).map(t => t.name),
         folder_id: result.folders?.[0]?.id || null,
         files: result.files || []
@@ -130,6 +141,15 @@ export const editorMixin = {
     const primaryContent = files && files.length > 0 ? files[0].content : this.editingSnippet.content;
     const primaryLanguage = files && files.length > 0 ? files[0].language : this.editingSnippet.language;
 
+    // Resolve expiration shorthand (7d, 30d, etc.) to actual date
+    let expiresAt = this.editingSnippet.expires_at || null;
+    if (expiresAt && typeof expiresAt === 'string' && expiresAt.endsWith('d')) {
+      const days = parseInt(expiresAt, 10);
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      expiresAt = d.toISOString().split('T')[0];
+    }
+
     const data = {
       title: this.editingSnippet.title,
       description: this.editingSnippet.description || '',
@@ -138,6 +158,8 @@ export const editorMixin = {
       tags: this.editingSnippet.tags || [],
       folder_id: folderId,
       is_public: this.editingSnippet.is_public || false,
+      is_archived: this.editingSnippet.is_archived || false,
+      expires_at: expiresAt,
       files: files
     };
 
@@ -206,6 +228,7 @@ export const editorMixin = {
       folder_id: null,
       is_public: false,
       is_favorite: false,
+      expires_at: '',
       sync_to_gist: false,
       files: [{
         id: 0,
@@ -390,33 +413,6 @@ export const editorMixin = {
       }
 
       showToast(result.is_archived ? 'Snippet archived' : 'Snippet unarchived');
-    }
-  },
-
-  async togglePublicStatus() {
-    if (!this.editingSnippet?.id) return;
-
-    // Save the snippet with the new public status
-    const result = await api.put(`/api/v1/snippets/${this.editingSnippet.id}`, {
-      title: this.editingSnippet.title,
-      description: this.editingSnippet.description,
-      content: this.editingSnippet.content,
-      language: this.editingSnippet.language,
-      tags: this.editingSnippet.tags || [],
-      folder_id: this.editingSnippet.folder_id,
-      is_public: this.editingSnippet.is_public,
-      is_archived: this.editingSnippet.is_archived || false,
-      files: this.editingSnippet.files || []
-    });
-
-    if (result) {
-      showToast(result.is_public ? 'Snippet is now public' : 'Snippet is now private');
-
-      // Update the snippet in the list
-      const idx = this.snippets.findIndex(s => s.id === this.editingSnippet.id);
-      if (idx !== -1) {
-        this.snippets[idx].is_public = result.is_public;
-      }
     }
   },
 
@@ -707,5 +703,91 @@ export const editorMixin = {
       console.error('Error rendering markdown:', e);
       return content;
     }
+  },
+
+  // Resolve actual date to shorthand for select dropdown
+  resolveToShorthand(expiresAt) {
+    if (!expiresAt) return '';
+    // Already a shorthand value
+    if (typeof expiresAt === 'string' && expiresAt.endsWith('d')) return expiresAt;
+    // Not a valid date string (e.g., random string) — return as-is
+    if (isNaN(Date.parse(expiresAt))) return '';
+    const shorthandDays = [7, 30, 90, 180, 365];
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const exp = new Date(expiresAt);
+    exp.setHours(0, 0, 0, 0);
+    for (const days of shorthandDays) {
+      const target = new Date();
+      target.setDate(target.getDate() + days);
+      target.setHours(0, 0, 0, 0);
+      if (exp.getTime() === target.getTime()) {
+        return `${days}d`;
+      }
+    }
+    // Not a match — return empty for custom
+    return '';
+  },
+
+  // Expiration helpers
+  todayDate() {
+    const d = new Date();
+    return d.toISOString().split('T')[0];
+  },
+
+  setExpirationDays(days) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    this.editingSnippet.expires_at = d.toISOString().split('T')[0];
+  },
+
+  expirationMatchesDays(expiresAt, days) {
+    if (!expiresAt || expiresAt === '') return false;
+    // Handle shorthand values
+    if (expiresAt.endsWith('d')) {
+      return parseInt(expiresAt, 10) === days;
+    }
+    const target = new Date();
+    target.setDate(target.getDate() + days);
+    target.setHours(0, 0, 0, 0);
+    const exp = new Date(expiresAt);
+    exp.setHours(0, 0, 0, 0);
+    return exp.getTime() === target.getTime();
+  },
+
+  // Resolve shorthand to display label
+  resolveExpirationLabel(expiresAt) {
+    if (!expiresAt || expiresAt === '') return 'Never';
+    if (expiresAt.endsWith('d')) {
+      const days = parseInt(expiresAt, 10);
+      if (days === 180) return '6 months';
+      if (days === 365) return '1 year';
+      return `${days} days`;
+    }
+    const exp = new Date(expiresAt);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    exp.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return 'Expired';
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays <= 30) return `${diffDays} days`;
+    return exp.toLocaleDateString();
+  },
+
+  isExpired(expiresAt) {
+    if (!expiresAt || expiresAt === '') return false;
+    if (expiresAt.endsWith('d')) {
+      return false;
+    }
+    const exp = new Date(expiresAt);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return exp < now;
+  },
+
+  formatExpiration(expiresAt) {
+    return this.resolveExpirationLabel(expiresAt);
   }
 };

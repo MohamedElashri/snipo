@@ -29,6 +29,7 @@ type Snippet struct {
 	ViewCount   int        `json:"view_count"`
 	S3Key       *string    `json:"s3_key,omitempty"`
 	Checksum    *string    `json:"checksum,omitempty"`
+	ExpiresAt   *time.Time `json:"expires_at,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 	DeletedAt   *time.Time `json:"deleted_at,omitempty"`
@@ -37,6 +38,14 @@ type Snippet struct {
 	Tags    []Tag         `json:"tags,omitempty"`
 	Folders []Folder      `json:"folders,omitempty"`
 	Files   []SnippetFile `json:"files,omitempty"` // Multi-file support
+}
+
+// IsExpired returns true if the snippet has expired
+func (s *Snippet) IsExpired() bool {
+	if s.ExpiresAt == nil {
+		return false
+	}
+	return time.Now().After(*s.ExpiresAt)
 }
 
 // SnippetFileInput represents input for a file within a snippet
@@ -57,6 +66,7 @@ type SnippetInput struct {
 	FolderID    *int64             `json:"folder_id,omitempty"`
 	IsPublic    bool               `json:"is_public"`
 	IsArchived  bool               `json:"is_archived,omitempty"`
+	ExpiresAt   *time.Time         `json:"expires_at,omitempty"`
 	Files       []SnippetFileInput `json:"files,omitempty"` // Multi-file support
 }
 

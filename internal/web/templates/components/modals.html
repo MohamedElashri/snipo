@@ -121,6 +121,19 @@
                 </div>
                 <div class="editor-field">
                     <label class="checkbox-label">
+                        <input type="checkbox" x-model="settings.auto_archive_enabled" @change="updateSettings()">
+                        <span>Enable Auto-Archive (Expiration)</span>
+                    </label>
+                    <p class="text-sm text-muted">Allow snippets to have expiration dates. Expired snippets are automatically archived.</p>
+                </div>
+                <div class="editor-field" x-show="settings.auto_archive_enabled">
+                    <label>Default Expiration (days)</label>
+                    <input type="number" x-model.number="settings.default_expiration_days" @change="updateSettings()" 
+                        min="0" max="3650" class="input-small">
+                    <p class="text-sm text-muted">Default expiration period for new snippets (0 = no default).</p>
+                </div>
+                <div class="editor-field">
+                    <label class="checkbox-label">
                         <input type="checkbox" x-model="settings.disable_login" @change="promptDisableLoginPassword()">
                         <span>Disable Login Page</span>
                     </label>
