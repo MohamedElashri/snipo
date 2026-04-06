@@ -4,10 +4,7 @@
   "description": "Frontend vendor dependencies for Snipo - managed locally for privacy",
   "private": true,
   "scripts": {
-    "vendor:sync": "node scripts/sync-vendor.js",
-    "vendor:check": "npm outdated",
-    "vendor:update": "npm update && npm run vendor:sync",
-    "vendor:update-major": "npx npm-check-updates -u && npm install && npm run vendor:sync"
+    "vendor:sync": "node scripts/sync-vendor.js"
   },
   "dependencies": {
     "htmx.org": "^2.0.8",

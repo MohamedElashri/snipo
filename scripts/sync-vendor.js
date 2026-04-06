@@ -139,4 +139,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { syncVendor };
+module.exports = { syncVendor, vendorConfig };
