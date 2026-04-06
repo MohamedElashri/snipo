@@ -35,13 +35,37 @@
                 </svg>
                 <span x-text="editingSnippet?.is_favorite ? 'Favorited' : 'Favorite'"></span>
             </button>
-            <button class="btn-action" @click="copyToClipboard(editingSnippet)" title="Copy Code">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                <span>Copy</span>
-            </button>
+            <!-- Copy dropdown menu -->
+            <div class="dropdown" x-data="{ open: false }" @click.outside="open = false"
+                x-show="editingSnippet?.id || editingSnippet?.files?.length > 0 || editingSnippet?.content">
+                <button class="btn-action" @click="open = !open" :class="{ 'active': open }" title="Copy options">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <span>Copy</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"
+                        style="margin-left: 2px;">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+                <div class="dropdown-menu" x-show="open" x-transition x-cloak>
+                    <a href="#" class="dropdown-item" @click.prevent="copyToClipboard(editingSnippet); open = false">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <span>Copy Code</span>
+                    </a>
+                    <a href="#" class="dropdown-item" @click.prevent="copyAsRichText(editingSnippet); open = false">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                            <polyline points="16 18 22 12 16 6"></polyline>
+                            <polyline points="8 6 2 12 8 18"></polyline>
+                        </svg>
+                        <span>Copy as Rich Text</span>
+                    </a>
+                </div>
+            </div>
             <button class="btn-action" @click="copyShareLink(editingSnippet)"
                 x-show="editingSnippet?.id && editingSnippet?.is_public" title="Copy Share Link">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
