@@ -397,26 +397,23 @@ Snipo serves all frontend JavaScript and CSS libraries locally (no CDN) for priv
 ### Setup
 
 ```bash
-# First time setup
-npm install
-npm run vendor:sync
+# Full one-shot setup: install + sync + verify
+make vendor
 
-# Or use Make
-make vendor-install
-make vendor-sync
+# Or step by step
+make vendor-install   # Install npm dependencies
+make vendor-sync      # Copy files to internal/web/static/vendor/
+make vendor-verify    # Verify all expected files exist
 ```
 
 ### Updating Libraries
 
 ```bash
-# Check for available updates
-make vendor-check
-
-# Update to latest compatible versions (minor/patch)
-make vendor-update
-
-# Update to latest including major versions
-make vendor-update-major
+make vendor-check        # Check for outdated packages
+make vendor-status       # Show current installed vs wanted versions
+make vendor-update       # Update (minor/patch only)
+make vendor-update-major # Update (including major versions)
+make vendor-cleanup      # Remove orphaned vendor files
 ```
 
 ### How It Works
@@ -424,7 +421,8 @@ make vendor-update-major
 1. Dependencies are declared in `package.json` with semantic versioning
 2. `npm install` downloads packages to `node_modules/` (gitignored)
 3. `scripts/sync-vendor.js` copies specific files to `internal/web/static/vendor/` (committed)
-4. Your app serves files from the vendor directory
+4. `scripts/verify-vendor.js` checks that all expected files exist and can clean up orphans
+5. Your app serves files from the vendor directory
 
 ### Adding New Libraries
 
@@ -437,7 +435,7 @@ const vendorConfig = {
   }
 };
 ```
-3. Sync: `npm run vendor:sync`
+3. Sync and verify: `make vendor`
 4. Update HTML templates to include the new library
 
 ## Customization

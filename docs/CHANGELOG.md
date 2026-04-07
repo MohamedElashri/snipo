@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-04-07
+
+### Added
+- **Snippet Expiration & Auto-Archive**: Set optional expiration dates on snippets with automatic archiving. Supports quick presets (7d, 30d, 90d, 6mo, 1y) or custom date picker
+- **Copy dropdown**: Adding `copy as rich` option to copy button that is now a dropdown. This copies the snippet with syntax highlighting and formatting preserved, ideal for pasting into rich text editors or mattermost/slack.
+
+### Changed
+- **Vendor workflow**: Simplified package.json scripts, added verification and orphan cleanup
+- Moved Public and Gist toggles in editor to symmetric compact field-inline layout
+- Preview mode public toggle changed from interactive switch to read-only indicator
+- Updated golangci-lint to support Go 1.26
+- Updated various vendor JS dependencies 
+- Updated Go dependencies and sqlite
+
 ## [1.3.13] - 2026-10-22
 
 ### Added 

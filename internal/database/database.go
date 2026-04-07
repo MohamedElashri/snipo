@@ -132,6 +132,32 @@ func (db *DB) Migrate(ctx context.Context) error {
 			}
 		}
 
+		// Special handling for migration 11 (expiration idempotency)
+		if m.Version == 11 {
+			var expiresCount int
+			err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM pragma_table_info('snippets') WHERE name='expires_at'").Scan(&expiresCount)
+			if err == nil && expiresCount > 0 {
+				db.logger.Warn("column expires_at already exists, modifying migration 11 to skip existing columns")
+				m.SQL = ""
+
+				// Check and add settings columns if missing
+				var autoArchiveCount int
+				err := db.QueryRowContext(ctx, "SELECT COUNT(*) FROM pragma_table_info('settings') WHERE name='auto_archive_enabled'").Scan(&autoArchiveCount)
+				if err == nil && autoArchiveCount == 0 {
+					m.SQL += "ALTER TABLE settings ADD COLUMN auto_archive_enabled INTEGER DEFAULT 0;\n"
+				}
+
+				var defaultExpCount int
+				err = db.QueryRowContext(ctx, "SELECT COUNT(*) FROM pragma_table_info('settings') WHERE name='default_expiration_days'").Scan(&defaultExpCount)
+				if err == nil && defaultExpCount == 0 {
+					m.SQL += "ALTER TABLE settings ADD COLUMN default_expiration_days INTEGER DEFAULT 0;\n"
+				}
+
+				// Index is safe with IF NOT EXISTS
+				m.SQL += "CREATE INDEX IF NOT EXISTS idx_snippets_expires_at ON snippets(expires_at);\n"
+			}
+		}
+
 		// Execute migration in a transaction
 		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {

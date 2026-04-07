@@ -344,6 +344,21 @@ ALTER TABLE settings ADD COLUMN trash_enabled INTEGER DEFAULT 1;
 CREATE INDEX IF NOT EXISTS idx_snippets_deleted_at ON snippets(deleted_at);
 `
 
+// Migration 11: Add snippet expiration and auto-archive
+const addExpirationSQL = `
+-- Add expires_at column to snippets (nullable, no default)
+ALTER TABLE snippets ADD COLUMN expires_at DATETIME DEFAULT NULL;
+
+-- Add auto_archive_enabled to settings (default 0 = disabled)
+ALTER TABLE settings ADD COLUMN auto_archive_enabled INTEGER DEFAULT 0;
+
+-- Add default_expiration_days to settings (default 0 = no expiration)
+ALTER TABLE settings ADD COLUMN default_expiration_days INTEGER DEFAULT 0;
+
+-- Index for expires_at to speed up auto-archive queries
+CREATE INDEX IF NOT EXISTS idx_snippets_expires_at ON snippets(expires_at);
+`
+
 // getMigrations returns all available migrations in order
 func getMigrations() []Migration {
 	return []Migration{
@@ -357,5 +372,6 @@ func getMigrations() []Migration {
 		{Version: 8, Name: "add_exclude_first_line", SQL: addExcludeFirstLineSQL},
 		{Version: 9, Name: "add_gist_sync", SQL: addGistSyncSQL},
 		{Version: 10, Name: "add_soft_delete", SQL: addSoftDeleteSQL},
+		{Version: 11, Name: "add_snippet_expiration", SQL: addExpirationSQL},
 	}
 }

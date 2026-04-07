@@ -51,6 +51,7 @@ func runTestMigrations(db *sql.DB) error {
 			view_count INTEGER DEFAULT 0,
 			s3_key TEXT DEFAULT NULL,
 			checksum TEXT DEFAULT NULL,
+			expires_at DATETIME DEFAULT NULL,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			deleted_at DATETIME DEFAULT NULL
@@ -71,6 +72,8 @@ func runTestMigrations(db *sql.DB) error {
 			archive_enabled INTEGER DEFAULT 0,
 			trash_enabled INTEGER DEFAULT 1,
 			history_enabled INTEGER DEFAULT 1,
+			auto_archive_enabled INTEGER DEFAULT 0,
+			default_expiration_days INTEGER DEFAULT 0,
 			disable_login INTEGER DEFAULT 0,
 			editor_font_size INTEGER DEFAULT 14,
 			editor_tab_size INTEGER DEFAULT 4,
@@ -194,6 +197,7 @@ func runTestMigrations(db *sql.DB) error {
 		CREATE INDEX IF NOT EXISTS idx_snippets_public ON snippets(is_public);
 		CREATE INDEX IF NOT EXISTS idx_snippets_archived ON snippets(is_archived);
 		CREATE INDEX IF NOT EXISTS idx_snippets_deleted ON snippets(deleted_at);
+		CREATE INDEX IF NOT EXISTS idx_snippets_expires_at ON snippets(expires_at);
 		CREATE INDEX IF NOT EXISTS idx_snippets_created ON snippets(created_at DESC);
 		CREATE INDEX IF NOT EXISTS idx_snippets_updated ON snippets(updated_at DESC);
 		CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);

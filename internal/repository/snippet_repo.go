@@ -24,10 +24,10 @@ func NewSnippetRepository(db *sql.DB) *SnippetRepository {
 // Create inserts a new snippet
 func (r *SnippetRepository) Create(ctx context.Context, input *models.SnippetInput) (*models.Snippet, error) {
 	query := `
-		INSERT INTO snippets (title, description, content, language, is_public, is_archived)
-		VALUES (?, ?, ?, ?, ?, ?)
-		RETURNING id, title, description, content, language, is_favorite, is_public, 
-		          view_count, s3_key, checksum, is_archived, created_at, updated_at, deleted_at
+		INSERT INTO snippets (title, description, content, language, is_public, is_archived, expires_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+		RETURNING id, title, description, content, language, is_favorite, is_public,
+		          view_count, s3_key, checksum, is_archived, expires_at, created_at, updated_at, deleted_at
 	`
 
 	snippet := &models.Snippet{}
@@ -38,6 +38,7 @@ func (r *SnippetRepository) Create(ctx context.Context, input *models.SnippetInp
 		input.Language,
 		input.IsPublic,
 		input.IsArchived,
+		input.ExpiresAt,
 	).Scan(
 		&snippet.ID,
 		&snippet.Title,
@@ -50,6 +51,7 @@ func (r *SnippetRepository) Create(ctx context.Context, input *models.SnippetInp
 		&snippet.S3Key,
 		&snippet.Checksum,
 		&snippet.IsArchived,
+		&snippet.ExpiresAt,
 		&snippet.CreatedAt,
 		&snippet.UpdatedAt,
 		&snippet.DeletedAt,
@@ -66,7 +68,7 @@ func (r *SnippetRepository) Create(ctx context.Context, input *models.SnippetInp
 func (r *SnippetRepository) GetByID(ctx context.Context, id string) (*models.Snippet, error) {
 	query := `
 		SELECT id, title, description, content, language, is_favorite, is_public,
-		       view_count, s3_key, checksum, is_archived, created_at, updated_at, deleted_at
+		       view_count, s3_key, checksum, is_archived, expires_at, created_at, updated_at, deleted_at
 		FROM snippets
 		WHERE id = ?
 	`
@@ -84,6 +86,7 @@ func (r *SnippetRepository) GetByID(ctx context.Context, id string) (*models.Sni
 		&snippet.S3Key,
 		&snippet.Checksum,
 		&snippet.IsArchived,
+		&snippet.ExpiresAt,
 		&snippet.CreatedAt,
 		&snippet.UpdatedAt,
 		&snippet.DeletedAt,
@@ -103,10 +106,10 @@ func (r *SnippetRepository) GetByID(ctx context.Context, id string) (*models.Sni
 func (r *SnippetRepository) Update(ctx context.Context, id string, input *models.SnippetInput) (*models.Snippet, error) {
 	query := `
 		UPDATE snippets
-		SET title = ?, description = ?, content = ?, language = ?, is_public = ?, is_archived = ?, updated_at = CURRENT_TIMESTAMP
+		SET title = ?, description = ?, content = ?, language = ?, is_public = ?, is_archived = ?, expires_at = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
 		RETURNING id, title, description, content, language, is_favorite, is_public,
-		          view_count, s3_key, checksum, is_archived, created_at, updated_at, deleted_at
+		          view_count, s3_key, checksum, is_archived, expires_at, created_at, updated_at, deleted_at
 	`
 
 	snippet := &models.Snippet{}
@@ -117,6 +120,7 @@ func (r *SnippetRepository) Update(ctx context.Context, id string, input *models
 		input.Language,
 		input.IsPublic,
 		input.IsArchived,
+		input.ExpiresAt,
 		id,
 	).Scan(
 		&snippet.ID,
@@ -130,6 +134,7 @@ func (r *SnippetRepository) Update(ctx context.Context, id string, input *models
 		&snippet.S3Key,
 		&snippet.Checksum,
 		&snippet.IsArchived,
+		&snippet.ExpiresAt,
 		&snippet.CreatedAt,
 		&snippet.UpdatedAt,
 		&snippet.DeletedAt,
@@ -439,7 +444,7 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 	// Build main query using safe column names from allowedSortColumns map
 	query := fmt.Sprintf(`
 		SELECT s.id, s.title, s.description, s.content, s.language, s.is_favorite, s.is_public,
-		       s.view_count, s.s3_key, s.checksum, s.is_archived, s.created_at, s.updated_at, s.deleted_at
+		       s.view_count, s.s3_key, s.checksum, s.is_archived, s.expires_at, s.created_at, s.updated_at, s.deleted_at
 		FROM snippets s
 		%s
 		ORDER BY s.%s %s
@@ -473,6 +478,7 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 			&s.S3Key,
 			&s.Checksum,
 			&s.IsArchived,
+			&s.ExpiresAt,
 			&s.CreatedAt,
 			&s.UpdatedAt,
 			&s.DeletedAt,
@@ -550,7 +556,7 @@ func (r *SnippetRepository) ToggleArchive(ctx context.Context, id string) (*mode
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
 		RETURNING id, title, description, content, language, is_favorite, is_public,
-		          view_count, s3_key, checksum, is_archived, created_at, updated_at, deleted_at
+		          view_count, s3_key, checksum, is_archived, expires_at, created_at, updated_at, deleted_at
 	`
 
 	snippet := &models.Snippet{}
@@ -566,6 +572,7 @@ func (r *SnippetRepository) ToggleArchive(ctx context.Context, id string) (*mode
 		&snippet.S3Key,
 		&snippet.Checksum,
 		&snippet.IsArchived,
+		&snippet.ExpiresAt,
 		&snippet.CreatedAt,
 		&snippet.UpdatedAt,
 		&snippet.DeletedAt,
@@ -598,7 +605,7 @@ func (r *SnippetRepository) Search(ctx context.Context, query string, limit int)
 
 	sqlQuery := `
 		SELECT s.id, s.title, s.description, s.content, s.language, s.is_favorite, s.is_public,
-		       s.view_count, s.s3_key, s.checksum, s.is_archived, s.created_at, s.updated_at, s.deleted_at
+		       s.view_count, s.s3_key, s.checksum, s.is_archived, s.expires_at, s.created_at, s.updated_at, s.deleted_at
 		FROM snippets s
 		WHERE s.rowid IN (
 			SELECT rowid FROM snippets_fts WHERE snippets_fts MATCH ?
@@ -632,6 +639,7 @@ func (r *SnippetRepository) Search(ctx context.Context, query string, limit int)
 			&s.S3Key,
 			&s.Checksum,
 			&s.IsArchived,
+			&s.ExpiresAt,
 			&s.CreatedAt,
 			&s.UpdatedAt,
 			&s.DeletedAt,
@@ -642,4 +650,39 @@ func (r *SnippetRepository) Search(ctx context.Context, query string, limit int)
 	}
 
 	return snippets, rows.Err()
+}
+
+// AutoArchiveExpired archives snippets that have passed their expiration date
+func (r *SnippetRepository) AutoArchiveExpired(ctx context.Context) (int64, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Find expired snippets (expires_at is in the past, not already archived, not deleted)
+	query := `
+		UPDATE snippets
+		SET is_archived = 1, is_public = 0, updated_at = CURRENT_TIMESTAMP
+		WHERE expires_at IS NOT NULL
+		  AND expires_at < CURRENT_TIMESTAMP
+		  AND is_archived = 0
+		  AND deleted_at IS NULL
+	`
+
+	result, err := tx.ExecContext(ctx, query)
+	if err != nil {
+		return 0, fmt.Errorf("failed to auto-archive expired snippets: %w", err)
+	}
+
+	count, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return count, nil
 }

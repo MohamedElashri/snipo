@@ -190,15 +190,16 @@
                     </template>
                 </div>
             </div>
-            <!-- Public toggle in preview mode -->
+            <!-- Public status in preview mode (read-only indicator) -->
             <div class="preview-meta-item" x-show="editingSnippet?.id">
-                <label class="public-toggle-switch-preview" title="Make snippet publicly accessible">
-                    <input type="checkbox" x-model="editingSnippet.is_public" @change="togglePublicStatus()">
-                    <div class="public-switch-track">
-                        <div class="public-switch-thumb"></div>
-                    </div>
-                    <span>Public</span>
-                </label>
+                <div class="preview-public-indicator" :class="{ 'is-public': editingSnippet.is_public }">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                    <span x-text="editingSnippet.is_public ? 'Public' : 'Private'"></span>
+                </div>
             </div>
             <!-- Gist Sync toggle in preview mode -->
             <div class="preview-meta-item" x-show="editingSnippet?.id && isGistConfigured()">
@@ -218,6 +219,17 @@
                         <line x1="10" y1="14" x2="21" y2="3"></line>
                     </svg>
                 </a>
+            </div>
+            <!-- Expiration display in preview mode -->
+            <div class="preview-meta-item" x-show="editingSnippet?.expires_at && settings.auto_archive_enabled">
+                <span class="preview-meta-label">Expires</span>
+                <span class="expiration-badge-preview"
+                    :class="{ 'expired': isExpired(editingSnippet.expires_at) }"
+                    x-text="resolveExpirationLabel(editingSnippet.expires_at)"></span>
+            </div>
+            <div class="preview-meta-item" x-show="!editingSnippet?.expires_at && settings.auto_archive_enabled">
+                <span class="preview-meta-label">Expires</span>
+                <span class="expiration-badge-preview never">Never</span>
             </div>
             <!-- Toggle Focus Mode -->
             <div class="preview-meta-item" style="margin-left: auto;">
@@ -325,33 +337,67 @@
                 </select>
             </div>
 
-            <label class="public-toggle-switch" title="Make snippet publicly accessible">
-                <input type="checkbox" x-model="editingSnippet.is_public">
-                <div class="public-switch-track">
-                    <div class="public-switch-thumb"></div>
-                </div>
-                <span>Public</span>
-            </label>
+            <!-- Public toggle — same container style as selects -->
+            <div class="editor-field-inline compact">
+                <span class="editor-label">Public</span>
+                <label class="toggle-control" title="Make snippet publicly accessible">
+                    <input type="checkbox" x-model="editingSnippet.is_public">
+                    <span class="control-thumb"></span>
+                </label>
+            </div>
 
-            <!-- Gist Sync toggle in edit mode -->
-            <label class="gist-toggle-switch" title="Sync this snippet to GitHub Gist" x-show="isGistConfigured()">
-                <input type="checkbox"
-                    :checked="editingSnippet?.id ? isGistSyncEnabled(editingSnippet.id) : (editingSnippet?.sync_to_gist === true)"
-                    @change="editingSnippet?.id ? toggleGistSyncForSnippet(editingSnippet.id) : editingSnippet.sync_to_gist = !editingSnippet.sync_to_gist">
-                <div class="gist-switch-track">
-                    <div class="gist-switch-thumb"></div>
-                </div>
-                <span>Gist</span>
+            <!-- Gist Sync toggle — same container style as selects -->
+            <div class="editor-field-inline compact gist-toggle-control" x-show="isGistConfigured()">
+                <span class="editor-label">Gist</span>
+                <label class="toggle-control" title="Sync this snippet to GitHub Gist">
+                    <input type="checkbox"
+                        :checked="editingSnippet?.id ? isGistSyncEnabled(editingSnippet.id) : (editingSnippet?.sync_to_gist === true)"
+                        @change="editingSnippet?.id ? toggleGistSyncForSnippet(editingSnippet.id) : editingSnippet.sync_to_gist = !editingSnippet.sync_to_gist">
+                    <span class="control-thumb"></span>
+                </label>
                 <a x-show="editingSnippet?.id && getGistUrl(editingSnippet.id)" :href="getGistUrl(editingSnippet.id)"
                     target="_blank" class="gist-link-icon" title="View on GitHub" @click.stop>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                         <polyline points="15 3 21 3 21 9"></polyline>
                         <line x1="10" y1="14" x2="21" y2="3"></line>
                     </svg>
                 </a>
-            </label>
+            </div>
 
+            <!-- Expiration selector — matches editor-field-inline compact pattern -->
+            <div class="editor-field-inline compact expiration-field" x-show="settings.auto_archive_enabled"
+                x-data="{ showCustom: false }">
+                <span class="editor-label">Expires</span>
+                <select x-model="editingSnippet.expires_at"
+                    @change="if ($el.value === '__custom__') { showCustom = true; $el.value = ''; } else { showCustom = false; }"
+                    :value="editingSnippet.expires_at || ''"
+                    class="expiration-select"
+                    title="Snippet expiration">
+                    <option value="">Never</option>
+                    <option value="7d">7 days</option>
+                    <option value="30d">30 days</option>
+                    <option value="90d">90 days</option>
+                    <option value="180d">6 months</option>
+                    <option value="365d">1 year</option>
+                    <option value="__custom__">Custom…</option>
+                </select>
+                <div class="expiration-custom-inline" x-show="showCustom" x-cloak>
+                    <input type="date" x-model="editingSnippet.expires_at"
+                        :min="todayDate()"
+                        class="expiration-date-input"
+                        @change="showCustom = false">
+                    <button type="button" @click="editingSnippet.expires_at = ''; showCustom = false"
+                        class="btn-clear-exp" title="Clear">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Focus button — absolute far right -->
             <button class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"
                 @click="editorHeaderVisible = !editorHeaderVisible" title="Focus Mode (Toggle Header)"
                 style="margin-left: auto;">

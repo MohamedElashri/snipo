@@ -1,4 +1,4 @@
-.PHONY: all build run run-test test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate migrate-down vendor-install vendor-sync vendor-check vendor-update vendor-update-major
+.PHONY: all build run run-test test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate migrate-down vendor vendor-install vendor-sync vendor-verify vendor-cleanup vendor-check vendor-status vendor-update vendor-update-major
 
 VERSION ?= $(shell grep 'const Current =' internal/version/version.go | cut -d '"' -f 2)
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -74,30 +74,71 @@ migrate-test:
 migrate-down:
 	go run ./cmd/server migrate down
 
+# ── Vendor Library Management ────────────────────────────────────────
+# All frontend JS/CSS libs are served locally (no CDN) for privacy.
+# node_modules/ is gitignored; only internal/web/static/vendor/ is committed.
+
+# Full one-shot setup: install + sync + verify
+vendor: vendor-install vendor-sync vendor-verify
+
 vendor-install:
 	@echo "Installing npm dependencies..."
-	npm install
+	npm install --no-audit --no-fund
 	@echo "Dependencies installed"
 
-vendor-sync:
+vendor-sync: vendor-install
 	@echo "Syncing vendor files..."
-	npm run vendor:sync
+	@node scripts/sync-vendor.js
 
+# Verify all expected vendor files exist
+vendor-verify:
+	@echo "Verifying vendor files..."
+	@node scripts/verify-vendor.js
+	@echo "All vendor files present"
+
+# Remove orphaned files not in sync config
+vendor-cleanup:
+	@echo "Cleaning orphaned vendor files..."
+	@node scripts/verify-vendor.js --cleanup
+	@echo "Orphaned files removed"
+
+# Check for outdated packages with colored summary
 vendor-check:
 	@echo "Checking for outdated packages..."
-	npm outdated || true
+	@npm outdated 2>/dev/null || echo "  All packages up to date"
 
-vendor-update:
+# Show current vendor versions + update availability
+vendor-status:
+	@echo "Vendor library versions:"
+	@node scripts/verify-vendor.js --status
+
+# Update minor/patch versions + sync + verify
+vendor-update: vendor-install
 	@echo "Updating vendor libraries (minor/patch)..."
-	npm update
-	npm run vendor:sync
+	@npm update --no-audit --no-fund
+	@echo "Syncing updated files..."
+	@node scripts/sync-vendor.js
+	@echo "Verifying..."
+	@node scripts/verify-vendor.js
+	@echo "Update summary:"
+	@node scripts/verify-vendor.js --status
 	@echo "Vendor libraries updated"
 
+# Update including major versions (installs npm-check-updates first)
 vendor-update-major:
 	@echo "Updating vendor libraries (including major versions)..."
-	npx npm-check-updates -u
-	npm install
-	npm run vendor:sync
+	@if ! npx npm-check-updates --version >/dev/null 2>&1; then \
+		echo "  Installing npm-check-updates..."; \
+		npm install -D npm-check-updates --no-audit --no-fund; \
+	fi
+	@npx npm-check-updates -u
+	@npm install --no-audit --no-fund
+	@echo "Syncing updated files..."
+	@node scripts/sync-vendor.js
+	@echo "Verifying..."
+	@node scripts/verify-vendor.js
+	@echo "Update summary:"
+	@node scripts/verify-vendor.js --status
 	@echo "Vendor libraries updated (major versions included)"
 
 help:
@@ -119,9 +160,13 @@ help:
 	@echo "  docker-stop    - Stop Docker Compose"
 	@echo "  migrate        - Run database migrations"
 	@echo "  migrate-test   - Run database migrations (no auth, test db)"
+	@echo "  vendor         - Full setup: install + sync + verify"
 	@echo "  vendor-install - Install npm dependencies"
-	@echo "  vendor-sync    - Sync vendor files"
+	@echo "  vendor-sync    - Sync vendor files from node_modules"
+	@echo "  vendor-verify  - Check all expected vendor files exist"
+	@echo "  vendor-cleanup - Remove orphaned vendor files"
 	@echo "  vendor-check   - Check for outdated packages"
-	@echo "  vendor-update  - Update vendor libraries (minor/patch)"
-	@echo "  vendor-update-major - Update vendor libraries (including major versions)"
+	@echo "  vendor-status  - Show current vendor versions"
+	@echo "  vendor-update  - Update vendor libs (minor/patch)"
+	@echo "  vendor-update-major - Update vendor libs (incl. major)"
 	@echo "  help           - Show this help message"
