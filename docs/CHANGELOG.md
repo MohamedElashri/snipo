@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-04-08
+
+### Fixed
+- **Textarea auto-resize**: `autoResizeTextarea` now reads the element's computed `max-height` instead of a hardcoded cap, so the title input (120 px) and description textarea (80 px) each respect their own CSS constraint
+- **Cancel button invisible in light theme**: Modal cancel buttons (`modal-footer button:first-child`) now use `--snipo-text-primary` instead of `--pico-color`, which Pico v2 overrides to white on button elements
+- **Modal flicker on load/navigation**: Added `x-cloak` to the Token Password and Disable Login Password confirmation overlays, which were briefly visible before Alpine.js initialised
+- **Dropdown text clipping**: Removed the `height: 40px` constraint from `.editor-field` inputs and selects; elements now auto-size from padding alone, eliminating the tight content area that clipped text at the bottom border. `::file-selector-button` vertical padding reduced to match
+- **Copy button misalignment**: Added `display: inline-flex; align-items: center` to `.dropdown` so the copy dropdown wrapper aligns with sibling `btn-action` buttons in the editor toolbar
+- **Gist toggle in preview mode**: Replaced the interactive checkbox/switch with a read-only status indicator matching the Public/Private indicator style; Gist sync can now only be changed from edit mode
+
+### Changed
+- New/Edit Folder modal: inputs and buttons use a compact size (`btn-compact`) for a less heavy feel
+
 ## [1.4.0] - 2026-04-07
 
 ### Added

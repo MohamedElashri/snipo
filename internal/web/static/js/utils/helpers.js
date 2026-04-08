@@ -27,8 +27,10 @@ export function autoResizeSelect(element) {
 // Auto-resize textarea
 export function autoResizeTextarea(el) {
   if (!el) return;
+  const maxH = parseFloat(getComputedStyle(el).maxHeight);
+  const cap = isNaN(maxH) ? 200 : maxH;
   el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 80) + 'px';
+  el.style.height = Math.min(el.scrollHeight, cap) + 'px';
 }
 
 // Format date for display
