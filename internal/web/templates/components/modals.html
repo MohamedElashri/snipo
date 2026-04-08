@@ -1017,7 +1017,7 @@
 </div>
 
 <!-- Token Password Confirmation Modal (unified for create and delete) -->
-<div x-show="tokenPasswordAction !== null" class="snipo-modal-overlay" style="z-index: 1001;"
+<div x-show="tokenPasswordAction !== null" x-cloak class="snipo-modal-overlay" style="z-index: 1001;"
     @click.self="cancelTokenPassword()" x-transition:enter="transition ease-out duration-200"
     x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
     x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
@@ -1098,7 +1098,7 @@
 </div>
 
 <!-- Disable Login Password Confirmation Modal -->
-<div x-show="showDisableLoginPassword" class="snipo-modal-overlay" style="z-index: 1001;"
+<div x-show="showDisableLoginPassword" x-cloak class="snipo-modal-overlay" style="z-index: 1001;"
     @click.self="cancelDisableLoginPassword()" x-transition:enter="transition ease-out duration-200"
     x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
     x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100"
