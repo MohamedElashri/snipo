@@ -776,7 +776,8 @@
         <div class="modal-body">
             <div class="editor-field">
                 <label>Folder Name</label>
-                <input type="text" x-model="editingFolder.name" @keydown.enter="saveFolder()" autofocus>
+                <input type="text" x-model="editingFolder.name" @keydown.enter="saveFolder()" autofocus
+                    style="padding: 0.375rem 0.625rem; font-size: 0.8rem;">
             </div>
             <div class="editor-field" x-show="!editingFolder?.id">
                 <label>Parent Folder (optional)</label>
@@ -789,8 +790,8 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button @click="showFolderModal = false">Cancel</button>
-            <button class="btn-primary" @click="saveFolder()">Save</button>
+            <button class="btn-compact" @click="showFolderModal = false">Cancel</button>
+            <button class="btn-primary btn-compact" @click="saveFolder()">Save</button>
         </div>
     </div>
 </div>
