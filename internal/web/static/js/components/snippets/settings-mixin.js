@@ -118,7 +118,9 @@ export const settingsMixin = {
       payload.password = password;
     }
 
-    const result = await api.post('/api/v1/tokens', payload);
+    const result = await api.post('/api/v1/tokens', payload, password ? {
+      headers: { 'X-Snipo-Master-Password': password }
+    } : {});
 
     if (result && !result.error) {
       this.createdToken = result.token;
@@ -131,7 +133,10 @@ export const settingsMixin = {
   },
 
   async performDeleteToken(tokenId, password) {
-    const options = password ? { body: JSON.stringify({ password }) } : {};
+    const options = password ? {
+      body: JSON.stringify({ password }),
+      headers: { 'X-Snipo-Master-Password': password }
+    } : {};
     const result = await api.delete(`/api/v1/tokens/${tokenId}`, options);
     if (!result || !result.error) {
       await this.loadApiTokens();
@@ -165,7 +170,9 @@ export const settingsMixin = {
     }
 
     const payload = { ...this.settings, password: this.disableLoginPassword };
-    const result = await api.put('/api/v1/settings', payload);
+    const result = await api.put('/api/v1/settings', payload, {
+      headers: { 'X-Snipo-Master-Password': this.disableLoginPassword }
+    });
     if (result && !result.error) {
       this.settings = result;
       try {

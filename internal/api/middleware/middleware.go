@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/MohamedElashri/snipo/internal/auth"
+	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
 )
 
@@ -23,6 +24,8 @@ const (
 	ContextKeyAPIToken contextKey = "api_token"
 	// ContextKeyRequestID is the context key for request ID
 	ContextKeyRequestID contextKey = "request_id"
+	// ContextKeyAnonymousAccess marks requests allowed by the disable-login setting.
+	ContextKeyAnonymousAccess contextKey = "anonymous_access"
 )
 
 // API version
@@ -182,17 +185,7 @@ func RequireAuthWithSettings(authService *auth.Service, tokenRepo *repository.To
 				next.ServeHTTP(w, r)
 				return
 			}
-			
-			// Check if login is disabled via settings
-			if settingsRepo != nil {
-				settings, err := settingsRepo.Get(r.Context())
-				if err == nil && settings.DisableLogin {
-					// Login is disabled, allow access without authentication
-					next.ServeHTTP(w, r)
-					return
-				}
-			}
-			
+
 			// First, check for API token in header
 			if tokenRepo != nil {
 				// Check Authorization header (Bearer token)
@@ -226,6 +219,23 @@ func RequireAuthWithSettings(authService *auth.Service, tokenRepo *repository.To
 			if sessionToken != "" && authService.ValidateSession(sessionToken) {
 				next.ServeHTTP(w, r)
 				return
+			}
+
+			// If login is disabled via settings, allow anonymous snippet access
+			// with write-level permissions. Admin routes must still prove knowledge
+			// of the master password via RequireAdminWithPassword.
+			if settingsRepo != nil {
+				settings, err := settingsRepo.Get(r.Context())
+				if err == nil && settings.DisableLogin {
+					ctx := context.WithValue(r.Context(), ContextKeyAnonymousAccess, true)
+					ctx = context.WithValue(ctx, ContextKeyAPIToken, &models.APIToken{
+						ID:          0,
+						Name:        "anonymous-disable-login",
+						Permissions: PermissionWrite,
+					})
+					next.ServeHTTP(w, r.WithContext(ctx))
+					return
+				}
 			}
 
 			// No valid authentication found
@@ -346,6 +356,11 @@ func getClientIP(r *http.Request) string {
 	return ip
 }
 
+// ClientIP extracts the client IP using the configured proxy trust policy.
+func ClientIP(r *http.Request) string {
+	return getClientIP(r)
+}
+
 // CORS adds CORS headers for API requests
 // For local-first deployment, CORS is restrictive by default.
 // Configure SNIPO_ALLOWED_ORIGINS to allow specific cross-origin requests.
@@ -357,7 +372,7 @@ func CORS(allowedOrigins []string) func(http.Handler) http.Handler {
 			// Check if origin is allowed
 			if origin != "" {
 				allowed := false
-				
+
 				// Check if wildcard is configured (development mode)
 				for _, allowedOrigin := range allowedOrigins {
 					if allowedOrigin == "*" {

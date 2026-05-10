@@ -11,18 +11,31 @@ import (
 
 // EncryptionService handles encryption and decryption of sensitive data
 type EncryptionService struct {
-	key []byte
+	key          []byte
+	fallbackKeys [][]byte
 }
 
 // NewEncryptionService creates a new encryption service
 // key should be 32 bytes for AES-256
 func NewEncryptionService(key []byte) (*EncryptionService, error) {
+	return NewEncryptionServiceWithFallback(key)
+}
+
+// NewEncryptionServiceWithFallback creates a service that encrypts with the
+// primary key and can decrypt legacy ciphertext with fallback keys.
+func NewEncryptionServiceWithFallback(key []byte, fallbackKeys ...[]byte) (*EncryptionService, error) {
 	if len(key) != 32 {
 		return nil, fmt.Errorf("encryption key must be 32 bytes for AES-256")
 	}
+	for _, fallbackKey := range fallbackKeys {
+		if len(fallbackKey) != 32 {
+			return nil, fmt.Errorf("fallback encryption key must be 32 bytes for AES-256")
+		}
+	}
 
 	return &EncryptionService{
-		key: key,
+		key:          key,
+		fallbackKeys: fallbackKeys,
 	}, nil
 }
 
@@ -62,28 +75,39 @@ func (s *EncryptionService) Decrypt(ciphertext string) (string, error) {
 		return "", fmt.Errorf("failed to decode base64: %w", err)
 	}
 
-	block, err := aes.NewCipher(s.key)
+	plaintext, err := openGCM(s.key, data)
+	if err == nil {
+		return string(plaintext), nil
+	}
+
+	for _, fallbackKey := range s.fallbackKeys {
+		plaintext, fallbackErr := openGCM(fallbackKey, data)
+		if fallbackErr == nil {
+			return string(plaintext), nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to decrypt: %w", err)
+}
+
+func openGCM(key, data []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", fmt.Errorf("failed to create cipher: %w", err)
+		return nil, fmt.Errorf("failed to create cipher: %w", err)
 	}
 
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", fmt.Errorf("failed to create GCM: %w", err)
+		return nil, fmt.Errorf("failed to create GCM: %w", err)
 	}
 
 	nonceSize := gcm.NonceSize()
 	if len(data) < nonceSize {
-		return "", fmt.Errorf("ciphertext too short")
+		return nil, fmt.Errorf("ciphertext too short")
 	}
 
 	nonce, encryptedData := data[:nonceSize], data[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, encryptedData, nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to decrypt: %w", err)
-	}
-
-	return string(plaintext), nil
+	return gcm.Open(nil, nonce, encryptedData, nil)
 }
 
 // GenerateKey generates a random 32-byte key for AES-256

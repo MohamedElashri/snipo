@@ -3593,7 +3593,7 @@ paths:
     get:
       tags: [Backup]
       summary: Export backup
-      description: Export all data as JSON or ZIP, optionally encrypted
+      description: Export all data as JSON or ZIP. Use POST when an encryption password is needed.
       operationId: exportBackup
       security:
         - sessionCookie: []
@@ -3607,11 +3607,6 @@ paths:
             type: string
             enum: [json, zip]
             default: json
-        - name: password
-          in: query
-          description: Optional encryption password
-          schema:
-            type: string
       responses:
         '200':
           description: Backup file
@@ -3647,6 +3642,57 @@ paths:
                     error:
                       code: "INVALID_TOKEN"
                       message: "Invalid or expired authentication token"
+        '403':
+          description: Forbidden - admin permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags: [Backup]
+      summary: Export encrypted backup
+      description: Export all data as JSON or ZIP, with the optional encryption password supplied in the JSON body instead of the URL.
+      operationId: exportBackupPost
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                format:
+                  type: string
+                  enum: [json, zip]
+                  default: json
+                password:
+                  type: string
+                  description: Optional encryption password
+      responses:
+        '200':
+          description: Backup file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackupData'
+            application/zip:
+              schema:
+                type: string
+                format: binary
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+                description: Encrypted backup
+        '401':
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
           description: Forbidden - admin permission required
           content:

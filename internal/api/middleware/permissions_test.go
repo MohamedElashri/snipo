@@ -2,10 +2,13 @@ package middleware
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/internal/models"
 )
 
@@ -187,4 +190,52 @@ func TestConvenienceMiddleware(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRequireAdminWithPassword_AnonymousAccess(t *testing.T) {
+	authService := auth.NewService(nil, "correct-password", "test-secret", time.Hour, slog.Default(), false)
+	handler := RequireAdminWithPassword(authService)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	t.Run("anonymous access requires password", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/admin", nil)
+		ctx := context.WithValue(req.Context(), ContextKeyAnonymousAccess, true)
+		req = req.WithContext(ctx)
+		rr := httptest.NewRecorder()
+
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusUnauthorized {
+			t.Fatalf("expected 401, got %d", rr.Code)
+		}
+	})
+
+	t.Run("anonymous access accepts correct password", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/admin", nil)
+		ctx := context.WithValue(req.Context(), ContextKeyAnonymousAccess, true)
+		req = req.WithContext(ctx)
+		req.Header.Set(adminPasswordHeader, "correct-password")
+		rr := httptest.NewRecorder()
+
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
+		}
+	})
+
+	t.Run("anonymous access rejects wrong password", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/admin", nil)
+		ctx := context.WithValue(req.Context(), ContextKeyAnonymousAccess, true)
+		req = req.WithContext(ctx)
+		req.Header.Set(adminPasswordHeader, "wrong-password")
+		rr := httptest.NewRecorder()
+
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusForbidden {
+			t.Fatalf("expected 403, got %d", rr.Code)
+		}
+	})
 }

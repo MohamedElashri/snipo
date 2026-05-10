@@ -325,6 +325,9 @@ func (h *SnippetHandler) Search(w http.ResponseWriter, r *http.Request) {
 			limit = parsed
 		}
 	}
+	if limit > 100 {
+		limit = 100
+	}
 
 	snippets, err := h.service.Search(r.Context(), query, limit)
 	if err != nil {

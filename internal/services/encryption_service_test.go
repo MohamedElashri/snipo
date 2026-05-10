@@ -65,3 +65,45 @@ func TestEncryptionService(t *testing.T) {
 		}
 	})
 }
+
+func TestEncryptionServiceFallbackKey(t *testing.T) {
+	legacyKey, err := GenerateKey()
+	if err != nil {
+		t.Fatalf("failed to generate legacy key: %v", err)
+	}
+	primaryKey, err := GenerateKey()
+	if err != nil {
+		t.Fatalf("failed to generate primary key: %v", err)
+	}
+
+	legacyService, err := NewEncryptionService(legacyKey)
+	if err != nil {
+		t.Fatalf("failed to create legacy service: %v", err)
+	}
+
+	encrypted, err := legacyService.Encrypt("legacy-token")
+	if err != nil {
+		t.Fatalf("failed to encrypt with legacy key: %v", err)
+	}
+
+	service, err := NewEncryptionServiceWithFallback(primaryKey, legacyKey)
+	if err != nil {
+		t.Fatalf("failed to create fallback service: %v", err)
+	}
+
+	decrypted, err := service.Decrypt(encrypted)
+	if err != nil {
+		t.Fatalf("failed to decrypt with fallback key: %v", err)
+	}
+	if decrypted != "legacy-token" {
+		t.Fatalf("expected legacy-token, got %q", decrypted)
+	}
+
+	newEncrypted, err := service.Encrypt("new-token")
+	if err != nil {
+		t.Fatalf("failed to encrypt with primary key: %v", err)
+	}
+	if _, err := legacyService.Decrypt(newEncrypted); err == nil {
+		t.Fatal("legacy key should not decrypt newly encrypted content")
+	}
+}

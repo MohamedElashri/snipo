@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -96,7 +95,7 @@ func (h *GistSyncHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 // UpdateConfig updates the gist sync configuration
 func (h *GistSyncHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 	var input ConfigInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := DecodeJSON(r, &input); err != nil {
 		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid request body")
 		return
 	}
@@ -428,7 +427,7 @@ func (h *GistSyncHandler) ResolveConflict(w http.ResponseWriter, r *http.Request
 	var input struct {
 		Resolution string `json:"resolution"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := DecodeJSON(r, &input); err != nil {
 		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid request body")
 		return
 	}

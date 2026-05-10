@@ -322,6 +322,12 @@ curl "http://localhost:8080/api/v1/snippets/search?q=example" \
 curl -o backup.json "http://localhost:8080/api/v1/backup/export" \
   -H "Authorization: Bearer TOKEN"
 
+# Export encrypted backup
+curl -X POST -o backup.json.enc "http://localhost:8080/api/v1/backup/export" \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"format":"json","password":"backup-password"}'
+
 # Get API documentation
 curl http://localhost:8080/api/v1/openapi.json
 ```

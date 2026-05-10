@@ -131,8 +131,12 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	languageHandler := handlers.NewLanguageHandler()
 
 	// Create encryption service for gist sync (using encryption salt as key for persistence)
-	encryptionKey := services.DeriveEncryptionKey(cfg.Config.Auth.EncryptionSalt)
-	encryptionSvc, err := services.NewEncryptionService(encryptionKey)
+	legacyEncryptionKey := services.DeriveEncryptionKey(cfg.Config.Auth.EncryptionSalt)
+	encryptionKey := services.DeriveEncryptionKeyWithSecret(cfg.Config.Auth.EncryptionSalt, cfg.Config.Auth.SessionSecret)
+	if cfg.Config.Auth.SessionSecretGenerated {
+		encryptionKey = legacyEncryptionKey
+	}
+	encryptionSvc, err := services.NewEncryptionServiceWithFallback(encryptionKey, legacyEncryptionKey)
 	if err != nil {
 		cfg.Logger.Warn("failed to initialize encryption service", "error", err)
 	}
@@ -155,8 +159,10 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		})
 
 		// Public snippet access
-		r.Get("/api/v1/snippets/public/{id}", snippetHandler.GetPublic)
-		r.Get("/api/v1/snippets/public/{id}/files/{filename}", snippetHandler.GetPublicFile)
+		if cfg.Config == nil || cfg.Config.Features.PublicSnippets {
+			r.With(apiRateLimiter.RateLimitRead).Get("/api/v1/snippets/public/{id}", snippetHandler.GetPublic)
+			r.With(apiRateLimiter.RateLimitRead).Get("/api/v1/snippets/public/{id}/files/{filename}", snippetHandler.GetPublicFile)
+		}
 
 		// Public metadata
 		r.Get("/api/v1/metadata/languages", languageHandler.GetLanguages)
@@ -179,7 +185,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 		// Settings management (admin only)
 		r.Route("/api/v1/settings", func(r chi.Router) {
-			r.Use(middleware.RequireAdmin)
+			r.Use(middleware.RequireAdminWithPassword(cfg.AuthService))
 			r.Use(apiRateLimiter.RateLimitAdmin)
 			r.Get("/", settingsHandler.Get)
 			r.Put("/", settingsHandler.Update)
@@ -232,39 +238,44 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		})
 
 		// API Token management (admin only)
-		r.Route("/api/v1/tokens", func(r chi.Router) {
-			r.Use(middleware.RequireAdmin)
-			r.Use(apiRateLimiter.RateLimitAdmin)
-			r.Get("/", tokenHandler.List)
-			r.Post("/", tokenHandler.Create)
+		if cfg.Config == nil || cfg.Config.Features.APITokens {
+			r.Route("/api/v1/tokens", func(r chi.Router) {
+				r.Use(middleware.RequireAdminWithPassword(cfg.AuthService))
+				r.Use(apiRateLimiter.RateLimitAdmin)
+				r.Get("/", tokenHandler.List)
+				r.Post("/", tokenHandler.Create)
 
-			r.Route("/{id}", func(r chi.Router) {
-				r.Get("/", tokenHandler.Get)
-				r.Delete("/", tokenHandler.Delete)
+				r.Route("/{id}", func(r chi.Router) {
+					r.Get("/", tokenHandler.Get)
+					r.Delete("/", tokenHandler.Delete)
+				})
 			})
-		})
+		}
 
 		// Backup & Restore (admin only)
-		r.Route("/api/v1/backup", func(r chi.Router) {
-			r.Use(middleware.RequireAdmin)
-			r.Use(apiRateLimiter.RateLimitAdmin)
-			r.Get("/export", backupHandler.Export)
-			r.Post("/import", backupHandler.Import)
+		if cfg.Config == nil || cfg.Config.Features.BackupRestore {
+			r.Route("/api/v1/backup", func(r chi.Router) {
+				r.Use(middleware.RequireAdminWithPassword(cfg.AuthService))
+				r.Use(apiRateLimiter.RateLimitAdmin)
+				r.Get("/export", backupHandler.Export)
+				r.Post("/export", backupHandler.Export)
+				r.Post("/import", backupHandler.Import)
 
-			// S3 operations
-			r.Get("/s3/status", backupHandler.S3Status)
-			r.Post("/s3/sync", backupHandler.S3Sync)
-			r.Get("/s3/list", backupHandler.S3List)
-			r.Post("/s3/restore", backupHandler.S3Restore)
-			r.Delete("/s3/delete", backupHandler.S3Delete)
-		})
+				// S3 operations
+				r.Get("/s3/status", backupHandler.S3Status)
+				r.Post("/s3/sync", backupHandler.S3Sync)
+				r.Get("/s3/list", backupHandler.S3List)
+				r.Post("/s3/restore", backupHandler.S3Restore)
+				r.Delete("/s3/delete", backupHandler.S3Delete)
+			})
+		}
 
 		// GitHub Gist Sync (admin only for config, write for sync operations)
 		if gistSyncHandler != nil {
 			r.Route("/api/v1/gist", func(r chi.Router) {
 				// Config endpoints (admin only)
 				r.Group(func(r chi.Router) {
-					r.Use(middleware.RequireAdmin)
+					r.Use(middleware.RequireAdminWithPassword(cfg.AuthService))
 					r.Use(apiRateLimiter.RateLimitAdmin)
 					r.Get("/config", gistSyncHandler.GetConfig)
 					r.Post("/config", gistSyncHandler.UpdateConfig)
@@ -318,7 +329,9 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		// Web pages
 		r.Get("/", webHandler.Index)
 		r.Get("/login", webHandler.Login)
-		r.Get("/s/{id}", webHandler.PublicSnippet) // Public snippet share page
+		if cfg.Config == nil || cfg.Config.Features.PublicSnippets {
+			r.Get("/s/{id}", webHandler.PublicSnippet) // Public snippet share page
+		}
 	}
 
 	// If base path is configured, mount everything under it

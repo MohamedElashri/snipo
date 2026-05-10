@@ -29,9 +29,13 @@ func DecodeJSON(r *http.Request, v interface{}) error {
 		return err
 	}
 
-	// Ensure only one JSON object in body
-	if decoder.More() {
-		return io.ErrUnexpectedEOF
+	// Ensure only one JSON value is present in the body.
+	var extra struct{}
+	if err := decoder.Decode(&extra); err != io.EOF {
+		if err == nil {
+			return io.ErrUnexpectedEOF
+		}
+		return err
 	}
 
 	return nil
