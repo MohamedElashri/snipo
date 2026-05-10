@@ -42,18 +42,6 @@ func hashToken(token string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// hashTokenLegacy creates a SHA256 hash of a token (for backward compatibility)
-// MIGRATION STRATEGY:
-//   - This is ONLY used for validating existing tokens created before the security upgrade (04/01/2026)
-//   - When an old token is validated, it's automatically upgraded to HMAC-SHA256
-//   - New tokens NEVER use this method
-//   - This fallback can be removed after all users have used their tokens at least once
-//     I will remove this in release 1.5.0 (target: Q1 2026) - Hopefully I will not be a jerk for that.
-func hashTokenLegacy(token string) string {
-	hash := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(hash[:])
-}
-
 // Create creates a new API token
 func (r *TokenRepository) Create(ctx context.Context, input *models.APITokenInput) (*models.APIToken, error) {
 	// Generate token
@@ -132,11 +120,10 @@ func (r *TokenRepository) GetByID(ctx context.Context, id int64) (*models.APITok
 // MIGRATION STRATEGY: Supports both HMAC-SHA256 (new) and SHA256 (legacy) for backward compatibility
 // - Tries HMAC-SHA256 first (all new tokens)
 // - Falls back to SHA256 only for old tokens
-// - Automatically upgrades old tokens to HMAC-SHA256 on first use
+// GetByToken retrieves a token by its raw string value
 func (r *TokenRepository) GetByToken(ctx context.Context, token string) (*models.APIToken, error) {
 	query := `SELECT id, name, permissions, last_used_at, expires_at, created_at FROM api_tokens WHERE token_hash = ?`
 
-	// Try new HMAC-SHA256 hash first
 	tokenHash := hashToken(token)
 	apiToken := &models.APIToken{}
 	err := r.db.QueryRowContext(ctx, query, tokenHash).Scan(
@@ -149,24 +136,6 @@ func (r *TokenRepository) GetByToken(ctx context.Context, token string) (*models
 	)
 	if err == nil {
 		return apiToken, nil
-	}
-
-	// Fall back to legacy SHA256 hash for old tokens
-	if err == sql.ErrNoRows {
-		tokenHashLegacy := hashTokenLegacy(token)
-		err = r.db.QueryRowContext(ctx, query, tokenHashLegacy).Scan(
-			&apiToken.ID,
-			&apiToken.Name,
-			&apiToken.Permissions,
-			&apiToken.LastUsedAt,
-			&apiToken.ExpiresAt,
-			&apiToken.CreatedAt,
-		)
-		if err == nil {
-			// Upgrade the token hash to new format
-			_, _ = r.db.ExecContext(ctx, `UPDATE api_tokens SET token_hash = ? WHERE id = ?`, tokenHash, apiToken.ID)
-			return apiToken, nil
-		}
 	}
 
 	if err == sql.ErrNoRows {

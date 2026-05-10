@@ -283,47 +283,13 @@ func (s *Service) ValidateSession(token string) bool {
 		return true
 	}
 
-	// Fall back to legacy SHA256 hash for old sessions
-	if err == sql.ErrNoRows {
-		tokenHashLegacy := hashTokenLegacy(token)
-		err = s.db.QueryRow(
-			"SELECT id, expires_at FROM sessions WHERE token_hash = ?",
-			tokenHashLegacy,
-		).Scan(&sessionID, &expiresAt)
-
-		if err == nil {
-			if time.Now().After(expiresAt) {
-				_, _ = s.db.Exec("DELETE FROM sessions WHERE token_hash = ?", tokenHashLegacy)
-				return false
-			}
-			// Upgrade the session hash to new format
-			_, _ = s.db.Exec("UPDATE sessions SET token_hash = ? WHERE id = ?", tokenHash, sessionID)
-			return true
-		}
-	}
-
 	return false
 }
 
 // InvalidateSession removes a session
-// MIGRATION STRATEGY: Supports both hash formats to ensure old sessions can be properly invalidated
 func (s *Service) InvalidateSession(token string) error {
-	// Try new hash first
 	tokenHash := hashToken(token)
-	result, err := s.db.Exec("DELETE FROM sessions WHERE token_hash = ?", tokenHash)
-	if err != nil {
-		return err
-	}
-
-	// Check if any rows were affected
-	rows, _ := result.RowsAffected()
-	if rows > 0 {
-		return nil
-	}
-
-	// Try legacy hash
-	tokenHashLegacy := hashTokenLegacy(token)
-	_, err = s.db.Exec("DELETE FROM sessions WHERE token_hash = ?", tokenHashLegacy)
+	_, err := s.db.Exec("DELETE FROM sessions WHERE token_hash = ?", tokenHash)
 	return err
 }
 
@@ -397,18 +363,6 @@ func hashToken(token string) string {
 	h := hmac.New(sha256.New, key)
 	h.Write([]byte(token))
 	return hex.EncodeToString(h.Sum(nil))
-}
-
-// hashTokenLegacy creates a SHA256 hash of the token (for backward compatibility)
-// MIGRATION STRATEGY:
-//   - This is ONLY used for validating existing sessions created before the security upgrade
-//   - When an old session is validated, it's automatically upgraded to HMAC-SHA256
-//   - New sessions NEVER use this method
-//   - This fallback can be removed after the session duration has passed (default: 168h/7 days)
-//     (recommended: remove after 1-2 major version releases)
-func hashTokenLegacy(token string) string {
-	hash := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(hash[:])
 }
 
 // HashPassword creates an Argon2id hash of a password
