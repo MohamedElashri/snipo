@@ -156,8 +156,12 @@ func runServer() {
 	snippetRepo := repository.NewSnippetRepository(db.DB)
 	fileRepo := repository.NewSnippetFileRepository(db.DB)
 
-	encryptionKey := services.DeriveEncryptionKey(cfg.Auth.EncryptionSalt)
-	if encryptionSvc, err := services.NewEncryptionService(encryptionKey); err == nil {
+	legacyEncryptionKey := services.DeriveEncryptionKey(cfg.Auth.EncryptionSalt)
+	encryptionKey := services.DeriveEncryptionKeyWithSecret(cfg.Auth.EncryptionSalt, cfg.Auth.SessionSecret)
+	if cfg.Auth.SessionSecretGenerated {
+		encryptionKey = legacyEncryptionKey
+	}
+	if encryptionSvc, err := services.NewEncryptionServiceWithFallback(encryptionKey, legacyEncryptionKey); err == nil {
 		gistSyncWorker = services.NewGistSyncWorker(gistSyncRepo, snippetRepo, fileRepo, encryptionSvc, logger)
 		if err := gistSyncWorker.Start(ctx); err != nil {
 			logger.Warn("failed to start gist sync worker", "error", err)

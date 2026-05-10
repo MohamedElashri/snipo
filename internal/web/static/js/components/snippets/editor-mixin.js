@@ -3,7 +3,7 @@ import { api } from '../../modules/api.js';
 import { showToast } from '../../modules/toast.js';
 import { getAceMode } from '../../utils/ace-utils.js';
 import { theme } from '../../modules/theme.js';
-import { isArabicText, isPredominantlyArabic } from '../../utils/helpers.js';
+import { isArabicText, isPredominantlyArabic, sanitizeHTML } from '../../utils/helpers.js';
 
 export const editorMixin = {
   // Editor operations (imported from original app.js)
@@ -681,7 +681,7 @@ export const editorMixin = {
     }
 
     try {
-      const html = marked.parse(content);
+      const html = sanitizeHTML(marked.parse(content));
 
       // Check if content is Arabic and apply RTL class
       if (this.isArabicText(content)) {

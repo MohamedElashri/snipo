@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
+	"github.com/MohamedElashri/snipo/internal/validation"
 )
 
 // SettingsHandler handles settings related endpoints
@@ -34,8 +34,13 @@ func (h *SettingsHandler) Get(w http.ResponseWriter, r *http.Request) {
 // Update updates application settings
 func (h *SettingsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var input models.SettingsInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+	if err := DecodeJSON(r, &input); err != nil {
 		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid request body")
+		return
+	}
+
+	if errs := validation.ValidateSettingsInput(&input); errs.HasErrors() {
+		ValidationErrors(w, r, errs)
 		return
 	}
 

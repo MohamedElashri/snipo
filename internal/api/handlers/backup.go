@@ -24,11 +24,24 @@ func NewBackupHandler(backupSvc *services.BackupService, s3SyncSvc *services.S3S
 }
 
 // Export handles GET /api/v1/backup/export
-// Query params: format (json|zip), password (optional)
+// GET query params: format (json|zip)
+// POST JSON body: { "format": "json|zip", "password": "optional" }
 func (h *BackupHandler) Export(w http.ResponseWriter, r *http.Request) {
 	opts := models.ExportOptions{
 		Format:   r.URL.Query().Get("format"),
 		Password: r.URL.Query().Get("password"),
+	}
+
+	if r.Method == http.MethodGet && opts.Password != "" {
+		Error(w, r, http.StatusBadRequest, "PASSWORD_IN_URL", "Use POST /api/v1/backup/export to encrypt backups with a password")
+		return
+	}
+
+	if r.Method == http.MethodPost && r.Body != nil {
+		if err := DecodeJSON(r, &opts); err != nil && err != io.EOF {
+			Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid request body")
+			return
+		}
 	}
 
 	if opts.Format == "" {

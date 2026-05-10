@@ -2,11 +2,15 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/internal/models"
 )
+
+const adminPasswordHeader = "X-Snipo-Master-Password"
 
 // Permission levels
 const (
@@ -21,6 +25,12 @@ func GetTokenFromContext(ctx context.Context) *models.APIToken {
 		return token
 	}
 	return nil
+}
+
+// IsAnonymousAccess reports whether the request was allowed by disable-login.
+func IsAnonymousAccess(ctx context.Context) bool {
+	anonymous, _ := ctx.Value(ContextKeyAnonymousAccess).(bool)
+	return anonymous
 }
 
 // CheckPermission returns middleware that checks if the request has required permission level
@@ -82,12 +92,54 @@ func RequireAdmin(next http.Handler) http.Handler {
 	return CheckPermission(PermissionAdmin)(next)
 }
 
+// RequireAdminWithPassword allows normal admin sessions/tokens, but requires
+// the master password when the request is anonymous because login is disabled.
+func RequireAdminWithPassword(authService *auth.Service) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			token := GetTokenFromContext(r.Context())
+			if token != nil {
+				if !hasPermission(token.Permissions, PermissionAdmin) {
+					http.Error(w, `{"error":{"code":"INSUFFICIENT_PERMISSIONS","message":"Admin permission required"}}`, http.StatusForbidden)
+					return
+				}
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			if !IsAnonymousAccess(r.Context()) {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			password := r.Header.Get(adminPasswordHeader)
+			if password == "" {
+				http.Error(w, `{"error":{"code":"ADMIN_PASSWORD_REQUIRED","message":"Master password is required for admin operations when login is disabled"}}`, http.StatusUnauthorized)
+				return
+			}
+
+			valid, delay := authService.VerifyPasswordWithDelay(password, ClientIP(r))
+			if delay > 0 {
+				w.Header().Set("Retry-After", fmt.Sprintf("%d", int(delay.Seconds())+1))
+				http.Error(w, `{"error":{"code":"RATE_LIMITED","message":"Too many failed attempts. Please wait before retrying."}}`, http.StatusTooManyRequests)
+				return
+			}
+			if !valid {
+				http.Error(w, `{"error":{"code":"INVALID_PASSWORD","message":"Invalid password"}}`, http.StatusForbidden)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // PermissionByMethod returns middleware that checks permission based on HTTP method
 // GET = read, POST/PUT/PATCH/DELETE = write
 func PermissionByMethod(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		method := strings.ToUpper(r.Method)
-		
+
 		var required string
 		switch method {
 		case "GET", "HEAD", "OPTIONS":

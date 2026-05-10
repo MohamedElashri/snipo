@@ -5,7 +5,6 @@
     "description": "Save code snippets to your Snipo instance with one click.",
     "permissions": [
         "activeTab",
-        "scripting",
         "contextMenus",
         "storage"
     ],

@@ -107,6 +107,89 @@ export function highlightCode(code, language) {
   return div.innerHTML;
 }
 
+const markdownAllowedTags = new Set([
+  'A', 'ABBR', 'BLOCKQUOTE', 'BR', 'CODE', 'DEL', 'EM', 'H1', 'H2', 'H3',
+  'H4', 'H5', 'H6', 'HR', 'IMG', 'INPUT', 'LI', 'OL', 'P', 'PRE', 'S',
+  'SPAN', 'STRONG', 'SUB', 'SUP', 'TABLE', 'TBODY', 'TD', 'TH', 'THEAD',
+  'TR', 'UL'
+]);
+
+const markdownAllowedAttrs = {
+  A: new Set(['href', 'title']),
+  ABBR: new Set(['title']),
+  CODE: new Set(['class']),
+  IMG: new Set(['src', 'alt', 'title']),
+  INPUT: new Set(['checked', 'disabled', 'type']),
+  TH: new Set(['align']),
+  TD: new Set(['align'])
+};
+
+function isSafeMarkdownURL(value) {
+  if (!value) return false;
+  const trimmed = value.trim().replace(/[\u0000-\u001F\u007F\s]+/g, '');
+  if (trimmed.startsWith('#') || trimmed.startsWith('/') || trimmed.startsWith('./') || trimmed.startsWith('../')) {
+    return true;
+  }
+  try {
+    const url = new URL(trimmed, window.location.origin);
+    return ['http:', 'https:', 'mailto:', 'tel:'].includes(url.protocol);
+  } catch (e) {
+    return false;
+  }
+}
+
+function sanitizeMarkdownNode(node) {
+  if (node.nodeType === Node.TEXT_NODE) return;
+  if (node.nodeType !== Node.ELEMENT_NODE) {
+    node.remove();
+    return;
+  }
+
+  if (!markdownAllowedTags.has(node.tagName)) {
+    node.replaceWith(...Array.from(node.childNodes));
+    return;
+  }
+
+  const allowedAttrs = markdownAllowedAttrs[node.tagName] || new Set();
+  for (const attr of Array.from(node.attributes)) {
+    const attrName = attr.name.toLowerCase();
+    if (attrName.startsWith('on') || !allowedAttrs.has(attrName)) {
+      node.removeAttribute(attr.name);
+      continue;
+    }
+
+    if ((attrName === 'href' || attrName === 'src') && !isSafeMarkdownURL(attr.value)) {
+      node.removeAttribute(attr.name);
+    }
+  }
+
+  if (node.tagName === 'A' && node.hasAttribute('href')) {
+    node.setAttribute('rel', 'nofollow noopener noreferrer');
+  }
+
+  if (node.tagName === 'INPUT') {
+    node.setAttribute('disabled', '');
+    if (node.getAttribute('type') !== 'checkbox') {
+      node.removeAttribute('type');
+    }
+  }
+
+  for (const child of Array.from(node.childNodes)) {
+    sanitizeMarkdownNode(child);
+  }
+}
+
+export function sanitizeHTML(html) {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+
+  for (const child of Array.from(template.content.childNodes)) {
+    sanitizeMarkdownNode(child);
+  }
+
+  return template.innerHTML;
+}
+
 // Render markdown
 export function renderMarkdown(content) {
   if (!content) return '';
@@ -115,7 +198,7 @@ export function renderMarkdown(content) {
       breaks: true,
       gfm: true
     });
-    return marked.parse(content);
+    return sanitizeHTML(marked.parse(content));
   }
   return content;
 }

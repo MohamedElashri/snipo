@@ -473,12 +473,6 @@ func (b *BackupService) deriveKey(password string) []byte {
 	return pbkdf2.Key([]byte(password), []byte(b.encryptionSalt), 100000, 32, sha256.New)
 }
 
-// deriveKeyLegacy derives a 32-byte key using the old SHA256 method (for backward compatibility)
-func deriveKeyLegacy(password string) []byte {
-	hash := sha256.Sum256([]byte(password))
-	return hash[:]
-}
-
 // encrypt encrypts data using AES-256-GCM
 func (b *BackupService) encrypt(data []byte, password string) ([]byte, error) {
 	key := b.deriveKey(password)
@@ -501,21 +495,9 @@ func (b *BackupService) encrypt(data []byte, password string) ([]byte, error) {
 	return gcm.Seal(nonce, nonce, data, nil), nil
 }
 
-// decrypt decrypts data using AES-256-GCM with backward compatibility
+// decrypt decrypts data using AES-256-GCM
 func (b *BackupService) decrypt(data []byte, password string) ([]byte, error) {
-	// Try new PBKDF2 method first
-	result, err := decryptWithKey(data, b.deriveKey(password))
-	if err == nil {
-		return result, nil
-	}
-
-	// Fall back to legacy SHA256 method for old backups
-	result, legacyErr := decryptWithKey(data, deriveKeyLegacy(password))
-	if legacyErr == nil {
-		return result, nil
-	}
-
-	return nil, err
+	return decryptWithKey(data, b.deriveKey(password))
 }
 
 // decryptWithKey performs the actual AES-256-GCM decryption with a given key

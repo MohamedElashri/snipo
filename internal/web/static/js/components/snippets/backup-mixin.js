@@ -14,14 +14,15 @@ export const backupMixin = {
   async exportBackup() {
     this.backupLoading = true;
     try {
-      const params = new URLSearchParams({
-        format: this.backupOptions.format
-      });
-      if (this.backupOptions.password) {
-        params.append('password', this.backupOptions.password);
-      }
+      const basePath = window.SNIPO_CONFIG?.basePath || '';
 
-      const response = await fetch(`/api/v1/backup/export?${params}`, {
+      const response = await fetch(`${basePath}/api/v1/backup/export`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          format: this.backupOptions.format,
+          password: this.backupOptions.password || ''
+        }),
         credentials: 'include'
       });
 
@@ -71,7 +72,8 @@ export const backupMixin = {
         formData.append('password', this.importOptions.password);
       }
 
-      const response = await fetch('/api/v1/backup/import', {
+      const basePath = window.SNIPO_CONFIG?.basePath || '';
+      const response = await fetch(`${basePath}/api/v1/backup/import`, {
         method: 'POST',
         credentials: 'include',
         body: formData

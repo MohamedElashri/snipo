@@ -206,10 +206,14 @@ func Load() (*Config, error) {
 	cfg.Logging.Format = getEnv("SNIPO_LOG_FORMAT", "json")
 
 	// API
-	originsStr := getEnv("SNIPO_ALLOWED_ORIGINS", "*")
-	if originsStr == "*" {
+	originsStr := getEnv("SNIPO_ALLOWED_ORIGINS", "")
+	originsStr = strings.TrimSpace(originsStr)
+	switch originsStr {
+	case "*":
 		cfg.API.AllowedOrigins = []string{"*"}
-	} else {
+	case "":
+		cfg.API.AllowedOrigins = []string{}
+	default:
 		cfg.API.AllowedOrigins = strings.Split(originsStr, ",")
 		// Trim whitespace from each origin
 		for i, origin := range cfg.API.AllowedOrigins {

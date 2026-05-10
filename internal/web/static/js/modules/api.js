@@ -28,7 +28,7 @@ export const api = {
     return true;
   },
 
-  async request(method, url, data = null) {
+  async request(method, url, data = null, requestOptions = {}) {
     // Validate URL before processing
     this.validateUrl(url);
 
@@ -38,7 +38,7 @@ export const api = {
 
     const options = {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(requestOptions.headers || {}) },
       credentials: 'include'
     };
     if (data) options.body = JSON.stringify(data);
@@ -85,12 +85,12 @@ export const api = {
     return json;
   },
 
-  get: (url) => api.request('GET', url),
-  post: (url, data) => api.request('POST', url, data),
-  put: (url, data) => api.request('PUT', url, data),
+  get: (url, options = {}) => api.request('GET', url, null, options),
+  post: (url, data, options = {}) => api.request('POST', url, data, options),
+  put: (url, data, options = {}) => api.request('PUT', url, data, options),
   delete: (url, options = {}) => {
     // Support passing body in options for DELETE requests
     const data = options.body ? JSON.parse(options.body) : null;
-    return api.request('DELETE', url, data);
+    return api.request('DELETE', url, data, options);
   }
 };
