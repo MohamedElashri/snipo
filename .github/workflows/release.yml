@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # sanad: ref=v4
         with:
           ref: ${{ inputs.tag_name }}
 
@@ -51,7 +51,7 @@ jobs:
           fi
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # sanad: ref=v5
         with:
           go-version: '1.25'
           cache: true
@@ -72,13 +72,13 @@ jobs:
             goarch: arm64
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # sanad: ref=v4
         with:
           ref: ${{ inputs.tag_name }}
           fetch-depth: 0
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # sanad: ref=v5
         with:
           go-version: '1.25'
           cache: true
@@ -110,7 +110,7 @@ jobs:
           tar czf snipo_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz snipo README.md LICENSE
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # sanad: ref=v4
         with:
           name: snipo_${{ matrix.goos }}_${{ matrix.goarch }}
           path: snipo_${{ matrix.goos }}_${{ matrix.goarch }}.*
@@ -131,7 +131,7 @@ jobs:
             suffix: "-hardened"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # sanad: ref=v4
 
       - name: Get version
         id: version
@@ -141,13 +141,13 @@ jobs:
         run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # sanad: ref=v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # sanad: ref=v3
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # sanad: ref=v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -155,7 +155,7 @@ jobs:
 
       - name: Login to DHI Registry
         if: matrix.name == 'hardened'
-        uses: docker/login-action@v4
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # sanad: ref=v3
         with:
           registry: dhi.io
           username: ${{ secrets.DHI_USERNAME }}
@@ -169,7 +169,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # sanad: ref=v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           flavor: |
@@ -183,7 +183,7 @@ jobs:
             type=raw,value=latest-hardened,suffix=,enable=${{ matrix.name == 'hardened' }}
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # sanad: ref=v6
         with:
           context: .
           file: ${{ matrix.dockerfile }}
@@ -202,12 +202,12 @@ jobs:
     needs: [build-binaries, build-docker]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # sanad: ref=v4
         with:
           fetch-depth: 0
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # sanad: ref=v4
         with:
           path: artifacts
           pattern: snipo_*
@@ -241,7 +241,7 @@ jobs:
           echo '```' >> CHANGELOG.md
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # sanad: ref=v2
         with:
           body_path: CHANGELOG.md
           files: artifacts/*
