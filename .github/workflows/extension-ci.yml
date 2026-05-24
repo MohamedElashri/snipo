@@ -124,21 +124,21 @@ jobs:
           ls -lh *.zip
 
       - name: Upload Chrome package
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # sanad: ref=v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # sanad: ref=v7.0.1
         with:
           name: chrome-extension
           path: extension/dist/snipo-chrome-*.zip
           retention-days: 30
 
       - name: Upload Firefox package
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # sanad: ref=v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # sanad: ref=v7.0.1
         with:
           name: firefox-extension
           path: extension/dist/snipo-firefox-*.zip
           retention-days: 30
 
       - name: Upload source archive
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # sanad: ref=v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # sanad: ref=v7.0.1
         with:
           name: source-archive
           path: extension/dist/snipo-source-*.zip
