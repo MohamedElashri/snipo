@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # sanad: ref=v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # sanad: ref=v6.0.2
         with:
           ref: ${{ inputs.tag_name }}
 
@@ -51,7 +51,7 @@ jobs:
           fi
 
       - name: Setup Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # sanad: ref=v5
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # sanad: ref=v6.4.0
         with:
           go-version: '1.25'
           cache: true
@@ -72,13 +72,13 @@ jobs:
             goarch: arm64
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # sanad: ref=v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # sanad: ref=v6.0.2
         with:
           ref: ${{ inputs.tag_name }}
           fetch-depth: 0
 
       - name: Setup Go
-        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # sanad: ref=v5
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # sanad: ref=v6.4.0
         with:
           go-version: '1.25'
           cache: true
@@ -131,7 +131,7 @@ jobs:
             suffix: "-hardened"
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # sanad: ref=v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # sanad: ref=v6.0.2
 
       - name: Get version
         id: version
@@ -202,12 +202,12 @@ jobs:
     needs: [build-binaries, build-docker]
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # sanad: ref=v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # sanad: ref=v6.0.2
         with:
           fetch-depth: 0
 
       - name: Download all artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # sanad: ref=v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # sanad: ref=v8.0.1
         with:
           path: artifacts
           pattern: snipo_*
@@ -241,7 +241,7 @@ jobs:
           echo '```' >> CHANGELOG.md
 
       - name: Create release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # sanad: ref=v2
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # sanad: ref=v3.0.0
         with:
           body_path: CHANGELOG.md
           files: artifacts/*
