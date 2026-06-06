@@ -22,9 +22,16 @@
                 x-model="editingSnippet.title" placeholder="Snippet title..." rows="1"
                 @input="scheduleAutoSave(); autoResizeTextarea($event.target)"
                 x-init="$watch('isEditing', (v) => { if(v) $nextTick(() => autoResizeTextarea($el)) })"></textarea>
+            <textarea x-model="editingSnippet.description"
+                :class="{ 'rtl': isArabicText(editingSnippet.description) }"
+                placeholder="Description (optional)" rows="1"
+                class="description-textarea editor-description-under-title"
+                @input="scheduleAutoSave(); autoResizeTextarea($event.target)"
+                x-init="$watch('isEditing', (v) => { if(v) $nextTick(() => autoResizeTextarea($el)) })"></textarea>
         </div>
 
-        <div class="flex gap-2">
+        <div class="editor-toolbar-actions" :class="{ 'editing': isEditing }">
+            <div class="editor-actions-row">
             <button class="btn-action" @click="toggleFavorite(editingSnippet)" x-show="editingSnippet?.id"
                 title="Toggle Favorite">
                 <svg viewBox="0 0 24 24" :fill="editingSnippet?.is_favorite ? 'currentColor' : 'none'"
@@ -137,15 +144,18 @@
                 </svg>
                 <span>Restore</span>
             </button>
+            </div>
 
             <!-- Save button (edit mode) -->
-            <button class="btn-action primary" x-show="isEditing" @click="saveSnippet()">
+            <div class="editor-actions-row editor-edit-actions" x-show="isEditing">
+            <button class="btn-action primary" x-show="isEditing" @click="saveSnippet()" :disabled="isSaving"
+                :aria-busy="isSaving.toString()" aria-keyshortcuts="Control+S Meta+S">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                     <polyline points="17 21 17 13 7 13 7 21"></polyline>
                     <polyline points="7 3 7 8 15 8"></polyline>
                 </svg>
-                <span>Save</span>
+                <span x-text="isSaving ? 'Saving' : 'Save'"></span>
             </button>
 
             <!-- Close/Cancel button (edit mode) -->
@@ -156,6 +166,7 @@
                 </svg>
                 <span>Close</span>
             </button>
+            </div>
         </div>
     </div>
 
@@ -278,137 +289,8 @@
         </div>
     </div>
 
-    <!-- EDIT MODE: Split view with editor left, tags sidebar -->
+    <!-- EDIT MODE: Split view with editor left, details sidebar -->
     <div class="edit-mode" x-show="isEditing">
-        <!-- Metadata row 1: Description -->
-        <div class="editor-metadata-row">
-            <div class="editor-field-inline description-field">
-                <span class="editor-label">Description</span>
-                <textarea x-model="editingSnippet.description"
-                    :class="{ 'rtl': isArabicText(editingSnippet.description) }"
-                    placeholder="Description (optional)" rows="1"
-                    class="description-textarea" @input="autoResizeTextarea($event.target)"></textarea>
-            </div>
-        </div>
-        <!-- Metadata row 2: Language, Folder, Toggles -->
-        <div class="editor-metadata-row">
-            <div class="editor-field-inline compact">
-                <span class="editor-label">Language</span>
-                <select :value="activeFile?.language || editingSnippet.language"
-                    @change="updateActiveFileLanguage($event.target.value); $nextTick(() => autoResizeSelect($event.target))"
-                    x-init="$watch('activeFile?.language || editingSnippet.language', () => $nextTick(() => autoResizeSelect($el))); $nextTick(() => autoResizeSelect($el))"
-                    title="Language">
-                    <option value="javascript">JavaScript</option>
-                    <option value="typescript">TypeScript</option>
-                    <option value="python">Python</option>
-                    <option value="go">Go</option>
-                    <option value="rust">Rust</option>
-                    <option value="java">Java</option>
-                    <option value="csharp">C#</option>
-                    <option value="cpp">C++</option>
-                    <option value="cuda">CUDA</option>
-                    <option value="ruby">Ruby</option>
-                    <option value="php">PHP</option>
-                    <option value="swift">Swift</option>
-                    <option value="kotlin">Kotlin</option>
-                    <option value="html">HTML</option>
-                    <option value="css">CSS</option>
-                    <option value="sql">SQL</option>
-                    <option value="bash">Bash</option>
-                    <option value="powershell">PowerShell</option>
-                    <option value="json">JSON</option>
-                    <option value="yaml">YAML</option>
-                    <option value="markdown">Markdown</option>
-                    <option value="tex">TeX</option>
-                    <option value="bibtex">BibTeX</option>
-                    <option value="plaintext">Plain Text</option>
-                </select>
-            </div>
-
-            <div class="editor-field-inline compact">
-                <span class="editor-label">Folder</span>
-                <select x-model="editingSnippet.folder_id" title="Folder">
-                    <option value="">No folder</option>
-                    <template x-for="folder in flattenedFolders" :key="folder.id">
-                        <option :value="folder.id" x-text="folder.displayName"></option>
-                    </template>
-                </select>
-            </div>
-
-            <!-- Public toggle — same container style as selects -->
-            <div class="editor-field-inline compact">
-                <span class="editor-label">Public</span>
-                <label class="toggle-control" title="Make snippet publicly accessible">
-                    <input type="checkbox" x-model="editingSnippet.is_public">
-                    <span class="control-thumb"></span>
-                </label>
-            </div>
-
-            <!-- Gist Sync toggle — same container style as selects -->
-            <div class="editor-field-inline compact gist-toggle-control" x-show="isGistConfigured()">
-                <span class="editor-label">Gist</span>
-                <label class="toggle-control" title="Sync this snippet to GitHub Gist">
-                    <input type="checkbox"
-                        :checked="editingSnippet?.id ? isGistSyncEnabled(editingSnippet.id) : (editingSnippet?.sync_to_gist === true)"
-                        @change="editingSnippet?.id ? toggleGistSyncForSnippet(editingSnippet.id) : editingSnippet.sync_to_gist = !editingSnippet.sync_to_gist">
-                    <span class="control-thumb"></span>
-                </label>
-                <a x-show="editingSnippet?.id && getGistUrl(editingSnippet.id)" :href="getGistUrl(editingSnippet.id)"
-                    target="_blank" class="gist-link-icon" title="View on GitHub" @click.stop>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                        <polyline points="15 3 21 3 21 9"></polyline>
-                        <line x1="10" y1="14" x2="21" y2="3"></line>
-                    </svg>
-                </a>
-            </div>
-
-            <!-- Expiration selector — matches editor-field-inline compact pattern -->
-            <div class="editor-field-inline compact expiration-field" x-show="settings.auto_archive_enabled"
-                x-data="{ showCustom: false }">
-                <span class="editor-label">Expires</span>
-                <select x-model="editingSnippet.expires_at"
-                    @change="if ($el.value === '__custom__') { showCustom = true; $el.value = ''; } else { showCustom = false; }"
-                    :value="editingSnippet.expires_at || ''"
-                    class="expiration-select"
-                    title="Snippet expiration">
-                    <option value="">Never</option>
-                    <option value="7d">7 days</option>
-                    <option value="30d">30 days</option>
-                    <option value="90d">90 days</option>
-                    <option value="180d">6 months</option>
-                    <option value="365d">1 year</option>
-                    <option value="__custom__">Custom…</option>
-                </select>
-                <div class="expiration-custom-inline" x-show="showCustom" x-cloak>
-                    <input type="date" x-model="editingSnippet.expires_at"
-                        :min="todayDate()"
-                        class="expiration-date-input"
-                        @change="showCustom = false">
-                    <button type="button" @click="editingSnippet.expires_at = ''; showCustom = false"
-                        class="btn-clear-exp" title="Clear">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Focus button — absolute far right -->
-            <button class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"
-                @click="editorHeaderVisible = !editorHeaderVisible" title="Focus Mode (Toggle Header)"
-                style="margin-left: auto;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M15 3h6v6"></path>
-                    <path d="M14 10l6.1-6.1"></path>
-                    <path d="M9 21H3v-6"></path>
-                    <path d="M10 14l-6.1 6.1"></path>
-                </svg>
-            </button>
-        </div>
-
-        <!-- Main edit area: editor + tags sidebar -->
         <div class="editor-main-row">
             <!-- Left: Editor area -->
             <div class="editor-left">
@@ -472,52 +354,172 @@
                 </div>
             </div>
 
-            <!-- Right: Tags sidebar -->
-            <div class="tags-sidebar">
-                <div class="tags-sidebar-header">
-                    <label>Tags</label>
+            <!-- Right: Details sidebar -->
+            <aside class="editor-details-sidebar" aria-label="Snippet details">
+                <div class="tags-sidebar-header editor-details-header">
+                    <label>Details</label>
+                    <button class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"
+                        @click="editorHeaderVisible = !editorHeaderVisible" title="Focus Mode (Toggle Header)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M15 3h6v6"></path>
+                            <path d="M14 10l6.1-6.1"></path>
+                            <path d="M9 21H3v-6"></path>
+                            <path d="M10 14l-6.1 6.1"></path>
+                        </svg>
+                    </button>
                 </div>
 
-                <!-- Add new tag (moved to top) -->
-                <div class="tag-add-section top">
-                    <input type="text" class="tag-add-input" placeholder="Add tag..."
-                        @keydown.enter.prevent="addTag($event.target.value); $event.target.value = ''"
-                        list="existing-tags-edit">
-                    <datalist id="existing-tags-edit">
-                        <template x-for="tag in tags" :key="tag.id">
-                            <option :value="tag.name"></option>
-                        </template>
-                    </datalist>
-                </div>
-
-                <!-- Current tags (vertical list) -->
-                <div class="tags-list">
-                    <template x-for="(tag, index) in editingSnippet.tags" :key="index">
-                        <div class="tag-list-item">
-                            <span x-text="tag"></span>
-                            <button @click="removeTag(index)" class="tag-remove-btn" title="Remove">×</button>
+                <div class="editor-details-content">
+                    <section class="editor-details-section">
+                        <div class="editor-details-section-title">Organize</div>
+                        <div class="editor-field-inline compact">
+                            <span class="editor-label">Language</span>
+                            <select :value="activeFile?.language || editingSnippet.language"
+                                class="language-select-full"
+                                @change="updateActiveFileLanguage($event.target.value)"
+                                title="Language">
+                                <option value="javascript">JavaScript</option>
+                                <option value="typescript">TypeScript</option>
+                                <option value="python">Python</option>
+                                <option value="go">Go</option>
+                                <option value="rust">Rust</option>
+                                <option value="java">Java</option>
+                                <option value="csharp">C Sharp</option>
+                                <option value="cpp">C++</option>
+                                <option value="cuda">CUDA</option>
+                                <option value="ruby">Ruby</option>
+                                <option value="php">PHP</option>
+                                <option value="swift">Swift</option>
+                                <option value="kotlin">Kotlin</option>
+                                <option value="html">HTML</option>
+                                <option value="css">CSS</option>
+                                <option value="sql">SQL</option>
+                                <option value="bash">Bash / Shell</option>
+                                <option value="powershell">PowerShell</option>
+                                <option value="json">JSON</option>
+                                <option value="yaml">YAML</option>
+                                <option value="markdown">Markdown</option>
+                                <option value="tex">TeX / LaTeX</option>
+                                <option value="bibtex">BibTeX</option>
+                                <option value="plaintext">Plain Text</option>
+                            </select>
                         </div>
-                    </template>
-                    <div class="tags-empty" x-show="!editingSnippet.tags || editingSnippet.tags.length === 0">
-                        <span class="text-muted text-sm">No tags yet</span>
-                    </div>
-                </div>
 
-                <!-- Existing tags to quickly add -->
-                <div class="tags-suggestions"
-                    x-show="tags.filter(t => !editingSnippet.tags.includes(t.name)).length > 0">
-                    <label class="tags-suggestions-label">Quick add:</label>
-                    <div class="tags-suggestions-list">
-                        <template x-for="tag in tags.filter(t => !editingSnippet.tags.includes(t.name)).slice(0, 12)"
-                            :key="tag.id">
-                            <button class="tag-suggestion" @click="addTag(tag.name)" :title="tag.name">
-                                <span class="tag-dot" :style="{ background: tag.color }"></span>
-                                <span x-text="tag.name"></span>
-                            </button>
-                        </template>
-                    </div>
+                        <div class="editor-field-inline compact">
+                            <span class="editor-label">Folder</span>
+                            <select x-model="editingSnippet.folder_id" @change="scheduleAutoSave()" title="Folder">
+                                <option value="">No folder</option>
+                                <template x-for="folder in flattenedFolders" :key="folder.id">
+                                    <option :value="folder.id" x-text="folder.displayName"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </section>
+
+                    <section class="editor-details-section">
+                        <div class="editor-details-section-title">Sharing</div>
+                        <div class="editor-field-inline compact editor-toggle-row">
+                            <span class="editor-label">Public</span>
+                            <label class="toggle-control" title="Make snippet publicly accessible">
+                                <input type="checkbox" x-model="editingSnippet.is_public" @change="scheduleAutoSave()">
+                                <span class="control-thumb"></span>
+                            </label>
+                        </div>
+
+                        <div class="editor-field-inline compact editor-toggle-row" x-show="isGistConfigured()">
+                            <span class="editor-label">Gist</span>
+                            <div class="editor-toggle-with-link">
+                                <label class="toggle-control" title="Sync this snippet to GitHub Gist">
+                                    <input type="checkbox"
+                                        :checked="editingSnippet?.id ? isGistSyncEnabled(editingSnippet.id) : (editingSnippet?.sync_to_gist === true)"
+                                        @change="editingSnippet?.id ? toggleGistSyncForSnippet(editingSnippet.id) : editingSnippet.sync_to_gist = !editingSnippet.sync_to_gist">
+                                    <span class="control-thumb"></span>
+                                </label>
+                                <a x-show="editingSnippet?.id && getGistUrl(editingSnippet.id)" :href="getGistUrl(editingSnippet.id)"
+                                    target="_blank" class="gist-link-icon" title="View on GitHub" @click.stop>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="editor-field-inline compact expiration-field" x-show="settings.auto_archive_enabled"
+                            x-data="{ showCustom: false }">
+                            <span class="editor-label">Expires</span>
+                            <select x-model="editingSnippet.expires_at"
+                                @change="if ($el.value === '__custom__') { showCustom = true; $el.value = ''; } else { showCustom = false; scheduleAutoSave(); }"
+                                :value="editingSnippet.expires_at || ''"
+                                class="expiration-select"
+                                title="Snippet expiration">
+                                <option value="">Never</option>
+                                <option value="7d">7 days</option>
+                                <option value="30d">30 days</option>
+                                <option value="90d">90 days</option>
+                                <option value="180d">6 months</option>
+                                <option value="365d">1 year</option>
+                                <option value="__custom__">Custom…</option>
+                            </select>
+                            <div class="expiration-custom-inline" x-show="showCustom" x-cloak>
+                                <input type="date" x-model="editingSnippet.expires_at"
+                                    :min="todayDate()"
+                                    class="expiration-date-input"
+                                    @change="showCustom = false; scheduleAutoSave()">
+                                <button type="button" @click="editingSnippet.expires_at = ''; showCustom = false; scheduleAutoSave()"
+                                    class="btn-clear-exp" title="Clear">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="editor-details-section editor-tags-section">
+                        <div class="editor-details-section-title">Tags</div>
+
+                        <div class="tag-add-section top">
+                            <input type="text" class="tag-add-input" placeholder="Add tag..."
+                                @keydown.enter.prevent="addTag($event.target.value); $event.target.value = ''"
+                                list="existing-tags-edit">
+                            <datalist id="existing-tags-edit">
+                                <template x-for="tag in tags" :key="tag.id">
+                                    <option :value="tag.name"></option>
+                                </template>
+                            </datalist>
+                        </div>
+
+                        <div class="tags-list">
+                            <template x-for="(tag, index) in editingSnippet.tags" :key="index">
+                                <div class="tag-list-item">
+                                    <span x-text="tag"></span>
+                                    <button @click="removeTag(index)" class="tag-remove-btn" title="Remove">×</button>
+                                </div>
+                            </template>
+                            <div class="tags-empty" x-show="!editingSnippet.tags || editingSnippet.tags.length === 0">
+                                <span class="text-muted text-sm">No tags yet</span>
+                            </div>
+                        </div>
+
+                        <div class="tags-suggestions"
+                            x-show="tags.filter(t => !editingSnippet.tags.includes(t.name)).length > 0">
+                            <label class="tags-suggestions-label">Quick add:</label>
+                            <div class="tags-suggestions-list">
+                                <template x-for="tag in tags.filter(t => !editingSnippet.tags.includes(t.name)).slice(0, 12)"
+                                    :key="tag.id">
+                                    <button class="tag-suggestion" @click="addTag(tag.name)" :title="tag.name">
+                                        <span class="tag-dot" :style="{ background: tag.color }"></span>
+                                        <span x-text="tag.name"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </section>
                 </div>
-            </div>
+            </aside>
         </div>
     </div>
 </div>

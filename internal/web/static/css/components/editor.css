@@ -21,14 +21,38 @@
 .editor-toolbar .btn-action {
   margin: 0 !important;
 }
-.editor-toolbar .flex {
-  gap: 0.25rem !important;
+
+.editor-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
+
+.editor-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+
+.editor-toolbar-actions.editing {
+  align-self: flex-start;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.editor-toolbar-actions.editing .editor-actions-row {
+  flex-wrap: nowrap;
+}
+
 .editor-title-wrapper {
   flex: 1;
   min-width: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.25rem;
 }
 
 .editor-title-input {
@@ -245,7 +269,7 @@
   gap: 0.35rem;
   padding: 0 0.5rem;
   background: transparent;
-  border: 1px solid var(--pico-muted-border-color);
+  border: 2px solid var(--pico-muted-border-color);
   border-radius: 0.25rem;
   cursor: pointer;
   color: var(--pico-muted-color);
@@ -260,6 +284,7 @@
 .file-tab-compact.active {
   background: var(--snipo-primary);
   border-color: var(--snipo-primary);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
   color: white;
 }
 
@@ -717,6 +742,17 @@
   font-family: inherit;
 }
 
+.editor-description-under-title {
+  min-height: 30px;
+  max-height: 72px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 0.25rem;
+  background: transparent;
+  margin: 0;
+}
+
 .editor-field-inline.compact select {
   min-width: 200px;
   max-width: 250px;
@@ -1089,6 +1125,159 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+}
+
+/* Details sidebar for edit mode */
+.editor-details-sidebar {
+  width: 280px;
+  min-width: 280px;
+  max-width: 280px;
+  background: var(--pico-card-background-color);
+  border-left: 1px solid var(--pico-muted-border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 42px;
+}
+
+.editor-details-header .btn-icon {
+  flex-shrink: 0;
+}
+
+.editor-details-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.editor-details-section {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.editor-details-section:last-child {
+  border-bottom: none;
+}
+
+.editor-details-section-title {
+  margin-bottom: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pico-muted-color);
+}
+
+.editor-details-sidebar .editor-label {
+  display: block;
+  margin: 0 0 0.3rem 0;
+}
+
+.editor-details-sidebar .editor-field-inline {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.65rem;
+}
+
+.editor-details-sidebar .editor-field-inline:last-child {
+  margin-bottom: 0;
+}
+
+.editor-details-sidebar .editor-field-inline.compact select,
+.editor-details-sidebar .expiration-field select.expiration-select {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.editor-details-sidebar .language-select-full {
+  width: 100% !important;
+}
+
+.editor-details-sidebar .toggle-control {
+  width: max-content;
+  min-width: 60px;
+}
+
+.editor-toggle-with-link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.editor-tags-section .tag-add-section.top {
+  margin: 0 -0.75rem 0.5rem;
+}
+
+.editor-tags-section .tags-list {
+  max-height: 11rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 0.3rem;
+  padding: 0;
+}
+
+.editor-tags-section .tags-suggestions {
+  margin: 0.5rem -0.75rem -0.75rem;
+  max-height: 14rem;
+}
+
+.editor-tags-section .tags-suggestions-list {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.editor-tags-section .tag-suggestion {
+  width: auto;
+  max-width: 100%;
+}
+
+.editor-tags-section .tag-list-item {
+  width: auto;
+  max-width: 100%;
+  margin: 0;
+  gap: 0.25rem;
+  border-radius: 999px;
+  padding: 0.25rem 0.45rem 0.25rem 0.6rem;
+}
+
+.editor-tags-section .tag-list-item span {
+  flex: 0 1 auto;
+}
+
+.editor-tags-section .tags-empty {
+  flex: 1 1 100%;
+}
+
+@media (max-width: 900px) {
+  .editor-main-row {
+    flex-direction: column;
+  }
+
+  .editor-details-sidebar {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    max-height: 42vh;
+    border-left: none;
+    border-top: 1px solid var(--pico-muted-border-color);
+  }
+
+  .editor-left {
+    min-height: 0;
+  }
 }
 
 @media (max-width: 768px) {

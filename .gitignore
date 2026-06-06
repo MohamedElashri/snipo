@@ -5,6 +5,7 @@
 !docs/*
 !SECURITY.md
 !extension/README.md
+*overhaul*
 
 ## data/binaries (used for testing during development)
 /data
