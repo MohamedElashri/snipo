@@ -34,12 +34,29 @@ export function initKeyboardShortcuts() {
       return false;
     }
 
+    // Ctrl/Cmd + S: Save active snippet while editing
+    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+      const app = Alpine.$data(document.querySelector('[x-data="snippetsApp()"]'));
+      if (app?.showEditor && app?.isEditing) {
+        e.preventDefault();
+        e.stopPropagation();
+        app.saveSnippet();
+        return false;
+      }
+    }
+
     // Escape: Close editor/modal
     if (e.key === 'Escape' || e.key === 'Esc') {
       const app = Alpine.$data(document.querySelector('[x-data="snippetsApp()"]'));
+      if (app?.showDeleteModal) {
+        app.showDeleteModal = false;
+        return false;
+      }
+      if (app?.showSearchHelp) {
+        app.showSearchHelp = false;
+        return false;
+      }
       if (app?.showEditor) app.cancelEdit();
-      if (app?.showDeleteModal) app.showDeleteModal = false;
-      if (app?.showSearchHelp) app.showSearchHelp = false;
     }
   });
 }

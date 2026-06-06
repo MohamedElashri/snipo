@@ -56,6 +56,12 @@ export const draftMixin = {
     if (this.draftSnippet) {
       this.editingSnippet = { ...this.draftSnippet };
       this.activeFileIndex = 0;
+      if (this._resetFileManagerState) {
+        this._resetFileManagerState();
+      }
+      if (this._ensureEditableFiles) {
+        this._ensureEditableFiles();
+      }
       this.showEditor = true;
       this.isEditing = true;
       this.hasDraft = false;

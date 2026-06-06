@@ -356,11 +356,22 @@ func (s *SnippetService) List(ctx context.Context, filter models.SnippetFilter) 
 		return nil, err
 	}
 
-	// Load files for each snippet
-	if s.fileRepo != nil && len(response.Data) > 0 {
+	// Load related browse metadata for each snippet. These are additive fields for
+	// the web list response, so keep individual lookup failures non-fatal.
+	if len(response.Data) > 0 {
 		for i := range response.Data {
-			files, _ := s.fileRepo.GetBySnippetID(ctx, response.Data[i].ID)
-			response.Data[i].Files = files
+			if s.fileRepo != nil {
+				files, _ := s.fileRepo.GetBySnippetID(ctx, response.Data[i].ID)
+				response.Data[i].Files = files
+			}
+			if s.tagRepo != nil {
+				tags, _ := s.tagRepo.GetSnippetTags(ctx, response.Data[i].ID)
+				response.Data[i].Tags = tags
+			}
+			if s.folderRepo != nil {
+				folders, _ := s.folderRepo.GetSnippetFolders(ctx, response.Data[i].ID)
+				response.Data[i].Folders = folders
+			}
 		}
 	}
 

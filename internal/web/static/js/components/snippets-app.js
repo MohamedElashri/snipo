@@ -81,6 +81,7 @@ export function initSnippetsApp(Alpine) {
     sortBy: localStorage.getItem('snipo-sort-by') || 'updated_at',
     showEditor: false,
     isEditing: false,
+    isSaving: false,
     showDeleteModal: false,
     deleteTarget: null,
     showSearchHelp: false,
@@ -379,6 +380,12 @@ export function initSnippetsApp(Alpine) {
             files: result.files || []
           };
           this.activeFileIndex = 0;
+          if (isEdit && this._resetFileManagerState) {
+            this._resetFileManagerState();
+          }
+          if (isEdit && this._ensureEditableFiles) {
+            this._ensureEditableFiles();
+          }
           this.showEditor = true;
           this.isEditing = isEdit;
           this.$nextTick(() => {

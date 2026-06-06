@@ -383,9 +383,11 @@ Each release includes:
 
 | Shortcut | Action |
 |----------|--------|
+| `/` | Focus search when not typing in a field |
 | `Ctrl+K` / `Cmd+K` | Focus search |
 | `Ctrl+N` / `Cmd+N` | New snippet |
-| `Escape` | Close editor/modal |
+| `Ctrl+S` / `Cmd+S` | Save the active snippet while editing |
+| `Escape` | Close the active editor, delete modal, or search help |
 
 ## Vendor Library Management
 

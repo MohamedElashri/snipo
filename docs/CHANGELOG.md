@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - Unreleased
+
+### Added
+- Added `Ctrl+S` / `Cmd+S` save support in edit mode, including Ace editor command handling and duplicate-save protection.
+
+### Changed
+- Reworked edit mode so the code editor remains primary while language, folder, sharing, expiration, and tags live in a right-side details sidebar.
+- Moved edit-mode description under the title and kept toolbar actions aligned with the title row.
+- Updated edit-mode tags to render as wrapping chips, including quick-add suggestions.
+- Expanded the edit-mode language dropdown to full width with clearer language labels.
+- Made edit-mode file tabs more distinct with stronger borders.
+- Removed tag rendering from snippet cards and moved copy controls plus single-file/multi-file indicators directly under the description or preview.
+- Hydrated snippet files, tags, and folders in list responses so browse metadata and file indicators are available without opening each snippet.
+- Updated Go dependencies: `golang.org/x/crypto`, `modernc.org/sqlite`, `github.com/go-chi/chi/v5`, and AWS SDK config/credentials packages.
+
+### Fixed
+- Fixed edit-mode file tab management for legacy single-file snippets, including Add File, switching between files, empty-editor states, and stale file-operation locks.
+- Fixed edit-mode single-file snippets showing `+ Add file` instead of a filename when the snippet had not recently been edited.
+- Improved Escape key handling so delete modals and search help close before the editor.
+
+
+### Development
+- Added Dependabot coverage for GitHub Actions updates.
+- Updated GitHub Actions versions for Node setup, artifact upload/download, Docker login/build, Codecov, and golangci-lint workflows.
+- Pinned GitHub Actions to full commit SHAs and added the action lock file.
+
 ## [1.5.0] - 2026-05-10
 
 ### Added
