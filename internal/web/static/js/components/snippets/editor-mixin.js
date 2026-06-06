@@ -60,16 +60,17 @@ export const editorMixin = {
       }]
     };
     this.activeFileIndex = 0;
+    this._resetFileManagerState();
     this.showEditor = true;
     this.isEditing = true;
     this.updateUrl({ edit: true });
 
     this.$nextTick(() => {
       this.updateAceEditor();
-      const input = document.querySelector('.filename-input');
-      if (input) {
-        input.focus();
-        input.select();
+      const titleInput = document.querySelector('.editor-title-input');
+      if (titleInput) {
+        titleInput.focus();
+        titleInput.select();
       }
       this.updateTextDirection();
     });
@@ -86,6 +87,8 @@ export const editorMixin = {
         files: result.files || []
       };
       this.activeFileIndex = 0;
+      this._resetFileManagerState();
+      this._ensureEditableFiles();
       this.showEditor = true;
       this.isEditing = true;
       this.updateUrl({ snippet: snippet.id, edit: true });
@@ -99,6 +102,8 @@ export const editorMixin = {
 
   startEditing() {
     this.isEditing = true;
+    this._resetFileManagerState();
+    this._ensureEditableFiles();
     if (this.editingSnippet?.id) {
       this.updateUrl({ snippet: this.editingSnippet.id, edit: true });
     }
@@ -121,81 +126,100 @@ export const editorMixin = {
   },
 
   async saveSnippet() {
-    let folderId = this.editingSnippet.folder_id;
-    if (folderId === '' || folderId === null || folderId === undefined) {
-      folderId = null;
-    } else {
-      folderId = parseInt(folderId, 10) || null;
-    }
+    if (this.isSaving) return;
 
-    let files = null;
-    if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
-      files = this.editingSnippet.files.map(f => ({
-        id: f.id || 0,
-        filename: f.filename,
-        content: f.content,
-        language: f.language
-      }));
-    }
+    this.isSaving = true;
 
-    const primaryContent = files && files.length > 0 ? files[0].content : this.editingSnippet.content;
-    const primaryLanguage = files && files.length > 0 ? files[0].language : this.editingSnippet.language;
-
-    // Resolve expiration shorthand (7d, 30d, etc.) to actual date
-    let expiresAt = this.editingSnippet.expires_at || null;
-    if (expiresAt && typeof expiresAt === 'string' && expiresAt.endsWith('d')) {
-      const days = parseInt(expiresAt, 10);
-      const d = new Date();
-      d.setDate(d.getDate() + days);
-      expiresAt = d.toISOString().split('T')[0];
-    }
-
-    const data = {
-      title: this.editingSnippet.title,
-      description: this.editingSnippet.description || '',
-      content: primaryContent,
-      language: primaryLanguage,
-      tags: this.editingSnippet.tags || [],
-      folder_id: folderId,
-      is_public: this.editingSnippet.is_public || false,
-      is_archived: this.editingSnippet.is_archived || false,
-      expires_at: expiresAt,
-      files: files
-    };
-
-    let result;
-    if (this.editingSnippet.id) {
-      result = await api.put(`/api/v1/snippets/${this.editingSnippet.id}`, data);
-    } else {
-      result = await api.post('/api/v1/snippets', data);
-    }
-
-    if (result && !result.error) {
-      const wasUpdate = !!this.editingSnippet.id;
-      const snippetId = result.id || this.editingSnippet.id;
-      const shouldSyncToGist = this.editingSnippet.sync_to_gist;
-
-      showToast(wasUpdate ? 'Snippet updated' : 'Snippet created');
-      this.showEditor = false;
-      this.isEditing = false;
-      this.destroyAceEditor();
-      this.resetEditingSnippet();
-      this.clearDraft();
-      this.updateUrl({});
-      await this.loadSnippets();
-      await this.loadTags();
-      await this.loadFavoritesCount();
-
-      // Auto-sync to gist if sync is enabled for this snippet
-      if (wasUpdate && snippetId && this.isGistSyncEnabled && this.isGistSyncEnabled(snippetId)) {
-        this.syncSnippetToGist(snippetId);
-      } else if (!wasUpdate && snippetId && shouldSyncToGist && this.isGistConfigured && this.isGistConfigured()) {
-        if (this.enableGistSyncForSnippet) {
-          this.enableGistSyncForSnippet(snippetId);
+    try {
+      if (this.aceEditor) {
+        if (this.editingSnippet.files && this.editingSnippet.files.length > 0 && this.syncCurrentContent) {
+          this.syncCurrentContent();
+        } else {
+          this.editingSnippet.content = this.aceEditor.getValue();
         }
       }
-    } else if (result?.error) {
-      showToast(result.error.message || 'Error saving snippet', 'error');
+
+      let folderId = this.editingSnippet.folder_id;
+      if (folderId === '' || folderId === null || folderId === undefined) {
+        folderId = null;
+      } else {
+        folderId = parseInt(folderId, 10) || null;
+      }
+
+      let files = null;
+      if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
+        files = this.editingSnippet.files.map(f => ({
+          id: f.id || 0,
+          filename: f.filename,
+          content: f.content,
+          language: f.language
+        }));
+      }
+
+      const primaryContent = files && files.length > 0 ? files[0].content : this.editingSnippet.content;
+      const primaryLanguage = files && files.length > 0 ? files[0].language : this.editingSnippet.language;
+
+      // Resolve expiration shorthand (7d, 30d, etc.) to actual date
+      let expiresAt = this.editingSnippet.expires_at || null;
+      if (expiresAt && typeof expiresAt === 'string' && expiresAt.endsWith('d')) {
+        const days = parseInt(expiresAt, 10);
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        expiresAt = d.toISOString().split('T')[0];
+      }
+
+      const data = {
+        title: this.editingSnippet.title,
+        description: this.editingSnippet.description || '',
+        content: primaryContent,
+        language: primaryLanguage,
+        tags: this.editingSnippet.tags || [],
+        folder_id: folderId,
+        is_public: this.editingSnippet.is_public || false,
+        is_archived: this.editingSnippet.is_archived || false,
+        expires_at: expiresAt,
+        files: files
+      };
+
+      let result;
+      if (this.editingSnippet.id) {
+        result = await api.put(`/api/v1/snippets/${this.editingSnippet.id}`, data);
+      } else {
+        result = await api.post('/api/v1/snippets', data);
+      }
+
+      if (result && !result.error) {
+        const wasUpdate = !!this.editingSnippet.id;
+        const snippetId = result.id || this.editingSnippet.id;
+        const shouldSyncToGist = this.editingSnippet.sync_to_gist;
+
+        showToast(wasUpdate ? 'Snippet updated' : 'Snippet created');
+        this.showEditor = false;
+        this.isEditing = false;
+        this.destroyAceEditor();
+        this.resetEditingSnippet();
+        this.clearDraft();
+        this.updateUrl({});
+        await this.loadSnippets();
+        await this.loadTags();
+        await this.loadFavoritesCount();
+
+        // Auto-sync to gist if sync is enabled for this snippet
+        if (wasUpdate && snippetId && this.isGistSyncEnabled && this.isGistSyncEnabled(snippetId)) {
+          this.syncSnippetToGist(snippetId);
+        } else if (!wasUpdate && snippetId && shouldSyncToGist && this.isGistConfigured && this.isGistConfigured()) {
+          if (this.enableGistSyncForSnippet) {
+            this.enableGistSyncForSnippet(snippetId);
+          }
+        }
+      } else if (result?.error) {
+        showToast(result.error.message || 'Error saving snippet', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to save snippet:', err);
+      showToast('Error saving snippet', 'error');
+    } finally {
+      this.isSaving = false;
     }
   },
 
@@ -417,13 +441,22 @@ export const editorMixin = {
   },
 
   addTag(tag) {
-    if (tag && !this.editingSnippet.tags.includes(tag)) {
-      this.editingSnippet.tags.push(tag);
+    const tagName = (tag || '').trim();
+    if (!tagName) return;
+
+    if (!this.editingSnippet.tags) {
+      this.editingSnippet.tags = [];
+    }
+
+    if (!this.editingSnippet.tags.includes(tagName)) {
+      this.editingSnippet.tags.push(tagName);
+      this.scheduleAutoSave();
     }
   },
 
   removeTag(index) {
     this.editingSnippet.tags.splice(index, 1);
+    this.scheduleAutoSave();
   },
 
   validateFilename() {
@@ -440,6 +473,11 @@ export const editorMixin = {
   updateAceEditor() {
     const container = this.$refs.codeEditor;
     if (!container) return;
+
+    if (this.editingSnippet?.files?.length > 0 &&
+      (this.activeFileIndex < 0 || this.activeFileIndex >= this.editingSnippet.files.length)) {
+      this.activeFileIndex = 0;
+    }
 
     const content = (this.editingSnippet.files && this.editingSnippet.files.length > 0)
       ? (this.activeFile?.content || '')
@@ -504,6 +542,16 @@ export const editorMixin = {
         this.applyEditorSettings();
 
         const self = this;
+        this.aceEditor.commands.addCommand({
+          name: 'saveSnippet',
+          bindKey: { win: 'Ctrl-S', mac: 'Command-S' },
+          exec() {
+            if (self.isEditing) {
+              self.saveSnippet();
+            }
+          }
+        });
+
         this.aceEditor.session.on('change', () => {
           if (self.aceIgnoreChange) return;
 

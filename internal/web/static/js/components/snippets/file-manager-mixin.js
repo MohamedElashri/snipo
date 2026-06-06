@@ -9,9 +9,48 @@ function sanitizeFilename(filename) {
 }
 
 export const fileManagerMixin = {
+  _resetFileManagerState() {
+    this.fileManagerState.operationInProgress = false;
+    this.fileManagerState.editorDirty = false;
+    this.fileManagerState.lastSyncedContent = '';
+    this.fileManagerState.pendingOperation = null;
+  },
+
+  _ensureEditableFiles() {
+    if (!this.editingSnippet) {
+      return [];
+    }
+
+    if (!Array.isArray(this.editingSnippet.files)) {
+      this.editingSnippet.files = [];
+    }
+
+    if (this.editingSnippet.files.length === 0) {
+      const language = this.editingSnippet.language || 'plaintext';
+      const ext = this.getFileExtension ? this.getFileExtension(language) : 'txt';
+      const content = this.aceEditor ? this.aceEditor.getValue() : (this.editingSnippet.content || '');
+      this.editingSnippet.files = [{
+        id: 0,
+        filename: 'main.' + ext,
+        content,
+        language
+      }];
+    }
+
+    if (this.activeFileIndex < 0 || this.activeFileIndex >= this.editingSnippet.files.length) {
+      this.activeFileIndex = 0;
+    }
+
+    return this.editingSnippet.files;
+  },
+
   _syncEditorToFile() {
-    if (!this.aceEditor || !this.editingSnippet.files || !this.editingSnippet.files[this.activeFileIndex]) {
+    if (!this.aceEditor || !Array.isArray(this.editingSnippet?.files) || this.editingSnippet.files.length === 0) {
       return;
+    }
+
+    if (this.activeFileIndex < 0 || this.activeFileIndex >= this.editingSnippet.files.length) {
+      this.activeFileIndex = 0;
     }
     
     const currentContent = this.aceEditor.getValue();
@@ -21,7 +60,7 @@ export const fileManagerMixin = {
   },
 
   _loadFileToEditor(fileIndex) {
-    if (!this.aceEditor || !this.editingSnippet.files || !this.editingSnippet.files[fileIndex]) {
+    if (!this.aceEditor || !Array.isArray(this.editingSnippet?.files) || !this.editingSnippet.files[fileIndex]) {
       return;
     }
 
@@ -34,6 +73,8 @@ export const fileManagerMixin = {
       this.aceEditor.session.setMode(this.getAceMode(file.language));
       this.fileManagerState.lastSyncedContent = content;
       this.fileManagerState.editorDirty = false;
+      this.aceEditor.resize();
+      this.aceEditor.focus();
     } finally {
       this.aceIgnoreChange = false;
     }
@@ -55,11 +96,28 @@ export const fileManagerMixin = {
       return;
     }
 
-    this.activeFileIndex = newFileIndex;
+    const files = this.editingSnippet?.files || [];
+    if (files.length === 0) {
+      this.fileManagerState.operationInProgress = false;
+      return;
+    }
+
+    const targetIndex = Math.max(0, Math.min(newFileIndex, files.length - 1));
+    this.activeFileIndex = targetIndex;
     
     this.$nextTick(() => {
-      this._loadFileToEditor(newFileIndex);
-      this.fileManagerState.operationInProgress = false;
+      try {
+        if (this.aceEditor) {
+          this._loadFileToEditor(targetIndex);
+        } else {
+          this.updateAceEditor();
+        }
+        this.updateTextDirection();
+      } catch (error) {
+        console.error('Error loading file into editor:', error);
+      } finally {
+        this.fileManagerState.operationInProgress = false;
+      }
     });
   },
 
@@ -73,15 +131,7 @@ export const fileManagerMixin = {
     }
 
     try {
-      if (!this.editingSnippet.files) {
-        const ext = this.getFileExtension(this.editingSnippet.language);
-        this.editingSnippet.files = [{
-          id: 0,
-          filename: 'main.' + ext,
-          content: this.editingSnippet.content || '',
-          language: this.editingSnippet.language || 'javascript'
-        }];
-      }
+      const files = this._ensureEditableFiles();
 
       const newFile = {
         id: 0,
@@ -89,9 +139,9 @@ export const fileManagerMixin = {
         content: '',
         language: 'plaintext'
       };
-      this.editingSnippet.files.push(newFile);
+      files.push(newFile);
       
-      const newIndex = this.editingSnippet.files.length - 1;
+      const newIndex = files.length - 1;
       this._endFileOperation(newIndex);
 
       setTimeout(() => {
@@ -143,6 +193,11 @@ export const fileManagerMixin = {
   },
 
   selectFile(index) {
+    const files = this.editingSnippet?.files || [];
+    if (index < 0 || index >= files.length || index === this.activeFileIndex) {
+      return;
+    }
+
     if (!this._beginFileOperation()) {
       return;
     }
@@ -165,6 +220,9 @@ export const fileManagerMixin = {
     }
 
     if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
+      if (this.activeFileIndex < 0 || this.activeFileIndex >= this.editingSnippet.files.length) {
+        this.activeFileIndex = 0;
+      }
       this.editingSnippet.files[this.activeFileIndex].content = content;
       this.fileManagerState.editorDirty = true;
     } else {
@@ -179,6 +237,9 @@ export const fileManagerMixin = {
     const currentContent = this.aceEditor ? this.aceEditor.getValue() : '';
 
     if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
+      if (this.activeFileIndex < 0 || this.activeFileIndex >= this.editingSnippet.files.length) {
+        this.activeFileIndex = 0;
+      }
       this.editingSnippet.files[this.activeFileIndex].language = language;
       this.editingSnippet.files[this.activeFileIndex].content = currentContent;
     } else {
@@ -203,6 +264,9 @@ export const fileManagerMixin = {
     filename = sanitizeFilename(filename);
     
     if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
+      if (this.activeFileIndex < 0 || this.activeFileIndex >= this.editingSnippet.files.length) {
+        this.activeFileIndex = 0;
+      }
       this.editingSnippet.files[this.activeFileIndex].filename = filename;
       
       // Pass context to detectLanguageFromFilename
