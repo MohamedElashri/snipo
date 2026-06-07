@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # sanad: ref=v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # sanad: ref=v6.0.3
         with:
           ref: ${{ inputs.tag_name }}
 
@@ -72,7 +72,7 @@ jobs:
             goarch: arm64
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # sanad: ref=v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # sanad: ref=v6.0.3
         with:
           ref: ${{ inputs.tag_name }}
           fetch-depth: 0
@@ -131,7 +131,7 @@ jobs:
             suffix: "-hardened"
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # sanad: ref=v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # sanad: ref=v6.0.3
 
       - name: Get version
         id: version
@@ -202,7 +202,7 @@ jobs:
     needs: [build-binaries, build-docker]
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # sanad: ref=v6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # sanad: ref=v6.0.3
         with:
           fetch-depth: 0
 
