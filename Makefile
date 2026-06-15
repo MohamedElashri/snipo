@@ -1,4 +1,4 @@
-.PHONY: all build run run-test test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate migrate-down vendor vendor-install vendor-sync vendor-verify vendor-cleanup vendor-check vendor-status vendor-update vendor-update-major
+.PHONY: all build run run-test test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate migrate-down vendor vendor-install vendor-sync vendor-verify vendor-cleanup vendor-check vendor-status vendor-update vendor-update-major chrome firefox extension-build
 
 VERSION ?= $(shell grep 'const Current =' internal/version/version.go | cut -d '"' -f 2)
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -141,6 +141,18 @@ vendor-update-major:
 	@node scripts/verify-vendor.js --status
 	@echo "Vendor libraries updated (major versions included)"
 
+extension-build:
+	@echo "Building extension packages..."
+	@cd extension && ./build.sh all
+
+chrome:
+	@echo "Building Chrome extension package..."
+	@cd extension && ./build.sh chrome
+
+firefox:
+	@echo "Building Firefox extension package..."
+	@cd extension && ./build.sh firefox
+
 help:
 	@echo ""
 	@echo "Use 'make <command>' to execute any command."
@@ -169,4 +181,7 @@ help:
 	@echo "  vendor-status  - Show current vendor versions"
 	@echo "  vendor-update  - Update vendor libs (minor/patch)"
 	@echo "  vendor-update-major - Update vendor libs (incl. major)"
+	@echo "  chrome         - Build Chrome extension zip"
+	@echo "  firefox        - Build Firefox extension zip + source archive"
+	@echo "  extension-build - Build Chrome and Firefox extension packages"
 	@echo "  help           - Show this help message"
