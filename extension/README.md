@@ -22,7 +22,7 @@ Browser extension for saving code snippets to your self-hosted Snipo instance.
 
 **Firefox Add-ons:**
 
-> Coming soon - Extension is submitted to AMO and is awaiting approval
+> Available on [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/snipo-code-snippet-manager/)
 
 
 

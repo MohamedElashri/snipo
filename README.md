@@ -31,9 +31,10 @@ A lightweight, self-hosted snippet manager designed for single-user deployments.
 
 ## Client Integrations
 
-The Snipo RESTful API enables extensive client integration. As an example, the repository includes a ready-to-use Terminal User Interface (TUI) client:
+The Snipo RESTful API enables extensive client integration. The repository includes ready-to-use client surfaces for both terminal and browser workflows:
 
 - **[Snippy](tui/README.md)**: A rich TUI client showcasing a seamless, keyboard-driven integration with a running Snipo server.
+- **[Snipo Browser Extension](extension/README.md)**: A browser extension for saving code snippets directly to a self-hosted Snipo instance, with Chrome and Firefox support.
 
 ## Quick Start
 ### Docker (Recommended)

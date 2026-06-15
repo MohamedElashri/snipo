@@ -9,13 +9,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/dev-docker.yml",
@@ -24,13 +19,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/dev-docker.yml",
@@ -40,12 +30,9 @@
       "path": "",
       "kind": "github-action",
       "logical_ref": "v4.1.0",
-      "pinned_sha": "c7c53464625b32c7a7e944ae62b3e17d2b600130",
+      "pinned_sha": "06116385d9baf250c9f4dcb4858b16962ea869c3",
       "candidate_sha": "06116385d9baf250c9f4dcb4858b16962ea869c3",
-      "candidate_seen_at": "2026-05-27T16:13:00Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-05-27T16:13:00Z",
-      "timestamp_source": "release"
+      "candidate_seen_at": "2026-05-27T16:13:00Z"
     },
     {
       "file": ".github/workflows/dev-docker.yml",
@@ -93,13 +80,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/dev-docker.yml",
@@ -121,13 +103,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/extension-ci.yml",
@@ -175,13 +152,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/extension-ci.yml",
@@ -203,13 +175,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/extension-ci.yml",
@@ -231,13 +198,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/release.yml",
@@ -272,13 +234,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/release.yml",
@@ -288,12 +245,9 @@
       "path": "",
       "kind": "github-action",
       "logical_ref": "v4.1.0",
-      "pinned_sha": "c7c53464625b32c7a7e944ae62b3e17d2b600130",
+      "pinned_sha": "06116385d9baf250c9f4dcb4858b16962ea869c3",
       "candidate_sha": "06116385d9baf250c9f4dcb4858b16962ea869c3",
-      "candidate_seen_at": "2026-05-27T16:13:00Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-05-27T16:13:00Z",
-      "timestamp_source": "release"
+      "candidate_seen_at": "2026-05-27T16:13:00Z"
     },
     {
       "file": ".github/workflows/release.yml",
@@ -367,13 +321,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/release.yml",
@@ -408,13 +357,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/release.yml",
@@ -436,13 +380,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/snipo-ci.yml",
@@ -464,13 +403,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/snipo-ci.yml",
@@ -492,13 +426,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/snipo-ci.yml",
@@ -520,13 +449,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/snipo-ci.yml",
@@ -561,13 +485,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/snippy-ci.yml",
@@ -589,13 +508,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/snippy-ci.yml",
@@ -617,13 +531,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/snippy-ci.yml",
@@ -658,13 +567,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/snippy-ci.yml",
@@ -686,13 +590,8 @@
       "repo": "checkout",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.0.3",
-      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd",
-      "candidate_sha": "df4cb1c069e1874edd31b4311f1884172cec0e10",
-      "candidate_seen_at": "2026-06-02T14:35:13Z",
-      "resolved_at": "2026-06-06T18:01:38Z",
-      "timestamp": "2026-06-02T14:35:13Z",
-      "timestamp_source": "release"
+      "logical_ref": "v6.0.2",
+      "pinned_sha": "de0fac2e4500dabe0009e67214ff5f5447ce83dd"
     },
     {
       "file": ".github/workflows/snippy-release.yml",
