@@ -88,6 +88,9 @@ ENV SNIPO_HOST=0.0.0.0 \
     SNIPO_DB_PATH=/data/snipo.db \
     SNIPO_LOG_FORMAT=json
 
+# Run as non-root user (UID 65532, standard for DHI/distroless images)
+USER 65532
+
 # Run the server
 ENTRYPOINT ["/snipo"]
 CMD ["serve"]
