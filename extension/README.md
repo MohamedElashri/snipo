@@ -18,7 +18,7 @@ Browser extension for saving code snippets to your self-hosted Snipo instance.
 
 **Chrome Web Store:**
 
-> Coming soon - Extension is being prepared for submission
+> Available on [Chrome Web Store](https://chromewebstore.google.com/detail/snipo-code-snippet-manage/gagllhkjibjhllhkmiphjpahbgnmgana)
 
 **Firefox Add-ons:**
 
@@ -135,7 +135,7 @@ This extension:
 
 | Browser | Minimum Version | Status |
 |---------|----------------|--------|
-| Chrome  | 109+           | ✅ Supported / Untested |
+| Chrome  | 109+           | ✅ Supported / Tested |
 | Edge    | 109+           | ✅ Supported / Untested |
 | Firefox | 140+           | ✅ Supported / Tested |
 | Safari  | -              | ❌ Not yet supported |
