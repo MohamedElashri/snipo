@@ -76,7 +76,7 @@ jobs:
           GORELEASER_PREVIOUS_TAG: v${{ env.CLEAN_TAG_VERSION }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # sanad: ref=v3.0.0
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # sanad: ref=v3.0.1
         with:
           name: Snippy v${{ env.CLEAN_TAG_VERSION }}
           tag_name: ${{ env.TAG_VERSION }}
