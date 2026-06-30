@@ -1,77 +1,62 @@
-# Deployment & Configuration Guide
+# Deployment and configuration
 
-This guide covers everything you need to know about deploying and configuring Snipo, including environment variables, database settings, and advanced deployment scenarios.
+This is the canonical reference for running Snipo. Security implications are
+covered in [SECURITY.md](../SECURITY.md).
 
-## Essential Configuration
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `SNIPO_MASTER_PASSWORD` | Yes* | - | Login password (plain text) |
-| `SNIPO_MASTER_PASSWORD_HASH` | Yes* | - | Pre-hashed password (Argon2id) - **recommended** |
-| `SNIPO_DISABLE_AUTH` | No | `false` | Disable authentication entirely |
-| `SNIPO_SESSION_SECRET` | Yes | - | Session signing key (32+ chars) |
-| `SNIPO_ENCRYPTION_SALT` | Recommended | Auto-generated | Encryption key for backups & GitHub tokens |
-| `SNIPO_PORT` | No | `8080` | Server port |
-| `SNIPO_DB_PATH` | No | `/data/snipo.db` | SQLite database path |
-| `SNIPO_BASE_PATH` | No | - | Base path for reverse proxy (e.g., `/snipo`) |
-
-*Either `SNIPO_MASTER_PASSWORD` or `SNIPO_MASTER_PASSWORD_HASH` is required (unless `SNIPO_DISABLE_AUTH=true`). Using the hash is recommended for security.
-
-## Hardened Image Variant
-
-For better security, a hardened image variant is available based on [Docker Hardened Images](https://dhi.io). This variant:
-- Runs as a non-root user with UID **65532** (nonroot)
-- Contains minimal packages (no shell, no package manager)
-- Reduces attack surface to absolute minimum
-- Tracks CVEs fixes automatically
-
-**Versioning:**
-In addition to the `:hardened` rolling tag, versioned tags are available matching the standard release cycles:
-- `:vX.Y.Z-hardened` (e.g., `v1.0.0-hardened`)
-- `:vX.Y-hardened` (e.g., `v1.0-hardened`)
-
-**Usage:**
+## Docker Compose
 
 ```bash
-docker run -d \
-  -p 8080:8080 \
-  -v snipo-data:/data \
-  -e SNIPO_MASTER_PASSWORD=your-secure-password \
-  -e SNIPO_SESSION_SECRET=$(openssl rand -hex 32) \
-  --name snipo \
-  ghcr.io/mohamedelashri/snipo:hardened
+cp .env.example .env
+chmod 600 .env
 ```
 
-**Important: Permissions**
-Since the hardened image runs as `UID 65532`, you must ensure the data volume is writable by this user:
+Replace the password and secret placeholders, then start Snipo:
 
 ```bash
-# Set ownership for the data directory
+docker compose up -d
+docker compose ps
+```
+
+The standard image runs as UID 1000 and stores persistent state in `/data`.
+The supplied Compose file uses a named volume, a read-only root filesystem,
+dropped capabilities, and a temporary `/tmp`.
+
+To use the hardened image, replace the image tag with `:hardened`. It runs as
+UID 65532. Bind-mounted data directories must be writable by the corresponding
+UID:
+
+```bash
 sudo chown -R 65532:65532 ./snipo-data
 ```
 
-## Reverse Proxy Configuration
+Versioned hardened tags use `vX.Y.Z-hardened`, `vX.Y-hardened`, and
+`vX-hardened`.
 
-Snipo supports deployment behind a reverse proxy with a custom subpath. This is useful when you want to host Snipo under a specific path like `https://example.com/snipo/`.
+## Binary
 
-### Configuration
-
-Set the `SNIPO_BASE_PATH` environment variable to your desired subpath:
+Release archives are available from the
+[GitHub releases page](https://github.com/MohamedElashri/snipo/releases).
 
 ```bash
-SNIPO_BASE_PATH=/snipo
+export SNIPO_MASTER_PASSWORD_HASH='$argon2id$...'
+export SNIPO_SESSION_SECRET='...'
+export SNIPO_ENCRYPTION_SALT='...'
+export SNIPO_DB_PATH='./data/snipo.db'
+./snipo serve
 ```
 
-**Important notes:**
-- The path should start with `/` but not end with `/`
-- Examples: `/snipo`, `/apps/snippets`, `/code`
-- Leave empty (default) for root path deployment
+Run `./snipo hash-password` to generate the password hash. In shell exports,
+single-quote the hash so `$` characters remain literal. Snipo applies embedded
+database migrations when it starts.
 
-### Nginx Example
+## Reverse proxy and HTTPS
+
+Keep Snipo's port private and terminate TLS at the proxy. A root-path Nginx
+configuration is:
 
 ```nginx
-location /snipo/ {
-    proxy_pass http://localhost:8080/;
+location / {
+    proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -79,200 +64,120 @@ location /snipo/ {
 }
 ```
 
-Then configure Snipo:
+Set `SNIPO_TRUST_PROXY=true` only if clients cannot bypass this proxy and the
+proxy replaces untrusted forwarding headers.
+
+For a subpath such as `https://example.com/snipo`, set:
+
 ```bash
 SNIPO_BASE_PATH=/snipo
-SNIPO_TRUST_PROXY=true
 ```
 
-### Caddy Example
+The proxy must strip the prefix before forwarding:
 
-```caddy
-example.com {
-    handle /snipo/* {
-        reverse_proxy localhost:8080
-    }
+```bash
+location /snipo/ {
+    proxy_pass http://127.0.0.1:8080/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
 }
 ```
 
-Configuration:
-```bash
-SNIPO_BASE_PATH=/snipo
-```
+Do not add a trailing slash to `SNIPO_BASE_PATH`.
 
-### Traefik Example
+## Authentication
 
-```yaml
-http:
-  routers:
-    snipo:
-      rule: "Host(`example.com`) && PathPrefix(`/snipo`)"
-      service: snipo
-      middlewares:
-        - snipo-stripprefix
-  
-  middlewares:
-    snipo-stripprefix:
-      stripPrefix:
-        prefixes:
-          - "/snipo"
-  
-  services:
-    snipo:
-      loadBalancer:
-        servers:
-          - url: "http://localhost:8080"
-```
+Exactly one password source is required unless authentication is completely
+disabled:
 
-Configuration:
-```bash
-SNIPO_BASE_PATH=/snipo
-```
+| Variable | Default | Purpose |
+|---|---:|---|
+| `SNIPO_MASTER_PASSWORD_HASH` | — | Argon2id master-password hash; preferred |
+| `SNIPO_MASTER_PASSWORD` | — | Plaintext master password |
+| `SNIPO_DISABLE_AUTH` | `false` | Bypass all Snipo authentication |
+| `SNIPO_SESSION_SECRET` | generated | Stable secret used by encrypted application data |
+| `SNIPO_SESSION_DURATION` | `168h` | Session lifetime |
+| `SNIPO_ENCRYPTION_SALT` | generated/persisted | Salt used for backups and stored GitHub credentials |
+| `SNIPO_RATE_LIMIT` | `100` | Login requests per minute |
 
-### Docker Compose with Reverse Proxy
+If both password variables are set, the hash takes precedence. Generated
+session secrets do not survive restarts; explicitly configure one in any
+persistent deployment. An omitted encryption salt is written to
+`.encryption_salt` beside the database when possible.
 
-```yaml
-services:
-  snipo:
-    image: ghcr.io/mohamedelashri/snipo:latest
-    environment:
-      - SNIPO_MASTER_PASSWORD=your-secure-password
-      - SNIPO_SESSION_SECRET=${SESSION_SECRET}
-      - SNIPO_BASE_PATH=/snipo
-      - SNIPO_TRUST_PROXY=true
-    volumes:
-      - snipo-data:/data
-    networks:
-      - proxy-network
+See [Authentication modes](../SECURITY.md#authentication-modes) before enabling
+`SNIPO_DISABLE_AUTH` or the Settings → General “Disable login” option.
 
-volumes:
-  snipo-data:
+## Server and database
 
-networks:
-  proxy-network:
-    external: true
-```
+| Variable | Default | Purpose |
+|---|---:|---|
+| `SNIPO_HOST` | `0.0.0.0` | Bind address |
+| `SNIPO_PORT` | `8080` | HTTP port |
+| `SNIPO_READ_TIMEOUT` | `30s` | HTTP read timeout |
+| `SNIPO_WRITE_TIMEOUT` | `30s` | HTTP write timeout |
+| `SNIPO_TRUST_PROXY` | `false` | Trust client-IP forwarding headers |
+| `SNIPO_BASE_PATH` | empty | External URL prefix |
+| `SNIPO_MAX_FILES_PER_SNIPPET` | `10` | Maximum files in one snippet |
+| `SNIPO_DB_PATH` | `/data/snipo.db` | SQLite file |
+| `SNIPO_DB_MAX_CONNS` | `1` | Maximum open SQLite connections |
+| `SNIPO_DB_BUSY_TIMEOUT` | `5000` | Busy timeout in milliseconds |
+| `SNIPO_DB_JOURNAL` | `WAL` | SQLite journal mode |
+| `SNIPO_DB_SYNC` | `NORMAL` | SQLite synchronous mode |
+| `SNIPO_DB_MMAP_SIZE` | `268435456` | Memory-mapped I/O bytes |
+| `SNIPO_DB_CACHE_SIZE` | `-2000` | SQLite cache pages; negative values are KiB |
 
-## Database Configuration
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SNIPO_DB_PATH` | `/data/snipo.db` | SQLite database path |
-| `SNIPO_DB_MAX_CONNS` | `1` | Maximum database connections |
-| `SNIPO_DB_BUSY_TIMEOUT` | `5000` | Database busy timeout (ms) |
-| `SNIPO_DB_JOURNAL` | `WAL` | Journal mode (WAL/DELETE/MEMORY) |
-| `SNIPO_DB_SYNC` | `NORMAL` | Synchronous mode (OFF/NORMAL/FULL) |
-| `SNIPO_DB_MMAP_SIZE` | `268435456` | Memory-mapped I/O size (256MB) |
-| `SNIPO_DB_CACHE_SIZE` | `-2000` | Cache size in KB (2MB, negative = KB) |
-
-### Database Memory Settings
-
-If you encounter "out of memory" database errors, reduce the memory settings:
+For memory-constrained systems, reduce or disable memory mapping:
 
 ```bash
-# For systems with limited memory
-SNIPO_DB_MMAP_SIZE=67108864    # 64MB instead of 256MB
-SNIPO_DB_CACHE_SIZE=-1000      # 1MB instead of 2MB
-
-# For very constrained systems
-SNIPO_DB_MMAP_SIZE=33554432    # 32MB
-SNIPO_DB_CACHE_SIZE=-500       # 512KB
-
-# Disable memory-mapped I/O if issues persist
-SNIPO_DB_MMAP_SIZE=0           # Disable mmap
+SNIPO_DB_MMAP_SIZE=67108864
+SNIPO_DB_CACHE_SIZE=-1000
 ```
 
-**Note:** The SQLite "out of memory (14)" error is misleading - it's about SQLite's internal memory allocation, not system RAM. Reducing these values typically resolves the issue.
+## API and feature flags
 
-### Database Permission Issues
+| Variable | Default | Purpose |
+|---|---:|---|
+| `SNIPO_ALLOWED_ORIGINS` | empty | Comma-separated CORS origins; empty means same-origin |
+| `SNIPO_RATE_LIMIT_READ` | `1000` | Read requests per token/IP per hour |
+| `SNIPO_RATE_LIMIT_WRITE` | `500` | Write requests per token/IP per hour |
+| `SNIPO_RATE_LIMIT_ADMIN` | `100` | Admin requests per token/IP per hour |
+| `SNIPO_ENABLE_PUBLIC_SNIPPETS` | `true` | Public snippet pages and file endpoints |
+| `SNIPO_ENABLE_API_TOKENS` | `true` | API token management endpoints |
+| `SNIPO_ENABLE_BACKUP_RESTORE` | `true` | Backup and S3 endpoints |
 
-The "out of memory (14)" error can also be caused by filesystem permission problems:
+## S3 backups
 
-**Common Causes:**
-- Docker volume mount with insufficient permissions
-- Read-only filesystem preventing database creation
-- User/UID mismatch between host and container
+| Variable | Default | Purpose |
+|---|---:|---|
+| `SNIPO_S3_ENABLED` | `false` | Enable S3-compatible backup storage |
+| `SNIPO_S3_ENDPOINT` | empty | Service endpoint |
+| `SNIPO_S3_ACCESS_KEY` | empty | Access-key ID |
+| `SNIPO_S3_SECRET_KEY` | empty | Secret access key |
+| `SNIPO_S3_BUCKET` | empty | Bucket name |
+| `SNIPO_S3_REGION` | `us-east-1` | Region |
+| `SNIPO_S3_SSL` | `true` | Use TLS for the S3 connection |
 
-**Solutions:**
+Use a dedicated bucket credential with only the permissions Snipo needs.
 
-**1. Fix Docker Volume Permissions:**
-```bash
-# Ensure the data directory has proper permissions
-sudo chown -R 1000:1000 /path/to/your/data
-sudo chmod -R 755 /path/to/your/data
+## Logging and health
 
-# Or use a bind mount with proper ownership
-mkdir -p ./snipo-data
-chmod 755 ./snipo-data
-```
+| Variable | Default | Purpose |
+|---|---:|---|
+| `SNIPO_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, or `error` |
+| `SNIPO_LOG_FORMAT` | `json` | `json` or `text` |
 
-**2. Docker Compose Configuration:**
-```yaml
-services:
-  snipo:
-    volumes:
-      - ./snipo-data:/data  # Ensure host directory is writable
-    # Remove user mapping if causing permission issues
-    # user: "1000:1000"
-```
+`GET /ping` checks the process; `GET /health` also checks the database. The
+binary provides `snipo health` for container health checks.
 
-**3. Check Volume Mount:**
-```bash
-# Verify the container can write to the data directory
-docker run --rm -v ./snipo-data:/data alpine touch /data/test
-```
+## Upgrade and backup
 
-**4. Use Named Volumes (Recommended):**
-```yaml
-services:
-  snipo:
-    volumes:
-      - snipo_data:/data  # Docker manages permissions
+Before upgrading:
 
-volumes:
-  snipo_data:
-```
-
-## API Configuration
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SNIPO_RATE_LIMIT_READ` | `1000` | API read operations (per hour) |
-| `SNIPO_RATE_LIMIT_WRITE` | `500` | API write operations (per hour) |
-| `SNIPO_RATE_LIMIT_ADMIN` | `100` | API admin operations (per hour) |
-| `SNIPO_ALLOWED_ORIGINS` | - | CORS allowed origins (comma-separated) |
-| `SNIPO_ENABLE_PUBLIC_SNIPPETS` | `true` | Enable public snippet sharing |
-| `SNIPO_ENABLE_API_TOKENS` | `true` | Enable API token creation |
-| `SNIPO_ENABLE_BACKUP_RESTORE` | `true` | Enable backup/restore |
-
-See [`.env.example`](../.env.example) for all available options including S3 backup configuration.
-
-## Password Security
-
-For enhanced security, use a pre-hashed password instead of plain text:
-
-```bash
-# Generate a password hash
-./snipo hash-password your-secure-password
-
-# Or with Docker
-docker run --rm ghcr.io/mohamedelashri/snipo:latest hash-password >
-```
-
-Then use the generated hash:
-
-```bash
-# In .env file
-SNIPO_MASTER_PASSWORD_HASH=$argon2id$base64salt$base64hash
-
-# Or in docker-compose.yml
-environment:
-  - SNIPO_MASTER_PASSWORD_HASH=$argon2id$base64salt$base64hash
-```
-
-> **Docker Compose Warning**: When using `SNIPO_MASTER_PASSWORD_HASH` in docker-compose.yml, the `$` characters in Argon2id hashes will be interpreted as variable substitution. Either:
-> - Use double dollar signs: `$$argon2id$$base64salt$$base64hash`
-> - Quote the value: `"SNIPO_MASTER_PASSWORD_HASH=$argon2id$base64salt$base64hash"`
-> - Use a `.env` file and reference it: `SNIPO_MASTER_PASSWORD_HASH=${SNIPO_MASTER_PASSWORD_HASH}`
-
-See [SECURITY.md](../SECURITY.md) for detailed password security practices.
+1. Export a backup from Settings and verify that it can be read.
+2. Back up the database and `.encryption_salt` while Snipo is stopped, or use a
+   SQLite-aware snapshot that includes WAL state.
+3. Pull a pinned release tag, recreate the container, and check `/health`.
+4. Review the [changelog](CHANGELOG.md) for migration or configuration notes.
