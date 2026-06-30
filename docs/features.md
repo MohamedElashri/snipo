@@ -1,277 +1,98 @@
-# Features Guide
+# Feature guide
 
-## Search
+This page covers behavior that is not obvious in the interface. API details are
+in the [OpenAPI specification](openapi.yaml).
 
-Snipo features powerful fuzzy search that searches across:
-- Snippet titles, descriptions, and content
-- Multi-file snippet contents
-- File names
+## Snippets and organization
 
-### Basic Search
-Type keywords in the search bar. Multiple words are matched using AND logic:
-```
-python docker
-```
-Finds snippets containing both "python" and "docker" anywhere in the metadata or content.
+A snippet can contain one legacy content field or multiple named files. Snipo
+supports folders, tags, favorites, archiving, soft deletion, expiration, and
+duplication. The default maximum is 10 files per snippet; operators can change
+it with `SNIPO_MAX_FILES_PER_SNIPPET`.
 
-### Filters
+History records pre-update snapshots when history is enabled in Settings.
+Restoring an entry creates a new update; permanently deleting a snippet also
+deletes its history.
 
-**By Tags:**
-```
-?tag_id=1              # Single tag
-?tag_ids=1,2,3         # Multiple tags
-```
+## Search and filtering
 
-**By Folders:**
-```
-?folder_id=1           # Single folder
-?folder_ids=1,2,3      # Multiple folders
-```
-
-**By Language:**
-```
-?language=javascript
-```
-
-**By Status:**
-```
-?favorite=true         # Favorites only
-?is_archived=true      # Archived snippets
-```
-
-### Combining Filters
-Mix search with filters for precise results:
-```
-?q=api&tag_id=1&language=python
-```
-Searches for "api" in Python snippets with tag 1.
-
-### Sorting
-```
-?sort=title&order=asc  # A-Z by title
-?sort=updated_at       # Recently updated (default)
-?sort=created_at       # Recently created
-```
-
-**In-app help:** Click the `?` icon next to the search bar for interactive documentation.
-
-## Public Snippets
-
-Share code snippets publicly with granular file-level access.
-
-### Making Snippets Public
-
-**From Editor:**
-1. Open or create a snippet
-2. Toggle the "Public" switch in the editor header
-3. Share the generated URL: `https://localhost:8080/s/{snippet-id}`
-
-**From Preview Page:**
-- Click the globe icon in the header to toggle public/private status
-- Requires authentication to change visibility
-
-### Accessing Public Snippets
-
-**Web Interface:**
-- Multi-file snippets display with file tabs
-- Switch between files using the tab interface
-- Download individual files with the download button
-- Copy file URLs for direct access
-
-**Direct File Access (wget/curl):**
-
-For single-file snippets:
-```bash
-# Download the file
-curl -O https://localhost:8080/api/v1/snippets/public/{snippet-id}/files/{filename}
-
-# Or with wget
-wget https://localhost:8080/api/v1/snippets/public/{snippet-id}/files/{filename}
-```
-
-For multi-file snippets:
-```bash
-# Download specific file
-curl -O https://localhost:8080/api/v1/snippets/public/abc123/files/config.yaml
-
-# Download all files using the file URLs from the web interface
-curl -O https://localhost:8080/api/v1/snippets/public/abc123/files/main.go
-curl -O https://localhost:8080/api/v1/snippets/public/abc123/files/README.md
-```
-
-**URL Format:**
-- Snippet preview: `/s/{snippet-id}`
-- Individual file (raw): `/api/v1/snippets/public/{snippet-id}/files/{filename}`
-
-**Permissions:**
-- Public snippets are accessible without authentication
-- View count is tracked automatically
-- Files are returned as plain text with proper Content-Disposition headers
-
-## GitHub Gist Sync
-
-Snipo supports two-way synchronization with GitHub Gists, allowing you to backup your snippets to GitHub and keep them in sync across platforms.
-
-### Setup
-
-1. **Generate GitHub Personal Access Token:**
-   - Go to [GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)](https://github.com/settings/tokens/new?scopes=gist&description=Snipo)
-   - Create a token with `gist` scope
-   - Copy the generated token
-
-2. **Configure in Snipo:**
-   - Go to Settings → GitHub Gist tab
-   - Paste your GitHub token
-   - Click "Save Configuration" (sync is automatically enabled)
-
-### Features
-
-**Sync Options:**
-- **Enable Sync for All**: Creates GitHub gists for all your snippets at once
-- **Sync Now**: Syncs changes for already-enabled snippets
-- **Auto-Sync**: Background sync at configurable intervals (5/15/30/60 minutes)
-
-**Conflict Resolution:**
-- **Manual**: Review and resolve conflicts manually
-- **Snipo Wins**: Always keep Snipo version
-- **Gist Wins**: Always keep GitHub version
-- **Newest Wins**: Keep the most recently modified version
-
-**Metadata Preservation:**
-- Snippet titles, descriptions, and content are synced
-- Snipo-specific metadata (favorites, folders, tags) embedded in gist description
-- Multi-file snippets fully supported
-
-### Usage
-
-**Enable sync for all snippets:**
-```
-Settings → GitHub Gist → Enable Sync for All
-```
-
-**View synced snippets:**
-- See list of synced snippets with status badges (✓ synced, ⟳ pending, ⚠ conflict, ✗ error)
-- Click gist links to view on GitHub
-- Remove mappings to stop syncing specific snippets
-
-**Manage conflicts:**
-- Conflicts appear when both Snipo and GitHub versions are modified
-- Choose "Keep Snipo" or "Keep Gist" to resolve
-- Or set automatic conflict resolution strategy in settings
-
-### Limitations
-
-- Requires GitHub Personal Access Token (no OAuth)
-- Sync is per-snippet, not automatic for new snippets
-- GitHub API rate limit: 5000 requests/hour
-
-## API
-
-Create API tokens in Settings → API Tokens with granular permissions:
-- **read**: View snippets, tags, folders
-- **write**: Create, update, delete resources
-- **admin**: Full access including settings
-
-Authenticate via:
-- `Authorization: Bearer <token>`
-- `X-API-Key: <key>`
-
-All responses include metadata (request ID, timestamp, version) and pagination for lists.
-
-API documentation:
-- OpenAPI spec: [`openapi.yaml`](openapi.yaml)
-- Interactive docs: `http://localhost:8080/api/v1/openapi.json`
-
-## Version History
-
-Snipo automatically tracks all changes to your snippets with a comprehensive version history system. Every modification is saved, allowing you to view previous versions and restore them at any time.
-
-### How It Works
-
-- **Automatic Tracking**: Every create and update operation is automatically saved to history
-- **Pre-Update Snapshots**: The current state is saved *before* each update, preserving the original version
-- **Multi-File Support**: History includes all files within a snippet, not just the main content
-- **Configurable**: Can be enabled/disabled in Settings → General
-
-### Viewing History
-
-**From the Editor:**
-1. Open any snippet
-2. Click the **History** button in the editor toolbar
-3. Browse the chronological list of versions
-
-**History Entry Details:**
-- **Timestamp**: When the change was made
-- **Change Type**: `Created` or `Updated`
-- **Current Badge**: Marks the current version
-- **Full Content**: View complete content of each version
-
-### Restoring Previous Versions
-
-**Quick Restore:**
-1. Open the history modal
-2. Click **Restore** on any previous version
-3. Confirm the restoration
-
-**View Then Restore:**
-1. Click **View Full** to see complete version details
-2. Review the content and files
-3. Click **Restore This Version** at the bottom
-
-**What Gets Restored:**
-- Title and description
-- All file content and filenames
-- Language settings
-- Public/private status
-- Favorite and archive status
-
-### API Access
-
-History can be accessed programmatically via the REST API:
+The snippet list accepts a text query and filters:
 
 ```bash
-# Get snippet history
-curl -H "Authorization: Bearer <token>" \
-  http://localhost:8080/api/v1/snippets/{id}/history?limit=50
-
-# Restore from history
-curl -X POST \
-  -H "Authorization: Bearer <token>" \
-  http://localhost:8080/api/v1/snippets/{id}/history/{history_id}/restore
+?q=api
+?tag_ids=1&tag_ids=2
+?folder_ids=3
+?language=python
+?favorite=true
+?is_archived=true
+?sort=updated_at&order=desc
 ```
 
-### Storage & Performance
+The web interface exposes these through search and the sidebar. Press `/` or
+`Ctrl/Cmd+K` to focus search.
 
-- **Efficient Storage**: History entries are stored in SQLite with proper indexing
-- **Automatic Cleanup**: No manual intervention required
-- **Configurable Limits**: API requests can limit results (default: 50, max: 200)
+## Public snippets
 
-### Limitations
+Enable sharing on a snippet and distribute `/s/{id}`. Individual files are
+available at:
 
-- History is only created when the feature is enabled in settings
-- Disabled history won't retroactively create entries when re-enabled
-- History entries are permanently deleted when the parent snippet is permanently deleted
-
----
-
-## RTL Support
-
-Snipo includes comprehensive support for Arabic and other RTL (Right-to-Left) languages with intelligent handling of mixed RTL/LTR content.
-
-### Automatic Language Detection
-
-The editor automatically detects Arabic text and applies appropriate formatting:
-
-- **Pure Arabic text** (>30% Arabic characters): Full RTL mode
-- **Mixed content** (<30% Arabic characters): RTL with Unicode bidirectional algorithm
-- **English/Latin text**: Standard LTR mode
-
-### Mixed Content Handling
-
-For content mixing Arabic and English (common in technical documentation):
-
-```
-يمكنك استخدام JavaScript و Python في Snipo بسهولة تامة.
+```bash
+/api/v1/snippets/public/{id}/files/{filename}
 ```
 
-The editor uses `unicode-bidi: plaintext` for natural text flow, proper font stacks, and correct punctuation placement.
+These routes require no authentication. Anyone with the URL can read the
+published content, and disabling login does not add protection. Operators can
+remove the public routes entirely with:
+
+```bash
+SNIPO_ENABLE_PUBLIC_SNIPPETS=false
+```
+
+## API tokens
+
+Create tokens under Settings → API Tokens. The
+[security guide](../SECURITY.md#sessions-and-api-tokens) explains permission and
+credential handling; [openapi.yaml](openapi.yaml) defines authentication and is
+also served at `/api/v1/openapi.json`.
+
+## Backups
+
+Settings can export JSON or ZIP and import using `replace`, `merge`, or `skip`.
+Supplying a backup password produces an AES-256-GCM encrypted `.enc` file.
+Restoration requires the password and the same `SNIPO_ENCRYPTION_SALT` used for
+export; see [Data and backups](../SECURITY.md#data-and-backups).
+
+S3-compatible storage can upload, list, restore, and delete backups when its
+environment variables are configured. See the [deployment guide](deployment.md#s3-backups).
+
+## GitHub Gist sync
+
+Gist sync uses a GitHub personal access token with Gist access. Configure it
+under Settings → GitHub Gist.
+
+- Sync is enabled per snippet or in bulk; new snippets are not automatically
+  enrolled.
+- Background sync runs only when both sync and automatic sync are enabled.
+- Conflict policies are manual, Snipo wins, Gist wins, or newest wins.
+- Snipo metadata is embedded in the Gist description; files remain normal Gist
+  files.
+
+Removing a mapping stops synchronization; it does not delete either copy.
+
+## Appearance and editing
+
+Snipo supports light, dark, and automatic UI themes, configurable Ace editor
+themes and behavior, Markdown preview, custom CSS, and right-to-left text.
+Custom CSS examples are in the [customization guide](customization.md).
+
+RTL direction is selected from the text content. Mixed technical text uses the
+browser's bidirectional layout rather than changing the stored snippet.
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `/` or `Ctrl/Cmd+K` | Focus search |
+| `Ctrl/Cmd+N` | New snippet |
+| `Ctrl/Cmd+S` | Save while editing |
+| `Escape` | Close the active editor, modal, or search help |

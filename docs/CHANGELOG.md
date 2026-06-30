@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update Frontend vendor dependencies to latest versions, including Ace editor and Alpine.js.
 
 
-## [1.6.0] - 2026-06-6
+## [1.6.0] - 2026-06-06
 
 ### Added
 - Added `Ctrl+S` / `Cmd+S` save support in edit mode, including Ace editor command handling and duplicate-save protection.
@@ -88,7 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated various vendor JS dependencies 
 - Updated Go dependencies and sqlite
 
-## [1.3.13] - 2026-10-22
+## [1.3.13] - 2026-03-22
 
 ### Added 
 - Add RTL and Arabic support with proper mixed-content handling

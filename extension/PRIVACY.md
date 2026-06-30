@@ -1,96 +1,69 @@
-# Privacy Policy for Snipo Browser Extension
+# Snipo browser extension privacy policy
 
-**Last Updated:** January 2, 2026
+Last updated: July 1, 2026
 
-## Overview
+## Data handled
 
-Snipo is a browser extension that allows you to save code snippets to your self-hosted Snipo instance. This extension is designed with privacy as a core principle.
+The extension handles:
 
-## Data Collection and Usage
+- text you explicitly select for saving;
+- the current page title and URL, used as default snippet metadata;
+- the Snipo server URL and API token you configure;
+- interactive-mode and ignored-site preferences;
+- titles, descriptions, filenames, languages, folders, and tags entered in the
+  save dialog.
 
-### What Data We Collect
+## Storage and transmission
 
-The Snipo extension collects and processes the following data **locally on your device**:
+Configuration and preferences are stored in the browser's synchronized
+extension storage. If browser sync is enabled, the browser vendor may synchronize
+that data, including the API token, under the vendor's own privacy and security
+terms.
 
-1. **Selected Text/Code**: When you select text on a webpage and choose to save it as a snippet
-2. **Page Metadata**: The title and URL of the webpage where you save a snippet (used for context)
-3. **Configuration Data**: Your self-hosted Snipo instance URL and API key (stored locally in browser storage)
-4. **User Preferences**: Settings like Interactive Mode and ignored websites list
+When you save a snippet, its content and metadata are sent directly to the
+Snipo URL you configured. Connection tests and folder/tag lookups also contact
+that instance.
 
-### How We Use Your Data
+The extension contains no advertising, analytics, telemetry, or developer-run
+backend. It does not intentionally send data to the extension developer or
+other third parties. Network intermediaries and the operator of the configured
+Snipo instance can handle traffic according to their own policies.
 
-- **Selected text/code** is sent directly to YOUR self-hosted Snipo instance (the server you configure)
-- **Configuration data** is stored locally in your browser's sync storage
-- **No data is sent to any third-party servers or the extension developers**
-- **No analytics, tracking, or telemetry** is collected by this extension
+## Permissions
 
-## Data Storage
+The extension requests `activeTab`, `contextMenus`, `storage`, and host access
+to HTTP and HTTPS pages. Broad host access is required because the extension
+can run on pages where text is selected and must connect to an arbitrary
+self-hosted Snipo URL. The extension does not request the `scripting`
+permission.
 
-- All extension settings are stored using Chrome's `chrome.storage.sync` API
-- Data is synchronized across your browsers if you're signed into Chrome/Firefox sync
-- Your API key is stored securely in browser storage (not accessible to websites)
+## Security choices
 
-## Data Transmission
+The API token is not encrypted separately from browser storage. Use a dedicated,
+expiring Snipo token with `write` permission and revoke it if a synchronized
+browser account or device is compromised.
 
-The extension communicates ONLY with:
-- **Your self-hosted Snipo instance** (the URL you configure in settings)
+The extension uses the URL scheme you configure. Use HTTPS except for a
+loopback-only development instance. The security and retention of saved
+snippets are controlled by the configured Snipo operator.
 
-The extension does NOT communicate with:
-- Extension developers' servers
-- Third-party analytics services
-- Advertising networks
-- Any other external services
+## Control and deletion
 
-## Permissions Explanation
+You can:
 
-The extension requires the following permissions:
+- change or replace configuration in the extension options;
+- revoke the API token in Snipo;
+- clear extension storage through the browser;
+- remove the extension; and
+- delete saved snippets from Snipo.
 
-- **activeTab**: To read selected text from the current webpage when you save a snippet
-- **scripting**: To inject the content script that enables snippet saving functionality
-- **contextMenus**: To add "Save to Snipo" option to the right-click context menu
-- **storage**: To save your configuration (instance URL, API key, preferences)
-- **host_permissions (http://*/*, https://*/*)**: To allow the extension to work on any website and communicate with your self-hosted instance
+Removing the extension does not delete snippets already sent to Snipo. Browser
+sync may retain synchronized settings according to the browser vendor's
+policies.
 
-## Third-Party Services
+## Changes and contact
 
-This extension does NOT use any third-party services, analytics, or tracking tools.
-
-## Your Self-Hosted Instance
-
-Since you control your own Snipo instance:
-- You control where your data is stored
-- You control who has access to your snippets
-- You control the security and privacy settings of your instance
-
-Please refer to your Snipo instance's privacy practices and security configuration.
-
-## Data Security
-
-- API keys are stored in browser storage and transmitted only to your configured instance
-- All communication with your Snipo instance uses the protocol you configure (HTTP or HTTPS)
-- We recommend using HTTPS for your Snipo instance in production
-
-## Children's Privacy
-
-This extension is not directed at children under the age of 13. We do not knowingly collect personal information from children.
-
-## Changes to This Privacy Policy
-
-We may update this privacy policy from time to time. Any changes will be reflected in the extension's repository and the "Last Updated" date above.
-
-## Open Source
-
-This extension is open source. You can review the complete source code at:
-https://github.com/MohamedElashri/snipo
-
-## Contact
-
-If you have questions about this privacy policy, please open an issue on our GitHub repository:
-https://github.com/MohamedElashri/snipo/issues
-
-## Your Rights
-
-Since this extension stores data locally and only communicates with your self-hosted instance:
-- You can delete all extension data by removing the extension
-- You can clear stored settings through the browser's extension management interface
-- You have complete control over your snippet data through your self-hosted instance
+Policy changes are published with the extension source. Questions can be filed
+in the [Snipo issue tracker](https://github.com/MohamedElashri/snipo/issues).
+Report security vulnerabilities privately as described in
+[SECURITY.md](../SECURITY.md).

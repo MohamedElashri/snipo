@@ -16,18 +16,18 @@ info:
     ### Token Permissions
     
     API tokens have permission levels that control access:
-    - **read**: Can only access GET endpoints (view snippets, tags, folders)
-    - **write**: Can create, update, and delete snippets, tags, and folders
-    - **admin**: Full access including token management, settings, and backups
+    - **read**: Read snippets, tags, folders, history, and Gist status
+    - **write**: Read access plus create, update, delete, restore, and sync operations
+    - **admin**: Write access plus token management, settings, backups, and Gist configuration
     
     Session-based auth (web UI) has full admin access by default.
     
     ## Rate Limiting
     
     API endpoints are rate-limited based on permission level:
-    - **Read operations**: 1000 requests/hour (configurable via `SNIPO_RATE_LIMIT_READ`)
-    - **Write operations**: 500 requests/hour (configurable via `SNIPO_RATE_LIMIT_WRITE`)
-    - **Admin operations**: 100 requests/hour (configurable via `SNIPO_RATE_LIMIT_ADMIN`)
+    - **Read operations**: 1000 requests/hour
+    - **Write operations**: 500 requests/hour
+    - **Admin operations**: 100 requests/hour
     
     Rate limit information is included in response headers:
     - `X-RateLimit-Limit`: Maximum requests per window
@@ -35,66 +35,12 @@ info:
     - `X-RateLimit-Reset`: Unix timestamp when the limit resets
     - `Retry-After`: Seconds to wait before retrying (when limit exceeded)
     
-    ## Response Format
-    
-    All API responses use a standardized envelope format:
-    
-    **Single Resource:**
-    ```json
-    {
-      "data": {...},
-      "meta": {
-        "request_id": "uuid",
-        "timestamp": "2024-12-24T10:30:00Z",
-        "version": "1.0"
-      }
-    }
-    ```
-    
-    **List with Pagination:**
-    ```json
-    {
-      "data": [...],
-      "pagination": {
-        "page": 1,
-        "limit": 20,
-        "total": 150,
-        "total_pages": 8,
-        "links": {
-          "self": "/api/v1/snippets?page=1&limit=20",
-          "next": "/api/v1/snippets?page=2&limit=20",
-          "prev": null
-        }
-      },
-      "meta": {
-        "request_id": "uuid",
-        "timestamp": "2024-12-24T10:30:00Z",
-        "version": "1.0"
-      }
-    }
-    ```
-    
-    ## Request Tracking
-    
-    Every request is assigned a unique `request_id` (UUID v4) for tracking and debugging.
-    The ID is returned in:
-    - Response header: `X-Request-ID`
-    - Response body: `meta.request_id`
-    
-    ## Configuration
-    
-    The API supports configuration via environment variables:
-    - `SNIPO_ALLOWED_ORIGINS`: CORS allowed origins (comma-separated)
-    - `SNIPO_RATE_LIMIT_READ/WRITE/ADMIN`: Custom rate limits
-    - `SNIPO_ENABLE_PUBLIC_SNIPPETS`: Enable/disable public snippet sharing
-    - `SNIPO_ENABLE_API_TOKENS`: Enable/disable API token creation
-    - `SNIPO_ENABLE_BACKUP_RESTORE`: Enable/disable backup/restore features
-    
-    Feature flags are exposed via `/health` endpoint.
+    Successful resources use a `data` envelope. Lists add `pagination`; responses
+    include request metadata and an `X-Request-ID` header.
   version: 1.0.0
   license:
-    name: GPL-3.0
-    url: https://www.gnu.org/licenses/gpl-3.0.html
+    name: AGPL-3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.html
   contact:
     name: Mohamed Elashri 
     url: https://github.com/MohamedElashri/snipo
@@ -1740,7 +1686,7 @@ paths:
             minimum: 1
             maximum: 200
             default: 50
-          description: Maximum number of history entries to return (default: 50, max: 200)
+          description: "Maximum number of history entries to return (default: 50, max: 200)"
       responses:
         '200':
           description: Snippet history retrieved successfully
@@ -1935,63 +1881,6 @@ paths:
                       message: "History entry does not belong to this snippet"
         '401':
           description: Unauthorized - authentication required
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                no_auth:
-                  summary: No authentication provided
-                  value:
-                    error:
-                      code: "UNAUTHORIZED"
-                      message: "Authentication required"
-                invalid_token:
-                  summary: Invalid or expired token
-                  value:
-                    error:
-                      code: "INVALID_TOKEN"
-                      message: "Invalid or expired authentication token"
-        '403':
-          description: Forbidden - insufficient permissions
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                insufficient_permissions:
-                  summary: Write permission required
-                  value:
-                    error:
-                      code: "FORBIDDEN"
-                      message: "Insufficient permissions to perform this action"
-        '404':
-          description: Snippet not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                not_found:
-                  summary: Snippet not found
-                  value:
-                    error:
-                      code: "NOT_FOUND"
-                      message: "Snippet not found"
-
-  /api/v1/tags:
-    get:
-      tags: [Tags]
-      summary: List tags
-      description: Get all tags with snippet counts
-      operationId: listTags
-      security:
-        - sessionCookie: []
-        - bearerAuth: []
-        - apiKey: []
-      responses:
-        '200':
-          description: List of tags
           content:
             application/json:
               schema:
@@ -4531,7 +4420,7 @@ paths:
       security:
         - sessionCookie: []
         - bearerAuth: []
-        - apiKeyAuth: []
+        - apiKey: []
       responses:
         '200':
           description: Gist sync configuration
@@ -4610,7 +4499,7 @@ paths:
       security:
         - sessionCookie: []
         - bearerAuth: []
-        - apiKeyAuth: []
+        - apiKey: []
       requestBody:
         required: true
         content:
@@ -4728,7 +4617,7 @@ paths:
       security:
         - sessionCookie: []
         - bearerAuth: []
-        - apiKeyAuth: []
+        - apiKey: []
       responses:
         '200':
           description: Configuration cleared
@@ -4794,7 +4683,7 @@ paths:
       security:
         - sessionCookie: []
         - bearerAuth: []
-        - apiKeyAuth: []
+        - apiKey: []
       responses:
         '200':
           description: Connection successful
@@ -4885,7 +4774,7 @@ paths:
       security:
         - sessionCookie: []
         - bearerAuth: []
-        - apiKeyAuth: []
+        - apiKey: []
       responses:
         '200':
           description: Sync enabled for snippets
@@ -4978,7 +4867,7 @@ paths:
       security:
         - sessionCookie: []
         - bearerAuth: []
-        - apiKeyAuth: []
+        - apiKey: []
       responses:
         '200':
           description: Sync completed
@@ -5069,7 +4958,7 @@ paths:
       security:
         - sessionCookie: []
         - bearerAuth: []
-        - apiKeyAuth: []
+        - apiKey: []
       parameters:
         - name: id
           in: path
@@ -5160,7 +5049,7 @@ paths:
       security:
         - sessionCookie: []
         - bearerAuth: []
-        - apiKeyAuth: []
+        - apiKey: []
       parameters:
         - name: id
           in: path
@@ -5251,7 +5140,7 @@ paths:
       security:
         - sessionCookie: []
         - bearerAuth: []
-        - apiKeyAuth: []
+        - apiKey: []
       parameters:
         - name: id
           in: path
@@ -5333,6 +5222,38 @@ paths:
                       code: "SYNC_FAILED"
                       message: "Failed to sync snippet"
 
+  /api/v1/gist/sync/verify:
+    post:
+      tags: [GitHub Gist Sync]
+      summary: Verify Gist mappings
+      description: Checks existing snippet-to-Gist mappings and updates their status.
+      operationId: verifyGistMappings
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      responses:
+        '200':
+          description: Mapping verification result
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Write permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /api/v1/gist/mappings:
     get:
       tags: [GitHub Gist Sync]
@@ -5342,7 +5263,7 @@ paths:
       security:
         - sessionCookie: []
         - bearerAuth: []
-        - apiKeyAuth: []
+        - apiKey: []
       responses:
         '200':
           description: List of mappings
@@ -5426,7 +5347,7 @@ paths:
       security:
         - sessionCookie: []
         - bearerAuth: []
-        - apiKeyAuth: []
+        - apiKey: []
       parameters:
         - name: id
           in: path
@@ -5512,7 +5433,7 @@ paths:
       security:
         - sessionCookie: []
         - bearerAuth: []
-        - apiKeyAuth: []
+        - apiKey: []
       responses:
         '200':
           description: List of conflicts
@@ -5593,7 +5514,7 @@ paths:
       security:
         - sessionCookie: []
         - bearerAuth: []
-        - apiKeyAuth: []
+        - apiKey: []
       parameters:
         - name: id
           in: path
@@ -5708,7 +5629,7 @@ paths:
       security:
         - sessionCookie: []
         - bearerAuth: []
-        - apiKeyAuth: []
+        - apiKey: []
       parameters:
         - name: limit
           in: query
@@ -5846,19 +5767,12 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      description: |
-        API token authentication using Bearer token.
-        Permission level depends on token configuration:
-        - **read**: GET endpoints only
-        - **write**: GET, POST, PUT, DELETE for snippets, tags, folders
-        - **admin**: Full access including tokens, settings, backups
+      description: API token sent as an HTTP Bearer credential.
     apiKey:
       type: apiKey
       in: header
       name: X-API-Key
-      description: |
-        API key authentication (alternative to Bearer token).
-        Permission level depends on token configuration (read/write/admin).
+      description: API token sent through the X-API-Key header.
 
   schemas:
     Error:
