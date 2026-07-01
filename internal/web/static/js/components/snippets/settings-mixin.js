@@ -41,10 +41,7 @@ export const settingsMixin = {
   async loadApiTokens() {
     const result = await api.get('/api/v1/tokens');
     if (result) {
-      // Handle both {data: [...]} and [...] formats, ensuring array
-      // This should be fixing (https://github.com/MohamedElashri/snipo/issues/133)
-      const tokens = result.data || result;
-      this.apiTokens = Array.isArray(tokens) ? tokens : [];
+      this.apiTokens = Array.isArray(result) ? result : [];
     }
   },
 

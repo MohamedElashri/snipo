@@ -229,8 +229,5 @@ export function initPublicSnippet(Alpine) {
       const date = new Date(dateStr);
       return date.toLocaleDateString();
     },
-
-    autoResizeInput(element) { window.autoResizeInput(element); },
-    autoResizeSelect(element) { window.autoResizeSelect(element); }
   }));
 }

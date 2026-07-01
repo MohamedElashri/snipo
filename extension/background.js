@@ -74,7 +74,7 @@ async function apiCall(action, method, endpoint, body, sendResponse) {
         const response = await fetch(url, options);
         if (response.ok) {
             const data = await response.json();
-            sendResponse({ success: true, data: data.data || data }); // Handle enveloped or plain
+            sendResponse({ success: true, data: data.data });
         } else {
             const errorText = await response.text();
             let errorMessage = "API Error";
@@ -151,7 +151,6 @@ async function saveSnippet(code, tab, language = "plaintext", title = null, fold
             description: finalDesc,
             is_public: false,
             tags: tags,
-            language: language, // Restore top-level language for compatibility
             files: [
                 {
                     filename: finalFilename,
@@ -169,8 +168,7 @@ async function saveSnippet(code, tab, language = "plaintext", title = null, fold
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-API-Key': config.apiKey,
-                'X-API-Version': '1.0'
+                'X-API-Key': config.apiKey
             },
             body: JSON.stringify(payload)
         });

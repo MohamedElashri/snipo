@@ -393,24 +393,12 @@ paths:
           description: Filter by favorite status
           schema:
             type: boolean
-        - name: tag_id
-          in: query
-          description: Filter by single tag ID (deprecated, use tag_ids for multiple)
-          schema:
-            type: integer
-          example: 1
         - name: tag_ids
           in: query
           description: Filter by multiple tag IDs (comma-separated)
           schema:
             type: string
           example: "1,2,3"
-        - name: folder_id
-          in: query
-          description: Filter by single folder ID (deprecated, use folder_ids for multiple)
-          schema:
-            type: integer
-          example: 1
         - name: folder_ids
           in: query
           description: Filter by multiple folder IDs (comma-separated)

@@ -81,8 +81,7 @@ export const api = {
       }
     }
     
-    // Fallback for responses that don't match the envelope format
-    return json;
+    throw new Error('Invalid API response envelope');
   },
 
   get: (url, options = {}) => api.request('GET', url, null, options),

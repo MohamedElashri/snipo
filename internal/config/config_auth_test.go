@@ -53,7 +53,7 @@ func TestAuthDisabled(t *testing.T) {
 		{
 			name: "Auth disabled with hash - hash ignored",
 			envVars: map[string]string{
-				"SNIPO_DISABLE_AUTH":          "true",
+				"SNIPO_DISABLE_AUTH":         "true",
 				"SNIPO_MASTER_PASSWORD_HASH": "$argon2id$salt$hash",
 			},
 			expectError:       false,
@@ -111,7 +111,7 @@ func TestAuthDisabled(t *testing.T) {
 	_ = os.Unsetenv("SNIPO_SESSION_SECRET")
 }
 
-func TestAuthDisabledBackwardCompatibility(t *testing.T) {
+func TestAuthEnabledByDefault(t *testing.T) {
 	// Test that without SNIPO_DISABLE_AUTH set, behavior is the same as before
 
 	// Clear env
@@ -126,11 +126,11 @@ func TestAuthDisabledBackwardCompatibility(t *testing.T) {
 
 	cfg, err := Load()
 	if err != nil {
-		t.Fatalf("Backward compatibility broken: %v", err)
+		t.Fatalf("expected password requirement when auth is enabled: %v", err)
 	}
 
 	if cfg.Auth.Disabled {
-		t.Error("Auth should be enabled by default (backward compatibility)")
+		t.Error("auth should be enabled by default")
 	}
 
 	if cfg.Auth.MasterPassword == "" {

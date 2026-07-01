@@ -8,6 +8,7 @@ import {
   formatDate,
   formatFileSize,
   getLanguageColor,
+  autoResizeInput,
   autoResizeTextarea,
   isArabicText
 } from '../utils/helpers.js';
@@ -173,8 +174,8 @@ export function initSnippetsApp(Alpine) {
       }
 
       if (this.filter.query) params.set('q', this.filter.query);
-      if (this.filter.tagId) params.set('tag_id', this.filter.tagId);
-      if (this.filter.folderId) params.set('folder_id', this.filter.folderId);
+      if (this.filter.tagId) params.set('tag_ids', this.filter.tagId);
+      if (this.filter.folderId) params.set('folder_ids', this.filter.folderId);
       if (this.filter.language) params.set('language', this.filter.language);
       if (this.filter.isFavorite !== null) params.set('favorite', this.filter.isFavorite);
       if (this.filter.isArchived !== null) params.set('is_archived', this.filter.isArchived);
@@ -482,6 +483,7 @@ export function initSnippetsApp(Alpine) {
     formatDate,
     formatFileSize,
     getLanguageColor,
+    autoResizeInput,
     autoResizeTextarea,
     getAceMode,
     getFileExtension,

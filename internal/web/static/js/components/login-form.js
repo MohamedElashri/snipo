@@ -1,3 +1,5 @@
+import { api } from '../modules/api.js';
+
 // Login form component
 export function initLoginForm(Alpine) {
   Alpine.data('loginForm', () => ({
@@ -10,7 +12,7 @@ export function initLoginForm(Alpine) {
       this.error = '';
 
       try {
-        const result = await window.api.post('/api/v1/auth/login', { password: this.password });
+        const result = await api.post('/api/v1/auth/login', { password: this.password });
 
         // Handle error response format: { error: { code, message } }
         if (result && result.error) {

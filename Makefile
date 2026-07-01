@@ -1,4 +1,4 @@
-.PHONY: all build run run-test test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate migrate-down vendor vendor-install vendor-sync vendor-verify vendor-cleanup vendor-check vendor-status vendor-update vendor-update-major chrome firefox extension-build
+.PHONY: all build run run-test test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate vendor vendor-install vendor-sync vendor-verify vendor-cleanup vendor-check vendor-status vendor-update vendor-update-major chrome firefox extension-build
 
 VERSION ?= $(shell grep 'const Current =' internal/version/version.go | cut -d '"' -f 2)
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -70,9 +70,6 @@ migrate:
 
 migrate-test:
 	SNIPO_DISABLE_AUTH=true SNIPO_DB_PATH=./snipo.db go run ./cmd/server migrate
-
-migrate-down:
-	go run ./cmd/server migrate down
 
 # ── Vendor Library Management ────────────────────────────────────────
 # All frontend JS/CSS libs are served locally (no CDN) for privacy.

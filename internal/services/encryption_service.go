@@ -11,31 +11,18 @@ import (
 
 // EncryptionService handles encryption and decryption of sensitive data
 type EncryptionService struct {
-	key          []byte
-	fallbackKeys [][]byte
+	key []byte
 }
 
 // NewEncryptionService creates a new encryption service
 // key should be 32 bytes for AES-256
 func NewEncryptionService(key []byte) (*EncryptionService, error) {
-	return NewEncryptionServiceWithFallback(key)
-}
-
-// NewEncryptionServiceWithFallback creates a service that encrypts with the
-// primary key and can decrypt legacy ciphertext with fallback keys.
-func NewEncryptionServiceWithFallback(key []byte, fallbackKeys ...[]byte) (*EncryptionService, error) {
 	if len(key) != 32 {
 		return nil, fmt.Errorf("encryption key must be 32 bytes for AES-256")
 	}
-	for _, fallbackKey := range fallbackKeys {
-		if len(fallbackKey) != 32 {
-			return nil, fmt.Errorf("fallback encryption key must be 32 bytes for AES-256")
-		}
-	}
 
 	return &EncryptionService{
-		key:          key,
-		fallbackKeys: fallbackKeys,
+		key: key,
 	}, nil
 }
 
@@ -78,13 +65,6 @@ func (s *EncryptionService) Decrypt(ciphertext string) (string, error) {
 	plaintext, err := openGCM(s.key, data)
 	if err == nil {
 		return string(plaintext), nil
-	}
-
-	for _, fallbackKey := range s.fallbackKeys {
-		plaintext, fallbackErr := openGCM(fallbackKey, data)
-		if fallbackErr == nil {
-			return string(plaintext), nil
-		}
 	}
 
 	return "", fmt.Errorf("failed to decrypt: %w", err)

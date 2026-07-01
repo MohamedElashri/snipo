@@ -116,10 +116,6 @@ func (r *TokenRepository) GetByID(ctx context.Context, id int64) (*models.APITok
 	return token, nil
 }
 
-// GetByToken retrieves a token by its plain text value (for authentication)
-// MIGRATION STRATEGY: Supports both HMAC-SHA256 (new) and SHA256 (legacy) for backward compatibility
-// - Tries HMAC-SHA256 first (all new tokens)
-// - Falls back to SHA256 only for old tokens
 // GetByToken retrieves a token by its raw string value
 func (r *TokenRepository) GetByToken(ctx context.Context, token string) (*models.APIToken, error) {
 	query := `SELECT id, name, permissions, last_used_at, expires_at, created_at FROM api_tokens WHERE token_hash = ?`

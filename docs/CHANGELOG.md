@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - Unreleased
+
+### Removed
+
+- Removed decryption with the pre-1.5 Gist credential key. Existing Gist
+  credentials encrypted with that key must be saved again.
+- Removed the deprecated `tag_id` and `folder_id` list filters. Use the
+  comma-separated `tag_ids` and `folder_ids` parameters.
+- Removed support for non-enveloped API responses in the web client and browser
+  extension.
+- Removed the retired Gist metadata-file exception, frontend compatibility
+  globals, the no-op schema migration 6, and migration-specific repair paths.
+- Removed the unused top-level `migrations` directory. Runtime migrations are
+  defined only in `internal/database/migrations.go`.
+- Removed the non-functional `migrate-down` Make target; schema downgrades are
+  not supported.
+
 ## [1.6.1] - 2026-06-16
 
 - Update Frontend vendor dependencies to latest versions, including Ace editor and Alpine.js.
