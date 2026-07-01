@@ -9,10 +9,7 @@ import (
 	"github.com/MohamedElashri/snipo/internal/models"
 )
 
-const (
-	metadataFilename = "zzz-snipo-metadata.json"
-	maxGistTopics    = 20
-)
+const maxGistTopics = 20
 
 // SnippetToGistRequest converts a snippet to a gist request
 func SnippetToGistRequest(snippet *models.Snippet) (*models.GistRequest, error) {
@@ -114,12 +111,8 @@ func GistToSnippet(gist *models.GistResponse, existingSnippet *models.Snippet) (
 		snippet.CreatedAt = existingSnippet.CreatedAt
 	}
 
-	// Process files (skip metadata file if it exists for backward compatibility)
+	// Process files.
 	for filename, file := range gist.Files {
-		if filename == metadataFilename {
-			continue
-		}
-
 		language := getLanguageFromFilename(filename)
 		snippetFile := models.SnippetFile{
 			Filename: filename,

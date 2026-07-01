@@ -20,7 +20,7 @@ The snippet list accepts a text query and filters:
 
 ```bash
 ?q=api
-?tag_ids=1&tag_ids=2
+?tag_ids=1,2
 ?folder_ids=3
 ?language=python
 ?favorite=true

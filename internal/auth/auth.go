@@ -256,17 +256,12 @@ func (s *Service) CreateSession() (string, error) {
 	return token, nil
 }
 
-// ValidateSession checks if a session token is valid
-// MIGRATION STRATEGY: Supports both HMAC-SHA256 (new) and SHA256 (legacy) for backward compatibility
-// - Tries HMAC-SHA256 first (all new sessions)
-// - Falls back to SHA256 only for old sessions
-// - Automatically upgrades old sessions to HMAC-SHA256 on first use
+// ValidateSession checks if a session token is valid.
 func (s *Service) ValidateSession(token string) bool {
 	if token == "" {
 		return false
 	}
 
-	// Try new HMAC-SHA256 hash first
 	tokenHash := hashToken(token)
 	var expiresAt time.Time
 	var sessionID string

@@ -43,6 +43,3 @@ export function showToast(message, type = 'success') {
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 8000);
 }
-
-// Expose globally for inline handlers
-window.showToast = showToast;

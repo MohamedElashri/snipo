@@ -75,13 +75,14 @@ packaging is documented in the [extension README](../extension/README.md#build).
 | `internal/repository` | SQLite data access |
 | `internal/services` | Snippets, backups, encryption, and Gist sync |
 | `internal/web` | Templates and browser assets |
-| `migrations` | Embedded, ordered SQLite migrations |
+| `internal/database` | Connection setup and ordered SQLite migrations |
 | `docs/openapi.yaml` | Public API contract |
 | `extension` | Chrome and Firefox extension |
 | `tui` | Snippy terminal client module |
 
-Migrations run automatically at startup. Add a new numbered migration rather
-than editing a migration that may already be installed.
+Migrations run automatically at startup. Add a new numbered migration to
+`internal/database/migrations.go` rather than editing one that may already be
+installed.
 
 ## Frontend dependencies
 

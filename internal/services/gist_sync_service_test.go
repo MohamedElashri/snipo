@@ -201,7 +201,7 @@ func TestGistToSnippet(t *testing.T) {
 		}
 
 		if len(snippet.Files) != 1 {
-			t.Errorf("expected 1 file (metadata excluded), got %d", len(snippet.Files))
+			t.Errorf("expected 1 file, got %d", len(snippet.Files))
 		}
 
 		if snippet.Files[0].Filename != "test.go" {

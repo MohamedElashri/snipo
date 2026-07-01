@@ -227,9 +227,3 @@ export function isPredominantlyArabic(text, threshold = 0.3) {
 }
 
 // Expose helpers globally
-window.autoResizeInput = autoResizeInput;
-window.autoResizeSelect = autoResizeSelect;
-window.autoResizeTextarea = autoResizeTextarea;
-window.highlightCode = highlightCode;
-window.isArabicText = isArabicText;
-window.isPredominantlyArabic = isPredominantlyArabic;

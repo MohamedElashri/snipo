@@ -29,7 +29,7 @@ services:
       # Authentication: Use either hashed password (recommended) or plain password
       # Generate hash with: docker run --rm ghcr.io/mohamedelashri/snipo:latest hash-password your-password
       # SNIPO_MASTER_PASSWORD_HASH=${SNIPO_MASTER_PASSWORD_HASH}
-      # OR use plain password (backward compatible, less secure)
+      # Or use the supported plaintext password configuration:
       - SNIPO_MASTER_PASSWORD=${SNIPO_MASTER_PASSWORD:-<Put_your_master_password_here>}
       # Required: Set a random session secret (generate with: openssl rand -hex 32)
       - SNIPO_SESSION_SECRET=${SNIPO_SESSION_SECRET:-<generate_with_openssl_rand_hex_32>}

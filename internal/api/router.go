@@ -131,12 +131,8 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	languageHandler := handlers.NewLanguageHandler()
 
 	// Create encryption service for gist sync (using encryption salt as key for persistence)
-	legacyEncryptionKey := services.DeriveEncryptionKey(cfg.Config.Auth.EncryptionSalt)
 	encryptionKey := services.DeriveEncryptionKeyWithSecret(cfg.Config.Auth.EncryptionSalt, cfg.Config.Auth.SessionSecret)
-	if cfg.Config.Auth.SessionSecretGenerated {
-		encryptionKey = legacyEncryptionKey
-	}
-	encryptionSvc, err := services.NewEncryptionServiceWithFallback(encryptionKey, legacyEncryptionKey)
+	encryptionSvc, err := services.NewEncryptionService(encryptionKey)
 	if err != nil {
 		cfg.Logger.Warn("failed to initialize encryption service", "error", err)
 	}

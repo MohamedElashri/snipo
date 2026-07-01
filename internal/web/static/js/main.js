@@ -1,8 +1,6 @@
 // Main entry point for Snipo frontend application
 // Import modules
 import { theme } from './modules/theme.js';
-import { api } from './modules/api.js';
-import { showToast } from './modules/toast.js';
 
 // Import stores
 import { initAppStore } from './stores/app-store.js';
@@ -17,11 +15,6 @@ import { initKeyboardShortcuts } from './utils/keyboard.js';
 
 // Initialize theme on load
 theme.init();
-
-// Expose globals for compatibility with inline handlers
-window.api = api;
-window.showToast = showToast;
-window.theme = theme;
 
 // Register alpine:init listener BEFORE loading Alpine scripts.
 // When Alpine auto-starts it will fire this event and our components

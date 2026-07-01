@@ -63,13 +63,6 @@ func (h *SnippetHandler) List(w http.ResponseWriter, r *http.Request) {
 		filter.IsDeleted = &isDeleted
 	}
 
-	if tagID := r.URL.Query().Get("tag_id"); tagID != "" {
-		if id, err := strconv.ParseInt(tagID, 10, 64); err == nil && id > 0 {
-			filter.TagID = id
-		}
-	}
-
-	// Support multiple tag filtering (tag_ids=1,2,3)
 	if tagIDs := r.URL.Query().Get("tag_ids"); tagIDs != "" {
 		idStrs := strings.Split(tagIDs, ",")
 		for _, idStr := range idStrs {
@@ -79,13 +72,6 @@ func (h *SnippetHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if folderID := r.URL.Query().Get("folder_id"); folderID != "" {
-		if id, err := strconv.ParseInt(folderID, 10, 64); err == nil && id > 0 {
-			filter.FolderID = id
-		}
-	}
-
-	// Support multiple folder filtering (folder_ids=1,2,3)
 	if folderIDs := r.URL.Query().Get("folder_ids"); folderIDs != "" {
 		idStrs := strings.Split(folderIDs, ",")
 		for _, idStr := range idStrs {
