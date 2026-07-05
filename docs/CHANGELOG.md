@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.7.0] - Unreleased
+## [1.7.0] - 2026-07-04
 
 ### Removed
 
@@ -17,10 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extension.
 - Removed the retired Gist metadata-file exception, frontend compatibility
   globals, the no-op schema migration 6, and migration-specific repair paths.
-- Removed the unused top-level `migrations` directory. Runtime migrations are
-  defined only in `internal/database/migrations.go`.
+
+### Fixed
+
+- Editing items does appear crammed on mobile phones
+
+### Development
+
+-  Updated actions version to the latest accepted by sanad policy
 - Removed the non-functional `migrate-down` Make target; schema downgrades are
   not supported.
+- Removed the unused top-level `migrations` directory. Runtime migrations are
+  defined only in `internal/database/migrations.go`.
 
 ## [1.6.1] - 2026-06-16
 
