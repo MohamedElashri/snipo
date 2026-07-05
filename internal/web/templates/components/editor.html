@@ -355,18 +355,29 @@
             </div>
 
             <!-- Right: Details sidebar -->
-            <aside class="editor-details-sidebar" aria-label="Snippet details">
+            <aside class="editor-details-sidebar" aria-label="Snippet details"
+                x-data="{ collapsed: window.matchMedia('(max-width: 640px)').matches }"
+                :class="{ 'details-collapsed': collapsed }">
                 <div class="tags-sidebar-header editor-details-header">
                     <label>Details</label>
-                    <button class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"
-                        @click="editorHeaderVisible = !editorHeaderVisible" title="Focus Mode (Toggle Header)">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M15 3h6v6"></path>
-                            <path d="M14 10l6.1-6.1"></path>
-                            <path d="M9 21H3v-6"></path>
-                            <path d="M10 14l-6.1 6.1"></path>
-                        </svg>
-                    </button>
+                    <div style="display:flex;align-items:center;gap:0.15rem;">
+                        <button class="btn-icon editor-details-toggle" @click="collapsed = !collapsed"
+                            title="Toggle details panel">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
+                                height="14" :class="{ 'rotate-90': collapsed }">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <button class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"
+                            @click="editorHeaderVisible = !editorHeaderVisible" title="Focus Mode (Toggle Header)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 3h6v6"></path>
+                                <path d="M14 10l6.1-6.1"></path>
+                                <path d="M9 21H3v-6"></path>
+                                <path d="M10 14l-6.1 6.1"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="editor-details-content">
