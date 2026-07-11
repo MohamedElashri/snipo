@@ -4,7 +4,9 @@
   "description": "Frontend vendor dependencies for Snipo - managed locally for privacy",
   "private": true,
   "scripts": {
-    "vendor:sync": "node scripts/sync-vendor.js"
+    "postinstall": "node scripts/sync-vendor.js",
+    "vendor:status": "node scripts/sync-vendor.js --status",
+    "vendor:cleanup": "node scripts/sync-vendor.js --cleanup"
   },
   "dependencies": {
     "htmx.org": "^2.0.8",
@@ -14,8 +16,5 @@
     "prismjs": "^1.30.0",
     "marked": "^17.0.4",
     "@picocss/pico": "^2.1.1"
-  },
-  "devDependencies": {
-    "fs-extra": "^11.3.4"
   }
 }
