@@ -22,13 +22,16 @@
                 x-model="editingSnippet.title" placeholder="Snippet title..." rows="1"
                 @input="scheduleAutoSave(); autoResizeTextarea($event.target)"
                 x-init="$watch('isEditing', (v) => { if(v) $nextTick(() => autoResizeTextarea($el)) })"></textarea>
-            <textarea x-model="editingSnippet.description"
-                :class="{ 'rtl': isArabicText(editingSnippet.description) }"
-                placeholder="Description (optional)" rows="1"
-                class="description-textarea editor-description-under-title"
-                @input="scheduleAutoSave(); autoResizeTextarea($event.target)"
-                x-init="$watch('isEditing', (v) => { if(v) $nextTick(() => autoResizeTextarea($el)) })"></textarea>
         </div>
+
+        <!-- Description (edit mode, separate element for mobile row layout) -->
+        <textarea x-model="editingSnippet.description"
+            :class="{ 'rtl': isArabicText(editingSnippet.description) }"
+            placeholder="Description (optional)" rows="1"
+            class="description-textarea editor-description-under-title"
+            x-show="isEditing"
+            @input="scheduleAutoSave(); autoResizeTextarea($event.target)"
+            x-init="$watch('isEditing', (v) => { if(v) $nextTick(() => autoResizeTextarea($el)) })"></textarea>
 
         <div class="editor-toolbar-actions" :class="{ 'editing': isEditing }">
             <div class="editor-actions-row">

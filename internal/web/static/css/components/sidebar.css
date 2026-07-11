@@ -293,12 +293,14 @@
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
+    resize: none;
+    width: var(--sidebar-width);
+    max-width: 80vw;
   }
 
   .sidebar.open {
     transform: translateX(0);
   }
-
 }
 
 /* Mobile sidebar overlay */

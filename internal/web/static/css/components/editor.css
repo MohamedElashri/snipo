@@ -1,15 +1,17 @@
 /* Editor - Code editor and preview styles */
 
 .editor-container {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 60px);
   min-width: 0;
   overflow: hidden;
 }
 
 .editor-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
   padding: 0.25rem 0.5rem;
@@ -743,6 +745,7 @@
 }
 
 .editor-description-under-title {
+  flex: 0 0 100%;
   min-height: 30px;
   max-height: 72px;
   padding: 0.3rem 0.5rem;
@@ -1332,35 +1335,43 @@
 
 /* Mobile: ≤ 640px */
 @media (max-width: 640px) {
-  .editor-container {
-    height: calc(100vh - 56px);
-  }
-
   .editor-toolbar {
     padding: 0.15rem 0.35rem;
-    gap: 0.25rem;
+    gap: 0.2rem;
     flex-wrap: wrap;
   }
 
   .editor-toolbar > .btn-icon {
     order: 1;
-  }
-
-  .editor-toolbar-actions {
-    order: 2;
-    gap: 0.1rem;
+    flex: 0 0 auto;
   }
 
   .editor-title-display {
-    order: 3;
-    flex: 0 0 100%;
+    order: 1;
+    flex: 1;
+    min-width: 0;
     margin: 0.1rem 0;
   }
 
   .editor-title-wrapper {
+    order: 2;
+    flex: 0 0 100%;
+  }
+
+  .editor-description-under-title {
     order: 3;
     flex: 0 0 100%;
-    gap: 0.25rem;
+    min-height: 32px;
+    max-height: 56px;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .editor-toolbar-actions {
+    order: 4;
+    flex: 0 0 100%;
+    gap: 0.1rem;
+    justify-content: flex-end;
   }
 
   .editor-toolbar-actions .btn-action span {
@@ -1381,13 +1392,6 @@
     padding: 0.35rem 0.5rem;
     min-height: 38px;
     max-height: 80px;
-  }
-
-  .editor-description-under-title {
-    min-height: 32px;
-    max-height: 56px;
-    font-size: 0.8rem;
-    padding: 0.3rem 0.5rem;
   }
 
   .file-bar {
