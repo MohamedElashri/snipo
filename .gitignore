@@ -26,4 +26,3 @@ dist/
 
 ## Node.js dependencies (for vendor management)
 node_modules/
-package-lock.json
