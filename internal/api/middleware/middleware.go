@@ -14,7 +14,6 @@ import (
 	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
-	"github.com/MohamedElashri/snipo/internal/validation"
 )
 
 // Context keys for authentication and request tracking
@@ -128,10 +127,8 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 		logger.Info("request",
 			"request_id", requestID,
 			"method", r.Method,
-			"path", validation.TruncateForLog(r.URL.Path, 256),
 			"status", wrapped.statusCode,
 			"duration", duration,
-			"ip", validation.SanitizeForLog(getClientIP(r)),
 		)
 		})
 	}
@@ -156,8 +153,7 @@ func Recovery(logger *slog.Logger) func(http.Handler) http.Handler {
 				if err := recover(); err != nil {
 				logger.Error("panic recovered",
 					"error", err,
-					"stack", string(debug.Stack()),
-					"path", validation.TruncateForLog(r.URL.Path, 256),
+				"stack", string(debug.Stack()),
 				)
 					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				}

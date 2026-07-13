@@ -17,8 +17,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/argon2"
-
-	"github.com/MohamedElashri/snipo/internal/validation"
 )
 
 // Common errors
@@ -211,7 +209,7 @@ func (s *Service) VerifyPasswordWithDelay(password, clientIP string) (bool, time
 	}
 
 	s.failedAttempts.RecordFailure(clientIP)
-	s.logger.Warn("failed login attempt", "ip", validation.SanitizeForLog(clientIP))
+	s.logger.Warn("failed login attempt")
 	return false, 0
 }
 

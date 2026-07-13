@@ -418,7 +418,7 @@ func (s *SnippetService) Search(ctx context.Context, query string, limit int) ([
 
 	snippets, err := s.repo.Search(ctx, query, limit)
 	if err != nil {
-		s.logger.Error("failed to search snippets", "query", validation.TruncateForLog(query, 100), "error", err)
+		s.logger.Error("failed to search snippets", "error", err)
 		return nil, err
 	}
 
