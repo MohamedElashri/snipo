@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.2] - 2026-07-13
+
+### Added
+- Footer version label now links to the CHANGELOG section on click (#298)
+
+### Security
+- Sanitize FTS5 query input to prevent SQL injection attacks (#302)
+- Redact sensitive query parameters from logs and reject passwords in URLs (#304)
+- Clear user-controlled data from log entries (#311)
+- Remove `X-API-Key` from session token extraction (#305)
+- Sanitize `Host` header in pagination links to prevent injection (#307)
+- Sanitize user input in log entries to prevent log injection (#300)
+- Enforce `Content-Type: application/json` in `DecodeJSON` (#301)
+
+### Fixed
+- Derive HMAC keys from session secret instead of hardcoding a static value (#308)
+- Move S3 delete key from query parameter to URL path for proper signing (#303)
+- Require `TrustProxy` setting for `X-Forwarded-Proto` in `scheme()` (#310)
+- Resolve OpenAPI spec path relative to executable (#309)
+- Fix logging for snippet tag setting errors by truncating overly long messages (#312)
+
+### Changed
+- Update GitHub Actions using sanad policy (#299)
+- Upgrade Go depedencies
+
 ## [1.7.1] - 2026-07-11
 
 ### Fixed
