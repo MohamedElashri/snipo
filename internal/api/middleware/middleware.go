@@ -127,10 +127,8 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 			logger.Info("request",
 				"request_id", requestID,
 				"method", r.Method,
-				"path", strings.ReplaceAll(strings.ReplaceAll(r.URL.Path, "\n", ""), "\r", ""),
 				"status", wrapped.statusCode,
 				"duration", duration,
-				"ip", strings.ReplaceAll(strings.ReplaceAll(getClientIP(r), "\n", ""), "\r", ""),
 			)
 		})
 	}
