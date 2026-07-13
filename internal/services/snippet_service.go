@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
@@ -169,7 +168,7 @@ func (s *SnippetService) Create(ctx context.Context, input *models.SnippetInput)
 		s.logger.Warn("failed to save creation to history", "id", snippet.ID, "error", err)
 	}
 
-	s.logger.Info("snippet created", "id", snippet.ID, "title", strings.ReplaceAll(strings.ReplaceAll(snippet.Title, "\n", ""), "\r", ""))
+	s.logger.Info("snippet created", "id", snippet.ID, "title", validation.TruncateForLog(snippet.Title, 100))
 	return snippet, nil
 }
 
