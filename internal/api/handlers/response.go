@@ -139,9 +139,12 @@ func scheme(r *http.Request) string {
 	if r.TLS != nil {
 		return "https"
 	}
-	// Check X-Forwarded-Proto header (for reverse proxies)
-	if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
-		return proto
+	// Only trust X-Forwarded-Proto when proxy trust is enabled,
+	// consistent with middleware.getClientIP behavior.
+	if middleware.TrustProxy {
+		if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+			return proto
+		}
 	}
 	return "http"
 }
