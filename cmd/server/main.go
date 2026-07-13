@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -186,6 +187,9 @@ func runServer() {
 		demoService.StartPeriodicReset(ctx)
 	}
 
+	// Resolve OpenAPI spec path relative to executable
+	openAPIPath := resolveOpenAPIPath(logger)
+
 	// Create router
 	router := api.NewRouter(api.RouterConfig{
 		DB:                 db.DB,
@@ -199,6 +203,7 @@ func runServer() {
 		MaxFilesPerSnippet: cfg.Server.MaxFilesPerSnippet,
 		S3Config:           &cfg.S3,
 		BasePath:           cfg.Server.BasePath,
+		OpenAPIPath:        openAPIPath,
 	})
 
 	// Create server
@@ -356,4 +361,23 @@ func setupLogger() *slog.Logger {
 	}
 
 	return slog.New(handler)
+}
+
+func resolveOpenAPIPath(logger *slog.Logger) string {
+	paths := []string{"docs/openapi.yaml"}
+	exe, err := os.Executable()
+	if err == nil {
+		paths = append(paths, filepath.Join(filepath.Dir(exe), "docs", "openapi.yaml"))
+	}
+	cwd, err := os.Getwd()
+	if err == nil {
+		paths = append(paths, filepath.Join(cwd, "docs", "openapi.yaml"))
+	}
+	for _, p := range paths {
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+	logger.Warn("openapi.yaml not found, using default relative path", "path", "docs/openapi.yaml")
+	return "docs/openapi.yaml"
 }

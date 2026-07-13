@@ -153,8 +153,8 @@ func Recovery(logger *slog.Logger) func(http.Handler) http.Handler {
 				if err := recover(); err != nil {
 					logger.Error("panic recovered",
 						"error", err,
-						"stack", string(debug.Stack()),
-						"path", r.URL.Path,
+					"stack", string(debug.Stack()),
+					"path", strings.ReplaceAll(strings.ReplaceAll(r.URL.Path, "\n", ""), "\r", ""),
 					)
 					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				}
