@@ -129,7 +129,7 @@ func (s *SnippetService) Create(ctx context.Context, input *models.SnippetInput)
 	// Set tags if provided
 	if s.tagRepo != nil && len(input.Tags) > 0 {
 		if err := s.tagRepo.SetSnippetTags(ctx, snippet.ID, input.Tags); err != nil {
-			s.logger.Warn("failed to set snippet tags", "id", snippet.ID, "error", err)
+			s.logger.Warn("failed to set snippet tags", "error", err)
 		} else {
 			// Fetch tags to include in response
 			tags, _ := s.tagRepo.GetSnippetTags(ctx, snippet.ID)
@@ -176,7 +176,7 @@ func (s *SnippetService) Create(ctx context.Context, input *models.SnippetInput)
 func (s *SnippetService) GetByID(ctx context.Context, id string) (*models.Snippet, error) {
 	snippet, err := s.repo.GetByID(ctx, id)
 	if err != nil {
-		s.logger.Error("failed to get snippet", "id", id, "error", err)
+		s.logger.Error("failed to get snippet")
 		return nil, err
 	}
 
@@ -219,7 +219,7 @@ func (s *SnippetService) GetByIDPublic(ctx context.Context, id string) (*models.
 	// Increment view count asynchronously
 	go func() {
 		if err := s.repo.IncrementViewCount(context.Background(), id); err != nil {
-			s.logger.Warn("failed to increment view count", "id", id, "error", err)
+			s.logger.Warn("failed to increment view count")
 		}
 	}()
 
@@ -256,19 +256,19 @@ func (s *SnippetService) Update(ctx context.Context, id string, input *models.Sn
 
 	// Save current state to history before updating
 	if err := s.saveHistory(ctx, existing, "update"); err != nil {
-		s.logger.Warn("failed to save pre-update state to history", "id", id, "error", err)
+		s.logger.Warn("failed to save pre-update state to history")
 	}
 
 	snippet, err := s.repo.Update(ctx, id, input)
 	if err != nil {
-		s.logger.Error("failed to update snippet", "id", id, "error", err)
+		s.logger.Error("failed to update snippet")
 		return nil, err
 	}
 
 	// Update tags if provided
 	if s.tagRepo != nil && input.Tags != nil {
 		if err := s.tagRepo.SetSnippetTags(ctx, id, input.Tags); err != nil {
-			s.logger.Warn("failed to update snippet tags", "id", id, "error", err)
+			s.logger.Warn("failed to update snippet tags")
 		}
 		tags, _ := s.tagRepo.GetSnippetTags(ctx, id)
 		snippet.Tags = tags
@@ -277,7 +277,7 @@ func (s *SnippetService) Update(ctx context.Context, id string, input *models.Sn
 	// Update folder if provided
 	if s.folderRepo != nil {
 		if err := s.folderRepo.SetSnippetFolder(ctx, id, input.FolderID); err != nil {
-			s.logger.Warn("failed to update snippet folder", "id", id, "error", err)
+			s.logger.Warn("failed to update snippet folder")
 		}
 		folders, _ := s.folderRepo.GetSnippetFolders(ctx, id)
 		snippet.Folders = folders
@@ -292,13 +292,13 @@ func (s *SnippetService) Update(ctx context.Context, id string, input *models.Sn
 		}
 		syncedFiles, err := s.fileRepo.SyncFiles(ctx, id, files)
 		if err != nil {
-			s.logger.Warn("failed to update snippet files", "id", id, "error", err)
+			s.logger.Warn("failed to update snippet files")
 		} else {
 			snippet.Files = syncedFiles
 		}
 	}
 
-	s.logger.Info("snippet updated", "id", id)
+	s.logger.Info("snippet updated")
 	return snippet, nil
 }
 
@@ -309,11 +309,11 @@ func (s *SnippetService) Delete(ctx context.Context, id string, permanent bool) 
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrSnippetNotFound
 		}
-		s.logger.Error("failed to delete snippet", "id", id, "error", err)
+		s.logger.Error("failed to delete snippet")
 		return err
 	}
 
-	s.logger.Info("snippet deleted", "id", id)
+	s.logger.Info("snippet deleted")
 	return nil
 }
 
@@ -324,11 +324,11 @@ func (s *SnippetService) Restore(ctx context.Context, id string) error {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrSnippetNotFound
 		}
-		s.logger.Error("failed to restore snippet", "id", id, "error", err)
+		s.logger.Error("failed to restore snippet")
 		return err
 	}
 
-	s.logger.Info("snippet restored", "id", id)
+	s.logger.Info("snippet restored")
 	return nil
 }
 
@@ -382,7 +382,7 @@ func (s *SnippetService) List(ctx context.Context, filter models.SnippetFilter) 
 func (s *SnippetService) ToggleFavorite(ctx context.Context, id string) (*models.Snippet, error) {
 	snippet, err := s.repo.ToggleFavorite(ctx, id)
 	if err != nil {
-		s.logger.Error("failed to toggle favorite", "id", id, "error", err)
+		s.logger.Error("failed to toggle favorite")
 		return nil, err
 	}
 
@@ -390,7 +390,7 @@ func (s *SnippetService) ToggleFavorite(ctx context.Context, id string) (*models
 		return nil, ErrSnippetNotFound
 	}
 
-	s.logger.Info("snippet favorite toggled", "id", id, "is_favorite", snippet.IsFavorite)
+	s.logger.Info("snippet favorite toggled", "is_favorite", snippet.IsFavorite)
 	return snippet, nil
 }
 
@@ -398,7 +398,7 @@ func (s *SnippetService) ToggleFavorite(ctx context.Context, id string) (*models
 func (s *SnippetService) ToggleArchive(ctx context.Context, id string) (*models.Snippet, error) {
 	snippet, err := s.repo.ToggleArchive(ctx, id)
 	if err != nil {
-		s.logger.Error("failed to toggle archive", "id", id, "error", err)
+		s.logger.Error("failed to toggle archive")
 		return nil, err
 	}
 
@@ -406,7 +406,7 @@ func (s *SnippetService) ToggleArchive(ctx context.Context, id string) (*models.
 		return nil, ErrSnippetNotFound
 	}
 
-	s.logger.Info("snippet archive toggled", "id", id, "is_archived", snippet.IsArchived)
+	s.logger.Info("snippet archive toggled", "is_archived", snippet.IsArchived)
 	return snippet, nil
 }
 
@@ -418,7 +418,7 @@ func (s *SnippetService) Search(ctx context.Context, query string, limit int) ([
 
 	snippets, err := s.repo.Search(ctx, query, limit)
 	if err != nil {
-		s.logger.Error("failed to search snippets", "error", err)
+		s.logger.Error("failed to search snippets")
 		return nil, err
 	}
 
@@ -463,7 +463,7 @@ func (s *SnippetService) GetHistory(ctx context.Context, id string, limit int) (
 
 	history, err := s.historyRepo.GetSnippetHistory(ctx, id, limit)
 	if err != nil {
-		s.logger.Error("failed to get snippet history", "id", id, "error", err)
+		s.logger.Error("failed to get snippet history")
 		return nil, err
 	}
 
@@ -507,7 +507,7 @@ func (s *SnippetService) RestoreFromHistory(ctx context.Context, snippetID strin
 
 	// Save current state before restoring
 	if err := s.saveHistory(ctx, existing, "update"); err != nil {
-		s.logger.Warn("failed to save pre-restore state", "id", snippetID, "error", err)
+		s.logger.Warn("failed to save pre-restore state")
 	}
 
 	// Create input from history entry
@@ -523,7 +523,7 @@ func (s *SnippetService) RestoreFromHistory(ctx context.Context, snippetID strin
 	// Restore the snippet
 	snippet, err := s.repo.Update(ctx, snippetID, input)
 	if err != nil {
-		s.logger.Error("failed to restore snippet from history", "id", snippetID, "history_id", historyID, "error", err)
+		s.logger.Error("failed to restore snippet from history")
 		return nil, err
 	}
 
@@ -541,7 +541,7 @@ func (s *SnippetService) RestoreFromHistory(ctx context.Context, snippetID strin
 
 		restoredFiles, err := s.fileRepo.SyncFiles(ctx, snippetID, fileInputs)
 		if err != nil {
-			s.logger.Warn("failed to restore snippet files", "id", snippetID, "error", err)
+			s.logger.Warn("failed to restore snippet files")
 		} else {
 			snippet.Files = restoredFiles
 		}
@@ -557,6 +557,6 @@ func (s *SnippetService) RestoreFromHistory(ctx context.Context, snippetID strin
 		snippet.Folders = folders
 	}
 
-	s.logger.Info("snippet restored from history", "id", snippetID, "history_id", historyID)
+	s.logger.Info("snippet restored from history")
 	return snippet, nil
 }

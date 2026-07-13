@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const VENDOR_DIR = path.join(__dirname, '..', 'internal', 'web', 'static', 'vendor');
 const NODE_MODULES = path.join(__dirname, '..', 'node_modules');
 const PACKAGE_JSON = path.join(__dirname, '..', 'package.json');
+const PATCHES_DIR = path.join(__dirname, '..', 'patches');
+
+// Vendor patches to apply after syncing (array of {file, patch})
 
 const vendorConfig = {
   js: {
@@ -85,6 +89,14 @@ const manualFiles = [
   'js/ace/mode-cuda.js',
 ];
 
+// Vendor patches applied after sync (file paths relative to VENDOR_DIR)
+const vendorPatches = [
+  {
+    file: 'js/prism.min.js',
+    patch: 'prismjs-worker-origin-check.patch',
+  },
+];
+
 // Helper: collect all expected vendor-relative paths
 function expectedPaths() {
   const paths = [];
@@ -119,6 +131,21 @@ function sync() {
       }
     }
   }
+
+  // Apply vendor patches
+  for (const { file, patch } of vendorPatches) {
+    const target = path.join(VENDOR_DIR, file);
+    const patchFile = path.join(PATCHES_DIR, patch);
+    if (fs.existsSync(patchFile) && fs.existsSync(target)) {
+      try {
+        execSync(`patch --forward "${target}" "${patchFile}"`, { stdio: 'ignore' });
+        console.log(`  PATCHED  ${file}`);
+      } catch {
+        // patch might already be applied; ignore
+      }
+    }
+  }
+
   return ok;
 }
 

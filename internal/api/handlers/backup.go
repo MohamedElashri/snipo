@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/services"
 )
@@ -24,15 +26,15 @@ func NewBackupHandler(backupSvc *services.BackupService, s3SyncSvc *services.S3S
 }
 
 // Export handles GET /api/v1/backup/export
-// GET query params: format (json|zip)
+// GET query params: format (json|zip) only
 // POST JSON body: { "format": "json|zip", "password": "optional" }
 func (h *BackupHandler) Export(w http.ResponseWriter, r *http.Request) {
 	opts := models.ExportOptions{
-		Format:   r.URL.Query().Get("format"),
-		Password: r.URL.Query().Get("password"),
+		Format: r.URL.Query().Get("format"),
 	}
 
-	if r.Method == http.MethodGet && opts.Password != "" {
+	// Reject passwords in URL query parameters — they'd appear in server logs.
+	if r.URL.Query().Get("password") != "" {
 		Error(w, r, http.StatusBadRequest, "PASSWORD_IN_URL", "Use POST /api/v1/backup/export to encrypt backups with a password")
 		return
 	}
@@ -209,8 +211,8 @@ func (h *BackupHandler) S3Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := r.URL.Query().Get("key")
-	if key == "" {
+	key := chi.URLParam(r, "*")
+	if key == "" || key[0] == '/' {
 		Error(w, r, http.StatusBadRequest, "MISSING_KEY", "Backup key is required")
 		return
 	}
