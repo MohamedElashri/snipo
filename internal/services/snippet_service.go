@@ -129,7 +129,7 @@ func (s *SnippetService) Create(ctx context.Context, input *models.SnippetInput)
 	// Set tags if provided
 	if s.tagRepo != nil && len(input.Tags) > 0 {
 		if err := s.tagRepo.SetSnippetTags(ctx, snippet.ID, input.Tags); err != nil {
-			s.logger.Warn("failed to set snippet tags", "error", err)
+			s.logger.Warn("failed to set snippet tags", "error", validation.TruncateForLog(err.Error(), 200))
 		} else {
 			// Fetch tags to include in response
 			tags, _ := s.tagRepo.GetSnippetTags(ctx, snippet.ID)
