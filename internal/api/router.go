@@ -32,6 +32,7 @@ type RouterConfig struct {
 	S3Config           *config.S3Config
 	SnippetService     *services.SnippetService // For demo mode
 	BasePath           string                   // Base path for reverse proxy
+	OpenAPIPath        string                   // Resolved path to openapi.yaml
 }
 
 // NewRouter creates and configures the HTTP router
@@ -151,7 +152,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 		// OpenAPI specification
 		r.Get("/api/v1/openapi.json", func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "docs/openapi.yaml")
+			http.ServeFile(w, r, cfg.OpenAPIPath)
 		})
 
 		// Public snippet access
@@ -262,7 +263,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 				r.Post("/s3/sync", backupHandler.S3Sync)
 				r.Get("/s3/list", backupHandler.S3List)
 				r.Post("/s3/restore", backupHandler.S3Restore)
-				r.Delete("/s3/delete", backupHandler.S3Delete)
+				r.Delete("/s3/delete/*", backupHandler.S3Delete)
 			})
 		}
 
