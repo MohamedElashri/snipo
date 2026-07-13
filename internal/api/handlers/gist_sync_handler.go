@@ -124,11 +124,9 @@ func (h *GistSyncHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 		var err error
 		username, err = githubClient.GetAuthenticatedUser(r.Context())
 		if err != nil {
-			// Log detailed error for debugging
 			if logger := r.Context().Value("logger"); logger != nil {
 				logger.(*slog.Logger).Error("failed to validate GitHub token",
-					"error", err,
-					"token_prefix", input.GithubToken[:min(10, len(input.GithubToken))])
+					"error", err)
 			}
 			Error(w, r, http.StatusBadRequest, "INVALID_TOKEN", fmt.Sprintf("Failed to validate GitHub token: %v", err))
 			return
