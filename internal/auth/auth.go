@@ -205,7 +205,7 @@ func (s *Service) VerifyPasswordWithDelay(password, clientIP string) (bool, time
 	}
 
 	s.failedAttempts.RecordFailure(clientIP)
-	s.logger.Warn("failed login attempt", "ip", clientIP)
+	s.logger.Warn("failed login attempt", "ip", strings.ReplaceAll(strings.ReplaceAll(clientIP, "\n", ""), "\r", ""))
 	return false, 0
 }
 

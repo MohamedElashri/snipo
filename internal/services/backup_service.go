@@ -237,7 +237,7 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 				existingTagsByName[tag.Name] = newTag // Add to map to prevent duplicates
 				result.TagsImported++
 			} else {
-				result.Errors = append(result.Errors, fmt.Sprintf("tag %s: %v", tag.Name, err))
+				result.Errors = append(result.Errors, fmt.Sprintf("tag %s: %v", strings.ReplaceAll(strings.ReplaceAll(tag.Name, "\n", ""), "\r", ""), err))
 			}
 		}
 	}
@@ -263,7 +263,7 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 				existingFoldersByName[folder.Name] = newFolder // Add to map to prevent duplicates
 				result.FoldersImported++
 			} else {
-				result.Errors = append(result.Errors, fmt.Sprintf("folder %s: %v", folder.Name, err))
+				result.Errors = append(result.Errors, fmt.Sprintf("folder %s: %v", strings.ReplaceAll(strings.ReplaceAll(folder.Name, "\n", ""), "\r", ""), err))
 			}
 		}
 	}
@@ -329,7 +329,7 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 			// Add to map to prevent duplicates within same import
 			existingSnippetsByTitle[snippet.Title] = &snippet
 		} else {
-			result.Errors = append(result.Errors, fmt.Sprintf("snippet %s: %v", snippet.Title, err))
+			result.Errors = append(result.Errors, fmt.Sprintf("snippet %s: %v", strings.ReplaceAll(strings.ReplaceAll(snippet.Title, "\n", ""), "\r", ""), err))
 		}
 	}
 
@@ -405,7 +405,7 @@ func (b *BackupService) clearAllData(ctx context.Context) error {
 
 	for _, q := range queries {
 		if _, err := b.db.ExecContext(ctx, q); err != nil {
-			b.logger.Warn("failed to execute clear query", "query", q, "error", err)
+			b.logger.Warn("failed to execute clear query", "query", strings.ReplaceAll(strings.ReplaceAll(q, "\n", ""), "\r", ""), "error", err)
 		}
 	}
 
