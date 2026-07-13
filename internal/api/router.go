@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"database/sql"
 	"log/slog"
 	"net/http"
@@ -68,11 +70,14 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		Window:     time.Hour,
 	})
 
+	// Derive token HMAC key from session secret for domain-separated HMAC
+	tokenHMACKey := deriveHMACKey(cfg.Config.Auth.SessionSecret, "snipo-token-hmac")
+
 	// Create repositories
 	snippetRepo := repository.NewSnippetRepository(cfg.DB)
 	tagRepo := repository.NewTagRepository(cfg.DB)
 	folderRepo := repository.NewFolderRepository(cfg.DB)
-	tokenRepo := repository.NewTokenRepository(cfg.DB)
+	tokenRepo := repository.NewTokenRepository(cfg.DB, tokenHMACKey)
 	fileRepo := repository.NewSnippetFileRepository(cfg.DB)
 	settingsRepo := repository.NewSettingsRepository(cfg.DB)
 	historyRepo := repository.NewHistoryRepository(cfg.DB)
@@ -338,4 +343,11 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	}
 
 	return r
+}
+
+// deriveHMACKey derives a domain-separated HMAC key from the session secret.
+func deriveHMACKey(secret, domain string) []byte {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(domain))
+	return mac.Sum(nil)
 }

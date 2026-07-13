@@ -9,6 +9,7 @@ import (
 
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/storage"
+	"github.com/MohamedElashri/snipo/internal/validation"
 )
 
 // S3SyncService handles S3 backup operations
@@ -60,7 +61,7 @@ func (s *S3SyncService) SyncToS3(ctx context.Context, opts models.ExportOptions)
 	result.FinishedAt = time.Now().UTC()
 
 	s.logger.Info("backup synced to S3",
-		"key", key,
+		"key", validation.TruncateForLog(key, 128),
 		"size", len(content),
 		"duration", result.FinishedAt.Sub(result.StartedAt),
 	)
@@ -114,7 +115,7 @@ func (s *S3SyncService) RestoreFromS3(ctx context.Context, key string, opts mode
 	result.FinishedAt = time.Now().UTC()
 
 	s.logger.Info("backup restored from S3",
-		"key", key,
+		"key", validation.TruncateForLog(key, 128),
 		"snippets", importResult.SnippetsImported,
 		"tags", importResult.TagsImported,
 		"folders", importResult.FoldersImported,
@@ -130,7 +131,7 @@ func (s *S3SyncService) DeleteBackup(ctx context.Context, key string) error {
 		return fmt.Errorf("failed to delete backup: %w", err)
 	}
 
-	s.logger.Info("backup deleted from S3", "key", key)
+	s.logger.Info("backup deleted from S3", "key", validation.TruncateForLog(key, 128))
 	return nil
 }
 

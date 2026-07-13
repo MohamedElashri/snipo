@@ -14,6 +14,7 @@ import (
 	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
+	"github.com/MohamedElashri/snipo/internal/validation"
 )
 
 // Context keys for authentication and request tracking
@@ -124,14 +125,14 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 			// Get request ID from context
 			requestID := GetRequestID(r.Context())
 
-			logger.Info("request",
-				"request_id", requestID,
-				"method", r.Method,
-				"path", r.URL.Path,
-				"status", wrapped.statusCode,
-				"duration", duration,
-				"ip", getClientIP(r),
-			)
+		logger.Info("request",
+			"request_id", requestID,
+			"method", r.Method,
+			"path", validation.TruncateForLog(r.URL.Path, 256),
+			"status", wrapped.statusCode,
+			"duration", duration,
+			"ip", validation.SanitizeForLog(getClientIP(r)),
+		)
 		})
 	}
 }
@@ -153,11 +154,11 @@ func Recovery(logger *slog.Logger) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
-					logger.Error("panic recovered",
-						"error", err,
-						"stack", string(debug.Stack()),
-						"path", r.URL.Path,
-					)
+				logger.Error("panic recovered",
+					"error", err,
+					"stack", string(debug.Stack()),
+					"path", validation.TruncateForLog(r.URL.Path, 256),
+				)
 					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				}
 			}()
