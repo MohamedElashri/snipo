@@ -19,7 +19,6 @@ import (
 
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
-	"github.com/MohamedElashri/snipo/internal/validation"
 	"golang.org/x/crypto/pbkdf2"
 )
 
@@ -238,7 +237,7 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 				existingTagsByName[tag.Name] = newTag // Add to map to prevent duplicates
 				result.TagsImported++
 			} else {
-				result.Errors = append(result.Errors, fmt.Sprintf("tag %s: %v", validation.TruncateForLog(tag.Name, 50), err))
+				result.Errors = append(result.Errors, fmt.Sprintf("tag %s: %v", strings.ReplaceAll(strings.ReplaceAll(tag.Name, "\n", ""), "\r", ""), err))
 			}
 		}
 	}
@@ -264,7 +263,7 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 				existingFoldersByName[folder.Name] = newFolder // Add to map to prevent duplicates
 				result.FoldersImported++
 			} else {
-				result.Errors = append(result.Errors, fmt.Sprintf("folder %s: %v", validation.TruncateForLog(folder.Name, 100), err))
+				result.Errors = append(result.Errors, fmt.Sprintf("folder %s: %v", strings.ReplaceAll(strings.ReplaceAll(folder.Name, "\n", ""), "\r", ""), err))
 			}
 		}
 	}
@@ -330,7 +329,7 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 			// Add to map to prevent duplicates within same import
 			existingSnippetsByTitle[snippet.Title] = &snippet
 		} else {
-			result.Errors = append(result.Errors, fmt.Sprintf("snippet %s: %v", validation.TruncateForLog(snippet.Title, 100), err))
+			result.Errors = append(result.Errors, fmt.Sprintf("snippet %s: %v", strings.ReplaceAll(strings.ReplaceAll(snippet.Title, "\n", ""), "\r", ""), err))
 		}
 	}
 

@@ -50,7 +50,6 @@ type Service struct {
 	logger             *slog.Logger
 	failedAttempts     *FailedLoginTracker
 	authDisabled       bool // If true, authentication is completely bypassed
-	sessionHMACKey     []byte
 }
 
 // FailedLoginTracker tracks failed login attempts per IP for progressive delays
@@ -166,8 +165,6 @@ func NewService(db *sql.DB, masterPassword, sessionSecret string, sessionDuratio
 		}
 	}
 
-	sessionHMACKey := deriveHMACKey(sessionSecret, "snipo-session-hmac")
-
 	return &Service{
 		db:                 db,
 		masterPasswordHash: passwordHash,
@@ -176,7 +173,6 @@ func NewService(db *sql.DB, masterPassword, sessionSecret string, sessionDuratio
 		logger:             logger,
 		failedAttempts:     NewFailedLoginTracker(),
 		authDisabled:       authDisabled,
-		sessionHMACKey:     sessionHMACKey,
 	}
 }
 
@@ -235,7 +231,7 @@ func (s *Service) CreateSession() (string, error) {
 	token := base64.URLEncoding.EncodeToString(tokenBytes)
 
 	// ALWAYS use the secure HMAC-SHA256 hash for new sessions
-	tokenHash := s.hashToken(token)
+	tokenHash := hashToken(token)
 
 	// Generate session ID
 	idBytes := make([]byte, 16)
@@ -266,7 +262,7 @@ func (s *Service) ValidateSession(token string) bool {
 		return false
 	}
 
-	tokenHash := s.hashToken(token)
+	tokenHash := hashToken(token)
 	var expiresAt time.Time
 	var sessionID string
 	err := s.db.QueryRow(
@@ -287,7 +283,7 @@ func (s *Service) ValidateSession(token string) bool {
 
 // InvalidateSession removes a session
 func (s *Service) InvalidateSession(token string) error {
-	tokenHash := s.hashToken(token)
+	tokenHash := hashToken(token)
 	_, err := s.db.Exec("DELETE FROM sessions WHERE token_hash = ?", tokenHash)
 	return err
 }
@@ -351,18 +347,13 @@ func GetSessionFromRequest(r *http.Request) string {
 	return ""
 }
 
-// hashToken creates an HMAC-SHA256 hash of the token using the derived session HMAC key.
-func (s *Service) hashToken(token string) string {
-	h := hmac.New(sha256.New, s.sessionHMACKey)
+// hashToken creates an HMAC-SHA256 hash of the token (new secure method)
+// ALL NEW SESSIONS use this method exclusively.
+func hashToken(token string) string {
+	key := []byte("snipo-session-hmac-key-v1")
+	h := hmac.New(sha256.New, key)
 	h.Write([]byte(token))
 	return hex.EncodeToString(h.Sum(nil))
-}
-
-// deriveHMACKey derives a domain-separated HMAC key from the session secret.
-func deriveHMACKey(secret, domain string) []byte {
-	h := hmac.New(sha256.New, []byte(secret))
-	h.Write([]byte(domain))
-	return h.Sum(nil)
 }
 
 // HashPassword creates an Argon2id hash of a password

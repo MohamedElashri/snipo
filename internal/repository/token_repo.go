@@ -16,13 +16,12 @@ import (
 
 // TokenRepository handles API token database operations
 type TokenRepository struct {
-	db          *sql.DB
-	tokenHMACKey []byte
+	db *sql.DB
 }
 
 // NewTokenRepository creates a new token repository
-func NewTokenRepository(db *sql.DB, hmacKey []byte) *TokenRepository {
-	return &TokenRepository{db: db, tokenHMACKey: hmacKey}
+func NewTokenRepository(db *sql.DB) *TokenRepository {
+	return &TokenRepository{db: db}
 }
 
 // generateToken generates a secure random token
@@ -34,9 +33,11 @@ func generateToken() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-// hashToken creates an HMAC-SHA256 hash of a token using the derived token HMAC key.
-func (r *TokenRepository) hashToken(token string) string {
-	h := hmac.New(sha256.New, r.tokenHMACKey)
+// hashToken creates an HMAC-SHA256 hash of a token
+// ALL NEW TOKENS use this method exclusively.
+func hashToken(token string) string {
+	key := []byte("snipo-token-hmac-key-v1")
+	h := hmac.New(sha256.New, key)
 	h.Write([]byte(token))
 	return hex.EncodeToString(h.Sum(nil))
 }
@@ -50,7 +51,7 @@ func (r *TokenRepository) Create(ctx context.Context, input *models.APITokenInpu
 	}
 
 	// ALWAYS use the secure HMAC-SHA256 hash for new tokens
-	tokenHash := r.hashToken(token)
+	tokenHash := hashToken(token)
 
 	// Validate permissions
 	if input.Permissions == "" {
@@ -119,7 +120,7 @@ func (r *TokenRepository) GetByID(ctx context.Context, id int64) (*models.APITok
 func (r *TokenRepository) GetByToken(ctx context.Context, token string) (*models.APIToken, error) {
 	query := `SELECT id, name, permissions, last_used_at, expires_at, created_at FROM api_tokens WHERE token_hash = ?`
 
-	tokenHash := r.hashToken(token)
+	tokenHash := hashToken(token)
 	apiToken := &models.APIToken{}
 	err := r.db.QueryRowContext(ctx, query, tokenHash).Scan(
 		&apiToken.ID,
