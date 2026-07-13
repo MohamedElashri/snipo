@@ -406,7 +406,7 @@ func (b *BackupService) clearAllData(ctx context.Context) error {
 
 	for _, q := range queries {
 		if _, err := b.db.ExecContext(ctx, q); err != nil {
-			b.logger.Warn("failed to execute clear query", "query", q, "error", err)
+			b.logger.Warn("failed to execute clear query", "query", strings.ReplaceAll(strings.ReplaceAll(q, "\n", ""), "\r", ""), "error", err)
 		}
 	}
 

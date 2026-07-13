@@ -124,12 +124,14 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 			// Get request ID from context
 			requestID := GetRequestID(r.Context())
 
-		logger.Info("request",
-			"request_id", requestID,
-			"method", r.Method,
-			"status", wrapped.statusCode,
-			"duration", duration,
-		)
+			logger.Info("request",
+				"request_id", requestID,
+				"method", r.Method,
+				"path", strings.ReplaceAll(strings.ReplaceAll(r.URL.Path, "\n", ""), "\r", ""),
+				"status", wrapped.statusCode,
+				"duration", duration,
+				"ip", strings.ReplaceAll(strings.ReplaceAll(getClientIP(r), "\n", ""), "\r", ""),
+			)
 		})
 	}
 }
@@ -153,7 +155,8 @@ func Recovery(logger *slog.Logger) func(http.Handler) http.Handler {
 				if err := recover(); err != nil {
 				logger.Error("panic recovered",
 					"error", err,
-				"stack", string(debug.Stack()),
+					"stack", string(debug.Stack()),
+					"path", strings.ReplaceAll(strings.ReplaceAll(r.URL.Path, "\n", ""), "\r", ""),
 				)
 					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				}

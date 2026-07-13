@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/MohamedElashri/snipo/internal/api/middleware"
@@ -18,6 +20,11 @@ const MaxJSONBodySize = 2 * 1024 * 1024
 
 // DecodeJSON safely decodes JSON from request body with size limit
 func DecodeJSON(r *http.Request, v interface{}) error {
+	ct := r.Header.Get("Content-Type")
+	if ct != "" && ct != "application/json" {
+		return fmt.Errorf("unsupported Content-Type: %s", ct)
+	}
+
 	// Limit request body size to prevent DoS
 	r.Body = http.MaxBytesReader(nil, r.Body, MaxJSONBodySize)
 
@@ -102,9 +109,35 @@ func getMeta(r *http.Request) *Meta {
 	}
 }
 
+// sanitizeHost validates and returns a sanitized host, falling back to "localhost" on invalid input.
+func sanitizeHost(host string) string {
+	if host == "" || len(host) > 255 || strings.Contains(host, "#") {
+		return "localhost"
+	}
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	if host == "" {
+		return "localhost"
+	}
+	for i := 0; i < len(host); i++ {
+		c := host[i]
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '-' || c == ':') {
+			if i == 0 && c == '[' {
+				continue
+			}
+			if c == ']' && i == len(host)-1 {
+				continue
+			}
+			return "localhost"
+		}
+	}
+	return host
+}
+
 // buildPaginationLinks generates navigation links for pagination
 func buildPaginationLinks(r *http.Request, page, limit, total int) *PaginationLinks {
-	baseURL := fmt.Sprintf("%s://%s%s", scheme(r), r.Host, r.URL.Path)
+	baseURL := fmt.Sprintf("%s://%s%s", scheme(r), sanitizeHost(r.Host), r.URL.Path)
 	query := r.URL.Query()
 
 	// Self link

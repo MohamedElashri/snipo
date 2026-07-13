@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
@@ -418,7 +419,7 @@ func (s *SnippetService) Search(ctx context.Context, query string, limit int) ([
 
 	snippets, err := s.repo.Search(ctx, query, limit)
 	if err != nil {
-		s.logger.Error("failed to search snippets", "error", err)
+		s.logger.Error("failed to search snippets", "query", strings.ReplaceAll(strings.ReplaceAll(query, "\n", ""), "\r", ""), "error", err)
 		return nil, err
 	}
 
