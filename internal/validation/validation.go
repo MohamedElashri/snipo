@@ -279,6 +279,29 @@ func SanitizeFilename(filename string) string {
 	return filename
 }
 
+// SanitizeForLog removes characters that could be used for log injection.
+// It strips control characters (including CR, LF) that could inject fake log entries.
+func SanitizeForLog(v string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' {
+			return -1
+		}
+		if r < 32 {
+			return -1
+		}
+		return r
+	}, v)
+}
+
+// TruncateForLog sanitizes a string for logging and truncates it to maxLen.
+func TruncateForLog(v string, maxLen int) string {
+	v = SanitizeForLog(v)
+	if len(v) > maxLen {
+		v = v[:maxLen] + "..."
+	}
+	return v
+}
+
 // ValidateFilename validates a filename for length and basic safety
 func ValidateFilename(filename string) ValidationErrors {
 	var errs ValidationErrors

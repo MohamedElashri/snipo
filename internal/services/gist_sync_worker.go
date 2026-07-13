@@ -125,7 +125,7 @@ func (w *GistSyncWorker) performSync(ctx context.Context) {
 
 	token, err := w.encryptionSvc.Decrypt(config.GithubTokenEncrypted)
 	if err != nil {
-		w.logger.Error("failed to decrypt token", "error", err, "token_length", len(config.GithubTokenEncrypted))
+		w.logger.Error("failed to decrypt token", "error", err)
 		return
 	}
 
