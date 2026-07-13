@@ -140,8 +140,6 @@ func (b *BackupService) Export(ctx context.Context, opts models.ExportOptions) (
 		"snippets", len(data.Snippets),
 		"tags", len(data.Tags),
 		"folders", len(data.Folders),
-		"format", opts.Format,
-		"encrypted", opts.Password != "",
 	)
 
 	return content, filename, nil
