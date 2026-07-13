@@ -328,7 +328,9 @@ func (s *Service) ClearSessionCookie(w http.ResponseWriter) {
 	})
 }
 
-// GetSessionFromRequest extracts the session token from the request
+// GetSessionFromRequest extracts the session token from the request.
+// It checks the session cookie first, then the Authorization: Bearer header.
+// API tokens (X-API-Key) are handled separately by the auth middleware.
 func GetSessionFromRequest(r *http.Request) string {
 	// Check cookie first
 	cookie, err := r.Cookie("snipo_session")
@@ -340,12 +342,6 @@ func GetSessionFromRequest(r *http.Request) string {
 	authHeader := r.Header.Get("Authorization")
 	if strings.HasPrefix(authHeader, "Bearer ") {
 		return strings.TrimPrefix(authHeader, "Bearer ")
-	}
-
-	// Check X-API-Key header
-	apiKey := r.Header.Get("X-API-Key")
-	if apiKey != "" {
-		return apiKey
 	}
 
 	return ""
