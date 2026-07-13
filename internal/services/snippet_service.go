@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
@@ -168,7 +169,7 @@ func (s *SnippetService) Create(ctx context.Context, input *models.SnippetInput)
 		s.logger.Warn("failed to save creation to history", "id", snippet.ID, "error", err)
 	}
 
-	s.logger.Info("snippet created", "id", snippet.ID, "title", snippet.Title)
+	s.logger.Info("snippet created", "id", snippet.ID, "title", strings.ReplaceAll(strings.ReplaceAll(snippet.Title, "\n", ""), "\r", ""))
 	return snippet, nil
 }
 
@@ -418,7 +419,7 @@ func (s *SnippetService) Search(ctx context.Context, query string, limit int) ([
 
 	snippets, err := s.repo.Search(ctx, query, limit)
 	if err != nil {
-		s.logger.Error("failed to search snippets", "query", query, "error", err)
+		s.logger.Error("failed to search snippets", "query", strings.ReplaceAll(strings.ReplaceAll(query, "\n", ""), "\r", ""), "error", err)
 		return nil, err
 	}
 

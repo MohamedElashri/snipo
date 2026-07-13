@@ -60,7 +60,7 @@ func (s *S3SyncService) SyncToS3(ctx context.Context, opts models.ExportOptions)
 	result.FinishedAt = time.Now().UTC()
 
 	s.logger.Info("backup synced to S3",
-		"key", key,
+		"key", strings.ReplaceAll(strings.ReplaceAll(key, "\n", ""), "\r", ""),
 		"size", len(content),
 		"duration", result.FinishedAt.Sub(result.StartedAt),
 	)
@@ -114,7 +114,7 @@ func (s *S3SyncService) RestoreFromS3(ctx context.Context, key string, opts mode
 	result.FinishedAt = time.Now().UTC()
 
 	s.logger.Info("backup restored from S3",
-		"key", key,
+		"key", strings.ReplaceAll(strings.ReplaceAll(key, "\n", ""), "\r", ""),
 		"snippets", importResult.SnippetsImported,
 		"tags", importResult.TagsImported,
 		"folders", importResult.FoldersImported,
@@ -130,7 +130,7 @@ func (s *S3SyncService) DeleteBackup(ctx context.Context, key string) error {
 		return fmt.Errorf("failed to delete backup: %w", err)
 	}
 
-	s.logger.Info("backup deleted from S3", "key", key)
+	s.logger.Info("backup deleted from S3", "key", strings.ReplaceAll(strings.ReplaceAll(key, "\n", ""), "\r", ""))
 	return nil
 }
 

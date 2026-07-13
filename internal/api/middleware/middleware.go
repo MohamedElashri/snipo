@@ -127,10 +127,10 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 			logger.Info("request",
 				"request_id", requestID,
 				"method", r.Method,
-				"path", r.URL.Path,
+				"path", strings.ReplaceAll(strings.ReplaceAll(r.URL.Path, "\n", ""), "\r", ""),
 				"status", wrapped.statusCode,
 				"duration", duration,
-				"ip", getClientIP(r),
+				"ip", strings.ReplaceAll(strings.ReplaceAll(getClientIP(r), "\n", ""), "\r", ""),
 			)
 		})
 	}
@@ -155,8 +155,8 @@ func Recovery(logger *slog.Logger) func(http.Handler) http.Handler {
 				if err := recover(); err != nil {
 					logger.Error("panic recovered",
 						"error", err,
-						"stack", string(debug.Stack()),
-						"path", r.URL.Path,
+					"stack", string(debug.Stack()),
+					"path", strings.ReplaceAll(strings.ReplaceAll(r.URL.Path, "\n", ""), "\r", ""),
 					)
 					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				}
