@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/MohamedElashri/snipo/internal/models"
 )
@@ -595,6 +596,8 @@ func (r *SnippetRepository) Search(ctx context.Context, query string, limit int)
 		limit = 10
 	}
 
+	safeQuery := sanitizeFTSQuery(query)
+
 	sqlQuery := `
 		SELECT s.id, s.title, s.description, s.content, s.language, s.is_favorite, s.is_public,
 		       s.view_count, s.s3_key, s.checksum, s.is_archived, s.expires_at, s.created_at, s.updated_at, s.deleted_at
@@ -606,7 +609,7 @@ func (r *SnippetRepository) Search(ctx context.Context, query string, limit int)
 		LIMIT ?
 	`
 
-	rows, err := r.db.QueryContext(ctx, sqlQuery, query, limit)
+	rows, err := r.db.QueryContext(ctx, sqlQuery, safeQuery, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search snippets: %w", err)
 	}
@@ -677,4 +680,48 @@ func (r *SnippetRepository) AutoArchiveExpired(ctx context.Context) (int64, erro
 	}
 
 	return count, nil
+}
+
+var ftsSpecialChars = []rune{'*', '"', '(', ')', '{', '}', ':', '+', '-', '^'}
+
+var ftsOperators = map[string]bool{
+	"and": true, "or": true, "not": true, "near": true,
+}
+
+func sanitizeFTSQuery(query string) string {
+	if query == "" {
+		return query
+	}
+
+	hasSpecialChars := false
+	for _, c := range query {
+		for _, sc := range ftsSpecialChars {
+			if c == sc {
+				hasSpecialChars = true
+				break
+			}
+		}
+		if hasSpecialChars {
+			break
+		}
+	}
+
+	if !hasSpecialChars {
+		fields := strings.FieldsFunc(query, func(c rune) bool {
+			return !unicode.IsLetter(c)
+		})
+		for _, f := range fields {
+			if ftsOperators[strings.ToLower(f)] {
+				hasSpecialChars = true
+				break
+			}
+		}
+	}
+
+	if !hasSpecialChars {
+		return query
+	}
+
+	escaped := strings.ReplaceAll(query, "\"", "\"\"")
+	return "\"" + escaped + "\""
 }
