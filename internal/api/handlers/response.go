@@ -18,6 +18,11 @@ const MaxJSONBodySize = 2 * 1024 * 1024
 
 // DecodeJSON safely decodes JSON from request body with size limit
 func DecodeJSON(r *http.Request, v interface{}) error {
+	ct := r.Header.Get("Content-Type")
+	if ct != "" && ct != "application/json" {
+		return fmt.Errorf("unsupported Content-Type: %s", ct)
+	}
+
 	// Limit request body size to prevent DoS
 	r.Body = http.MaxBytesReader(nil, r.Body, MaxJSONBodySize)
 
