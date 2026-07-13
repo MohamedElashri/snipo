@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -16,17 +15,6 @@ import (
 	"github.com/MohamedElashri/snipo/internal/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
 )
-
-// sensitiveQueryParams lists query parameters whose values should be redacted in logs.
-var sensitiveQueryParams = map[string]bool{
-	"password":    true,
-	"api_key":     true,
-	"secret":      true,
-	"token":       true,
-	"access_key":  true,
-	"secret_key":  true,
-	"private_key": true,
-}
 
 // Context keys for authentication and request tracking
 type contextKey string
@@ -139,10 +127,8 @@ func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 			logger.Info("request",
 				"request_id", requestID,
 				"method", r.Method,
-				"path", sanitizeURLPath(r),
 				"status", wrapped.statusCode,
 				"duration", duration,
-				"ip", getClientIP(r),
 			)
 		})
 	}
@@ -422,28 +408,4 @@ func CORS(allowedOrigins []string) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-// sanitizeURLPath redacts sensitive query parameter values from the URL so they
-// are not written to server logs.
-func sanitizeURLPath(r *http.Request) string {
-	path := r.URL.Path
-	if r.URL.RawQuery == "" {
-		return path
-	}
-	values, err := url.ParseQuery(r.URL.RawQuery)
-	if err != nil {
-		return path
-	}
-	redacted := false
-	for key := range values {
-		if sensitiveQueryParams[key] {
-			values[key] = []string{"[REDACTED]"}
-			redacted = true
-		}
-	}
-	if !redacted {
-		return r.URL.RequestURI()
-	}
-	return path + "?" + values.Encode()
 }
