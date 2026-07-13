@@ -263,7 +263,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 				r.Post("/s3/sync", backupHandler.S3Sync)
 				r.Get("/s3/list", backupHandler.S3List)
 				r.Post("/s3/restore", backupHandler.S3Restore)
-				r.Delete("/s3/delete", backupHandler.S3Delete)
+				r.Delete("/s3/delete/*", backupHandler.S3Delete)
 			})
 		}
 
