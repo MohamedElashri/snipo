@@ -152,8 +152,8 @@ export async function saveSelectedSnippet() {
         matchOnDescription: true
     });
 
-    if (!languageSelection) return; // User cancelled
-    const language = languageSelection.label;
+    // If user cancels the quick pick, use detected language (which defaults to plaintext)
+    const language = languageSelection ? languageSelection.label : detected;
 
     await api.createSnippet({
         title,
@@ -261,7 +261,8 @@ export async function updateSnippet() {
             matchOnDescription: true
         });
 
-        if (!languageSelection) return;
+        // If user cancels the quick pick, use detected language (which defaults to plaintext)
+        const finalLanguage = languageSelection ? languageSelection.label : detected;
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
@@ -270,7 +271,7 @@ export async function updateSnippet() {
         }, async () => {
             await api.updateSnippet(snippet.id, {
                 content: text,
-                language: languageSelection.label
+                language: finalLanguage
             });
         });
     }

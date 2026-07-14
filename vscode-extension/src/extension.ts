@@ -29,6 +29,9 @@ export async function activate(context: vscode.ExtensionContext) {
             await runOnboardingFlow(context);
             // Refresh trees after config
             vscode.commands.executeCommand('snipo.refreshTree');
+        }),
+        vscode.commands.registerCommand('snipo.openSettings', () => {
+            vscode.commands.executeCommand('workbench.action.openSettings', '@ext:mohamedelashri.snipo');
         })
     );
 

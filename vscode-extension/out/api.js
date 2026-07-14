@@ -99,8 +99,8 @@ class SnipoAPI {
                 headers: { 'Authorization': `Bearer ${apiToken}` },
                 timeout: 5000 // 5 seconds timeout
             });
-            // Try fetching health or auth check. The router has /api/v1/auth/check
-            const response = await tempClient.get('/api/v1/auth/check');
+            // Try fetching a single snippet to verify the API token
+            const response = await tempClient.get('/api/v1/snippets', { params: { limit: 1 } });
             return response.status === 200;
         }
         catch (error) {

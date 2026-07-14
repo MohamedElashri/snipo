@@ -55,6 +55,8 @@ async function activate(context) {
         await runOnboardingFlow(context);
         // Refresh trees after config
         vscode.commands.executeCommand('snipo.refreshTree');
+    }), vscode.commands.registerCommand('snipo.openSettings', () => {
+        vscode.commands.executeCommand('workbench.action.openSettings', '@ext:mohamedelashri.snipo');
     }));
     // Initialize Status Bar
     const statusBar = new statusBar_1.SnipoStatusBar(context);

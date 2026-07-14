@@ -9,14 +9,24 @@ export class SnippetTreeItem extends vscode.TreeItem {
         super(snippet.title, vscode.TreeItemCollapsibleState.None);
 
         this.description = snippet.language;
-        this.tooltip = snippet.description || snippet.title;
+        let tooltipText = snippet.description || snippet.title;
+        if (snippet.content) {
+            // Add preview of content, truncated if too long
+            const maxContentPreview = 200;
+            const contentPreview = snippet.content.length > maxContentPreview 
+                ? snippet.content.substring(0, maxContentPreview) + '...'
+                : snippet.content;
+            tooltipText += `\n\n${contentPreview}`;
+        }
+        
+        this.tooltip = tooltipText;
         this.contextValue = 'snippet';
         this.iconPath = vscode.ThemeIcon.File;
 
-        // Define command when clicked
+        // Define command when clicked (Open in VS Code by default)
         this.command = {
-            command: 'snipo.insertSnippetFromTree',
-            title: 'Insert Snippet',
+            command: 'snipo.openInVSCode',
+            title: 'Open in VS Code',
             arguments: [this.snippet]
         };
     }

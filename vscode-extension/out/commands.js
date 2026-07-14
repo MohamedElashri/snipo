@@ -174,9 +174,8 @@ async function saveSelectedSnippet() {
         placeHolder: 'Select snippet language',
         matchOnDescription: true
     });
-    if (!languageSelection)
-        return; // User cancelled
-    const language = languageSelection.label;
+    // If user cancels the quick pick, use detected language (which defaults to plaintext)
+    const language = languageSelection ? languageSelection.label : detected;
     await api_1.api.createSnippet({
         title,
         description,
@@ -275,8 +274,8 @@ async function updateSnippet() {
             placeHolder: 'Select snippet language',
             matchOnDescription: true
         });
-        if (!languageSelection)
-            return;
+        // If user cancels the quick pick, use detected language (which defaults to plaintext)
+        const finalLanguage = languageSelection ? languageSelection.label : detected;
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: "Updating Snipo snippet...",
@@ -284,7 +283,7 @@ async function updateSnippet() {
         }, async () => {
             await api_1.api.updateSnippet(snippet.id, {
                 content: text,
-                language: languageSelection.label
+                language: finalLanguage
             });
         });
     }
