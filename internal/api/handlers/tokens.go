@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"strings"
+
 	"github.com/go-chi/chi/v5"
 
 	"github.com/MohamedElashri/snipo/internal/auth"
@@ -46,7 +48,7 @@ func (h *TokenHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	OK(w, r, map[string]interface{}{"data": tokens})
+	OK(w, r, tokens)
 }
 
 // Create handles POST /api/v1/tokens
@@ -96,6 +98,10 @@ func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	token, err := h.repo.Create(r.Context(), &input)
 	if err != nil {
+		if strings.Contains(err.Error(), "already exists") {
+			Error(w, r, http.StatusBadRequest, "DUPLICATE_NAME", err.Error())
+			return
+		}
 		InternalError(w, r)
 		return
 	}

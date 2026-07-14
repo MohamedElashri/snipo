@@ -158,12 +158,20 @@ func Load() (*Config, error) {
 
 	sessionSecret := os.Getenv("SNIPO_SESSION_SECRET")
 	if sessionSecret == "" {
-		secret, err := generateSecret()
-		if err != nil {
-			return nil, err
+		secretFilePath := filepath.Join(filepath.Dir(cfg.Database.Path), ".session_secret")
+		if data, err := os.ReadFile(secretFilePath); err == nil && len(strings.TrimSpace(string(data))) > 0 {
+			sessionSecret = strings.TrimSpace(string(data))
+		} else {
+			secret, err := generateSecret()
+			if err != nil {
+				return nil, err
+			}
+			sessionSecret = secret
+			cfg.Auth.SessionSecretGenerated = true
+			if err := os.MkdirAll(filepath.Dir(secretFilePath), 0700); err == nil {
+				_ = os.WriteFile(secretFilePath, []byte(sessionSecret), 0600)
+			}
 		}
-		sessionSecret = secret
-		cfg.Auth.SessionSecretGenerated = true
 	}
 	cfg.Auth.SessionSecret = sessionSecret
 	cfg.Auth.SessionDuration = getEnvDuration("SNIPO_SESSION_DURATION", 168*time.Hour)

@@ -43,6 +43,15 @@ func (r *TokenRepository) hashToken(token string) string {
 
 // Create creates a new API token
 func (r *TokenRepository) Create(ctx context.Context, input *models.APITokenInput) (*models.APIToken, error) {
+	// Check if token with the same name already exists
+	var existingId int64
+	err := r.db.QueryRowContext(ctx, "SELECT id FROM api_tokens WHERE name = ?", input.Name).Scan(&existingId)
+	if err == nil {
+		return nil, fmt.Errorf("a token with the name '%s' already exists", input.Name)
+	} else if err != sql.ErrNoRows {
+		return nil, fmt.Errorf("failed to check existing token names: %w", err)
+	}
+
 	// Generate token
 	token, err := generateToken()
 	if err != nil {

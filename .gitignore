@@ -13,6 +13,7 @@ cookies.txt
 bin/*
 *.db
 .encryption_salt
+.session_secret
 
 ## Coverage
 coverage.out
