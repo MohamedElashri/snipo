@@ -242,7 +242,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		// API Token management (admin only)
 		if cfg.Config == nil || cfg.Config.Features.APITokens {
 			r.Route("/api/v1/tokens", func(r chi.Router) {
-				r.Use(middleware.RequireAdminWithPassword(cfg.AuthService))
+				r.Use(middleware.RequireAdmin)
 				r.Use(apiRateLimiter.RateLimitAdmin)
 				r.Get("/", tokenHandler.List)
 				r.Post("/", tokenHandler.Create)
