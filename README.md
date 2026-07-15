@@ -20,7 +20,7 @@ Snipo is a lightweight, self-hosted snippet manager for a single user.
 - Public links, soft deletion, expiration, and encrypted backup export
 - Read, write, and admin API tokens
 - Optional S3 backups and two-way GitHub Gist sync
-- Browser extension and terminal client
+- Browser extension, VS Code extension, and terminal client
 - Local frontend assets with no runtime CDN dependency
 
 ## Quick start
@@ -42,6 +42,7 @@ accessible.
 
 - [Snippy terminal client](tui/README.md)
 - [Chrome and Firefox extension](extension/README.md)
+- [VS Code extension](vscode-extension/README.md)
 
 ## Documentation
 

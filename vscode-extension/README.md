@@ -1,24 +1,32 @@
 # Snipo VS Code Extension
 
-**Note: This extension is currently under publication and will be available on the VS Code Marketplace soon.**
+[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/muhammadelashri.snipo?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=muhammadelashri.snipo)
+[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/muhammadelashri.snipo?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=muhammadelashri.snipo)
 
 Snipo is a modern snippet manager designed to boost your productivity. This VS Code extension integrates your Snipo snippets directly into your editor, allowing you to access, search, insert, and save snippets without ever leaving your IDE.
 
 ## Installation
 
-While the extension is under publication, you can install it manually from the source:
+You can install the extension directly from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=muhammadelashri.snipo):
 
-1. Download or generate the `snipo-*.vsix` file.
-2. In VS Code, open the Extensions view (`Ctrl+Shift+X` or `Cmd+Shift+X`).
-3. Click the `...` menu in the top right corner of the Extensions view.
-4. Select **Install from VSIX...**
-5. Locate and select the `snipo-*.vsix` file.
+1. Open the Extensions view in VS Code (`Ctrl+Shift+X` or `Cmd+Shift+X`).
+2. Search for "Snipo".
+3. Click **Install**.
 
-Alternatively, you can install it via the command line if you have `code` in your PATH:
+Alternatively, you can install it via the command line:
 
 ```bash
-code --install-extension snipo-*.vsix
+code --install-extension muhammadelashri.snipo
 ```
+
+### Manual Installation
+
+If you prefer to install from source:
+
+1. Download or generate the `snipo-*.vsix` file.
+2. In VS Code, open the Extensions view.
+3. Click the `...` menu in the top right corner and select **Install from VSIX...**.
+4. Locate and select the `snipo-*.vsix` file.
 
 ## Configuration
 
