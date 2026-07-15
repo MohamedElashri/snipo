@@ -23,7 +23,14 @@ export function initLoginForm(Alpine) {
         // Handle success response
         if (result && result.success) {
           const basePath = window.SNIPO_CONFIG?.basePath || '';
-          window.location.href = basePath + '/';
+          const urlParams = new URLSearchParams(window.location.search);
+          const nextUrl = urlParams.get('next');
+          
+          if (nextUrl && nextUrl.startsWith('/')) {
+            window.location.href = basePath + nextUrl;
+          } else {
+            window.location.href = basePath + '/';
+          }
         } else {
           this.error = result?.message || 'Invalid password';
         }

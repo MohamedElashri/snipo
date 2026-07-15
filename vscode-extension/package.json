@@ -1,0 +1,190 @@
+{
+  "name": "snipo",
+  "displayName": "Snipo",
+  "description": "Snipo snippets manager for VS Code",
+  "version": "0.0.1",
+  "publisher": "muhammadelashri",
+  "icon": "resources/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MohamedElashri/snipo.git"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Snippets",
+    "Other"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "snipo.searchAndInsert",
+        "title": "Snipo: Search and Insert Snippet"
+      },
+      {
+        "command": "snipo.saveSelected",
+        "title": "Snipo: Save Selected Code"
+      },
+      {
+        "command": "snipo.replaceWithTemplate",
+        "title": "Snipo: Replace with Template"
+      },
+      {
+        "command": "snipo.openInSnipo",
+        "title": "Snipo: Open in Browser"
+      },
+      {
+        "command": "snipo.openInVSCode",
+        "title": "Snipo: Open in Editor"
+      },
+      {
+        "command": "snipo.updateSnippet",
+        "title": "Snipo: Update Existing Snippet"
+      },
+      {
+        "command": "snipo.deleteSnippet",
+        "title": "Snipo: Delete Snippet"
+      },
+      {
+        "command": "snipo.refreshTree",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "snipo.configure",
+        "title": "Configure Snipo",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "snipo.openSettings",
+        "title": "Open Snipo Settings",
+        "icon": "$(settings-gear)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "snipo.refreshTree",
+          "when": "view == snipo-favorites",
+          "group": "navigation@1"
+        },
+        {
+          "command": "snipo.configure",
+          "when": "view == snipo-favorites",
+          "group": "navigation@2"
+        },
+        {
+          "command": "snipo.openSettings",
+          "when": "view == snipo-favorites",
+          "group": "navigation@3"
+        },
+        {
+          "command": "snipo.refreshTree",
+          "when": "view == snipo-recent",
+          "group": "navigation@1"
+        },
+        {
+          "command": "snipo.configure",
+          "when": "view == snipo-recent",
+          "group": "navigation@2"
+        },
+        {
+          "command": "snipo.openSettings",
+          "when": "view == snipo-recent",
+          "group": "navigation@3"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "snipo.insertSnippetFromTree",
+          "when": "viewItem == snippet",
+          "group": "inline"
+        },
+        {
+          "command": "snipo.openInVSCode",
+          "when": "viewItem == snippet",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "snipo.openInSnipo",
+          "when": "viewItem == snippet",
+          "group": "1_actions@2"
+        },
+        {
+          "command": "snipo.deleteSnippet",
+          "when": "viewItem == snippet",
+          "group": "2_danger"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Snipo",
+      "properties": {
+        "snipo.apiUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Base URL of the Snipo server"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "snipo",
+          "title": "Snipo",
+          "icon": "resources/snipo.svg"
+        }
+      ]
+    },
+    "views": {
+      "snipo": [
+        {
+          "id": "snipo-favorites",
+          "name": "Favorites"
+        },
+        {
+          "id": "snipo-recent",
+          "name": "Recently Used"
+        },
+        {
+          "type": "webview",
+          "id": "snipo-settings",
+          "name": "Configuration"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run esbuild-base -- --minify",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+    "esbuild": "npm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+    "compile-tests": "tsc -p ./",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile-tests",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/nock": "^10.0.3",
+    "@types/node": "18.x",
+    "@types/sinon": "^22.0.0",
+    "@types/vscode": "^1.80.0",
+    "@vscode/test-electron": "^3.0.0",
+    "esbuild": "^0.28.1",
+    "glob": "^13.0.6",
+    "mocha": "^11.7.6",
+    "nock": "^14.0.16",
+    "sinon": "^22.0.0",
+    "typescript": "^5.1.3"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}
