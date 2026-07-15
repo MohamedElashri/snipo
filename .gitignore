@@ -27,3 +27,8 @@ dist/
 
 ## Node.js dependencies (for vendor management)
 node_modules/
+
+## vscode extension vsix
+*.vsix
+.vscode-test
+out/

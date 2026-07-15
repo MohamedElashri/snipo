@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -108,7 +109,11 @@ func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
 	// Normal authentication flow: require session
 	token := auth.GetSessionFromRequest(r)
 	if token == "" || !h.authService.ValidateSession(token) {
-		http.Redirect(w, r, h.basePath+"/login", http.StatusSeeOther)
+		loginURL := h.basePath + "/login"
+		if r.URL.RawQuery != "" {
+			loginURL += "?next=" + url.QueryEscape("?" + r.URL.RawQuery)
+		}
+		http.Redirect(w, r, loginURL, http.StatusSeeOther)
 		return
 	}
 
