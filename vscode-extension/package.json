@@ -3,7 +3,7 @@
   "displayName": "Snipo",
   "description": "Snipo snippets manager for VS Code",
   "version": "0.0.1",
-  "publisher": "mohamedelashri",
+  "publisher": "melashri",
   "icon": "resources/icon.png",
   "repository": {
     "type": "git",
