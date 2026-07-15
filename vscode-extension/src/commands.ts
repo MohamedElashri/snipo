@@ -140,10 +140,12 @@ export async function saveSelectedSnippet() {
         }
     }
 
-    const title = await vscode.window.showInputBox({ prompt: 'Enter snippet title' });
-    if (!title) return; // User cancelled
+    const titleInput = await vscode.window.showInputBox({ prompt: 'Enter snippet title' });
+    const title = titleInput?.trim();
+    if (!title) return; // User cancelled or empty
 
-    const description = await vscode.window.showInputBox({ prompt: 'Enter snippet description (optional)' }) || '';
+    const descInput = await vscode.window.showInputBox({ prompt: 'Enter snippet description (optional)' });
+    const description = descInput?.trim() || '';
     
     const detected = detectLanguage(editor.document.languageId);
     

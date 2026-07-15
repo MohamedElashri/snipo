@@ -42,7 +42,7 @@ export async function activate(context: vscode.ExtensionContext) {
             let snippet = (arg && arg.snippet) ? arg.snippet : arg;
             const editor = vscode.window.activeTextEditor;
             if (editor && snippet) {
-                editor.insertSnippet(new vscode.SnippetString(snippet.content));
+                editor.insertSnippet(new vscode.SnippetString().appendText(snippet.content));
             }
         })
     );

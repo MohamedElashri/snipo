@@ -159,7 +159,7 @@ export class SnipoAPI {
 
     async updateSnippet(id: string, data: Partial<Snippet>): Promise<Snippet | null> {
         try {
-            const response = await this.client.put(`/api/v1/snippets/${id}`, data);
+            const response = await this.client.put(`/api/v1/snippets/${encodeURIComponent(id)}`, data);
             vscode.window.showInformationMessage('Snippet updated successfully!');
             return response.data;
         } catch (error: any) {
@@ -177,7 +177,7 @@ export class SnipoAPI {
 
     async deleteSnippet(id: string): Promise<boolean> {
         try {
-            await this.client.delete(`/api/v1/snippets/${id}`);
+            await this.client.delete(`/api/v1/snippets/${encodeURIComponent(id)}`);
             vscode.window.showInformationMessage('Snippet deleted successfully!');
             return true;
         } catch (error: any) {
