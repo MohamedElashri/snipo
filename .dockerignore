@@ -24,8 +24,9 @@ coverage.html
 # TUI
 tui/
 
-# Extension
+# Extensions
 extension/
+vscode-extension/
 
 # OS files
 .DS_Store
@@ -56,3 +57,18 @@ docker-compose*.yml
 # Misc
 Makefile
 LICENSE
+SECURITY.md
+
+# Development tools and scripts
+scripts/
+patches/
+.codeql/
+package.json
+package-lock.json
+go.work.sum
+
+# Secrets and temp files
+.encryption_salt
+.session_secret
+cookies.txt
+.env.example
