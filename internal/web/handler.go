@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/internal/repository"
@@ -62,7 +63,18 @@ func (h *Handler) WithBasePath(basePath string) *Handler {
 func StaticHandler(basePath string) http.Handler {
 	staticContent, _ := fs.Sub(staticFS, "static")
 	prefix := basePath + "/static/"
-	return http.StripPrefix(prefix, http.FileServer(http.FS(staticContent)))
+	
+	fileServer := http.StripPrefix(prefix, http.FileServer(http.FS(staticContent)))
+	
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Prevent aggressive caching of static assets (JS/CSS) across deployments
+		// by forcing the browser to revalidate with the server using ETags/Last-Modified
+		if strings.HasSuffix(r.URL.Path, ".js") || strings.HasSuffix(r.URL.Path, ".css") {
+			w.Header().Set("Cache-Control", "no-cache, must-revalidate")
+		}
+		
+		fileServer.ServeHTTP(w, r)
+	})
 }
 
 // PageData holds data passed to templates
