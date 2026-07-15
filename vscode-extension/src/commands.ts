@@ -112,7 +112,7 @@ export async function searchAndInsertSnippet() {
     if (snippet) {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
-            editor.insertSnippet(new vscode.SnippetString(snippet.content));
+            editor.insertSnippet(new vscode.SnippetString().appendText(snippet.content));
         }
     }
 }
@@ -190,7 +190,7 @@ export async function replaceWithTemplate() {
     const snippet = await showDynamicSnippetPicker('Select a template to replace selection');
     if (snippet) {
         const selection = editor.selection;
-        editor.insertSnippet(new vscode.SnippetString(snippet.content), selection);
+        editor.insertSnippet(new vscode.SnippetString().appendText(snippet.content), selection);
     }
 }
 
@@ -223,6 +223,10 @@ export async function openInSnipo(arg?: any) {
         const apiUrlString = config.get<string>('apiUrl') || 'http://localhost:3000';
         try {
             const url = new URL(apiUrlString);
+            if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+                vscode.window.showErrorMessage('Invalid Snipo URL protocol in settings. Must be http or https.');
+                return;
+            }
             url.searchParams.set('snippet', snippetId);
             vscode.env.openExternal(vscode.Uri.parse(url.toString()));
         } catch (e) {
