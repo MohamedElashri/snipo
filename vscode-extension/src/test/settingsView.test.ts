@@ -12,9 +12,11 @@ suite('SettingsView Test Suite', () => {
         const provider = new SettingsViewProvider(mockUri, mockContext);
         
         const mockWebview: any = {
+            cspSource: 'https://vscode-webview.net',
             options: {},
             html: '',
-            onDidReceiveMessage: () => {}
+            onDidReceiveMessage: () => {},
+            postMessage: () => Promise.resolve(true)
         };
         const mockWebviewView: any = {
             webview: mockWebview

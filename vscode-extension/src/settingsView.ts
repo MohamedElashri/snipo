@@ -24,6 +24,12 @@ export class SettingsViewProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
+        const config = vscode.workspace.getConfiguration('snipo');
+        const currentUrl = config.get<string>('apiUrl') || '';
+        
+        // Initialize the webview securely without HTML interpolation
+        webviewView.webview.postMessage({ type: 'init', value: { apiUrl: currentUrl } });
+
         webviewView.webview.onDidReceiveMessage(async data => {
             switch (data.type) {
                 case 'saveSettings': {
@@ -60,14 +66,24 @@ export class SettingsViewProvider implements vscode.WebviewViewProvider {
         });
     }
 
+    private getNonce() {
+        let text = '';
+        const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        for (let i = 0; i < 32; i++) {
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        }
+        return text;
+    }
+
     private _getHtmlForWebview(webview: vscode.Webview) {
-        const config = vscode.workspace.getConfiguration('snipo');
-        const currentUrl = config.get<string>('apiUrl') || '';
+        const nonce = this.getNonce();
 
         return `<!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
+                <!-- Use a secure Content Security Policy -->
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Snipo Configuration</title>
                 <style>
@@ -129,7 +145,8 @@ export class SettingsViewProvider implements vscode.WebviewViewProvider {
             <body>
                 <div class="input-group">
                     <label for="apiUrl">Server URL</label>
-                    <input type="text" id="apiUrl" placeholder="e.g. http://localhost:3000" value="${currentUrl}" />
+                    <!-- Removed value interpolation to avoid XSS. Value is populated via postMessage -->
+                    <input type="text" id="apiUrl" placeholder="e.g. http://localhost:3000" />
                 </div>
                 
                 <div class="input-group">
@@ -140,7 +157,7 @@ export class SettingsViewProvider implements vscode.WebviewViewProvider {
                 <button id="saveBtn">Connect</button>
                 <div id="status"></div>
 
-                <script>
+                <script nonce="${nonce}">
                     const vscode = acquireVsCodeApi();
                     const saveBtn = document.getElementById('saveBtn');
                     const apiUrlInput = document.getElementById('apiUrl');
@@ -166,6 +183,9 @@ export class SettingsViewProvider implements vscode.WebviewViewProvider {
                     window.addEventListener('message', event => {
                         const message = event.data;
                         switch (message.type) {
+                            case 'init':
+                                apiUrlInput.value = message.value.apiUrl || '';
+                                break;
                             case 'saving':
                                 saveBtn.disabled = true;
                                 saveBtn.textContent = 'Connecting...';
