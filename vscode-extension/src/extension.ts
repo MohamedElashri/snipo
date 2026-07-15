@@ -3,6 +3,7 @@ import { searchAndInsertSnippet, saveSelectedSnippet, replaceWithTemplate, openI
 import { SnippetTreeProvider } from './treeView';
 import { SnipoStatusBar } from './statusBar';
 import { api, Snippet } from './api';
+import { SettingsViewProvider } from './settingsView';
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Snipo extension is now active');
@@ -10,10 +11,8 @@ export async function activate(context: vscode.ExtensionContext) {
     await api.init(context);
 
     if (!(await api.isConfigured())) {
-        const result = await vscode.window.showInformationMessage('Snipo requires configuration to connect to your server.', 'Configure Now');
-        if (result === 'Configure Now') {
-            await runOnboardingFlow(context);
-        }
+        vscode.window.showInformationMessage('Snipo requires configuration to connect to your server. Please configure it in the Snipo sidebar.');
+        vscode.commands.executeCommand('snipo-settings.focus');
     }
 
     // Register commands
@@ -26,9 +25,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('snipo.updateSnippet', updateSnippet),
         vscode.commands.registerCommand('snipo.deleteSnippet', deleteSnippetCommand),
         vscode.commands.registerCommand('snipo.configure', async () => {
-            await runOnboardingFlow(context);
-            // Refresh trees after config
-            vscode.commands.executeCommand('snipo.refreshTree');
+            vscode.commands.executeCommand('snipo-settings.focus');
         }),
         vscode.commands.registerCommand('snipo.openSettings', () => {
             vscode.commands.executeCommand('workbench.action.openSettings', '@ext:mohamedelashri.snipo');
@@ -64,47 +61,12 @@ export async function activate(context: vscode.ExtensionContext) {
             recentProvider.refresh();
         })
     );
-}
 
-export async function runOnboardingFlow(context: vscode.ExtensionContext) {
-    let isValid = false;
-    while (!isValid) {
-        const apiUrl = await vscode.window.showInputBox({
-            prompt: 'Enter your Snipo Server URL',
-            placeHolder: 'e.g. http://localhost:3000',
-            ignoreFocusOut: true
-        });
-
-        if (apiUrl === undefined) return; // User cancelled
-
-        const apiToken = await vscode.window.showInputBox({
-            prompt: 'Enter your Snipo API Token',
-            password: true,
-            ignoreFocusOut: true
-        });
-
-        if (apiToken === undefined) return; // User cancelled
-
-        isValid = await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: "Verifying Snipo connection...",
-            cancellable: false
-        }, async () => {
-            return await api.verifyConfiguration(apiUrl, apiToken);
-        });
-
-        if (isValid) {
-            const config = vscode.workspace.getConfiguration('snipo');
-            await config.update('apiUrl', apiUrl, vscode.ConfigurationTarget.Global);
-            await context.secrets.store('snipo.apiToken', apiToken);
-            vscode.window.showInformationMessage('Successfully connected to Snipo!');
-        } else {
-            const retry = await vscode.window.showErrorMessage('Connection failed or invalid token. Please check your URL and Token.', 'Retry', 'Cancel');
-            if (retry !== 'Retry') {
-                break;
-            }
-        }
-    }
+    // Register Settings View
+    const settingsProvider = new SettingsViewProvider(context.extensionUri, context);
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(SettingsViewProvider.viewType, settingsProvider)
+    );
 }
 
 export function deactivate() { }

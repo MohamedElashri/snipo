@@ -37,6 +37,7 @@ function detectLanguage(vscodeLang: string): string {
 }
 
 let searchTimeout: NodeJS.Timeout | undefined;
+let searchAbortController: AbortController | undefined;
 
 async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | undefined> {
     return new Promise((resolve) => {
@@ -61,16 +62,26 @@ async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | 
             if (searchTimeout) {
                 clearTimeout(searchTimeout);
             }
+            if (searchAbortController) {
+                searchAbortController.abort();
+            }
+            
             quickPick.busy = true;
             searchTimeout = setTimeout(async () => {
-                const snippets = value ? await api.searchSnippets(value) : await api.getSnippets();
-                quickPick.items = snippets.map(s => ({
-                    label: `$(code) ${s.title}`,
-                    description: s.language,
-                    detail: s.description,
-                    snippet: s
-                }));
-                quickPick.busy = false;
+                searchAbortController = new AbortController();
+                try {
+                    const snippets = value ? await api.searchSnippets(value, searchAbortController.signal) : await api.getSnippets();
+                    quickPick.items = snippets.map(s => ({
+                        label: `$(code) ${s.title}`,
+                        description: s.language,
+                        detail: s.description,
+                        snippet: s
+                    }));
+                } catch (e) {
+                    // Ignore errors, handled in API
+                } finally {
+                    quickPick.busy = false;
+                }
             }, 300); // 300ms debounce
         });
 
@@ -82,6 +93,7 @@ async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | 
 
         quickPick.onDidHide(() => {
             if (searchTimeout) clearTimeout(searchTimeout);
+            if (searchAbortController) searchAbortController.abort();
             resolve(undefined);
             quickPick.dispose();
         });

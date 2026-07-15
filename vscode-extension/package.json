@@ -150,21 +150,38 @@
         {
           "id": "snipo-recent",
           "name": "Recently Used"
+        },
+        {
+          "type": "webview",
+          "id": "snipo-settings",
+          "name": "Configuration"
         }
       ]
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run esbuild-base -- --minify",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+    "esbuild": "npm run esbuild-base -- --sourcemap",
+    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+    "compile-tests": "tsc -p ./",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
+    "pretest": "npm run compile-tests",
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/vscode": "^1.80.0",
+    "@types/mocha": "^10.0.10",
+    "@types/nock": "^10.0.3",
     "@types/node": "18.x",
+    "@types/sinon": "^22.0.0",
+    "@types/vscode": "^1.80.0",
+    "@vscode/test-electron": "^3.0.0",
+    "esbuild": "^0.28.1",
+    "glob": "^13.0.6",
+    "mocha": "^11.7.6",
+    "nock": "^14.0.16",
+    "sinon": "^22.0.0",
     "typescript": "^5.1.3"
   },
   "dependencies": {

@@ -90,29 +90,45 @@ export class SnipoAPI {
     }
 
     async getSnippets(query: string = '', isFavorite?: boolean): Promise<Snippet[]> {
+        const cacheKey = `snippets_all_${isFavorite}`;
         try {
             const params: any = { limit: 50 };
             if (query) params.q = query;
             if (isFavorite !== undefined) params.favorite = isFavorite;
 
             const response = await this.client.get('/api/v1/snippets', { params });
-            return response.data.data || [];
+            const data = response.data.data || [];
+            
+            // Cache full lists (not search queries)
+            if (this.context && !query) {
+                await this.context.globalState.update(cacheKey, data);
+            }
+            return data;
         } catch (error: any) {
             console.error('Error fetching snippets', error);
             if (error.response?.status === 401) {
                 vscode.window.showErrorMessage('Snipo API Token is invalid. Please update it in settings.');
+            } else if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+                vscode.window.showErrorMessage('Failed to connect to Snipo server. Showing cached snippets (if any).');
             } else {
                 vscode.window.showErrorMessage('Failed to fetch snippets from Snipo');
+            }
+            
+            if (this.context && !query) {
+                return this.context.globalState.get<Snippet[]>(cacheKey) || [];
             }
             return [];
         }
     }
 
-    async searchSnippets(query: string): Promise<Snippet[]> {
+    async searchSnippets(query: string, signal?: AbortSignal): Promise<Snippet[]> {
         try {
-            const response = await this.client.get('/api/v1/snippets/search', { params: { q: query } });
+            const response = await this.client.get('/api/v1/snippets/search', { params: { q: query }, signal });
             return Array.isArray(response.data) ? response.data : (response.data.data || []);
         } catch (error: any) {
+            if (axios.isCancel(error)) {
+                return [];
+            }
             console.error('Error searching snippets', error);
             if (error.response?.status === 401) {
                 vscode.window.showErrorMessage('Snipo API Token is invalid. Please update it in settings.');
@@ -176,12 +192,19 @@ export class SnipoAPI {
     }
 
     async getRecentSnippets(): Promise<Snippet[]> {
-        // We can just get snippets sorted by updated_at descending
+        const cacheKey = 'recent_snippets';
         try {
             const response = await this.client.get('/api/v1/snippets', { params: { limit: 20, sort: 'updated_at', order: 'desc' } });
-            return response.data.data || [];
+            const data = response.data.data || [];
+            if (this.context) {
+                await this.context.globalState.update(cacheKey, data);
+            }
+            return data;
         } catch (error) {
             console.error('Error fetching recent snippets', error);
+            if (this.context) {
+                return this.context.globalState.get<Snippet[]>(cacheKey) || [];
+            }
             return [];
         }
     }

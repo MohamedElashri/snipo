@@ -1,4 +1,4 @@
-.PHONY: all build package install clean
+.PHONY: all build test package install clean help
 
 VSCE = npx vsce
 
@@ -6,13 +6,16 @@ all: build
 
 build:
 	npm install
-	npm run compile
+	npm run esbuild
+
+test:
+	npm run test
 
 package: build
 	$(VSCE) package --allow-star-activation
 
 install: package
-	code --install-extension snipo-0.0.1.vsix --force
+	code --install-extension *.vsix --force
 
 clean:
 	rm -rf out
@@ -21,8 +24,9 @@ clean:
 
 help:
 	@echo "Available commands:"
-	@echo "  build     - Build the extension"
-	@echo "  package   - Package the extension"
-	@echo "  install   - Install the extension"
-	@echo "  clean     - Clean the extension"
+	@echo "  build     - Install dependencies and bundle the extension (esbuild)"
+	@echo "  test      - Run headless unit tests"
+	@echo "  package   - Package the extension into a .vsix file"
+	@echo "  install   - Package and install the extension into VS Code"
+	@echo "  clean     - Remove build artifacts and node_modules"
 	@echo "  help      - Show this help message"
