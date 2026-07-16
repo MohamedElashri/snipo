@@ -9,6 +9,22 @@ export interface Snippet {
     language: string;
     is_favorite: boolean;
     is_public: boolean;
+    tags?: Tag[];
+}
+
+export interface Tag {
+    id: number;
+    name: string;
+    color: string;
+    snippet_count?: number;
+}
+
+export interface Folder {
+    id: number;
+    name: string;
+    icon?: string;
+    snippet_count?: number;
+    children?: Folder[];
 }
 
 export class SnipoAPI {
@@ -89,12 +105,17 @@ export class SnipoAPI {
         }
     }
 
-    async getSnippets(query: string = '', isFavorite?: boolean): Promise<Snippet[]> {
-        const cacheKey = `snippets_all_${isFavorite}`;
+    async getSnippets(query: string = '', isFavorite?: boolean, tagId?: number, folderId?: number): Promise<Snippet[]> {
+        let cacheKey = `snippets_all_${isFavorite}`;
+        if (tagId) cacheKey = `snippets_tag_${tagId}`;
+        if (folderId) cacheKey = `snippets_folder_${folderId}`;
+
         try {
             const params: any = { limit: 50 };
             if (query) params.q = query;
             if (isFavorite !== undefined) params.favorite = isFavorite;
+            if (tagId !== undefined) params.tag_ids = tagId;
+            if (folderId !== undefined) params.folder_ids = folderId;
 
             const response = await this.client.get('/api/v1/snippets', { params });
             const data = response.data.data || [];
@@ -130,12 +151,45 @@ export class SnipoAPI {
                 return [];
             }
             console.error('Error searching snippets', error);
+            
+            // Offline fallback for search
+            if (this.context && (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error'))) {
+                const cachedSnippets = this.context.globalState.get<Snippet[]>('snippets_all_undefined') || [];
+                const lowerQuery = query.toLowerCase();
+                return cachedSnippets.filter(s => 
+                    s.title.toLowerCase().includes(lowerQuery) || 
+                    (s.description && s.description.toLowerCase().includes(lowerQuery)) ||
+                    s.content.toLowerCase().includes(lowerQuery)
+                );
+            }
+
             if (error.response?.status === 401) {
                 vscode.window.showErrorMessage('Snipo API Token is invalid. Please update it in settings.');
             } else {
                 vscode.window.showErrorMessage('Failed to search snippets from Snipo');
             }
             return [];
+        }
+    }
+
+    async getSnippet(id: string): Promise<Snippet | null> {
+        try {
+            const response = await this.client.get(`/api/v1/snippets/${encodeURIComponent(id)}`);
+            return response.data;
+        } catch (error: any) {
+            console.error('Error fetching snippet', error);
+            // Offline fallback
+            if (this.context && (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error'))) {
+                // Try to find in cache
+                const cached = this.context.globalState.get<Snippet[]>('snippets_all_undefined') || [];
+                const found = cached.find(s => s.id === id);
+                if (found) return found;
+                
+                const cachedRecent = this.context.globalState.get<Snippet[]>('recent_snippets') || [];
+                const foundRecent = cachedRecent.find(s => s.id === id);
+                if (foundRecent) return foundRecent;
+            }
+            return null;
         }
     }
 
@@ -204,6 +258,42 @@ export class SnipoAPI {
             console.error('Error fetching recent snippets', error);
             if (this.context) {
                 return this.context.globalState.get<Snippet[]>(cacheKey) || [];
+            }
+            return [];
+        }
+    }
+
+    async getTags(): Promise<Tag[]> {
+        const cacheKey = 'tags_all';
+        try {
+            const response = await this.client.get('/api/v1/tags');
+            const data = response.data.data || response.data || [];
+            if (this.context) {
+                await this.context.globalState.update(cacheKey, data);
+            }
+            return data;
+        } catch (error) {
+            console.error('Error fetching tags', error);
+            if (this.context) {
+                return this.context.globalState.get<Tag[]>(cacheKey) || [];
+            }
+            return [];
+        }
+    }
+
+    async getFolders(): Promise<Folder[]> {
+        const cacheKey = 'folders_all';
+        try {
+            const response = await this.client.get('/api/v1/folders', { params: { tree: true } });
+            const data = response.data.data || response.data || [];
+            if (this.context) {
+                await this.context.globalState.update(cacheKey, data);
+            }
+            return data;
+        } catch (error) {
+            console.error('Error fetching folders', error);
+            if (this.context) {
+                return this.context.globalState.get<Folder[]>(cacheKey) || [];
             }
             return [];
         }

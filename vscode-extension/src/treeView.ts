@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { api, Snippet } from './api';
+import { api, Snippet, Tag, Folder } from './api';
 
 export class SnippetTreeItem extends vscode.TreeItem {
     constructor(
@@ -63,5 +63,86 @@ export class SnippetTreeProvider implements vscode.TreeDataProvider<SnippetTreeI
         }
 
         return snippets.map(s => new SnippetTreeItem(s));
+    }
+}
+
+export class TagTreeItem extends vscode.TreeItem {
+    constructor(public readonly tag: Tag) {
+        super(tag.name, vscode.TreeItemCollapsibleState.Collapsed);
+        this.tooltip = `Tag: ${tag.name}`;
+        this.contextValue = 'tag';
+        this.iconPath = new vscode.ThemeIcon('tag');
+        this.description = tag.snippet_count ? `${tag.snippet_count}` : undefined;
+    }
+}
+
+export class FolderTreeItem extends vscode.TreeItem {
+    constructor(public readonly folder: Folder) {
+        super(folder.name, vscode.TreeItemCollapsibleState.Collapsed);
+        this.tooltip = `Collection: ${folder.name}`;
+        this.contextValue = 'folder';
+        this.iconPath = new vscode.ThemeIcon('folder-library');
+        this.description = folder.snippet_count ? `${folder.snippet_count}` : undefined;
+    }
+}
+
+export class TagsTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
+    private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | void> = new vscode.EventEmitter<vscode.TreeItem | undefined | void>();
+    readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | void> = this._onDidChangeTreeData.event;
+
+    refresh(): void {
+        this._onDidChangeTreeData.fire();
+    }
+
+    getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
+        return element;
+    }
+
+    async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
+        if (!(await api.isConfigured())) {
+            return Promise.resolve([]);
+        }
+
+        if (!element) {
+            // Root level: Tags and Collections
+            const tagsNode = new vscode.TreeItem('Tags', vscode.TreeItemCollapsibleState.Expanded);
+            tagsNode.contextValue = 'root_tags';
+            tagsNode.iconPath = new vscode.ThemeIcon('tag');
+
+            const collectionsNode = new vscode.TreeItem('Collections', vscode.TreeItemCollapsibleState.Expanded);
+            collectionsNode.contextValue = 'root_collections';
+            collectionsNode.iconPath = new vscode.ThemeIcon('folder-library');
+
+            return [tagsNode, collectionsNode];
+        }
+
+        if (element.contextValue === 'root_tags') {
+            const tags = await api.getTags();
+            return tags.map(t => new TagTreeItem(t));
+        }
+
+        if (element.contextValue === 'root_collections') {
+            const folders = await api.getFolders();
+            return folders.map(f => new FolderTreeItem(f));
+        }
+
+        if (element instanceof TagTreeItem) {
+            const snippets = await api.getSnippets('', undefined, element.tag.id);
+            return snippets.map(s => new SnippetTreeItem(s));
+        }
+
+        if (element instanceof FolderTreeItem) {
+            let items: vscode.TreeItem[] = [];
+            // If folder has children, add them first
+            if (element.folder.children && element.folder.children.length > 0) {
+                items = items.concat(element.folder.children.map(f => new FolderTreeItem(f)));
+            }
+            // Add snippets in this folder
+            const snippets = await api.getSnippets('', undefined, undefined, element.folder.id);
+            items = items.concat(snippets.map(s => new SnippetTreeItem(s)));
+            return items;
+        }
+
+        return [];
     }
 }

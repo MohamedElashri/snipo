@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { searchAndInsertSnippet, saveSelectedSnippet, replaceWithTemplate, openInSnipo, openInVSCode, updateSnippet, deleteSnippetCommand } from './commands';
-import { SnippetTreeProvider } from './treeView';
+import { SnippetTreeProvider, TagsTreeProvider } from './treeView';
+import { SnipoHoverProvider, SnipoCodeLensProvider } from './providers';
 import { SnipoStatusBar } from './statusBar';
 import { api, Snippet } from './api';
 import { SettingsViewProvider } from './settingsView';
@@ -50,15 +51,20 @@ export async function activate(context: vscode.ExtensionContext) {
     // Register Tree Views
     const favoritesProvider = new SnippetTreeProvider('favorites');
     const recentProvider = new SnippetTreeProvider('recent');
+    const tagsProvider = new TagsTreeProvider();
 
     vscode.window.registerTreeDataProvider('snipo-favorites', favoritesProvider);
     vscode.window.registerTreeDataProvider('snipo-recent', recentProvider);
+    vscode.window.registerTreeDataProvider('snipo-tags', tagsProvider);
 
     // Refresh command
     context.subscriptions.push(
         vscode.commands.registerCommand('snipo.refreshTree', () => {
             favoritesProvider.refresh();
             recentProvider.refresh();
+        }),
+        vscode.commands.registerCommand('snipo.refreshTagsTree', () => {
+            tagsProvider.refresh();
         })
     );
 
@@ -66,6 +72,12 @@ export async function activate(context: vscode.ExtensionContext) {
     const settingsProvider = new SettingsViewProvider(context.extensionUri, context);
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(SettingsViewProvider.viewType, settingsProvider)
+    );
+
+    // Register Editor Providers
+    context.subscriptions.push(
+        vscode.languages.registerHoverProvider({ scheme: 'file' }, new SnipoHoverProvider()),
+        vscode.languages.registerCodeLensProvider({ scheme: 'file' }, new SnipoCodeLensProvider())
     );
 }
 
