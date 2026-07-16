@@ -11,7 +11,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/dev-docker.yml",
@@ -22,7 +22,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/dev-docker.yml",
@@ -31,9 +31,9 @@
       "repo": "setup-qemu-action",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v4.1.0",
-      "pinned_sha": "06116385d9baf250c9f4dcb4858b16962ea869c3",
-      "resolved_at": "2026-07-13T10:50:57Z",
+      "logical_ref": "v4.2.0",
+      "pinned_sha": "96fe6ef7f33517b61c61be40b68a1882f3264fb8",
+      "resolved_at": "2026-07-16T09:29:17Z",
       "timestamp": "2026-07-01T12:04:56Z",
       "timestamp_source": "release"
     },
@@ -44,9 +44,9 @@
       "repo": "setup-buildx-action",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v4.1.0",
-      "pinned_sha": "d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5",
-      "resolved_at": "2026-07-13T10:50:57Z",
+      "logical_ref": "v4.2.0",
+      "pinned_sha": "bb05f3f5519dd87d3ba754cc423b652a5edd6d2c",
+      "resolved_at": "2026-07-16T09:29:17Z",
       "timestamp": "2026-07-02T09:23:15Z",
       "timestamp_source": "release"
     },
@@ -57,10 +57,10 @@
       "repo": "login-action",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v4.2.0",
-      "pinned_sha": "650006c6eb7dba73a995cc03b0b2d7f5ca915bee",
-      "resolved_at": "2026-07-13T10:50:57Z",
-      "timestamp": "2026-07-03T13:43:58Z",
+      "logical_ref": "v4.3.0",
+      "pinned_sha": "c99871dec2022cc055c062a10cc1a1310835ceb4",
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-02T07:51:48Z",
       "timestamp_source": "release"
     },
     {
@@ -72,7 +72,7 @@
       "kind": "github-action",
       "logical_ref": "v7.3.0",
       "pinned_sha": "53b7df96c91f9c12dcc8a07bcb9ccacbed38856a",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/dev-docker.yml",
@@ -83,7 +83,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/dev-docker.yml",
@@ -94,8 +94,8 @@
       "kind": "github-action",
       "logical_ref": "v6.5.0",
       "pinned_sha": "924ae3a1cded613372ab5595356fb5720e22ba16",
-      "resolved_at": "2026-07-13T10:50:57Z",
-      "timestamp": "2026-06-24T02:49:39Z",
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-16T02:50:50Z",
       "timestamp_source": "release"
     },
     {
@@ -107,7 +107,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/extension-ci.yml",
@@ -118,7 +118,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.1",
       "pinned_sha": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/extension-ci.yml",
@@ -129,7 +129,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.1",
       "pinned_sha": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/extension-ci.yml",
@@ -140,7 +140,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.1",
       "pinned_sha": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/extension-ci.yml",
@@ -151,7 +151,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/extension-ci.yml",
@@ -162,7 +162,9 @@
       "kind": "github-action",
       "logical_ref": "v6.4.0",
       "pinned_sha": "48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-14T02:46:05Z",
+      "timestamp_source": "release"
     },
     {
       "file": ".github/workflows/extension-ci.yml",
@@ -173,7 +175,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/extension-ci.yml",
@@ -184,7 +186,9 @@
       "kind": "github-action",
       "logical_ref": "v6.4.0",
       "pinned_sha": "48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-14T02:46:05Z",
+      "timestamp_source": "release"
     },
     {
       "file": ".github/workflows/release.yml",
@@ -195,7 +199,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/release.yml",
@@ -206,8 +210,8 @@
       "kind": "github-action",
       "logical_ref": "v6.5.0",
       "pinned_sha": "924ae3a1cded613372ab5595356fb5720e22ba16",
-      "resolved_at": "2026-07-13T10:50:57Z",
-      "timestamp": "2026-06-24T02:49:39Z",
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-16T02:50:50Z",
       "timestamp_source": "release"
     },
     {
@@ -219,7 +223,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.1",
       "pinned_sha": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/release.yml",
@@ -230,7 +234,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/release.yml",
@@ -239,9 +243,9 @@
       "repo": "setup-qemu-action",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v4.1.0",
-      "pinned_sha": "06116385d9baf250c9f4dcb4858b16962ea869c3",
-      "resolved_at": "2026-07-13T10:50:57Z",
+      "logical_ref": "v4.2.0",
+      "pinned_sha": "96fe6ef7f33517b61c61be40b68a1882f3264fb8",
+      "resolved_at": "2026-07-16T09:29:17Z",
       "timestamp": "2026-07-01T12:04:56Z",
       "timestamp_source": "release"
     },
@@ -252,9 +256,9 @@
       "repo": "setup-buildx-action",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v4.1.0",
-      "pinned_sha": "d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5",
-      "resolved_at": "2026-07-13T10:50:57Z",
+      "logical_ref": "v4.2.0",
+      "pinned_sha": "bb05f3f5519dd87d3ba754cc423b652a5edd6d2c",
+      "resolved_at": "2026-07-16T09:29:17Z",
       "timestamp": "2026-07-02T09:23:15Z",
       "timestamp_source": "release"
     },
@@ -265,10 +269,10 @@
       "repo": "login-action",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v4.2.0",
-      "pinned_sha": "650006c6eb7dba73a995cc03b0b2d7f5ca915bee",
-      "resolved_at": "2026-07-13T10:50:57Z",
-      "timestamp": "2026-07-03T13:43:58Z",
+      "logical_ref": "v4.3.0",
+      "pinned_sha": "c99871dec2022cc055c062a10cc1a1310835ceb4",
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-02T07:51:48Z",
       "timestamp_source": "release"
     },
     {
@@ -278,10 +282,10 @@
       "repo": "login-action",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v4.2.0",
-      "pinned_sha": "650006c6eb7dba73a995cc03b0b2d7f5ca915bee",
-      "resolved_at": "2026-07-13T10:50:57Z",
-      "timestamp": "2026-07-03T13:43:58Z",
+      "logical_ref": "v4.3.0",
+      "pinned_sha": "c99871dec2022cc055c062a10cc1a1310835ceb4",
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-02T07:51:48Z",
       "timestamp_source": "release"
     },
     {
@@ -291,9 +295,9 @@
       "repo": "metadata-action",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v6.1.0",
-      "pinned_sha": "80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9",
-      "resolved_at": "2026-07-13T10:50:57Z",
+      "logical_ref": "v6.2.0",
+      "pinned_sha": "dc802804100637a589fabce1cb79ff13a1411302",
+      "resolved_at": "2026-07-16T09:29:17Z",
       "timestamp": "2026-07-02T08:55:18Z",
       "timestamp_source": "release"
     },
@@ -306,7 +310,7 @@
       "kind": "github-action",
       "logical_ref": "v7.3.0",
       "pinned_sha": "53b7df96c91f9c12dcc8a07bcb9ccacbed38856a",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/release.yml",
@@ -317,7 +321,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/release.yml",
@@ -328,7 +332,7 @@
       "kind": "github-action",
       "logical_ref": "v8.0.1",
       "pinned_sha": "3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/release.yml",
@@ -339,7 +343,9 @@
       "kind": "github-action",
       "logical_ref": "v3.0.1",
       "pinned_sha": "718ea10b132b3b2eba29c1007bb80653f286566b",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-13T14:30:35Z",
+      "timestamp_source": "release"
     },
     {
       "file": ".github/workflows/release.yml",
@@ -350,7 +356,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/release.yml",
@@ -361,8 +367,8 @@
       "kind": "github-action",
       "logical_ref": "v6.5.0",
       "pinned_sha": "924ae3a1cded613372ab5595356fb5720e22ba16",
-      "resolved_at": "2026-07-13T10:50:57Z",
-      "timestamp": "2026-06-24T02:49:39Z",
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-16T02:50:50Z",
       "timestamp_source": "release"
     },
     {
@@ -374,7 +380,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/snipo-ci.yml",
@@ -385,8 +391,8 @@
       "kind": "github-action",
       "logical_ref": "v6.5.0",
       "pinned_sha": "924ae3a1cded613372ab5595356fb5720e22ba16",
-      "resolved_at": "2026-07-13T10:50:57Z",
-      "timestamp": "2026-06-24T02:49:39Z",
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-16T02:50:50Z",
       "timestamp_source": "release"
     },
     {
@@ -398,7 +404,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/snipo-ci.yml",
@@ -409,7 +415,7 @@
       "kind": "github-action",
       "logical_ref": "v1.0.4",
       "pinned_sha": "b625fbe08f3bccbe446d94fbf87fcc875a4f50ee",
-      "resolved_at": "2026-07-13T10:50:57Z",
+      "resolved_at": "2026-07-16T09:29:17Z",
       "timestamp": "2026-07-10T14:46:07Z",
       "timestamp_source": "release"
     },
@@ -422,7 +428,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/snipo-ci.yml",
@@ -433,8 +439,8 @@
       "kind": "github-action",
       "logical_ref": "v6.5.0",
       "pinned_sha": "924ae3a1cded613372ab5595356fb5720e22ba16",
-      "resolved_at": "2026-07-13T10:50:57Z",
-      "timestamp": "2026-06-24T02:49:39Z",
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-16T02:50:50Z",
       "timestamp_source": "release"
     },
     {
@@ -446,7 +452,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/snipo-ci.yml",
@@ -457,8 +463,8 @@
       "kind": "github-action",
       "logical_ref": "v6.5.0",
       "pinned_sha": "924ae3a1cded613372ab5595356fb5720e22ba16",
-      "resolved_at": "2026-07-13T10:50:57Z",
-      "timestamp": "2026-06-24T02:49:39Z",
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-16T02:50:50Z",
       "timestamp_source": "release"
     },
     {
@@ -470,7 +476,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "fb8b3582c8e4def4969c97caa2f19720cb33a72f",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/snippy-ci.yml",
@@ -481,7 +487,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/snippy-ci.yml",
@@ -492,8 +498,8 @@
       "kind": "github-action",
       "logical_ref": "v6.5.0",
       "pinned_sha": "924ae3a1cded613372ab5595356fb5720e22ba16",
-      "resolved_at": "2026-07-13T10:50:57Z",
-      "timestamp": "2026-06-24T02:49:39Z",
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-16T02:50:50Z",
       "timestamp_source": "release"
     },
     {
@@ -505,7 +511,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/snippy-ci.yml",
@@ -516,7 +522,7 @@
       "kind": "github-action",
       "logical_ref": "v1.0.4",
       "pinned_sha": "b625fbe08f3bccbe446d94fbf87fcc875a4f50ee",
-      "resolved_at": "2026-07-13T10:50:57Z",
+      "resolved_at": "2026-07-16T09:29:17Z",
       "timestamp": "2026-07-10T14:46:07Z",
       "timestamp_source": "release"
     },
@@ -529,7 +535,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/snippy-ci.yml",
@@ -540,8 +546,8 @@
       "kind": "github-action",
       "logical_ref": "v6.5.0",
       "pinned_sha": "924ae3a1cded613372ab5595356fb5720e22ba16",
-      "resolved_at": "2026-07-13T10:50:57Z",
-      "timestamp": "2026-06-24T02:49:39Z",
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-16T02:50:50Z",
       "timestamp_source": "release"
     },
     {
@@ -551,9 +557,9 @@
       "repo": "golangci-lint-action",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v9.2.1",
-      "pinned_sha": "82606bf257cbaff209d206a39f5134f0cfbfd2ee",
-      "resolved_at": "2026-07-13T10:50:57Z",
+      "logical_ref": "v9.3.0",
+      "pinned_sha": "ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a",
+      "resolved_at": "2026-07-16T09:29:17Z",
       "timestamp": "2026-06-29T15:52:49Z",
       "timestamp_source": "release"
     },
@@ -566,7 +572,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/snippy-ci.yml",
@@ -577,8 +583,8 @@
       "kind": "github-action",
       "logical_ref": "v6.5.0",
       "pinned_sha": "924ae3a1cded613372ab5595356fb5720e22ba16",
-      "resolved_at": "2026-07-13T10:50:57Z",
-      "timestamp": "2026-06-24T02:49:39Z",
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-16T02:50:50Z",
       "timestamp_source": "release"
     },
     {
@@ -590,7 +596,7 @@
       "kind": "github-action",
       "logical_ref": "v7.0.0",
       "pinned_sha": "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z"
     },
     {
       "file": ".github/workflows/snippy-release.yml",
@@ -601,8 +607,8 @@
       "kind": "github-action",
       "logical_ref": "v6.5.0",
       "pinned_sha": "924ae3a1cded613372ab5595356fb5720e22ba16",
-      "resolved_at": "2026-07-13T10:50:57Z",
-      "timestamp": "2026-06-24T02:49:39Z",
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-16T02:50:50Z",
       "timestamp_source": "release"
     },
     {
@@ -612,9 +618,9 @@
       "repo": "goreleaser-action",
       "path": "",
       "kind": "github-action",
-      "logical_ref": "v7.2.2",
-      "pinned_sha": "5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89",
-      "resolved_at": "2026-07-13T10:50:57Z",
+      "logical_ref": "v7.2.3",
+      "pinned_sha": "f06c13b6b1a9625abc9e6e439d9c05a8f2190e94",
+      "resolved_at": "2026-07-16T09:29:17Z",
       "timestamp": "2026-06-29T11:37:51Z",
       "timestamp_source": "release"
     },
@@ -627,7 +633,9 @@
       "kind": "github-action",
       "logical_ref": "v3.0.1",
       "pinned_sha": "718ea10b132b3b2eba29c1007bb80653f286566b",
-      "resolved_at": "2026-07-13T10:50:57Z"
+      "resolved_at": "2026-07-16T09:29:17Z",
+      "timestamp": "2026-07-13T14:30:35Z",
+      "timestamp_source": "release"
     }
   ]
 }
