@@ -2,7 +2,7 @@
   "name": "snipo",
   "displayName": "Snipo",
   "description": "Snipo snippets manager for VS Code",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "muhammadelashri",
   "icon": "resources/icon.png",
   "repository": {
@@ -64,6 +64,11 @@
         "command": "snipo.openSettings",
         "title": "Open Snipo Settings",
         "icon": "$(settings-gear)"
+      },
+      {
+        "command": "snipo.refreshTagsTree",
+        "title": "Refresh",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
@@ -96,6 +101,21 @@
         {
           "command": "snipo.openSettings",
           "when": "view == snipo-recent",
+          "group": "navigation@3"
+        },
+        {
+          "command": "snipo.refreshTagsTree",
+          "when": "view == snipo-tags",
+          "group": "navigation@1"
+        },
+        {
+          "command": "snipo.configure",
+          "when": "view == snipo-tags",
+          "group": "navigation@2"
+        },
+        {
+          "command": "snipo.openSettings",
+          "when": "view == snipo-tags",
           "group": "navigation@3"
         }
       ],
@@ -150,6 +170,10 @@
         {
           "id": "snipo-recent",
           "name": "Recently Used"
+        },
+        {
+          "id": "snipo-tags",
+          "name": "Tags & Collections"
         },
         {
           "type": "webview",
