@@ -22,7 +22,6 @@ export class SnipoHoverProvider implements vscode.HoverProvider {
         }
 
         const markdown = new vscode.MarkdownString();
-        markdown.isTrusted = true;
         markdown.appendMarkdown(`**Snipo Snippet:** ${snippet.title}\n\n`);
         if (snippet.description) {
             markdown.appendMarkdown(`${snippet.description}\n\n`);
