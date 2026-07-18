@@ -20,6 +20,7 @@ type GistSyncHandler struct {
 	snippetRepo   *repository.SnippetRepository
 	fileRepo      *repository.SnippetFileRepository
 	encryptionSvc *services.EncryptionService
+	demoMode      bool
 }
 
 // NewGistSyncHandler creates a new gist sync handler
@@ -34,7 +35,14 @@ func NewGistSyncHandler(
 		snippetRepo:   snippetRepo,
 		fileRepo:      fileRepo,
 		encryptionSvc: encryptionSvc,
+		demoMode:      false,
 	}
+}
+
+// WithDemoMode sets the demo mode flag
+func (h *GistSyncHandler) WithDemoMode(enabled bool) *GistSyncHandler {
+	h.demoMode = enabled
+	return h
 }
 
 // ConfigInput represents the input for configuring gist sync
@@ -94,6 +102,9 @@ func (h *GistSyncHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
 
 // UpdateConfig updates the gist sync configuration
 func (h *GistSyncHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
+	if h.checkDemoMode(w, r) {
+		return
+	}
 	var input ConfigInput
 	if err := DecodeJSON(r, &input); err != nil {
 		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Invalid request body")
@@ -175,6 +186,9 @@ func (h *GistSyncHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 
 // TestConnection tests the GitHub token validity
 func (h *GistSyncHandler) TestConnection(w http.ResponseWriter, r *http.Request) {
+	if h.checkDemoMode(w, r) {
+		return
+	}
 	config, err := h.syncRepo.GetConfig(r.Context())
 	if err != nil {
 		InternalError(w, r)
@@ -208,6 +222,9 @@ func (h *GistSyncHandler) TestConnection(w http.ResponseWriter, r *http.Request)
 
 // ClearConfig clears the GitHub token and disables sync
 func (h *GistSyncHandler) ClearConfig(w http.ResponseWriter, r *http.Request) {
+	if h.checkDemoMode(w, r) {
+		return
+	}
 	if err := h.syncRepo.DeleteConfig(r.Context()); err != nil {
 		InternalError(w, r)
 		return
@@ -220,6 +237,9 @@ func (h *GistSyncHandler) ClearConfig(w http.ResponseWriter, r *http.Request) {
 
 // SyncSnippet syncs a specific snippet to gist
 func (h *GistSyncHandler) SyncSnippet(w http.ResponseWriter, r *http.Request) {
+	if h.checkDemoMode(w, r) {
+		return
+	}
 	snippetID := chi.URLParam(r, "id")
 	if snippetID == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
@@ -248,6 +268,9 @@ func (h *GistSyncHandler) SyncSnippet(w http.ResponseWriter, r *http.Request) {
 
 // SyncAll syncs all enabled snippets
 func (h *GistSyncHandler) SyncAll(w http.ResponseWriter, r *http.Request) {
+	if h.checkDemoMode(w, r) {
+		return
+	}
 	syncService, err := h.createSyncService(r.Context())
 	if err != nil {
 		Error(w, r, http.StatusBadRequest, "SYNC_NOT_CONFIGURED", err.Error())
@@ -265,6 +288,9 @@ func (h *GistSyncHandler) SyncAll(w http.ResponseWriter, r *http.Request) {
 
 // EnableSync enables sync for a snippet
 func (h *GistSyncHandler) EnableSync(w http.ResponseWriter, r *http.Request) {
+	if h.checkDemoMode(w, r) {
+		return
+	}
 	snippetID := chi.URLParam(r, "id")
 	if snippetID == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
@@ -289,6 +315,9 @@ func (h *GistSyncHandler) EnableSync(w http.ResponseWriter, r *http.Request) {
 
 // DisableSync disables sync for a snippet
 func (h *GistSyncHandler) DisableSync(w http.ResponseWriter, r *http.Request) {
+	if h.checkDemoMode(w, r) {
+		return
+	}
 	snippetID := chi.URLParam(r, "id")
 	if snippetID == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
@@ -313,6 +342,9 @@ func (h *GistSyncHandler) DisableSync(w http.ResponseWriter, r *http.Request) {
 
 // EnableSyncForAll enables sync for all snippets
 func (h *GistSyncHandler) EnableSyncForAll(w http.ResponseWriter, r *http.Request) {
+	if h.checkDemoMode(w, r) {
+		return
+	}
 	syncService, err := h.createSyncService(r.Context())
 	if err != nil {
 		Error(w, r, http.StatusBadRequest, "SYNC_NOT_CONFIGURED", err.Error())
@@ -351,6 +383,9 @@ func (h *GistSyncHandler) EnableSyncForAll(w http.ResponseWriter, r *http.Reques
 
 // VerifyMappings checks all mappings against GitHub and removes any whose gists were deleted
 func (h *GistSyncHandler) VerifyMappings(w http.ResponseWriter, r *http.Request) {
+	if h.checkDemoMode(w, r) {
+		return
+	}
 	syncService, err := h.createSyncService(r.Context())
 	if err != nil {
 		// No token configured - just return mappings as-is without verification
@@ -386,6 +421,9 @@ func (h *GistSyncHandler) ListMappings(w http.ResponseWriter, r *http.Request) {
 
 // DeleteMapping deletes a snippet-gist mapping
 func (h *GistSyncHandler) DeleteMapping(w http.ResponseWriter, r *http.Request) {
+	if h.checkDemoMode(w, r) {
+		return
+	}
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -416,6 +454,9 @@ func (h *GistSyncHandler) ListConflicts(w http.ResponseWriter, r *http.Request) 
 
 // ResolveConflict resolves a conflict
 func (h *GistSyncHandler) ResolveConflict(w http.ResponseWriter, r *http.Request) {
+	if h.checkDemoMode(w, r) {
+		return
+	}
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -473,6 +514,15 @@ func (h *GistSyncHandler) GetLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	OK(w, r, logs)
+}
+
+// checkDemoMode blocks requests when demo mode is enabled
+func (h *GistSyncHandler) checkDemoMode(w http.ResponseWriter, r *http.Request) bool {
+	if h.demoMode {
+		Error(w, r, http.StatusForbidden, "DEMO_MODE_RESTRICTION", "GitHub Gist sync is disabled in demo mode")
+		return true
+	}
+	return false
 }
 
 // createSyncService creates a sync service with the current configuration
