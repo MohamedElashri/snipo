@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.7.4] - 2026-07-18
+
+### Fixed
+- Prevent aggressive caching of static JS and CSS files by setting Cache-Control headers - - Support `auto` theme selection and fix a UI bug that wiped checkboxes and prevented saving settings
+
+### Changed
+
+- Restrict API key creation/deletion and Gist sync in demo mode
+- Debounce settings updates with a 500ms timeout to reduce API request frequency and prevent race conditions
+
 ## [1.7.3] - 2026-07-14
 
 ### Fixed
