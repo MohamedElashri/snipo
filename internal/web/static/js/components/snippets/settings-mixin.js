@@ -16,6 +16,7 @@ export const settingsMixin = {
   customCssChanged: false,
   showDisableLoginPassword: false,
   disableLoginPassword: '',
+  _settingsUpdateTimeout: null,
 
   async openSettings() {
     this.showSettings = true;
@@ -212,20 +213,27 @@ export const settingsMixin = {
     this.disableLoginPassword = '';
   },
 
-  async updateSettings() {
-    const result = await api.put('/api/v1/settings', this.settings);
-    if (result && !result.error) {
-      this.settings = result;
-      // Cache settings for theme updates
-      try {
-        sessionStorage.setItem('snipo-settings', JSON.stringify(result));
-      } catch (e) {
-        // Ignore storage errors
-      }
-      showToast('Settings updated');
-    } else if (result && result.error) {
-      showToast(result.error.message || 'Failed to update settings', 'error');
+  updateSettings() {
+    if (this._settingsUpdateTimeout) {
+      clearTimeout(this._settingsUpdateTimeout);
     }
+
+    this._settingsUpdateTimeout = setTimeout(async () => {
+      const result = await api.put('/api/v1/settings', this.settings);
+      if (result && !result.error) {
+        this.settings = result;
+        // Cache settings for theme updates
+        try {
+          sessionStorage.setItem('snipo-settings', JSON.stringify(result));
+        } catch (e) {
+          // Ignore storage errors
+        }
+        showToast('Settings updated');
+      } else if (result && result.error) {
+        showToast(result.error.message || 'Failed to update settings', 'error');
+      }
+      this._settingsUpdateTimeout = null;
+    }, 500);
   },
 
   async saveAndApplyCustomCSS() {
