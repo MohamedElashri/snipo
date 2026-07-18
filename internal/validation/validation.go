@@ -147,7 +147,7 @@ var allowedEditorThemes = map[string]bool{
 	"solarized_light": true, "sqlserver": true, "terminal": true, "textmate": true,
 	"tomorrow": true, "tomorrow_night": true, "tomorrow_night_blue": true,
 	"tomorrow_night_bright": true, "tomorrow_night_eighties": true, "twilight": true,
-	"vibrant_ink": true, "xcode": true,
+	"vibrant_ink": true, "xcode": true, "auto": true,
 }
 
 // Allowed UI themes

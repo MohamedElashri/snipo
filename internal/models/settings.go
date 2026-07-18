@@ -39,6 +39,7 @@ type Settings struct {
 
 // SettingsInput represents input for updating settings
 type SettingsInput struct {
+	ID                             int64     `json:"id,omitempty"`
 	AppName                        string `json:"app_name"`
 	CustomCSS                      string `json:"custom_css"`
 	Theme                          string `json:"theme"`
@@ -47,8 +48,8 @@ type SettingsInput struct {
 	S3Endpoint                     string `json:"s3_endpoint"`
 	S3Bucket                       string `json:"s3_bucket"`
 	S3Region                       string `json:"s3_region"`
-	S3AccessKeyID                  string `json:"s3_access_key_id,omitempty"`     // Optional, only for updates
-	S3SecretAccessKey              string `json:"s3_secret_access_key,omitempty"` // Optional, only for updates
+	S3AccessKeyID                  string `json:"s3_access_key_id,omitempty"`
+	S3SecretAccessKey              string `json:"s3_secret_access_key,omitempty"`
 	BackupEncryptionEnabled        bool   `json:"backup_encryption_enabled"`
 	ArchiveEnabled                 bool   `json:"archive_enabled"`
 	TrashEnabled                   bool   `json:"trash_enabled"`
@@ -69,5 +70,7 @@ type SettingsInput struct {
 	EditorEnableLiveAutocompletion bool   `json:"editor_enable_live_autocompletion"`
 	MarkdownFontSize               int    `json:"markdown_font_size"`
 	ExcludeFirstLineOnCopy         bool   `json:"exclude_first_line_on_copy"`
+	CreatedAt                      time.Time `json:"created_at,omitempty"`
+	UpdatedAt                      time.Time `json:"updated_at,omitempty"`
 	Password                       string `json:"password,omitempty"`
 }

@@ -44,7 +44,7 @@ func (s *Service) StartPeriodicReset(ctx context.Context) {
 	s.logger.Warn("DEMO MODE ENABLED",
 		"password", "demo",
 		"reset_interval", s.resetInterval,
-		"restrictions", "password changes and API key creation disabled")
+		"restrictions", "password changes, API key creation, and GitHub Gist sync disabled")
 
 	// Initial setup
 	if err := s.ResetDatabase(ctx); err != nil {

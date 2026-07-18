@@ -1,4 +1,4 @@
-.PHONY: all build run run-test test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate vendor vendor-update vendor-clean chrome firefox extension-build
+.PHONY: all build run run-test demo test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate vendor vendor-update vendor-clean chrome firefox extension-build
 
 VERSION ?= $(shell grep 'const Current =' internal/version/version.go | cut -d '"' -f 2)
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -15,6 +15,10 @@ run: build
 
 run-test: build
 	SNIPO_DISABLE_AUTH=true SNIPO_DB_PATH=./snipo.db ./bin/snipo serve
+
+demo: build
+	@echo "Starting Snipo in demo mode (password: demo)..."
+	SNIPO_DEMO_MODE=true SNIPO_DEMO_RESET_INTERVAL=15m SNIPO_DB_PATH=./demo-snipo.db ./bin/snipo serve
 
 dev:
 	go run ./cmd/server serve
@@ -106,6 +110,7 @@ help:
 	@echo "  build          - Build the application"
 	@echo "  run            - Run the application"
 	@echo "  run-test       - Run the application (no auth, test db)"
+	@echo "  demo           - Run the application in demo mode (password: demo)"
 	@echo "  dev            - Run in development mode"
 	@echo "  test           - Run all tests"
 	@echo "  test-short     - Run short tests"

@@ -146,7 +146,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	// Create gist sync handler
 	var gistSyncHandler *handlers.GistSyncHandler
 	if encryptionSvc != nil {
-		gistSyncHandler = handlers.NewGistSyncHandler(gistSyncRepo, snippetRepo, fileRepo, encryptionSvc)
+		gistSyncHandler = handlers.NewGistSyncHandler(gistSyncRepo, snippetRepo, fileRepo, encryptionSvc).WithDemoMode(cfg.Config.Demo.Enabled)
 	}
 
 	// Public routes (no auth required)

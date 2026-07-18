@@ -16,6 +16,7 @@ export const settingsMixin = {
   customCssChanged: false,
   showDisableLoginPassword: false,
   disableLoginPassword: '',
+  _settingsUpdateTimeout: null,
 
   async openSettings() {
     this.showSettings = true;
@@ -46,6 +47,11 @@ export const settingsMixin = {
   },
 
   async createApiToken() {
+    if (window.SNIPO_CONFIG?.demoMode) {
+      showToast('API token creation is disabled in demo mode', 'error');
+      return;
+    }
+
     if (!this.newToken.name.trim()) {
       showToast('Token name is required', 'error');
       return;
@@ -68,6 +74,11 @@ export const settingsMixin = {
   },
 
   async deleteApiToken(tokenId) {
+    if (window.SNIPO_CONFIG?.demoMode) {
+      showToast('API token deletion is disabled in demo mode', 'error');
+      return;
+    }
+
     this.pendingTokenData = tokenId;
 
     if (window.SNIPO_CONFIG?.authDisabled) {
@@ -202,18 +213,27 @@ export const settingsMixin = {
     this.disableLoginPassword = '';
   },
 
-  async updateSettings() {
-    const result = await api.put('/api/v1/settings', this.settings);
-    if (result) {
-      this.settings = result;
-      // Cache settings for theme updates
-      try {
-        sessionStorage.setItem('snipo-settings', JSON.stringify(result));
-      } catch (e) {
-        // Ignore storage errors
-      }
-      showToast('Settings updated');
+  updateSettings() {
+    if (this._settingsUpdateTimeout) {
+      clearTimeout(this._settingsUpdateTimeout);
     }
+
+    this._settingsUpdateTimeout = setTimeout(async () => {
+      const result = await api.put('/api/v1/settings', this.settings);
+      if (result && !result.error) {
+        this.settings = result;
+        // Cache settings for theme updates
+        try {
+          sessionStorage.setItem('snipo-settings', JSON.stringify(result));
+        } catch (e) {
+          // Ignore storage errors
+        }
+        showToast('Settings updated');
+      } else if (result && result.error) {
+        showToast(result.error.message || 'Failed to update settings', 'error');
+      }
+      this._settingsUpdateTimeout = null;
+    }, 500);
   },
 
   async saveAndApplyCustomCSS() {
@@ -237,7 +257,7 @@ export const settingsMixin = {
 
     // Save settings
     const result = await api.put('/api/v1/settings', this.settings);
-    if (result) {
+    if (result && !result.error) {
       this.settings = result;
       // Cache settings
       try {
@@ -251,6 +271,8 @@ export const settingsMixin = {
       this.customCssChanged = false;
 
       showToast('Custom CSS saved and applied successfully');
+    } else if (result && result.error) {
+      showToast(result.error.message || 'Failed to apply Custom CSS', 'error');
     }
   },
 

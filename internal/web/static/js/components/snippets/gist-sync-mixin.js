@@ -21,6 +21,10 @@ export const gistSyncMixin = {
   gistLogs: [],
   showGistTokenInput: false,
 
+  isDemoMode() {
+    return window.SNIPO_CONFIG?.demoMode === true;
+  },
+
   async loadGistConfig() {
     const result = await api.get('/api/v1/gist/config');
     if (result && !result.error) {
@@ -29,6 +33,7 @@ export const gistSyncMixin = {
   },
 
   async testGistConnection() {
+    if (this.isDemoMode()) return;
     this.gistTestingConnection = true;
     const result = await api.post('/api/v1/gist/config/test');
     this.gistTestingConnection = false;
@@ -41,6 +46,7 @@ export const gistSyncMixin = {
   },
 
   async saveGistConfig() {
+    if (this.isDemoMode()) return;
     const payload = {
       enabled: this.gistConfig.enabled,
       auto_sync_enabled: this.gistConfig.auto_sync_enabled,
@@ -66,6 +72,7 @@ export const gistSyncMixin = {
   },
 
   async clearGistConfig() {
+    if (this.isDemoMode()) return;
     if (!confirm('Are you sure you want to disconnect GitHub Gist? This will disable sync but keep existing mappings.')) {
       return;
     }
@@ -80,6 +87,7 @@ export const gistSyncMixin = {
   },
 
   async enableSyncForAll() {
+    if (this.isDemoMode()) return;
     if (!confirm('This will create a GitHub Gist for ALL your snippets. Continue?')) {
       return;
     }
@@ -105,6 +113,7 @@ export const gistSyncMixin = {
   },
 
   async syncAllGists() {
+    if (this.isDemoMode()) return;
     this.gistSyncing = true;
     this.gistSyncProgress = { current: 0, total: 0, message: 'Syncing snippets...' };
     
@@ -137,6 +146,7 @@ export const gistSyncMixin = {
   },
 
   async verifyGistMappings() {
+    if (this.isDemoMode()) return;
     if (!this.gistConfig || !this.gistConfig.has_token) return;
 
     const result = await api.post('/api/v1/gist/sync/verify');
@@ -147,6 +157,7 @@ export const gistSyncMixin = {
   },
 
   async deleteGistMapping(mappingId) {
+    if (this.isDemoMode()) return;
     if (!confirm('Remove this gist mapping? The gist will remain on GitHub.')) {
       return;
     }
@@ -168,6 +179,7 @@ export const gistSyncMixin = {
   },
 
   async resolveGistConflict(conflictId, resolution) {
+    if (this.isDemoMode()) return;
     const result = await api.post(`/api/v1/gist/conflicts/${conflictId}/resolve`, {
       resolution: resolution
     });
@@ -189,6 +201,7 @@ export const gistSyncMixin = {
   },
 
   async enableGistSyncForSnippet(snippetId) {
+    if (this.isDemoMode()) return;
     const result = await api.post(`/api/v1/gist/sync/enable/${snippetId}`);
     if (result && !result.error) {
       showToast('Gist sync enabled for snippet', 'success');
@@ -202,6 +215,7 @@ export const gistSyncMixin = {
   },
 
   async disableGistSyncForSnippet(snippetId) {
+    if (this.isDemoMode()) return;
     const result = await api.post(`/api/v1/gist/sync/disable/${snippetId}`);
     if (result && !result.error) {
       showToast('Gist sync disabled for snippet', 'success');
@@ -233,6 +247,7 @@ export const gistSyncMixin = {
   },
 
   async syncSnippetToGist(snippetId) {
+    if (this.isDemoMode()) return;
     const result = await api.post(`/api/v1/gist/sync/snippet/${snippetId}`);
     if (result && !result.error) {
       showToast('Snippet synced to gist', 'success');

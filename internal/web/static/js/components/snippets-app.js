@@ -201,7 +201,7 @@ export function initSnippetsApp(Alpine) {
 
     async loadSettings() {
       const result = await api.get('/api/v1/settings');
-      if (result) {
+      if (result && !result.error) {
         this.settings = result;
         // Cache settings for theme updates
         try {
