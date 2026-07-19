@@ -266,6 +266,31 @@ func (h *GistSyncHandler) SyncSnippet(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// DeleteGist deletes the gist from GitHub and removes the sync mapping
+func (h *GistSyncHandler) DeleteGist(w http.ResponseWriter, r *http.Request) {
+	if h.checkDemoMode(w, r) {
+		return
+	}
+	snippetID := chi.URLParam(r, "id")
+	if snippetID == "" {
+		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
+		return
+	}
+
+	syncService, err := h.createSyncService(r.Context())
+	if err != nil {
+		Error(w, r, http.StatusBadRequest, "SYNC_NOT_CONFIGURED", err.Error())
+		return
+	}
+
+	if err := syncService.DeleteGistForSnippet(r.Context(), snippetID); err != nil {
+		Error(w, r, http.StatusInternalServerError, "DELETE_FAILED", err.Error())
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // SyncAll syncs all enabled snippets
 func (h *GistSyncHandler) SyncAll(w http.ResponseWriter, r *http.Request) {
 	if h.checkDemoMode(w, r) {

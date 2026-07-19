@@ -4048,7 +4048,7 @@ paths:
                       code: "S3_NOT_CONFIGURED"
                       message: "S3 storage is not configured"
 
-  /api/v1/backup/s3/delete:
+  /api/v1/backup/s3/delete/{key}:
     delete:
       tags: [Backup]
       summary: Delete S3 backup
@@ -4060,7 +4060,7 @@ paths:
         - apiKey: []
       parameters:
         - name: key
-          in: query
+          in: path
           required: true
           description: S3 object key to delete
           schema:
@@ -5209,6 +5209,64 @@ paths:
                     error:
                       code: "SYNC_FAILED"
                       message: "Failed to sync snippet"
+
+    delete:
+      tags: [GitHub Gist Sync]
+      summary: Delete snippet gist
+      description: Deletes the corresponding GitHub gist for a snippet and removes the sync mapping
+      operationId: deleteSnippetGist
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Snippet ID
+      responses:
+        '204':
+          description: Gist deleted and mapping removed
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_id:
+                  summary: Missing snippet ID
+                  value:
+                    error:
+                      code: "MISSING_ID"
+                      message: "Snippet ID is required"
+        '401':
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - write permission required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                delete_failed:
+                  summary: Failed to delete gist
+                  value:
+                    error:
+                      code: "DELETE_FAILED"
+                      message: "Failed to delete gist"
 
   /api/v1/gist/sync/verify:
     post:

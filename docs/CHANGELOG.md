@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.5] - 2026-07-19
+
+### Added
+- **Gist Deletion Choice:** Added the ability to permanently delete the corresponding GitHub Gist when permanently deleting a mapped snippet.
+- **Unlink with Deletion:** When unlinking a Gist from the Gist Sync settings, users are now presented with a custom modal that provides the option to also delete the remote Gist.
+- **Dedicated Sync Delete API:** Introduced `DELETE /api/v1/gist/sync/snippet/{id}` to cleanly handle the atomic deletion of both remote Gists and local mappings.
+
+### Changed
+- **Soft-Delete (Trash) Lifecycle:** Moving a synced snippet to the Trash no longer severs its GitHub Gist sync mapping. The sync worker simply pauses syncing for trashed snippets, allowing syncing to seamlessly resume upon restoration without duplicating Gists.
+- **Dynamic Delete Modal:** The delete confirmation modal now dynamically changes its title, text, and button (e.g., "Move to Trash" vs. "Permanently Delete") based on whether the action is a soft or hard delete.
+
 
 ## [1.7.4] - 2026-07-18
 

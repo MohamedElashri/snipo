@@ -290,6 +290,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 					r.Use(middleware.RequireWrite)
 					r.Use(apiRateLimiter.RateLimitWrite)
 					r.Post("/sync/snippet/{id}", gistSyncHandler.SyncSnippet)
+					r.Delete("/sync/snippet/{id}", gistSyncHandler.DeleteGist)
 					r.Post("/sync/all", gistSyncHandler.SyncAll)
 					r.Post("/sync/enable/{id}", gistSyncHandler.EnableSync)
 					r.Post("/sync/enable-all", gistSyncHandler.EnableSyncForAll)

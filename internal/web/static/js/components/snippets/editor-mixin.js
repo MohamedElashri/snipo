@@ -266,13 +266,22 @@ export const editorMixin = {
 
   confirmDelete(snippet) {
     this.deleteTarget = snippet;
+    this.deleteFromGist = false;
     this.showDeleteModal = true;
   },
 
   async deleteSnippet() {
     if (!this.deleteTarget) return;
 
-    const permanent = this.filter.isDeleted === true;
+    if (this.deleteFromGist) {
+      const result = await api.delete(`/api/v1/gist/sync/snippet/${this.deleteTarget.id}`);
+      if (result && result.error) {
+        showToast('Failed to delete Gist from GitHub: ' + (result.error.message || 'Unknown error'), 'error');
+        return; // Abort deleting the local snippet if gist deletion failed
+      }
+    }
+
+    const permanent = this.filter?.isDeleted === true;
     const url = `/api/v1/snippets/${this.deleteTarget.id}` + (permanent ? '?permanent=true' : '');
 
     await api.delete(url);

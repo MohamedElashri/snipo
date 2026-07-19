@@ -119,6 +119,8 @@ const (
 	GistToSnipo
 	Conflict
 	GistDeleted
+	SnipoDeleted
+	SnipoTrashed
 )
 
 // Sync status constants
