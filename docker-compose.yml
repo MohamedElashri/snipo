@@ -28,6 +28,11 @@ services:
     environment:
       # Authentication: Use either hashed password (recommended) or plain password
       # Generate hash with: docker run --rm ghcr.io/mohamedelashri/snipo:latest hash-password your-password
+      # When using Docker Compose, escape each `$` as `$$`
+      # because Compose treats `$` as variable interpolation syntax.
+      # Example:
+      # SNIPO_MASTER_PASSWORD_HASH: "$$argon2id$$<salt>$$<hash>"
+
       # SNIPO_MASTER_PASSWORD_HASH=${SNIPO_MASTER_PASSWORD_HASH}
       # Or use the supported plaintext password configuration:
       - SNIPO_MASTER_PASSWORD=${SNIPO_MASTER_PASSWORD:-<Put_your_master_password_here>}
