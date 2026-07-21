@@ -196,6 +196,32 @@ func (s *GistSyncService) SyncGistToSnippet(ctx context.Context, gistID string) 
 	return nil
 }
 
+// DeleteGistForSnippet deletes the gist on GitHub and removes the sync mapping
+func (s *GistSyncService) DeleteGistForSnippet(ctx context.Context, snippetID string) error {
+	mapping, err := s.syncRepo.GetMapping(ctx, snippetID)
+	if err != nil {
+		return fmt.Errorf("failed to get mapping: %w", err)
+	}
+	if mapping == nil {
+		return fmt.Errorf("no mapping found for snippet %s", snippetID)
+	}
+
+	if err := s.githubClient.DeleteGist(ctx, mapping.GistID); err != nil {
+		// If the gist is already not found, we can still proceed to delete the mapping
+		if !IsGistNotFound(err) {
+			s.logError(ctx, snippetID, mapping.GistID, models.SyncOpDelete, err)
+			return fmt.Errorf("failed to delete gist: %w", err)
+		}
+	}
+
+	if err := s.syncRepo.DeleteMapping(ctx, mapping.ID); err != nil {
+		return fmt.Errorf("failed to delete mapping: %w", err)
+	}
+
+	s.logSuccess(ctx, snippetID, mapping.GistID, models.SyncOpDelete, "Gist deleted on GitHub and unlinked")
+	return nil
+}
+
 // DetectChanges detects what changed between snippet and gist
 func (s *GistSyncService) DetectChanges(ctx context.Context, snippetID string) (models.SyncDirection, error) {
 	mapping, err := s.syncRepo.GetMapping(ctx, snippetID)
@@ -209,6 +235,12 @@ func (s *GistSyncService) DetectChanges(ctx context.Context, snippetID string) (
 	snippet, err := s.snippetRepo.GetByID(ctx, snippetID)
 	if err != nil {
 		return models.NoSync, fmt.Errorf("failed to get snippet: %w", err)
+	}
+	if snippet == nil {
+		return models.SnipoDeleted, nil
+	}
+	if snippet.DeletedAt != nil {
+		return models.SnipoTrashed, nil
 	}
 
 	gist, err := s.githubClient.GetGist(ctx, mapping.GistID)
@@ -295,6 +327,16 @@ func (s *GistSyncService) SyncAll(ctx context.Context) (*models.SyncResult, erro
 			if err := s.handleGistDeleted(ctx, mapping); err != nil {
 				result.Errors++
 				result.ErrorMessages = append(result.ErrorMessages, fmt.Sprintf("deleted gist %s: %v", mapping.GistID, err))
+			} else {
+				result.Synced++
+			}
+		case models.SnipoTrashed:
+			// Do nothing. It's in the trash, so we keep the mapping but don't sync.
+			result.Synced++
+		case models.SnipoDeleted:
+			if err := s.syncRepo.DeleteMapping(ctx, mapping.ID); err != nil {
+				result.Errors++
+				result.ErrorMessages = append(result.ErrorMessages, fmt.Sprintf("failed to remove mapping for deleted snippet %s: %v", mapping.SnippetID, err))
 			} else {
 				result.Synced++
 			}

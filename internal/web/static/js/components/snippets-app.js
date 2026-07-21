@@ -85,6 +85,7 @@ export function initSnippetsApp(Alpine) {
     isSaving: false,
     showDeleteModal: false,
     deleteTarget: null,
+    deleteFromGist: false,
     showSearchHelp: false,
 
     foldersCollapsed: false,

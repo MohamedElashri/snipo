@@ -13,6 +13,10 @@ export const gistSyncMixin = {
     last_full_sync_at: ''
   },
   gistTokenInput: '',
+  isResolvingConflict: false,
+  showDeleteGistMappingModal: false,
+  deleteGistMappingTarget: null,
+  deleteGistMappingFromGitHub: false,
   gistTestingConnection: false,
   gistSyncing: false,
   gistSyncProgress: { current: 0, total: 0, message: '' },
@@ -156,19 +160,32 @@ export const gistSyncMixin = {
     }
   },
 
-  async deleteGistMapping(mappingId) {
+  confirmDeleteGistMapping(mapping) {
     if (this.isDemoMode()) return;
-    if (!confirm('Remove this gist mapping? The gist will remain on GitHub.')) {
+    this.deleteGistMappingTarget = mapping;
+    this.deleteGistMappingFromGitHub = false;
+    this.showDeleteGistMappingModal = true;
+  },
+
+  async executeDeleteGistMapping() {
+    if (!this.deleteGistMappingTarget) return;
+
+    let result;
+    if (this.deleteGistMappingFromGitHub) {
+      result = await api.delete(`/api/v1/gist/sync/snippet/${this.deleteGistMappingTarget.snippet_id}`);
+    } else {
+      result = await api.delete(`/api/v1/gist/mappings/${this.deleteGistMappingTarget.id}`);
+    }
+
+    if (result && result.error) {
+      showToast(result.error.message || 'Failed to remove mapping', 'error');
       return;
     }
 
-    const result = await api.delete(`/api/v1/gist/mappings/${mappingId}`);
-    if (result && !result.error) {
-      showToast('Mapping removed', 'success');
-      await this.loadGistMappings();
-    } else {
-      showToast(result?.error?.message || 'Failed to remove mapping', 'error');
-    }
+    showToast('Mapping removed', 'success');
+    await this.loadGistMappings();
+    this.showDeleteGistMappingModal = false;
+    this.deleteGistMappingTarget = null;
   },
 
   async loadGistConflicts() {
