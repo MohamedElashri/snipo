@@ -1,4 +1,4 @@
-.PHONY: all build run run-test demo test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate vendor vendor-update vendor-clean chrome firefox extension-build
+.PHONY: all build run run-test demo test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate vendor vendor-update vendor-clean update chrome firefox extension-build
 
 VERSION ?= $(shell grep 'const Current =' internal/version/version.go | cut -d '"' -f 2)
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -90,6 +90,29 @@ vendor-update:
 vendor-clean:
 	@node scripts/sync-vendor.js --cleanup
 
+# ── Safe Dependency Upgrade ──────────────────────────────────────────
+# Upgrades Go deps within their current major versions and npm deps
+# respecting ^ semver ranges, then verifies build/tests still pass.
+
+update:
+	@echo "=== Safe dependency upgrade ==="
+	@echo ""
+	@echo "[1/4] Updating Go dependencies (kept within current major versions)..."
+	go get -u ./...
+	go mod tidy
+	@echo ""
+	@echo "[2/4] Updating npm dependencies (respecting ^ semver ranges)..."
+	$(MAKE) vendor-update
+	@echo ""
+	@echo "[3/4] Verifying build..."
+	go build ./...
+	@echo ""
+	@echo "[4/4] Running tests..."
+	go test ./...
+	@echo ""
+	@echo "Update complete. Review the diff, then run 'make govulncheck':"
+	@echo "  git diff go.mod go.sum package.json package-lock.json"
+
 extension-build:
 	@echo "Building extension packages..."
 	@cd extension && ./build.sh all
@@ -125,6 +148,7 @@ help:
 	@echo "  vendor         - Install npm deps & sync vendor files (auto via postinstall)"
 	@echo "  vendor-update  - Update vendor libs to latest (respecting semver)"
 	@echo "  vendor-clean   - Remove orphaned files from vendor/"
+	@echo "  update         - Safe upgrade of Go and npm dependencies with verification"
 	@echo "  chrome         - Build Chrome extension zip"
 	@echo "  firefox        - Build Firefox extension zip + source archive"
 	@echo "  extension-build - Build Chrome and Firefox extension packages"
