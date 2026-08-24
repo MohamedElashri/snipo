@@ -2,6 +2,12 @@
 
 All notable changes to the "snipo" extension will be documented in this file.
 
+## [0.0.3] - 2026-08-24
+
+### Changed
+
+- Updated dependencies.
+
 ## [0.0.2] - 2026-07-16
 
 ### Added
