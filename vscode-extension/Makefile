@@ -1,4 +1,4 @@
-.PHONY: all build test package install clean help
+.PHONY: all build test package install update clean help
 
 VSCE = npx vsce
 
@@ -17,6 +17,9 @@ package: build
 install: package
 	code --install-extension *.vsix --force
 
+update:
+	npm update --no-audit --no-fund
+
 clean:
 	rm -rf out
 	rm -f *.vsix
@@ -28,5 +31,6 @@ help:
 	@echo "  test      - Run headless unit tests"
 	@echo "  package   - Package the extension into a .vsix file"
 	@echo "  install   - Package and install the extension into VS Code"
+	@echo "  update    - Update dependencies within their semver ranges"
 	@echo "  clean     - Remove build artifacts and node_modules"
 	@echo "  help      - Show this help message"
