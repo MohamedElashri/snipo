@@ -45,7 +45,7 @@ lint:
 	golangci-lint run
 
 govulncheck:
-	govulncheck ./...
+	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
 clean:
 	rm -rf bin/ coverage.out coverage.html data/
