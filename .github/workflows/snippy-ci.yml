@@ -33,7 +33,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # sanad: ref=v7.0.0
         with:
-          go-version: '1.25'
+          go-version-file: 'tui/go.mod'
           cache: true
           cache-dependency-path: tui/go.sum
 
@@ -58,7 +58,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # sanad: ref=v7.0.0
         with:
-          go-version: '1.25'
+          go-version-file: 'tui/go.mod'
           cache: true
           cache-dependency-path: tui/go.sum
 
@@ -80,7 +80,8 @@ jobs:
       - name: Run Govulncheck
         uses: golang/govulncheck-action@032d45514ae346b1db93c04b0c90b841c370344f # sanad: ref=v1.1.0
         with:
-          go-version-input: '1.25'
+          go-version-input: '' # Allow go-version-file to select the toolchain.
+          go-version-file: 'tui/go.mod'
           check-latest: true
           work-dir: tui
           go-package: ./...
@@ -101,7 +102,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # sanad: ref=v7.0.0
         with:
-          go-version: '1.25'
+          go-version-file: 'tui/go.mod'
           cache: true
           cache-dependency-path: tui/go.sum
 
