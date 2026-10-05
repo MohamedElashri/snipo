@@ -1,4 +1,4 @@
-.PHONY: build install clean test run lint help
+.PHONY: build install clean test run lint help deps update
 
 BINARY_NAME=snippy
 BUILD_DIR=bin
@@ -13,11 +13,17 @@ help:
 	@echo "  make clean      Remove build artifacts"
 	@echo "  make test       Run tests"
 	@echo "  make deps       Download dependencies"
+	@echo "  make update     Update all dependencies"
 	@echo ""
 
 deps:
 	@echo "Downloading dependencies..."
 	go mod download
+	go mod tidy
+
+update:
+	@echo "Updating dependencies..."
+	go get -u ./...
 	go mod tidy
 
 build: deps
