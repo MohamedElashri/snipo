@@ -164,3 +164,11 @@ vscode-build:
 
 build-all: build build-tui extension-build vscode-build
 	@echo "All components built successfully."
+
+dev-all:
+	@echo "Starting unified development environment..."
+	@trap 'kill %1; kill %2; kill %3; exit' SIGINT; \
+	$(MAKE) dev & \
+	cd vscode-extension && npm run watch & \
+	cd extension && ./build.sh all && echo "Browser extension built in dist/. (Watch mode not supported natively by build.sh yet)" & \
+	wait
