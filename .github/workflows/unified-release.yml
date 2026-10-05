@@ -173,7 +173,9 @@ jobs:
           node-version: '18'
 
       - name: Install Dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm run build -w @snipo/api-client
 
       - name: Build Browser Extension
         run: |

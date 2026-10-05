@@ -1,6 +1,6 @@
 module github.com/MohamedElashri/snipo/tui
 
-go 1.25.0
+go 1.26.6
 
 require (
 	github.com/alecthomas/chroma/v2 v2.21.1
