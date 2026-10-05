@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/MohamedElashri/snipo/internal/models"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 // GistSyncRepository handles gist sync database operations

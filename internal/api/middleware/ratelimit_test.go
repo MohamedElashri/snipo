@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/MohamedElashri/snipo/internal/models"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 func TestAPIRateLimiter_Basic(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/MohamedElashri/snipo/internal/models"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 // TagRepository handles tag database operations

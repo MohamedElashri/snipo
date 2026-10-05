@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/MohamedElashri/snipo/internal/models"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 func TestValidateSnippetInput_Valid(t *testing.T) {
