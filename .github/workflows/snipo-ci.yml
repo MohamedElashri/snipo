@@ -6,11 +6,13 @@ on:
     paths-ignore:
       - 'tui/**'
       - 'extension/**'
+      - 'vscode-extension/**'
   pull_request:
     branches: [main, dev]
     paths-ignore:
       - 'tui/**'
       - 'extension/**'
+      - 'vscode-extension/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

@@ -1,0 +1,272 @@
+name: Unified Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag to build (e.g. v2.0.0)'
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-snipo:
+    name: Build Snipo Backend
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          VERSION=${{ inputs.tag_name || github.ref_name }}
+          COMMIT=$(git rev-parse --short HEAD)
+          go build \
+            -ldflags="-w -s -X main.Version=${VERSION#v} -X main.Commit=${COMMIT}" \
+            -o snipo \
+            ./cmd/server
+
+      - name: Package
+        run: |
+          tar czf snipo_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz snipo README.md LICENSE
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: snipo_${{ matrix.goos }}_${{ matrix.goarch }}
+          path: snipo_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz
+
+  build-snipo-docker:
+    name: Build Snipo Docker
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: standard
+            dockerfile: Dockerfile
+            suffix: ""
+          - name: hardened
+            dockerfile: Dockerfile.hardened
+            suffix: "-hardened"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name || github.ref_name }}
+
+      - name: Lowercase Repo Name
+        run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to DHI Registry
+        if: matrix.name == 'hardened'
+        uses: docker/login-action@v3
+        with:
+          registry: dhi.io
+          username: ${{ secrets.DHI_USERNAME }}
+          password: ${{ secrets.DHI_API_KEY }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=false
+            suffix=${{ matrix.suffix }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=latest,enable=${{ matrix.name == 'standard' }}
+            type=raw,value=latest-hardened,suffix=,enable=${{ matrix.name == 'hardened' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            VERSION=${{ inputs.tag_name || github.ref_name }}
+            COMMIT=${{ github.sha }}
+
+  build-snippy:
+    name: Build Snippy TUI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'tui/go.mod'
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --skip=publish --clean
+          workdir: ./tui
+        env:
+          GORELEASER_CURRENT_TAG: ${{ inputs.tag_name || github.ref_name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: snippy-artifacts
+          path: tui/dist/*
+
+  build-extensions:
+    name: Build Extensions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name || github.ref_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: |
+          npm ci
+          npm run build -w @snipo/api-client
+
+      - name: Build Browser Extension
+        run: |
+          cd extension
+          chmod +x build.sh
+          ./build.sh all
+
+      - name: Build VS Code Extension
+        run: |
+          cd vscode-extension
+          npx @vscode/vsce package -o snipo.vsix
+
+      - name: Upload Browser Extension Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-extensions
+          path: extension/dist/*.zip
+
+      - name: Upload VS Code Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-extension
+          path: vscode-extension/*.vsix
+
+  publish-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-snipo, build-snippy, build-extensions]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name || github.ref_name }}
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: '*'
+          merge-multiple: true
+
+      - name: Generate Changelog
+        run: |
+          echo "## Unified Release ${{ inputs.tag_name || github.ref_name }}" > CHANGELOG.md
+          echo "Includes Snipo Backend, Snippy TUI, Browser Extensions, and VS Code Extension." >> CHANGELOG.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ inputs.tag_name || github.ref_name }}
+          tag_name: ${{ inputs.tag_name || github.ref_name }}
+          body_path: CHANGELOG.md
+          files: artifacts/*
+          generate_release_notes: true
+
+      - name: Push Homebrew Formula
+        env:
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          if [ -z "$TAP_GITHUB_TOKEN" ]; then
+            echo "::warning::TAP_GITHUB_TOKEN not set, skipping Homebrew tap update"
+            exit 0
+          fi
+          git clone https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/MohamedElashri/homebrew-snippy.git tap-repo
+          cd tap-repo
+          mkdir -p Formula
+          cp ../artifacts/snippy.rb Formula/ || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/snippy.rb
+          if git diff --staged --quiet; then
+            echo "No changes to Formula, skipping push"
+          else
+            git commit -m "Update snippy formula to ${{ inputs.tag_name || github.ref_name }}"
+            git push origin HEAD:main || git push origin HEAD:master
+          fi
+
+  publish-vscode:
+    name: Publish to VS Code Marketplace
+    runs-on: ubuntu-latest
+    needs: publish-release
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: vscode-extension
+          path: .
+      - name: Publish
+        run: |
+          if [ -n "${{ secrets.VSCE_PAT }}" ]; then
+            npx @vscode/vsce publish --packagePath *.vsix -p ${{ secrets.VSCE_PAT }}
+          else
+            echo "::warning::VSCE_PAT not found, skipping marketplace publish"
+          fi

@@ -40,6 +40,10 @@ clean_previous_builds() {
 echo "Cleaning previous builds..."
 clean_previous_builds
 
+# Build JS
+echo "Building JavaScript..."
+npm run build --prefix "$SCRIPT_DIR"
+
 # Files to include in both packages
 FILES=(
     "background.js"

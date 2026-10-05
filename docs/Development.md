@@ -21,6 +21,16 @@ SNIPO_DB_PATH=./snipo.db \
 `make run-test` starts a local unauthenticated instance and should never be used
 on a shared network.
 
+To build all monorepo components (Server, TUI, Browser Extension, VS Code Extension), run:
+```bash
+make build-all
+```
+
+To start a unified development environment that spins up the server in development mode, and runs watchers for the extensions, run:
+```bash
+make dev-all
+```
+
 Useful binary commands:
 
 ```bash
@@ -83,7 +93,9 @@ packaging is documented in the [extension README](../extension/README.md#build).
 | `internal/database` | Connection setup and ordered SQLite migrations |
 | `docs/openapi.yaml` | Public API contract |
 | `extension` | Chrome and Firefox extension |
+| `vscode-extension` | VS Code extension |
 | `tui` | Snippy terminal client module |
+| `packages/api-client` | Shared TypeScript API client for extensions |
 
 Migrations run automatically at startup. Add a new numbered migration to
 `internal/database/migrations.go` rather than editing one that may already be
@@ -137,16 +149,15 @@ those variables creates an unsafe deployment failure.
 
 ## Releases
 
-Releases are built by GitHub Actions from version tags:
+Releases are built by GitHub Actions via the Unified Release pipeline from version tags. Before tagging, use the bump version script to synchronize versions across all components, and then push the tag:
 
 ```bash
+./scripts/bump-version.sh vX.Y.Z
 git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-Before tagging, update the version constant, changelog, OpenAPI metadata, and
-client versions as applicable. Run the full test, lint, vulnerability, vendor,
-extension, and TUI checks.
+The `unified-release.yml` pipeline will automatically build the Go server matrix (Linux/Docker), GoReleaser artifacts (TUI + Homebrew tap), web-ext (Browser), and vsce (VS Code) and aggregate all outputs securely into a single GitHub Release. Run the full test, lint, vulnerability, vendor, extension, and TUI checks before releasing.
 
 ## Contribution checklist
 

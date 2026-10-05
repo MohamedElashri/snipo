@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/MohamedElashri/snipo/internal/models"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 // TestSecurity_SQLInjection tests SQL injection prevention

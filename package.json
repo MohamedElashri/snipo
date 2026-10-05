@@ -1,20 +1,9 @@
 {
-  "name": "snipo-frontend-vendor",
-  "version": "1.7.1",
-  "description": "Frontend vendor dependencies for Snipo - managed locally for privacy",
+  "name": "snipo-monorepo",
   "private": true,
-  "scripts": {
-    "postinstall": "node scripts/sync-vendor.js",
-    "vendor:status": "node scripts/sync-vendor.js --status",
-    "vendor:cleanup": "node scripts/sync-vendor.js --cleanup"
-  },
-  "dependencies": {
-    "htmx.org": "^2.0.8",
-    "alpinejs": "^3.15.8",
-    "@alpinejs/collapse": "^3.15.8",
-    "ace-builds": "^1.43.6",
-    "prismjs": "^1.30.0",
-    "marked": "^17.0.4",
-    "@picocss/pico": "^2.1.1"
-  }
+  "workspaces": [
+    "packages/*",
+    "vscode-extension",
+    "extension"
+  ]
 }

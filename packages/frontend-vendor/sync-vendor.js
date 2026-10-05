@@ -3,10 +3,10 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const VENDOR_DIR = path.join(__dirname, '..', 'internal', 'web', 'static', 'vendor');
-const NODE_MODULES = path.join(__dirname, '..', 'node_modules');
-const PACKAGE_JSON = path.join(__dirname, '..', 'package.json');
-const PATCHES_DIR = path.join(__dirname, '..', 'patches');
+const VENDOR_DIR = path.join(__dirname, '..', '..', 'internal', 'web', 'static', 'vendor');
+const NODE_MODULES = path.join(__dirname, '..', '..', 'node_modules');
+const PACKAGE_JSON = path.join(__dirname, 'package.json');
+const PATCHES_DIR = path.join(__dirname, '..', '..', 'patches');
 
 // Vendor patches to apply after syncing (array of {file, patch})
 

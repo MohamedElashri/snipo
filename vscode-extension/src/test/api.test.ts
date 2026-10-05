@@ -17,11 +17,16 @@ suite('SnipoAPI Test Suite', () => {
         const config = vscode.workspace.getConfiguration('snipo');
         await config.update('apiUrl', apiUrl, vscode.ConfigurationTarget.Global);
         
-        clientGetStub = sinon.stub((api as any).client, 'get');
+        clientGetStub = sinon.stub((api as any).client.client, 'get');
         
-        axiosCreateStub = sinon.stub(axios, 'create').returns({
+        const mockAxiosInstance = {
             get: clientGetStub
-        } as any);
+        };
+        
+        axiosCreateStub = sinon.stub(axios, 'create').returns(mockAxiosInstance as any);
+        if ((axios as any).default && (axios as any).default.create && (axios as any).default !== axios) {
+            sinon.stub((axios as any).default, 'create').returns(mockAxiosInstance as any);
+        }
     });
 
     teardown(() => {
@@ -29,17 +34,15 @@ suite('SnipoAPI Test Suite', () => {
     });
 
     test('verifyConfiguration - success', async () => {
-        const tempClientGetStub = sinon.stub().resolves({ status: 200 });
-        axiosCreateStub.returns({ get: tempClientGetStub } as any);
+        clientGetStub.resolves({ status: 200 });
 
         const isValid = await api.verifyConfiguration(apiUrl, apiToken);
         assert.strictEqual(isValid, true);
-        assert.strictEqual(tempClientGetStub.calledWith('/api/v1/snippets', { params: { limit: 1 } }), true);
+        assert.strictEqual(clientGetStub.calledWith('/api/v1/snippets', { params: { limit: 1 }, timeout: 5000 }), true);
     });
 
     test('verifyConfiguration - failure', async () => {
-        const tempClientGetStub = sinon.stub().rejects(new Error('Network error'));
-        axiosCreateStub.returns({ get: tempClientGetStub } as any);
+        clientGetStub.rejects(new Error('Network error'));
 
         const isValid = await api.verifyConfiguration(apiUrl, apiToken);
         assert.strictEqual(isValid, false);

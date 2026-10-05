@@ -19,7 +19,8 @@ suite('SettingsView Test Suite', () => {
             postMessage: () => Promise.resolve(true)
         };
         const mockWebviewView: any = {
-            webview: mockWebview
+            webview: mockWebview,
+            onDidChangeVisibility: () => {}
         };
 
         provider.resolveWebviewView(mockWebviewView, {} as any, {} as any);

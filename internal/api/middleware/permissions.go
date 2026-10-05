@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/MohamedElashri/snipo/internal/auth"
-	"github.com/MohamedElashri/snipo/internal/models"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 const adminPasswordHeader = "X-Snipo-Master-Password"

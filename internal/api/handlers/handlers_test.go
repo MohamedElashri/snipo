@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/MohamedElashri/snipo/internal/api/middleware"
-	"github.com/MohamedElashri/snipo/internal/models"
+	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
 	"github.com/MohamedElashri/snipo/internal/services"
 	"github.com/MohamedElashri/snipo/internal/testutil"

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/MohamedElashri/snipo/internal/auth"
-	"github.com/MohamedElashri/snipo/internal/models"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 func TestCheckPermission(t *testing.T) {

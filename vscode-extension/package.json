@@ -2,7 +2,7 @@
   "name": "snipo",
   "displayName": "Snipo",
   "description": "Snipo snippets manager for VS Code",
-  "version": "0.0.3",
+  "version": "2.0.0",
   "publisher": "muhammadelashri",
   "icon": "resources/icon.png",
   "repository": {
@@ -209,6 +209,7 @@
     "typescript": "^5.1.3"
   },
   "dependencies": {
+    "@snipo/api-client": "^1.0.0",
     "axios": "^1.6.0"
   },
   "overrides": {

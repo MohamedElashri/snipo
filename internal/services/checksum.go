@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/MohamedElashri/snipo/internal/models"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 // CalculateSnippetChecksum calculates a checksum for a snippet

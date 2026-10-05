@@ -73,6 +73,11 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build -w @snipo/api-client
+
       - name: Check JavaScript syntax
         run: |
           cd extension
@@ -94,6 +99,11 @@ jobs:
 
       - name: Make build script executable
         run: chmod +x extension/build.sh
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm run build -w @snipo/api-client
 
       - name: Build extension packages
         run: |

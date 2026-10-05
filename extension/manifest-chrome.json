@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Snipo - Code Snippet Manager",
-    "version": "0.1.0",
+    "version": "2.0.0",
     "description": "Save code snippets to your Snipo instance with one click.",
     "permissions": [
         "activeTab",

@@ -9,7 +9,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/MohamedElashri/snipo/internal/models"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 // SnippetRepository handles snippet database operations

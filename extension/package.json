@@ -1,0 +1,18 @@
+{
+  "name": "extension",
+  "version": "1.0.0",
+  "description": "The Chrome and Firefox extension saves selected text to a self-hosted Snipo instance.",
+  "main": "background.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "esbuild background.src.js --bundle --outfile=background.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@snipo/api-client": "^1.0.0",
+    "esbuild": "^0.28.2"
+  }
+}

@@ -1,4 +1,4 @@
-.PHONY: all build run run-test demo test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate vendor vendor-update vendor-clean update chrome firefox extension-build
+.PHONY: all build run run-test demo test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate vendor vendor-update vendor-clean update chrome firefox extension-build build-tui vscode-build build-all
 
 VERSION ?= $(shell grep 'const Current =' internal/version/version.go | cut -d '"' -f 2)
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -152,4 +152,27 @@ help:
 	@echo "  chrome         - Build Chrome extension zip"
 	@echo "  firefox        - Build Firefox extension zip + source archive"
 	@echo "  extension-build - Build Chrome and Firefox extension packages"
+	@echo "  build-tui      - Build Snippy terminal client"
+	@echo "  vscode-build   - Build VS Code extension"
+	@echo "  build-all      - Build all components (Server, TUI, Browser, VS Code)"
+	@echo "  dev-all        - Start unified development environment for all components"
 	@echo "  help           - Show this help message"
+
+build-tui:
+	@echo "Building TUI..."
+	@cd tui && go build -ldflags="-w -s" -o ../bin/snippy ./cmd/snippy
+
+vscode-build:
+	@echo "Building VS Code Extension..."
+	@cd vscode-extension && npm install && npm run compile
+
+build-all: build build-tui extension-build vscode-build
+	@echo "All components built successfully."
+
+dev-all:
+	@echo "Starting unified development environment..."
+	@trap 'kill %1; kill %2; kill %3; exit' SIGINT; \
+	$(MAKE) dev & \
+	cd vscode-extension && npm run watch & \
+	cd extension && ./build.sh all && echo "Browser extension built in dist/. (Watch mode not supported natively by build.sh yet)" & \
+	wait
