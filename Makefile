@@ -1,4 +1,4 @@
-.PHONY: all build run run-test demo test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate vendor vendor-update vendor-clean update chrome firefox extension-build
+.PHONY: all build run run-test demo test test-coverage test-short coverage coverage-func lint govulncheck clean docker docker-multiarch docker-run docker-stop dev migrate vendor vendor-update vendor-clean update chrome firefox extension-build build-tui vscode-build build-all
 
 VERSION ?= $(shell grep 'const Current =' internal/version/version.go | cut -d '"' -f 2)
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -153,3 +153,14 @@ help:
 	@echo "  firefox        - Build Firefox extension zip + source archive"
 	@echo "  extension-build - Build Chrome and Firefox extension packages"
 	@echo "  help           - Show this help message"
+
+build-tui:
+	@echo "Building TUI..."
+	@cd tui && go build -ldflags="-w -s" -o ../bin/snippy ./cmd/snippy
+
+vscode-build:
+	@echo "Building VS Code Extension..."
+	@cd vscode-extension && npm install && npm run compile
+
+build-all: build build-tui extension-build vscode-build
+	@echo "All components built successfully."
