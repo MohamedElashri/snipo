@@ -172,6 +172,9 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Install Dependencies
+        run: npm ci
+
       - name: Build Browser Extension
         run: |
           cd extension
@@ -181,7 +184,6 @@ jobs:
       - name: Build VS Code Extension
         run: |
           cd vscode-extension
-          npm install
           npx @vscode/vsce package -o snipo.vsix
 
       - name: Upload Browser Extension Artifacts
