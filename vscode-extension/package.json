@@ -209,6 +209,7 @@
     "typescript": "^5.1.3"
   },
   "dependencies": {
+    "@snipo/api-client": "^1.0.0",
     "axios": "^1.6.0"
   },
   "overrides": {

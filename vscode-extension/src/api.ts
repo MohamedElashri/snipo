@@ -1,38 +1,24 @@
-import axios, { AxiosInstance } from 'axios';
+import axios from 'axios';
 import * as vscode from 'vscode';
+import { SnipoClient, Snippet, Tag, Folder } from '@snipo/api-client';
 
-export interface Snippet {
-    id: string;
-    title: string;
-    description: string;
-    content: string;
-    language: string;
-    is_favorite: boolean;
-    is_public: boolean;
-    tags?: Tag[];
-}
-
-export interface Tag {
-    id: number;
-    name: string;
-    color: string;
+// Extending types if necessary for VSCode specific properties, though we can cast
+export interface VSTag extends Tag {
     snippet_count?: number;
 }
 
-export interface Folder {
-    id: number;
-    name: string;
+export interface VSFolder extends Folder {
     icon?: string;
     snippet_count?: number;
-    children?: Folder[];
+    children?: VSFolder[];
 }
 
 export class SnipoAPI {
-    private client: AxiosInstance;
+    private client: SnipoClient;
     private context?: vscode.ExtensionContext;
 
     constructor() {
-        this.client = axios.create();
+        this.client = new SnipoClient({ baseURL: '' });
     }
 
     async init(context: vscode.ExtensionContext) {
@@ -67,10 +53,10 @@ export class SnipoAPI {
                     ? `http://${apiUrl}`
                     : `https://${apiUrl}`;
             }
-            this.client.defaults.baseURL = apiUrl;
+            this.client.updateBaseURL(apiUrl);
         }
         if (apiToken) {
-            this.client.defaults.headers.common['Authorization'] = `Bearer ${apiToken}`;
+            this.client.updateToken(apiToken);
         }
     }
 
@@ -91,13 +77,12 @@ export class SnipoAPI {
                 : `https://${apiUrl}`;
         }
         try {
-            const tempClient = axios.create({
+            const tempClient = new SnipoClient({
                 baseURL: apiUrl,
-                headers: { 'Authorization': `Bearer ${apiToken}` },
-                timeout: 5000 // 5 seconds timeout
+                token: apiToken
             });
             // Try fetching a single snippet to verify the API token
-            const response = await tempClient.get('/api/v1/snippets', { params: { limit: 1 } });
+            const response = await tempClient.client.get('/api/v1/snippets', { params: { limit: 1 }, timeout: 5000 });
             return response.status === 200;
         } catch (error) {
             console.error('Configuration verification failed:', error);
@@ -117,7 +102,7 @@ export class SnipoAPI {
             if (tagId !== undefined) params.tag_ids = tagId;
             if (folderId !== undefined) params.folder_ids = folderId;
 
-            const response = await this.client.get('/api/v1/snippets', { params });
+            const response = await this.client.client.get('/api/v1/snippets', { params });
             const data = response.data.data || [];
             
             // Cache full lists (not search queries)
@@ -144,7 +129,7 @@ export class SnipoAPI {
 
     async searchSnippets(query: string, signal?: AbortSignal): Promise<Snippet[]> {
         try {
-            const response = await this.client.get('/api/v1/snippets/search', { params: { q: query }, signal });
+            const response = await this.client.client.get('/api/v1/snippets/search', { params: { q: query }, signal });
             return Array.isArray(response.data) ? response.data : (response.data.data || []);
         } catch (error: any) {
             if (axios.isCancel(error)) {
@@ -174,8 +159,7 @@ export class SnipoAPI {
 
     async getSnippet(id: string): Promise<Snippet | null> {
         try {
-            const response = await this.client.get(`/api/v1/snippets/${encodeURIComponent(id)}`);
-            return response.data;
+            return await this.client.getSnippet(id);
         } catch (error: any) {
             console.error('Error fetching snippet', error);
             // Offline fallback
@@ -195,9 +179,9 @@ export class SnipoAPI {
 
     async createSnippet(data: Partial<Snippet>): Promise<Snippet | null> {
         try {
-            const response = await this.client.post('/api/v1/snippets', data);
+            const snippet = await this.client.createSnippet(data);
             vscode.window.showInformationMessage('Snippet created successfully!');
-            return response.data;
+            return snippet;
         } catch (error: any) {
             console.error('Error creating snippet', error);
             if (error.response?.status === 401) {
@@ -213,9 +197,9 @@ export class SnipoAPI {
 
     async updateSnippet(id: string, data: Partial<Snippet>): Promise<Snippet | null> {
         try {
-            const response = await this.client.put(`/api/v1/snippets/${encodeURIComponent(id)}`, data);
+            const snippet = await this.client.updateSnippet(id, data);
             vscode.window.showInformationMessage('Snippet updated successfully!');
-            return response.data;
+            return snippet;
         } catch (error: any) {
             console.error('Error updating snippet', error);
             if (error.response?.status === 401) {
@@ -231,7 +215,7 @@ export class SnipoAPI {
 
     async deleteSnippet(id: string): Promise<boolean> {
         try {
-            await this.client.delete(`/api/v1/snippets/${encodeURIComponent(id)}`);
+            await this.client.deleteSnippet(id);
             vscode.window.showInformationMessage('Snippet deleted successfully!');
             return true;
         } catch (error: any) {
@@ -248,8 +232,7 @@ export class SnipoAPI {
     async getRecentSnippets(): Promise<Snippet[]> {
         const cacheKey = 'recent_snippets';
         try {
-            const response = await this.client.get('/api/v1/snippets', { params: { limit: 20, sort: 'updated_at', order: 'desc' } });
-            const data = response.data.data || [];
+            const data = await this.client.getRecentSnippets();
             if (this.context) {
                 await this.context.globalState.update(cacheKey, data);
             }
@@ -263,37 +246,35 @@ export class SnipoAPI {
         }
     }
 
-    async getTags(): Promise<Tag[]> {
+    async getTags(): Promise<VSTag[]> {
         const cacheKey = 'tags_all';
         try {
-            const response = await this.client.get('/api/v1/tags');
-            const data = response.data.data || response.data || [];
+            const data = await this.client.getTags();
             if (this.context) {
                 await this.context.globalState.update(cacheKey, data);
             }
-            return data;
+            return data as VSTag[];
         } catch (error) {
             console.error('Error fetching tags', error);
             if (this.context) {
-                return this.context.globalState.get<Tag[]>(cacheKey) || [];
+                return this.context.globalState.get<VSTag[]>(cacheKey) || [];
             }
             return [];
         }
     }
 
-    async getFolders(): Promise<Folder[]> {
+    async getFolders(): Promise<VSFolder[]> {
         const cacheKey = 'folders_all';
         try {
-            const response = await this.client.get('/api/v1/folders', { params: { tree: true } });
-            const data = response.data.data || response.data || [];
+            const data = await this.client.getFolders();
             if (this.context) {
                 await this.context.globalState.update(cacheKey, data);
             }
-            return data;
+            return data as VSFolder[];
         } catch (error) {
             console.error('Error fetching folders', error);
             if (this.context) {
-                return this.context.globalState.get<Folder[]>(cacheKey) || [];
+                return this.context.globalState.get<VSFolder[]>(cacheKey) || [];
             }
             return [];
         }
@@ -301,3 +282,6 @@ export class SnipoAPI {
 }
 
 export const api = new SnipoAPI();
+
+export { Snippet };
+export type { VSTag as Tag, VSFolder as Folder };
