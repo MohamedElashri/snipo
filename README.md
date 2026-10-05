@@ -7,7 +7,9 @@ Snipo is a lightweight, self-hosted snippet manager for a single user.
 
 [![Snipo CI](https://github.com/MohamedElashri/snipo/actions/workflows/snipo-ci.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/snipo-ci.yml)
 [![Snippy CI](https://github.com/MohamedElashri/snipo/actions/workflows/snippy-ci.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/snippy-ci.yml)
-[![Release](https://github.com/MohamedElashri/snipo/actions/workflows/release.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/release.yml)
+[![VS Code CI](https://github.com/MohamedElashri/snipo/actions/workflows/vscode-ci.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/vscode-ci.yml)
+[![Extension CI](https://github.com/MohamedElashri/snipo/actions/workflows/extension-ci.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/extension-ci.yml)
+[![Unified Release](https://github.com/MohamedElashri/snipo/actions/workflows/unified-release.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/unified-release.yml)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](LICENSE)
 
 <p align="center">

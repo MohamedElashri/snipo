@@ -152,6 +152,10 @@ help:
 	@echo "  chrome         - Build Chrome extension zip"
 	@echo "  firefox        - Build Firefox extension zip + source archive"
 	@echo "  extension-build - Build Chrome and Firefox extension packages"
+	@echo "  build-tui      - Build Snippy terminal client"
+	@echo "  vscode-build   - Build VS Code extension"
+	@echo "  build-all      - Build all components (Server, TUI, Browser, VS Code)"
+	@echo "  dev-all        - Start unified development environment for all components"
 	@echo "  help           - Show this help message"
 
 build-tui:
