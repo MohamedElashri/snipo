@@ -8,5 +8,8 @@
   },
   "devDependencies": {
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "serialize-javascript": "^7.1.2"
   }
 }
