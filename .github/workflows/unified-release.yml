@@ -55,7 +55,7 @@ jobs:
           tar czf snipo_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz snipo README.md LICENSE
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: snipo_${{ matrix.goos }}_${{ matrix.goarch }}
           path: snipo_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz
@@ -153,7 +153,7 @@ jobs:
           GORELEASER_CURRENT_TAG: ${{ inputs.tag_name || github.ref_name }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: snippy-artifacts
           path: tui/dist/*
@@ -189,13 +189,13 @@ jobs:
           npx @vscode/vsce package -o snipo.vsix
 
       - name: Upload Browser Extension Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: browser-extensions
           path: extension/dist/*.zip
 
       - name: Upload VS Code Extension Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: vscode-extension
           path: vscode-extension/*.vsix
