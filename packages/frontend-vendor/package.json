@@ -14,7 +14,7 @@
     "@alpinejs/collapse": "^3.15.8",
     "ace-builds": "^1.43.6",
     "prismjs": "^1.30.0",
-    "marked": "^17.0.4",
+    "marked": "^18.0.14",
     "@picocss/pico": "^2.1.1"
   }
 }
