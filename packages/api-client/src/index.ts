@@ -134,7 +134,7 @@ export class SnipoClient {
     return response.data || response || [];
   }
 
-  // Axios-like client wrapper for backward compatibility with existing extensions
+  // Fetch-like client wrapper for backward compatibility with existing extensions
   public client = {
     get: async (url: string, config?: any) => {
       const data = await this.request<any>(url, { method: 'GET', ...config });
