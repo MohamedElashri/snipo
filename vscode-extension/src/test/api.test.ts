@@ -15,6 +15,11 @@ suite('SnipoAPI Test Suite', () => {
         const config = vscode.workspace.getConfiguration('snipo');
         await config.update('apiUrl', apiUrl, vscode.ConfigurationTarget.Global);
         
+        const ext = vscode.extensions.getExtension('muhammadelashri.snipo');
+        if (ext && !ext.isActive) {
+            await ext.activate();
+        }
+        
         fetchStub = sinon.stub(global, 'fetch');
     });
 
