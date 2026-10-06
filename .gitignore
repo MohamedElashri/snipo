@@ -33,3 +33,7 @@ node_modules/
 .vscode-test
 out/
 cmd/server/server
+
+# Go workspace (local development only)
+go.work
+go.work.sum
