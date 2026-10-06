@@ -27,13 +27,13 @@ jobs:
             goarch: arm64
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # sanad: ref=v7.0.1
         with:
           ref: ${{ inputs.tag_name || github.ref_name }}
           fetch-depth: 0
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # sanad: ref=v7.0.0
         with:
           go-version-file: 'go.mod'
 
@@ -55,7 +55,7 @@ jobs:
           tar czf snipo_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz snipo README.md LICENSE
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # sanad: ref=v7.0.1
         with:
           name: snipo_${{ matrix.goos }}_${{ matrix.goarch }}
           path: snipo_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz
@@ -74,7 +74,7 @@ jobs:
             suffix: "-hardened"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # sanad: ref=v7.0.1
         with:
           ref: ${{ inputs.tag_name || github.ref_name }}
 
@@ -82,13 +82,13 @@ jobs:
         run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # sanad: ref=v4.4.0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # sanad: ref=v4.4.1
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # sanad: ref=v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -96,7 +96,7 @@ jobs:
 
       - name: Login to DHI Registry
         if: matrix.name == 'hardened'
-        uses: docker/login-action@v3
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # sanad: ref=v4.6.0
         with:
           registry: dhi.io
           username: ${{ secrets.DHI_USERNAME }}
@@ -104,7 +104,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # sanad: ref=v6.2.0
         with:
           images: ghcr.io/${{ env.IMAGE_NAME }}
           flavor: |
@@ -116,7 +116,7 @@ jobs:
             type=raw,value=latest-hardened,suffix=,enable=${{ matrix.name == 'hardened' }}
 
       - name: Build and push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # sanad: ref=v7.4.0
         with:
           context: .
           file: ${{ matrix.dockerfile }}
@@ -132,18 +132,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # sanad: ref=v7.0.1
         with:
           ref: ${{ inputs.tag_name || github.ref_name }}
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # sanad: ref=v7.0.0
         with:
           go-version-file: 'tui/go.mod'
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # sanad: ref=v7.2.3
         with:
           distribution: goreleaser
           version: latest
@@ -153,7 +153,7 @@ jobs:
           GORELEASER_CURRENT_TAG: ${{ inputs.tag_name || github.ref_name }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # sanad: ref=v7.0.1
         with:
           name: snippy-artifacts
           path: tui/dist/*
@@ -163,12 +163,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # sanad: ref=v7.0.1
         with:
           ref: ${{ inputs.tag_name || github.ref_name }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # sanad: ref=v7.0.0
         with:
           node-version: '18'
 
@@ -189,13 +189,13 @@ jobs:
           npx @vscode/vsce package -o snipo.vsix
 
       - name: Upload Browser Extension Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # sanad: ref=v7.0.1
         with:
           name: browser-extensions
           path: extension/dist/*.zip
 
       - name: Upload VS Code Extension Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # sanad: ref=v7.0.1
         with:
           name: vscode-extension
           path: vscode-extension/*.vsix
@@ -206,12 +206,12 @@ jobs:
     needs: [build-snipo, build-snippy, build-extensions]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # sanad: ref=v7.0.1
         with:
           ref: ${{ inputs.tag_name || github.ref_name }}
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # sanad: ref=v8.0.1
         with:
           path: artifacts
           pattern: '*'
@@ -223,7 +223,7 @@ jobs:
           echo "Includes Snipo Backend, Snippy TUI, Browser Extensions, and VS Code Extension." >> CHANGELOG.md
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # sanad: ref=v3.0.3
         with:
           name: Release ${{ inputs.tag_name || github.ref_name }}
           tag_name: ${{ inputs.tag_name || github.ref_name }}
@@ -259,7 +259,7 @@ jobs:
     needs: publish-release
     steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # sanad: ref=v8.0.1
         with:
           name: vscode-extension
           path: .
