@@ -5,10 +5,16 @@ on:
     branches: [main]
     paths:
       - 'vscode-extension/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'packages/**'
   pull_request:
     branches: [main, dev]
     paths:
       - 'vscode-extension/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'packages/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
