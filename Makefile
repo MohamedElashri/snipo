@@ -85,10 +85,10 @@ vendor:
 vendor-update:
 	npm update --no-audit --no-fund
 	@echo "\nInstalled versions:"
-	@node scripts/sync-vendor.js --status
+	@node packages/frontend-vendor/sync-vendor.js --status
 
 vendor-clean:
-	@node scripts/sync-vendor.js --cleanup
+	@node packages/frontend-vendor/sync-vendor.js --cleanup
 
 # ── Safe Dependency Upgrade ──────────────────────────────────────────
 # Upgrades Go deps within their current major versions and npm deps

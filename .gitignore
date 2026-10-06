@@ -32,3 +32,4 @@ node_modules/
 *.vsix
 .vscode-test
 out/
+cmd/server/server
