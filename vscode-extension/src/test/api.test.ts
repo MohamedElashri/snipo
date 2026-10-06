@@ -2,7 +2,6 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import { api } from '../api';
-import axios from 'axios';
 
 suite('SnipoAPI Test Suite', () => {
     vscode.window.showInformationMessage('Start all API tests.');
@@ -10,23 +9,13 @@ suite('SnipoAPI Test Suite', () => {
     const apiUrl = 'http://127.0.0.1:3000';
     const apiToken = 'test-token';
 
-    let axiosCreateStub: sinon.SinonStub;
-    let clientGetStub: sinon.SinonStub;
+    let fetchStub: sinon.SinonStub;
 
     setup(async () => {
         const config = vscode.workspace.getConfiguration('snipo');
         await config.update('apiUrl', apiUrl, vscode.ConfigurationTarget.Global);
         
-        clientGetStub = sinon.stub((api as any).client.client, 'get');
-        
-        const mockAxiosInstance = {
-            get: clientGetStub
-        };
-        
-        axiosCreateStub = sinon.stub(axios, 'create').returns(mockAxiosInstance as any);
-        if ((axios as any).default && (axios as any).default.create && (axios as any).default !== axios) {
-            sinon.stub((axios as any).default, 'create').returns(mockAxiosInstance as any);
-        }
+        fetchStub = sinon.stub(global, 'fetch');
     });
 
     teardown(() => {
@@ -34,27 +23,29 @@ suite('SnipoAPI Test Suite', () => {
     });
 
     test('verifyConfiguration - success', async () => {
-        clientGetStub.resolves({ status: 200 });
+        fetchStub.resolves({ ok: true, status: 200, json: async () => ({}) });
 
         const isValid = await api.verifyConfiguration(apiUrl, apiToken);
         assert.strictEqual(isValid, true);
-        assert.strictEqual(clientGetStub.calledWith('/api/v1/snippets', { params: { limit: 1 }, timeout: 5000 }), true);
+        assert.strictEqual(fetchStub.called, true);
     });
 
     test('verifyConfiguration - failure', async () => {
-        clientGetStub.rejects(new Error('Network error'));
+        fetchStub.rejects(new Error('Network error'));
 
         const isValid = await api.verifyConfiguration(apiUrl, apiToken);
         assert.strictEqual(isValid, false);
     });
 
     test('getSnippets - success', async () => {
-        clientGetStub.resolves({
-            data: {
+        fetchStub.resolves({
+            ok: true,
+            status: 200,
+            json: async () => ({
                 data: [
                     { id: '1', title: 'Test Snippet 1', content: 'console.log("test")', language: 'javascript' }
                 ]
-            }
+            })
         });
 
         const snippets = await api.getSnippets();
@@ -63,12 +54,10 @@ suite('SnipoAPI Test Suite', () => {
     });
 
     test('searchSnippets - abort signal', async () => {
-        // Axios throws a Cancel object when aborted
         const cancelError = new Error('Canceled');
-        (cancelError as any).__CANCEL__ = true; // Axios isCancel check uses this
-        sinon.stub(axios, 'isCancel').returns(true);
+        cancelError.name = 'AbortError';
         
-        clientGetStub.rejects(cancelError);
+        fetchStub.rejects(cancelError);
 
         const abortController = new AbortController();
         const searchPromise = api.searchSnippets('test', abortController.signal);

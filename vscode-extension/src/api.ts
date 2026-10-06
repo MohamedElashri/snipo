@@ -1,4 +1,3 @@
-import axios from 'axios';
 import * as vscode from 'vscode';
 import { SnipoClient, Snippet, Tag, Folder } from '@snipo/api-client';
 
@@ -132,7 +131,7 @@ export class SnipoAPI {
             const response = await this.client.client.get('/api/v1/snippets/search', { params: { q: query }, signal });
             return Array.isArray(response.data) ? response.data : (response.data.data || []);
         } catch (error: any) {
-            if (axios.isCancel(error)) {
+            if (error.name === 'AbortError') {
                 return [];
             }
             console.error('Error searching snippets', error);

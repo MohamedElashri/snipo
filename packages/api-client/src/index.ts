@@ -1,5 +1,3 @@
-import axios, { AxiosInstance, CancelToken } from 'axios';
-
 export interface Snippet {
   id: string;
   title: string;
@@ -39,64 +37,124 @@ export interface SnipoApiOptions {
 }
 
 export class SnipoClient {
-  public client: AxiosInstance;
+  private baseURL: string;
+  private token?: string;
 
   constructor(options: SnipoApiOptions) {
-    this.client = axios.create({
-      baseURL: options.baseURL,
-      headers: options.token ? { Authorization: `Bearer ${options.token}` } : {}
-    });
+    this.baseURL = options.baseURL.replace(/\/$/, '');
+    this.token = options.token;
   }
 
   updateToken(token: string) {
-    this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    this.token = token;
   }
 
   updateBaseURL(url: string) {
-    this.client.defaults.baseURL = url;
+    this.baseURL = url.replace(/\/$/, '');
   }
 
-  async getSnippets(query?: string, cancelToken?: CancelToken): Promise<Snippet[]> {
+  private async request<T>(endpoint: string, options: RequestInit & { params?: Record<string, any> } = {}): Promise<T> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...((options.headers as Record<string, string>) || {})
+    };
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    let url = endpoint.startsWith('http') ? endpoint : `${this.baseURL}${endpoint}`;
+    if (options.params) {
+      const urlObj = new URL(url);
+      for (const [k, v] of Object.entries(options.params)) {
+        if (v !== undefined) urlObj.searchParams.append(k, String(v));
+      }
+      url = urlObj.toString();
+    }
+
+    try {
+      const response = await fetch(url, { ...options, headers });
+      if (!response.ok) {
+        let errData = {};
+        try { errData = await response.json(); } catch(e) {}
+        const error: any = new Error(`Request failed with status ${response.status}`);
+        error.response = { status: response.status, data: errData };
+        error.name = 'SnipoApiError';
+        throw error;
+      }
+      if (response.status === 204) {
+        return {} as T;
+      }
+      return await response.json();
+    } catch (e: any) {
+      if (e.name === 'AbortError') {
+        throw e;
+      }
+      throw e;
+    }
+  }
+
+  async getSnippets(query?: string, signal?: AbortSignal): Promise<Snippet[]> {
     const params: any = { limit: 100 };
     if (query) params.q = query;
-    const response = await this.client.get(query ? '/api/v1/snippets/search' : '/api/v1/snippets', { 
+    const response = await this.request<any>(query ? '/api/v1/snippets/search' : '/api/v1/snippets', { 
         params,
-        cancelToken 
+        signal 
     });
-    return Array.isArray(response.data) ? response.data : (response.data.data || []);
+    return Array.isArray(response) ? response : (response.data || []);
   }
 
   async getRecentSnippets(): Promise<Snippet[]> {
-    const response = await this.client.get('/api/v1/snippets', { params: { limit: 20, sort: 'updated_at', order: 'desc' } });
-    return response.data.data || [];
+    const response = await this.request<any>('/api/v1/snippets', { params: { limit: 20, sort: 'updated_at', order: 'desc' } });
+    return response.data || [];
   }
 
   async getSnippet(id: string): Promise<Snippet> {
-    const response = await this.client.get(`/api/v1/snippets/${encodeURIComponent(id)}`);
-    return response.data;
+    return this.request<Snippet>(`/api/v1/snippets/${encodeURIComponent(id)}`);
   }
 
   async createSnippet(data: Partial<Snippet>): Promise<Snippet> {
-    const response = await this.client.post('/api/v1/snippets', data);
-    return response.data;
+    return this.request<Snippet>('/api/v1/snippets', { method: 'POST', body: JSON.stringify(data) });
   }
 
   async updateSnippet(id: string, data: Partial<Snippet>): Promise<Snippet> {
-    const response = await this.client.put(`/api/v1/snippets/${encodeURIComponent(id)}`, data);
-    return response.data;
+    return this.request<Snippet>(`/api/v1/snippets/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) });
   }
 
   async deleteSnippet(id: string): Promise<void> {
-    await this.client.delete(`/api/v1/snippets/${encodeURIComponent(id)}`);
+    await this.request<void>(`/api/v1/snippets/${encodeURIComponent(id)}`, { method: 'DELETE' });
   }
 
   async getTags(): Promise<Tag[]> {
-    const response = await this.client.get('/api/v1/tags');
-    return response.data.data || response.data || [];
+    const response = await this.request<any>('/api/v1/tags');
+    return response.data || response || [];
   }
 
   async getFolders(): Promise<Folder[]> {
-    const response = await this.client.get('/api/v1/folders', { params: { tree: true } });
-    return response.data.data || response.data || [];
+    const response = await this.request<any>('/api/v1/folders', { params: { tree: true } });
+    return response.data || response || [];
   }
+
+  // Axios-like client wrapper for backward compatibility with existing extensions
+  public client = {
+    get: async (url: string, config?: any) => {
+      const data = await this.request<any>(url, { method: 'GET', ...config });
+      return { data, status: 200 };
+    },
+    post: async (url: string, body?: any, config?: any) => {
+      const data = await this.request<any>(url, { method: 'POST', body: JSON.stringify(body), ...config });
+      return { data, status: 200 };
+    },
+    put: async (url: string, body?: any, config?: any) => {
+      const data = await this.request<any>(url, { method: 'PUT', body: JSON.stringify(body), ...config });
+      return { data, status: 200 };
+    },
+    delete: async (url: string, config?: any) => {
+      const data = await this.request<any>(url, { method: 'DELETE', ...config });
+      return { data, status: 200 };
+    },
+    defaults: {
+      headers: { common: {} as any },
+      baseURL: ''
+    }
+  };
 }
