@@ -5,12 +5,9 @@
     "description": "Save code snippets to your Snipo instance with one click.",
     "permissions": [
         "activeTab",
+        "scripting",
         "contextMenus",
         "storage"
-    ],
-    "host_permissions": [
-        "http://*/*",
-        "https://*/*"
     ],
     "browser_specific_settings": {
         "gecko": {
@@ -38,18 +35,5 @@
         "scripts": [
             "background.js"
         ]
-    },
-    "content_scripts": [
-        {
-            "matches": [
-                "<all_urls>"
-            ],
-            "js": [
-                "content.js"
-            ],
-            "css": [
-                "styles.css"
-            ]
-        }
-    ]
+    }
 }

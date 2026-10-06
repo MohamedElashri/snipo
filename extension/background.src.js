@@ -8,16 +8,29 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 });
 
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     if (info.menuItemId === "save-to-snipo" && info.selectionText) {
-        chrome.tabs.sendMessage(tab.id, {
-            action: "contextMenuSave",
-            code: info.selectionText,
-            title: tab.title
-        }).catch(err => {
-            console.warn("Could not send context menu action to content script. Tab might need reload.", err);
+        try {
+            await chrome.scripting.insertCSS({
+                target: { tabId: tab.id },
+                files: ["styles.css"]
+            });
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ["content.js"]
+            });
+            chrome.tabs.sendMessage(tab.id, {
+                action: "contextMenuSave",
+                code: info.selectionText,
+                title: tab.title
+            }).catch(err => {
+                console.warn("Could not send context menu action to content script.", err);
+                saveSnippet(info.selectionText, tab, "plaintext", tab.title);
+            });
+        } catch (err) {
+            console.warn("Could not inject script.", err);
             saveSnippet(info.selectionText, tab, "plaintext", tab.title);
-        });
+        }
     }
 });
 
