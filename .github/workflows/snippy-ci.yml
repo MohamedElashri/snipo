@@ -8,8 +8,6 @@ on:
       - 'pkg/**'
       - 'go.mod'
       - 'go.sum'
-      - 'go.work'
-      - 'go.work.sum'
   pull_request:
     branches: [main, dev]
     paths:
@@ -17,8 +15,6 @@ on:
       - 'pkg/**'
       - 'go.mod'
       - 'go.sum'
-      - 'go.work'
-      - 'go.work.sum'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

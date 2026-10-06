@@ -3,8 +3,22 @@
 
 version: 2
 updates:
-  # Go modules
+  # Go modules (root)
   - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # Go modules (tui)
+  - package-ecosystem: "gomod"
+    directory: "/tui"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+
+  # NPM workspaces (root)
+  - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
