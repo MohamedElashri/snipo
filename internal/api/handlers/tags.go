@@ -1,11 +1,11 @@
 package handlers
 
 import (
+	"github.com/MohamedElashri/snipo/internal/utils"
 	"errors"
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/chi/v5"
 
 	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
@@ -83,7 +83,7 @@ func (h *TagHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // Get handles GET /api/v1/tags/{id}
 func (h *TagHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := strconv.ParseInt(utils.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid tag ID")
 		return
@@ -110,7 +110,7 @@ func (h *TagHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 // Update handles PUT /api/v1/tags/{id}
 func (h *TagHandler) Update(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := strconv.ParseInt(utils.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid tag ID")
 		return
@@ -160,7 +160,7 @@ func (h *TagHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE /api/v1/tags/{id}
 func (h *TagHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := strconv.ParseInt(utils.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid tag ID")
 		return

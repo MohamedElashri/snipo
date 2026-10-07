@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/MohamedElashri/snipo/internal/utils"
 	"errors"
 	"fmt"
 	"net/http"
@@ -8,7 +9,6 @@ import (
 
 	"strings"
 
-	"github.com/go-chi/chi/v5"
 
 	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/pkg/models"
@@ -112,7 +112,7 @@ func (h *TokenHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // Get handles GET /api/v1/tokens/{id}
 func (h *TokenHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := strconv.ParseInt(utils.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid token ID")
 		return
@@ -133,7 +133,7 @@ func (h *TokenHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE /api/v1/tokens/{id}
 func (h *TokenHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	id, err := strconv.ParseInt(utils.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid token ID")
 		return

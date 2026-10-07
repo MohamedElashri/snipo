@@ -9,8 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
+	"github.com/MohamedElashri/snipo/internal/utils"
 
 	"github.com/MohamedElashri/snipo/internal/api/middleware"
 	"github.com/MohamedElashri/snipo/pkg/models"
@@ -62,7 +61,7 @@ func withChiURLParams(r *http.Request, params map[string]string) *http.Request {
 
 // withRequestID adds a request ID to the context for testing
 func withRequestID(r *http.Request) *http.Request {
-	requestID := uuid.New().String()
+	requestID := utils.GenerateUUID()
 	ctx := context.WithValue(r.Context(), middleware.ContextKeyRequestID, requestID)
 	return r.WithContext(ctx)
 }

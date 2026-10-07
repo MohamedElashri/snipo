@@ -7,9 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
-
-	"github.com/go-chi/chi/v5"
-
 	"github.com/MohamedElashri/snipo/internal/api/handlers"
 	"github.com/MohamedElashri/snipo/internal/api/middleware"
 	"github.com/MohamedElashri/snipo/internal/auth"
@@ -39,7 +36,7 @@ type RouterConfig struct {
 
 // NewRouter creates and configures the HTTP router
 func NewRouter(cfg RouterConfig) http.Handler {
-	r := chi.NewRouter()
+	r := NewNativeRouter()
 
 	// Global middleware (order matters!)
 	r.Use(middleware.RequestID)            // Generate request IDs first
@@ -150,7 +147,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	}
 
 	// Public routes (no auth required)
-	r.Group(func(r chi.Router) {
+	r.Group(func(r *Router) {
 		// Health checks
 		r.Get("/health", healthHandler.Health)
 		r.Get("/ping", healthHandler.Ping)
@@ -162,6 +159,10 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 		// Public snippet access
 		if cfg.Config == nil || cfg.Config.Features.PublicSnippets {
+			// Resolve ServeMux routing conflict between /snippets/{id}/history and /snippets/public/{id}
+			r.Get("/api/v1/snippets/public/history", func(w http.ResponseWriter, req *http.Request) {
+				http.NotFound(w, req)
+			})
 			r.With(apiRateLimiter.RateLimitRead).Get("/api/v1/snippets/public/{id}", snippetHandler.GetPublic)
 			r.With(apiRateLimiter.RateLimitRead).Get("/api/v1/snippets/public/{id}/files/{filename}", snippetHandler.GetPublicFile)
 		}
@@ -170,7 +171,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		r.Get("/api/v1/metadata/languages", languageHandler.GetLanguages)
 
 		// Auth endpoints (with rate limiting)
-		r.Group(func(r chi.Router) {
+		r.Group(func(r *Router) {
 			r.Use(authRateLimiter.Middleware)
 			r.Post("/api/v1/auth/login", authHandler.Login)
 		})
@@ -180,13 +181,13 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	})
 
 	// Protected routes (auth required + rate limiting)
-	r.Group(func(r chi.Router) {
+	r.Group(func(r *Router) {
 		r.Use(middleware.RequireAuthWithSettings(cfg.AuthService, tokenRepo, settingsRepo))
 
 		// Auth management (protected, requires any auth)
 
 		// Settings management (admin only)
-		r.Route("/api/v1/settings", func(r chi.Router) {
+		r.Route("/api/v1/settings", func(r *Router) {
 			r.Use(middleware.RequireAdminWithPassword(cfg.AuthService))
 			r.Use(apiRateLimiter.RateLimitAdmin)
 			r.Get("/", settingsHandler.Get)
@@ -194,12 +195,12 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		})
 
 		// Snippet CRUD (read for GET, write for modifications)
-		r.Route("/api/v1/snippets", func(r chi.Router) {
+		r.Route("/api/v1/snippets", func(r *Router) {
 			r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead).Get("/", snippetHandler.List)
 			r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/", snippetHandler.Create)
 			r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead).Get("/search", snippetHandler.Search)
 
-			r.Route("/{id}", func(r chi.Router) {
+			r.Route("/{id}", func(r *Router) {
 				r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead).Get("/", snippetHandler.Get)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Put("/", snippetHandler.Update)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Delete("/", snippetHandler.Delete)
@@ -215,11 +216,11 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		})
 
 		// Tag CRUD (read for GET, write for modifications)
-		r.Route("/api/v1/tags", func(r chi.Router) {
+		r.Route("/api/v1/tags", func(r *Router) {
 			r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead).Get("/", tagHandler.List)
 			r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/", tagHandler.Create)
 
-			r.Route("/{id}", func(r chi.Router) {
+			r.Route("/{id}", func(r *Router) {
 				r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead).Get("/", tagHandler.Get)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Put("/", tagHandler.Update)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Delete("/", tagHandler.Delete)
@@ -227,11 +228,11 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		})
 
 		// Folder CRUD (read for GET, write for modifications)
-		r.Route("/api/v1/folders", func(r chi.Router) {
+		r.Route("/api/v1/folders", func(r *Router) {
 			r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead).Get("/", folderHandler.List)
 			r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/", folderHandler.Create)
 
-			r.Route("/{id}", func(r chi.Router) {
+			r.Route("/{id}", func(r *Router) {
 				r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead).Get("/", folderHandler.Get)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Put("/", folderHandler.Update)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Delete("/", folderHandler.Delete)
@@ -241,13 +242,13 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 		// API Token management (admin only)
 		if cfg.Config == nil || cfg.Config.Features.APITokens {
-			r.Route("/api/v1/tokens", func(r chi.Router) {
+			r.Route("/api/v1/tokens", func(r *Router) {
 				r.Use(middleware.RequireAdmin)
 				r.Use(apiRateLimiter.RateLimitAdmin)
 				r.Get("/", tokenHandler.List)
 				r.Post("/", tokenHandler.Create)
 
-				r.Route("/{id}", func(r chi.Router) {
+				r.Route("/{id}", func(r *Router) {
 					r.Get("/", tokenHandler.Get)
 					r.Delete("/", tokenHandler.Delete)
 				})
@@ -256,7 +257,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 		// Backup & Restore (admin only)
 		if cfg.Config == nil || cfg.Config.Features.BackupRestore {
-			r.Route("/api/v1/backup", func(r chi.Router) {
+			r.Route("/api/v1/backup", func(r *Router) {
 				r.Use(middleware.RequireAdminWithPassword(cfg.AuthService))
 				r.Use(apiRateLimiter.RateLimitAdmin)
 				r.Get("/export", backupHandler.Export)
@@ -274,9 +275,9 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 		// GitHub Gist Sync (admin only for config, write for sync operations)
 		if gistSyncHandler != nil {
-			r.Route("/api/v1/gist", func(r chi.Router) {
+			r.Route("/api/v1/gist", func(r *Router) {
 				// Config endpoints (admin only)
-				r.Group(func(r chi.Router) {
+				r.Group(func(r *Router) {
 					r.Use(middleware.RequireAdminWithPassword(cfg.AuthService))
 					r.Use(apiRateLimiter.RateLimitAdmin)
 					r.Get("/config", gistSyncHandler.GetConfig)
@@ -286,7 +287,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 				})
 
 				// Sync operations (write permission)
-				r.Group(func(r chi.Router) {
+				r.Group(func(r *Router) {
 					r.Use(middleware.RequireWrite)
 					r.Use(apiRateLimiter.RateLimitWrite)
 					r.Post("/sync/snippet/{id}", gistSyncHandler.SyncSnippet)
@@ -299,7 +300,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 				})
 
 				// Mappings and conflicts (read permission)
-				r.Group(func(r chi.Router) {
+				r.Group(func(r *Router) {
 					r.Use(middleware.RequireRead)
 					r.Use(apiRateLimiter.RateLimitRead)
 					r.Get("/mappings", gistSyncHandler.ListMappings)
@@ -308,7 +309,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 				})
 
 				// Mapping deletion and conflict resolution (write permission)
-				r.Group(func(r chi.Router) {
+				r.Group(func(r *Router) {
 					r.Use(middleware.RequireWrite)
 					r.Use(apiRateLimiter.RateLimitWrite)
 					r.Delete("/mappings/{id}", gistSyncHandler.DeleteMapping)
@@ -339,7 +340,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	// If base path is configured, mount everything under it
 	if cfg.BasePath != "" {
-		baseRouter := chi.NewRouter()
+		baseRouter := NewNativeRouter()
 		baseRouter.Mount(cfg.BasePath, r)
 		return baseRouter
 	}
