@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/MohamedElashri/snipo/internal/utils"
 	"context"
 	"net/http"
 	"strings"
@@ -168,7 +169,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		if match {
 			ctx := req.Context()
 			if len(params) > 0 {
-				ctx = context.WithValue(ctx, "path_params", params)
+				ctx = context.WithValue(ctx, utils.PathParamsKey, params)
 			}
 			route.handler.ServeHTTP(w, req.WithContext(ctx))
 			return

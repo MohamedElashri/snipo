@@ -59,7 +59,7 @@ func TestIntegration_SnippetCRUDFlow(t *testing.T) {
 	t.Log("Fetching snippet...")
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/snippets/"+snippetID, nil)
 	req = withRequestID(req)
-	req = withChiURLParams(req, map[string]string{"id": snippetID})
+	req = withURLParams(req, map[string]string{"id": snippetID})
 	w = httptest.NewRecorder()
 
 	handler.Get(w, req)
@@ -92,7 +92,7 @@ func TestIntegration_SnippetCRUDFlow(t *testing.T) {
 
 	req = httptest.NewRequest(http.MethodPut, "/api/v1/snippets/"+snippetID, bytes.NewReader(updateBody))
 	req = withRequestID(req)
-	req = withChiURLParams(req, map[string]string{"id": snippetID})
+	req = withURLParams(req, map[string]string{"id": snippetID})
 	req.Header.Set("Content-Type", "application/json")
 	w = httptest.NewRecorder()
 
@@ -143,7 +143,7 @@ func TestIntegration_SnippetCRUDFlow(t *testing.T) {
 	t.Log("Deleting snippet...")
 	req = httptest.NewRequest(http.MethodDelete, "/api/v1/snippets/"+snippetID, nil)
 	req = withRequestID(req)
-	req = withChiURLParams(req, map[string]string{"id": snippetID})
+	req = withURLParams(req, map[string]string{"id": snippetID})
 	w = httptest.NewRecorder()
 
 	handler.Delete(w, req)

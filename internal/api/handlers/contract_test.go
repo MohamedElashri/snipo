@@ -163,7 +163,7 @@ func TestContract_ErrorResponse(t *testing.T) {
 			req = withRequestID(req)
 
 			if tt.name == "not found error" {
-				req = withChiURLParams(req, map[string]string{"id": "nonexistent"})
+				req = withURLParams(req, map[string]string{"id": "nonexistent"})
 			}
 
 			w := httptest.NewRecorder()
@@ -265,7 +265,7 @@ func TestContract_ContentTypeHeaders(t *testing.T) {
 			req = withRequestID(req)
 
 			if tt.method == http.MethodGet && tt.path != "/api/v1/snippets" {
-				req = withChiURLParams(req, map[string]string{"id": snippet.ID})
+				req = withURLParams(req, map[string]string{"id": snippet.ID})
 			}
 
 			w := httptest.NewRecorder()

@@ -125,7 +125,7 @@ func TestSecurity_PathTraversal(t *testing.T) {
 		t.Run(fmt.Sprintf("path:%s", attempt), func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/snippets/"+attempt, nil)
 			req = withRequestID(req)
-			req = withChiURLParams(req, map[string]string{"id": attempt})
+			req = withURLParams(req, map[string]string{"id": attempt})
 			w := httptest.NewRecorder()
 
 			handler.Get(w, req)
@@ -313,7 +313,7 @@ func TestSecurity_IDEnumeration(t *testing.T) {
 		t.Run(fmt.Sprintf("ID:%s", testID), func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/snippets/"+testID, nil)
 			req = withRequestID(req)
-			req = withChiURLParams(req, map[string]string{"id": testID})
+			req = withURLParams(req, map[string]string{"id": testID})
 			w := httptest.NewRecorder()
 
 			handler.Get(w, req)
@@ -381,7 +381,7 @@ func TestSecurity_NoDataLeakageInErrors(t *testing.T) {
 			req: func() *http.Request {
 				r := httptest.NewRequest(http.MethodGet, "/api/v1/snippets/invalid-id", nil)
 				r = withRequestID(r)
-				return withChiURLParams(r, map[string]string{"id": "invalid-id"})
+				return withURLParams(r, map[string]string{"id": "invalid-id"})
 			}(),
 		},
 		{
