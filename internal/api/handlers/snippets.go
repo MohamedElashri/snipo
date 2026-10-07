@@ -1,12 +1,12 @@
 package handlers
 
 import (
+	"github.com/MohamedElashri/snipo/internal/utils"
 	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
 
 	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/services"
@@ -140,7 +140,7 @@ func (h *SnippetHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // Get handles GET /api/v1/snippets/{id}
 func (h *SnippetHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id := utils.URLParam(r, "id")
 	if id == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
@@ -161,7 +161,7 @@ func (h *SnippetHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 // Update handles PUT /api/v1/snippets/{id}
 func (h *SnippetHandler) Update(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id := utils.URLParam(r, "id")
 	if id == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
@@ -193,7 +193,7 @@ func (h *SnippetHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 // Delete handles DELETE /api/v1/snippets/{id}
 func (h *SnippetHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id := utils.URLParam(r, "id")
 	if id == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
@@ -215,7 +215,7 @@ func (h *SnippetHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 // Restore handles POST /api/v1/snippets/{id}/restore
 func (h *SnippetHandler) Restore(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id := utils.URLParam(r, "id")
 	if id == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
@@ -236,7 +236,7 @@ func (h *SnippetHandler) Restore(w http.ResponseWriter, r *http.Request) {
 
 // ToggleFavorite handles POST /api/v1/snippets/{id}/favorite
 func (h *SnippetHandler) ToggleFavorite(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id := utils.URLParam(r, "id")
 	if id == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
@@ -257,7 +257,7 @@ func (h *SnippetHandler) ToggleFavorite(w http.ResponseWriter, r *http.Request) 
 
 // ToggleArchive handles POST /api/v1/snippets/{id}/archive
 func (h *SnippetHandler) ToggleArchive(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id := utils.URLParam(r, "id")
 	if id == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
@@ -278,7 +278,7 @@ func (h *SnippetHandler) ToggleArchive(w http.ResponseWriter, r *http.Request) {
 
 // Duplicate handles POST /api/v1/snippets/{id}/duplicate
 func (h *SnippetHandler) Duplicate(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id := utils.URLParam(r, "id")
 	if id == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
@@ -326,7 +326,7 @@ func (h *SnippetHandler) Search(w http.ResponseWriter, r *http.Request) {
 
 // GetPublic handles GET /api/v1/snippets/public/{id}
 func (h *SnippetHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id := utils.URLParam(r, "id")
 	if id == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
@@ -348,13 +348,13 @@ func (h *SnippetHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 // GetPublicFile handles GET /api/v1/snippets/public/{id}/files/{filename}
 // Returns raw file content for downloading individual files from public snippets
 func (h *SnippetHandler) GetPublicFile(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id := utils.URLParam(r, "id")
 	if id == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
 	}
 
-	filename := chi.URLParam(r, "filename")
+	filename := utils.URLParam(r, "filename")
 	if filename == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_FILENAME", "Filename is required")
 		return
@@ -422,7 +422,7 @@ func (h *SnippetHandler) GetPublicFile(w http.ResponseWriter, r *http.Request) {
 
 // GetHistory handles GET /api/v1/snippets/{id}/history
 func (h *SnippetHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id := utils.URLParam(r, "id")
 	if id == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
@@ -451,13 +451,13 @@ func (h *SnippetHandler) GetHistory(w http.ResponseWriter, r *http.Request) {
 
 // RestoreFromHistory handles POST /api/v1/snippets/{id}/history/{history_id}/restore
 func (h *SnippetHandler) RestoreFromHistory(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id := utils.URLParam(r, "id")
 	if id == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
 	}
 
-	historyIDStr := chi.URLParam(r, "history_id")
+	historyIDStr := utils.URLParam(r, "history_id")
 	if historyIDStr == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_HISTORY_ID", "History ID is required")
 		return

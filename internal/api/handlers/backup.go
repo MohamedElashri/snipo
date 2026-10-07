@@ -1,11 +1,11 @@
 package handlers
 
 import (
+	"github.com/MohamedElashri/snipo/internal/utils"
 	"io"
 	"log/slog"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 
 	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/services"
@@ -211,7 +211,7 @@ func (h *BackupHandler) S3Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := chi.URLParam(r, "*")
+	key := utils.URLParam(r, "*")
 	if key == "" || key[0] == '/' {
 		Error(w, r, http.StatusBadRequest, "MISSING_KEY", "Backup key is required")
 		return

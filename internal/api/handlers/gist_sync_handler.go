@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/MohamedElashri/snipo/internal/utils"
 	"context"
 	"fmt"
 	"log/slog"
@@ -11,7 +12,6 @@ import (
 	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
 	"github.com/MohamedElashri/snipo/internal/services"
-	"github.com/go-chi/chi/v5"
 )
 
 // GistSyncHandler handles gist sync related endpoints
@@ -240,7 +240,7 @@ func (h *GistSyncHandler) SyncSnippet(w http.ResponseWriter, r *http.Request) {
 	if h.checkDemoMode(w, r) {
 		return
 	}
-	snippetID := chi.URLParam(r, "id")
+	snippetID := utils.URLParam(r, "id")
 	if snippetID == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
@@ -271,7 +271,7 @@ func (h *GistSyncHandler) DeleteGist(w http.ResponseWriter, r *http.Request) {
 	if h.checkDemoMode(w, r) {
 		return
 	}
-	snippetID := chi.URLParam(r, "id")
+	snippetID := utils.URLParam(r, "id")
 	if snippetID == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
@@ -316,7 +316,7 @@ func (h *GistSyncHandler) EnableSync(w http.ResponseWriter, r *http.Request) {
 	if h.checkDemoMode(w, r) {
 		return
 	}
-	snippetID := chi.URLParam(r, "id")
+	snippetID := utils.URLParam(r, "id")
 	if snippetID == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
@@ -343,7 +343,7 @@ func (h *GistSyncHandler) DisableSync(w http.ResponseWriter, r *http.Request) {
 	if h.checkDemoMode(w, r) {
 		return
 	}
-	snippetID := chi.URLParam(r, "id")
+	snippetID := utils.URLParam(r, "id")
 	if snippetID == "" {
 		Error(w, r, http.StatusBadRequest, "MISSING_ID", "Snippet ID is required")
 		return
@@ -449,7 +449,7 @@ func (h *GistSyncHandler) DeleteMapping(w http.ResponseWriter, r *http.Request) 
 	if h.checkDemoMode(w, r) {
 		return
 	}
-	idStr := chi.URLParam(r, "id")
+	idStr := utils.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid mapping ID")
@@ -482,7 +482,7 @@ func (h *GistSyncHandler) ResolveConflict(w http.ResponseWriter, r *http.Request
 	if h.checkDemoMode(w, r) {
 		return
 	}
-	idStr := chi.URLParam(r, "id")
+	idStr := utils.URLParam(r, "id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid conflict ID")

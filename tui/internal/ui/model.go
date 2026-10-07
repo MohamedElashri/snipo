@@ -5,8 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-
-	"github.com/atotto/clipboard"
+	"github.com/MohamedElashri/snipo/tui/internal/clipboard"
 
 	"github.com/MohamedElashri/snipo/tui/internal/api"
 	"github.com/MohamedElashri/snipo/tui/internal/config"

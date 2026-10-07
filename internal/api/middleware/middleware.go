@@ -9,8 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
-
+	"github.com/MohamedElashri/snipo/internal/utils"
 	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
@@ -38,7 +37,7 @@ func RequestID(next http.Handler) http.Handler {
 		requestID := r.Header.Get("X-Request-ID")
 		if requestID == "" {
 			// Generate new UUID
-			requestID = uuid.New().String()
+			requestID = utils.GenerateUUID()
 		}
 
 		// Add to response header

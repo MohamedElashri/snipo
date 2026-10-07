@@ -9,8 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
+	"github.com/MohamedElashri/snipo/internal/utils"
 
 	"github.com/MohamedElashri/snipo/internal/api/middleware"
 	"github.com/MohamedElashri/snipo/pkg/models"
@@ -51,18 +50,14 @@ type testPaginationLinks struct {
 	Prev *string `json:"prev"`
 }
 
-// withChiURLParams adds chi URL params to a request context
-func withChiURLParams(r *http.Request, params map[string]string) *http.Request {
-	rctx := chi.NewRouteContext()
-	for key, val := range params {
-		rctx.URLParams.Add(key, val)
-	}
-	return r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
+// withURLParams adds URL params to a request context for testing
+func withURLParams(r *http.Request, params map[string]string) *http.Request {
+	return r.WithContext(context.WithValue(r.Context(), utils.PathParamsKey, params))
 }
 
 // withRequestID adds a request ID to the context for testing
 func withRequestID(r *http.Request) *http.Request {
-	requestID := uuid.New().String()
+	requestID := utils.GenerateUUID()
 	ctx := context.WithValue(r.Context(), middleware.ContextKeyRequestID, requestID)
 	return r.WithContext(ctx)
 }
@@ -189,7 +184,7 @@ func TestSnippetHandler_Get(t *testing.T) {
 
 	// Create request with chi URL param
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/snippets/"+snippet.ID, nil)
-	req = withChiURLParams(req, map[string]string{"id": snippet.ID})
+	req = withURLParams(req, map[string]string{"id": snippet.ID})
 	req = withRequestID(req)
 
 	w := httptest.NewRecorder()
@@ -220,7 +215,7 @@ func TestSnippetHandler_Get_NotFound(t *testing.T) {
 	handler, _ := setupSnippetHandler(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/snippets/nonexistent", nil)
-	req = withChiURLParams(req, map[string]string{"id": "nonexistent"})
+	req = withURLParams(req, map[string]string{"id": "nonexistent"})
 
 	w := httptest.NewRecorder()
 	handler.Get(w, req)
@@ -376,7 +371,7 @@ func TestSnippetHandler_Update(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPut, "/api/v1/snippets/"+snippet.ID, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req = withChiURLParams(req, map[string]string{"id": snippet.ID})
+	req = withURLParams(req, map[string]string{"id": snippet.ID})
 	req = withRequestID(req)
 
 	w := httptest.NewRecorder()
@@ -418,7 +413,7 @@ func TestSnippetHandler_Delete(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/v1/snippets/"+snippet.ID, nil)
-	req = withChiURLParams(req, map[string]string{"id": snippet.ID})
+	req = withURLParams(req, map[string]string{"id": snippet.ID})
 
 	w := httptest.NewRecorder()
 	handler.Delete(w, req)
@@ -451,7 +446,7 @@ func TestSnippetHandler_ToggleFavorite(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/snippets/"+snippet.ID+"/favorite", nil)
-	req = withChiURLParams(req, map[string]string{"id": snippet.ID})
+	req = withURLParams(req, map[string]string{"id": snippet.ID})
 	req = withRequestID(req)
 
 	w := httptest.NewRecorder()
