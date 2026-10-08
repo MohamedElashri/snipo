@@ -213,18 +213,6 @@ func (s *Service) VerifyPasswordWithDelay(password, clientIP string) (bool, time
 	return false, 0
 }
 
-// UpdatePassword updates the master password (in-memory only, resets on restart)
-// For persistent password storage, this would need to be stored in the database
-func (s *Service) UpdatePassword(newPassword string) error {
-	passwordHash, err := HashPassword(newPassword)
-	if err != nil {
-		return fmt.Errorf("failed to hash new password: %w", err)
-	}
-	s.masterPasswordHash = passwordHash
-	s.logger.Info("master password updated")
-	return nil
-}
-
 // CreateSession creates a new session and returns the session token
 func (s *Service) CreateSession() (string, error) {
 	// Generate random token
@@ -401,13 +389,4 @@ func VerifyPasswordHash(password, encodedHash string) bool {
 	computedHash := argon2.IDKey([]byte(password), salt, argonTime, argonMemory, argonThreads, argonKeyLen)
 
 	return subtle.ConstantTimeCompare(hash, computedHash) == 1
-}
-
-// GenerateAPIToken creates a secure random API token
-func GenerateAPIToken() (string, error) {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return base64.URLEncoding.EncodeToString(bytes), nil
 }

@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/MohamedElashri/snipo/internal/auth"
-	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
 	"github.com/MohamedElashri/snipo/internal/validation"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 // SettingsHandler handles settings related endpoints

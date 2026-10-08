@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/storage"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 // S3SyncService handles S3 backup operations
@@ -132,13 +132,4 @@ func (s *S3SyncService) DeleteBackup(ctx context.Context, key string) error {
 
 	s.logger.Info("backup deleted from S3", "key", strings.ReplaceAll(strings.ReplaceAll(key, "\n", ""), "\r", ""))
 	return nil
-}
-
-// GetBackupURL generates a presigned URL for downloading a backup
-func (s *S3SyncService) GetBackupURL(ctx context.Context, key string, expiry time.Duration) (string, error) {
-	url, err := s.storage.GetPresignedURL(ctx, key, expiry)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
-	}
-	return url, nil
 }

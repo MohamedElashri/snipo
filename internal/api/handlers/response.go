@@ -262,11 +262,6 @@ func Unauthorized(w http.ResponseWriter, r *http.Request) {
 	Error(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "Authentication required")
 }
 
-// Forbidden sends a 403 response
-func Forbidden(w http.ResponseWriter, r *http.Request) {
-	Error(w, r, http.StatusForbidden, "FORBIDDEN", "Access denied")
-}
-
 // InternalError sends a 500 response
 func InternalError(w http.ResponseWriter, r *http.Request) {
 	Error(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "An internal error occurred")

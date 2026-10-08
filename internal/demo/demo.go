@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/services"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 // Service handles demo mode functionality
@@ -28,11 +28,6 @@ func NewService(db *sql.DB, snippetService *services.SnippetService, logger *slo
 		resetInterval:  resetInterval,
 		enabled:        enabled,
 	}
-}
-
-// IsEnabled returns whether demo mode is enabled
-func (s *Service) IsEnabled() bool {
-	return s.enabled
 }
 
 // StartPeriodicReset starts the periodic database reset goroutine

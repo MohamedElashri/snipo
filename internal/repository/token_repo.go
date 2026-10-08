@@ -16,7 +16,7 @@ import (
 
 // TokenRepository handles API token database operations
 type TokenRepository struct {
-	db          *sql.DB
+	db           *sql.DB
 	tokenHMACKey []byte
 }
 

@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/testutil"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 func TestHistoryRepository_CreateHistory(t *testing.T) {
@@ -173,7 +173,7 @@ func TestHistoryRepository_GetSnippetHistory_Limit(t *testing.T) {
 
 	// Create 10 history entries
 	for i := 0; i < 10; i++ {
-		snippet.Content = string(rune('0'+i))
+		snippet.Content = string(rune('0' + i))
 		_, err = historyRepo.CreateHistory(ctx, snippet, "update")
 		if err != nil {
 			t.Fatalf("CreateHistory failed: %v", err)

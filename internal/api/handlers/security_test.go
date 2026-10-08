@@ -184,11 +184,11 @@ func TestSecurity_InvalidJSON(t *testing.T) {
 	handler, _ := setupSnippetHandler(t)
 
 	invalidJSONs := []string{
-		`{"title": "test", "content": }`,                                  // Invalid syntax
-		`{"title": "test", "content": "code", "extra_field": "value"}`,   // Unknown field (should be rejected by DisallowUnknownFields)
-		`[{"title": "test"}]`,                                            // Array instead of object
-		`"just a string"`,                                                // String instead of object
-		`{"title": "test"}{"content": "code"}`,                          // Multiple objects
+		`{"title": "test", "content": }`,                               // Invalid syntax
+		`{"title": "test", "content": "code", "extra_field": "value"}`, // Unknown field (should be rejected by DisallowUnknownFields)
+		`[{"title": "test"}]`,                                          // Array instead of object
+		`"just a string"`,                                              // String instead of object
+		`{"title": "test"}{"content": "code"}`,                         // Multiple objects
 	}
 
 	for _, invalidJSON := range invalidJSONs {

@@ -17,9 +17,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
 	"github.com/MohamedElashri/snipo/internal/validation"
+	"github.com/MohamedElashri/snipo/pkg/models"
 	"golang.org/x/crypto/pbkdf2"
 )
 
@@ -518,43 +518,6 @@ func decryptWithKey(data []byte, key []byte) ([]byte, error) {
 
 	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
 	return gcm.Open(nil, nonce, ciphertext, nil)
-}
-
-// GetFilename generates a backup filename
-func GetBackupFilename(format string, encrypted bool) string {
-	timestamp := time.Now().Format("2006-01-02-150405")
-	ext := "json"
-	if format == "zip" {
-		ext = "zip"
-	}
-	filename := fmt.Sprintf("snipo-backup-%s.%s", timestamp, ext)
-	if encrypted {
-		filename += ".enc"
-	}
-	return filename
-}
-
-// ValidateBackupFile checks if the content looks like a valid backup
-func ValidateBackupFile(content []byte) (string, error) {
-	// Check for JSON
-	var data models.BackupData
-	if err := json.Unmarshal(content, &data); err == nil {
-		if data.Version != "" {
-			return "json", nil
-		}
-	}
-
-	// Check for ZIP
-	if len(content) > 4 && content[0] == 'P' && content[1] == 'K' {
-		return "zip", nil
-	}
-
-	// Check for encrypted (starts with random bytes, so just check it's not empty)
-	if len(content) > 32 {
-		return "encrypted", nil
-	}
-
-	return "", ErrInvalidBackupFormat
 }
 
 // Unused but kept for reference

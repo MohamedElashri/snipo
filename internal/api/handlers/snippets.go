@@ -1,16 +1,16 @@
 package handlers
 
 import (
-	"github.com/MohamedElashri/snipo/internal/utils"
 	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/MohamedElashri/snipo/internal/utils"
 
-	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/services"
 	"github.com/MohamedElashri/snipo/internal/validation"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 // SnippetHandler handles snippet-related HTTP requests

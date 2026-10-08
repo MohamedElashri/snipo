@@ -221,11 +221,11 @@ func TestContract_ContentTypeHeaders(t *testing.T) {
 	})
 
 	tests := []struct {
-		name               string
-		method             string
-		path               string
-		body               interface{}
-		expectedStatusCode int
+		name                string
+		method              string
+		path                string
+		body                interface{}
+		expectedStatusCode  int
 		expectedContentType string
 	}{
 		{

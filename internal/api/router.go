@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"time"
+
 	"github.com/MohamedElashri/snipo/internal/api/handlers"
 	"github.com/MohamedElashri/snipo/internal/api/middleware"
 	"github.com/MohamedElashri/snipo/internal/auth"
