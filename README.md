@@ -1,61 +1,82 @@
 # Snipo
 
-Snipo is a lightweight, self-hosted snippet manager for a single user.
-
-> Snipo does not provide user accounts or tenant isolation. One master password
-> protects the instance.
-
-[![Snipo CI](https://github.com/MohamedElashri/snipo/actions/workflows/snipo-ci.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/snipo-ci.yml)
-[![Snippy CI](https://github.com/MohamedElashri/snipo/actions/workflows/snippy-ci.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/snippy-ci.yml)
-[![VS Code CI](https://github.com/MohamedElashri/snipo/actions/workflows/vscode-ci.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/vscode-ci.yml)
-[![Extension CI](https://github.com/MohamedElashri/snipo/actions/workflows/extension-ci.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/extension-ci.yml)
-[![Unified Release](https://github.com/MohamedElashri/snipo/actions/workflows/unified-release.yml/badge.svg)](https://github.com/MohamedElashri/snipo/actions/workflows/unified-release.yml)
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](LICENSE)
-
 <p align="center">
   <img src="docs/demo.png" alt="Snipo web interface" width="800">
 </p>
 
-## Highlights
+<p align="center">
+  <strong>A lightweight, self-hosted snippet manager for single users.</strong><br>
+  <em>Secure your code snippets, organize them seamlessly, and access them from anywhere.</em>
+</p>
 
-- Multi-file snippets with syntax highlighting, folders, tags, search, and history
-- Public links, soft deletion, expiration, and encrypted backup export
-- Read, write, and admin API tokens
-- Optional S3 backups and two-way GitHub Gist sync
-- Browser extension, VS Code extension, and terminal client
-- Local frontend assets with no runtime CDN dependency
+<p align="center">
+  <a href="https://github.com/MohamedElashri/snipo/actions/workflows/snipo-ci.yml"><img src="https://github.com/MohamedElashri/snipo/actions/workflows/snipo-ci.yml/badge.svg" alt="Snipo CI"></a>
+  <a href="https://github.com/MohamedElashri/snipo/actions/workflows/snippy-ci.yml"><img src="https://github.com/MohamedElashri/snipo/actions/workflows/snippy-ci.yml/badge.svg" alt="Snippy CI"></a>
+  <a href="https://github.com/MohamedElashri/snipo/actions/workflows/vscode-ci.yml"><img src="https://github.com/MohamedElashri/snipo/actions/workflows/vscode-ci.yml/badge.svg" alt="VS Code CI"></a>
+  <a href="https://github.com/MohamedElashri/snipo/actions/workflows/extension-ci.yml"><img src="https://github.com/MohamedElashri/snipo/actions/workflows/extension-ci.yml/badge.svg" alt="Extension CI"></a>
+  <a href="https://github.com/MohamedElashri/snipo/actions/workflows/unified-release.yml"><img src="https://github.com/MohamedElashri/snipo/actions/workflows/unified-release.yml/badge.svg" alt="Unified Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPLv3-blue.svg" alt="License: AGPL v3"></a>
+</p>
 
-## Quick start
+---
 
-Create a `.env` file from the example, replace every placeholder, and start the
-container:
+## What is Snipo?
 
-```bash
-cp .env.example .env
-chmod 600 .env
-docker compose up -d
-```
+**Snipo** is a self-hosted snippet management ecosystem built for developers who want complete control over their data. It is designed specifically for a single user, avoiding the complexity of tenant isolation and user accounts in favor of simplicity and strong security.
 
-Snipo listens on <http://localhost:8080>. Continue with the
-[deployment guide](docs/deployment.md) before making the instance remotely
-accessible.
+Whether you're in the terminal, IDE, or browser, Snipo ensures your code fragments, commands, and notes are always at your fingertips.
 
-## Clients
+> **Note**: Snipo is designed for a single user. One master password protects the entire instance. No user management overhead!
 
-- [Snippy terminal client](tui/README.md)
-- [Chrome and Firefox extension](extension/README.md)
-- [VS Code extension](vscode-extension/README.md)
+
+## Quick Start
+
+Getting started with Snipo via Docker is incredibly easy.
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/MohamedElashri/snipo.git
+   cd snipo
+   ```
+
+2. **Configure your environment**:
+   Create a `.env` file from the provided example and fill in the necessary placeholders (like your master password).
+   ```bash
+   cp .env.example .env
+   chmod 600 .env
+   ```
+
+3. **Start the instance**:
+   ```bash
+   docker compose up -d
+   ```
+
+Snipo will now be running on `http://localhost:8080`. 
+
+> **Important**: Before exposing Snipo to the internet, please read the [Deployment Guide](docs/deployment.md) for production recommendations!
+
+## The Snipo Ecosystem
+
+Snipo extends far beyond a web interface. Check out the dedicated clients:
+
+| Client | Description | Link |
+|--------|-------------|------|
+| **Snippy** | Fast TUI (Terminal User Interface) client | [View TUI](tui/README.md) |
+| **VS Code** | Editor extension for seamless workflow | [View Extension](vscode-extension/README.md) |
+| **Browser** | Chrome & Firefox companion extension | [View Browser Ext](extension/README.md) |
 
 ## Documentation
 
-- [Deployment and configuration](docs/deployment.md)
-- [Security model and controls](SECURITY.md)
-- [Feature guide](docs/features.md)
-- [CSS customization](docs/customization.md)
-- [Development and contribution guide](docs/Development.md)
-- [OpenAPI specification](docs/openapi.yaml)
-- [Changelog](docs/CHANGELOG.md)
+Dive deeper into configuring, securing, and developing Snipo:
 
-## License
+- ⚙️ [Deployment & Configuration](docs/deployment.md)
+- 🛡️ [Security Model & Controls](SECURITY.md)
+- 💡 [Feature Guide](docs/features.md)
+- 🖌️ [CSS Customization](docs/customization.md)
+- 🛠️ [Development & Contribution Guide](docs/Development.md)
+- 📜 [OpenAPI Specification](docs/openapi.yaml)
+- 📝 [Changelog](docs/CHANGELOG.md)
 
-Snipo is licensed under the [GNU Affero General Public License v3.0](LICENSE).
+## ⚖️ License
+
+Snipo is open-source software licensed under the [GNU Affero General Public License v3.0](LICENSE).

@@ -1,7 +1,6 @@
 # Snipo VS Code Extension
 
-[![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/muhammadelashri.snipo?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=muhammadelashri.snipo)
-[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/muhammadelashri.snipo?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=muhammadelashri.snipo)
+[![VS Code Marketplace](https://img.shields.io/badge/VS_Code_Marketplace-available-blue.svg?logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=muhammadelashri.snipo)
 
 Snipo is a modern snippet manager designed to boost your productivity. This VS Code extension integrates your Snipo snippets directly into your editor, allowing you to access, search, insert, and save snippets without ever leaving your IDE.
 
