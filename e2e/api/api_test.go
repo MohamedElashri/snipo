@@ -3,7 +3,6 @@ package api_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -28,7 +27,7 @@ func waitForServer(t *testing.T) {
 	for time.Now().Before(deadline) {
 		resp, err := client.Get(baseURL + "/health")
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
 				return
 			}
@@ -45,7 +44,7 @@ func TestE2E_HealthCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to make request: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -77,7 +76,7 @@ func TestE2E_SnippetFlow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create snippet: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusUnauthorized {
 		t.Errorf("Expected 201 or 401 (if auth required), got %d", resp.StatusCode)
