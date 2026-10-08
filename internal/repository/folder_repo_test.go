@@ -3,8 +3,8 @@ package repository
 import (
 	"testing"
 
-	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/testutil"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 func TestFolderRepository_Create(t *testing.T) {

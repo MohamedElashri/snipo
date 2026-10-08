@@ -1,19 +1,20 @@
 package api
 
 import (
-	"github.com/MohamedElashri/snipo/internal/utils"
 	"context"
 	"net/http"
 	"strings"
+
+	"github.com/MohamedElashri/snipo/internal/utils"
 )
 
 type Middleware func(http.Handler) http.Handler
 
 type route struct {
-	method      string
-	pattern     string // e.g. /api/v1/snippets/{id}
-	handler     http.Handler
-	pathSegs    []string
+	method   string
+	pattern  string // e.g. /api/v1/snippets/{id}
+	handler  http.Handler
+	pathSegs []string
 }
 
 // Global routes list. To avoid complex reference passing, we can pass a pointer to a shared slice.
@@ -75,12 +76,12 @@ func (r *Router) handle(method, pattern string, handler http.Handler) {
 			fullPattern = r.basePath + pattern
 		}
 	}
-	
+
 	finalHandler := handler
 	for i := len(r.middlewares) - 1; i >= 0; i-- {
 		finalHandler = r.middlewares[i](finalHandler)
 	}
-	
+
 	r.core.routes = append(r.core.routes, route{
 		method:   method,
 		pattern:  fullPattern,
@@ -111,7 +112,7 @@ func (r *Router) Handle(pattern string, handler http.Handler) {
 }
 
 func (r *Router) Mount(pattern string, handler http.Handler) {
-    pattern = strings.TrimSuffix(pattern, "/")
+	pattern = strings.TrimSuffix(pattern, "/")
 	r.handle("MOUNT", pattern, handler)
 }
 
@@ -134,13 +135,13 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		if len(reqSegs) != len(route.pathSegs) && !strings.HasSuffix(route.pattern, "/*") {
-            if strings.HasSuffix(route.pattern, "/*") {
-                prefix := strings.TrimSuffix(route.pattern, "/*")
-                if strings.HasPrefix(req.URL.Path, prefix) {
-                    route.handler.ServeHTTP(w, req)
-                    return
-                }
-            }
+			if strings.HasSuffix(route.pattern, "/*") {
+				prefix := strings.TrimSuffix(route.pattern, "/*")
+				if strings.HasPrefix(req.URL.Path, prefix) {
+					route.handler.ServeHTTP(w, req)
+					return
+				}
+			}
 			continue
 		}
 
@@ -148,18 +149,18 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		params := make(map[string]string)
 
 		for i, seg := range route.pathSegs {
-            if i >= len(reqSegs) && seg == "*" {
-                break
-            }
-            if i >= len(reqSegs) {
-                match = false
-                break
-            }
+			if i >= len(reqSegs) && seg == "*" {
+				break
+			}
+			if i >= len(reqSegs) {
+				match = false
+				break
+			}
 			if strings.HasPrefix(seg, "{") && strings.HasSuffix(seg, "}") {
 				paramName := seg[1 : len(seg)-1]
 				params[paramName] = reqSegs[i]
 			} else if seg == "*" {
-                break
+				break
 			} else if seg != reqSegs[i] {
 				match = false
 				break

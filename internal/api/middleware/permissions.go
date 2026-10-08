@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/pkg/models"
@@ -132,24 +131,4 @@ func RequireAdminWithPassword(authService *auth.Service) func(http.Handler) http
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-// PermissionByMethod returns middleware that checks permission based on HTTP method
-// GET = read, POST/PUT/PATCH/DELETE = write
-func PermissionByMethod(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		method := strings.ToUpper(r.Method)
-
-		var required string
-		switch method {
-		case "GET", "HEAD", "OPTIONS":
-			required = PermissionRead
-		case "POST", "PUT", "PATCH", "DELETE":
-			required = PermissionWrite
-		default:
-			required = PermissionRead
-		}
-
-		CheckPermission(required)(next).ServeHTTP(w, r)
-	})
 }

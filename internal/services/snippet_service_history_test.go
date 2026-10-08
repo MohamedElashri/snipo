@@ -3,9 +3,9 @@ package services
 import (
 	"testing"
 
-	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
 	"github.com/MohamedElashri/snipo/internal/testutil"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 func TestSnippetService_GetHistory(t *testing.T) {

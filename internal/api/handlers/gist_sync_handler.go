@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"github.com/MohamedElashri/snipo/internal/utils"
 	"context"
 	"fmt"
 	"log/slog"
@@ -9,9 +8,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/MohamedElashri/snipo/pkg/models"
+	"github.com/MohamedElashri/snipo/internal/utils"
+
 	"github.com/MohamedElashri/snipo/internal/repository"
 	"github.com/MohamedElashri/snipo/internal/services"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 // GistSyncHandler handles gist sync related endpoints
@@ -138,7 +139,7 @@ func (h *GistSyncHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 			// Log detailed error for debugging
 			if logger := r.Context().Value("logger"); logger != nil {
 				logger.(*slog.Logger).Error("failed to validate GitHub token",
-				"error", err)
+					"error", err)
 			}
 			Error(w, r, http.StatusBadRequest, "INVALID_TOKEN", fmt.Sprintf("Failed to validate GitHub token: %v", err))
 			return

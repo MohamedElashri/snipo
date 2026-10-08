@@ -101,18 +101,6 @@ func (s *S3Storage) Upload(ctx context.Context, key string, content []byte, cont
 	return err
 }
 
-// UploadReader uploads content from a reader to S3
-func (s *S3Storage) UploadReader(ctx context.Context, key string, reader io.Reader, size int64, contentType string) error {
-	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:        aws.String(s.bucket),
-		Key:           aws.String(key),
-		Body:          reader,
-		ContentLength: aws.Int64(size),
-		ContentType:   aws.String(contentType),
-	})
-	return err
-}
-
 // Download retrieves content from S3
 func (s *S3Storage) Download(ctx context.Context, key string) ([]byte, error) {
 	result, err := s.client.GetObject(ctx, &s3.GetObjectInput{
@@ -170,38 +158,4 @@ func (s *S3Storage) List(ctx context.Context, prefix string) ([]ObjectInfo, erro
 	}
 
 	return objects, nil
-}
-
-// GetPresignedURL generates a temporary download URL
-func (s *S3Storage) GetPresignedURL(ctx context.Context, key string, expiry time.Duration) (string, error) {
-	presignClient := s3.NewPresignClient(s.client)
-	request, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(key),
-	}, s3.WithPresignExpires(expiry))
-	if err != nil {
-		return "", err
-	}
-	return request.URL, nil
-}
-
-// Exists checks if an object exists
-func (s *S3Storage) Exists(ctx context.Context, key string) (bool, error) {
-	_, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(key),
-	})
-	if err != nil {
-		var notFound *types.NotFound
-		if errors.As(err, &notFound) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
-
-// GetBucket returns the bucket name
-func (s *S3Storage) GetBucket() string {
-	return s.bucket
 }

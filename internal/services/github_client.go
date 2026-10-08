@@ -180,35 +180,7 @@ func (c *GitHubClient) DeleteGist(ctx context.Context, gistID string) error {
 	return nil
 }
 
-// ListGists retrieves all gists for the authenticated user
-func (c *GitHubClient) ListGists(ctx context.Context) ([]*models.GistResponse, error) {
-	url := fmt.Sprintf("%s/gists", githubAPIBaseURL)
 
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	c.setHeaders(httpReq)
-
-	resp, err := c.httpClient.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute request: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
-	var gists []*models.GistResponse
-	if err := json.NewDecoder(resp.Body).Decode(&gists); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return gists, nil
-}
 
 // GetAuthenticatedUser retrieves the authenticated user's information
 func (c *GitHubClient) GetAuthenticatedUser(ctx context.Context) (string, error) {

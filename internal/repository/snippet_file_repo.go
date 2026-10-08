@@ -130,15 +130,6 @@ func (r *SnippetFileRepository) Delete(ctx context.Context, fileID int64) error 
 	return nil
 }
 
-// DeleteBySnippetID deletes all files for a snippet
-func (r *SnippetFileRepository) DeleteBySnippetID(ctx context.Context, snippetID string) error {
-	_, err := r.db.ExecContext(ctx, "DELETE FROM snippet_files WHERE snippet_id = ?", snippetID)
-	if err != nil {
-		return fmt.Errorf("failed to delete snippet files: %w", err)
-	}
-	return nil
-}
-
 // SyncFiles synchronizes files for a snippet (creates, updates, deletes as needed)
 func (r *SnippetFileRepository) SyncFiles(ctx context.Context, snippetID string, files []models.SnippetFileInput) ([]models.SnippetFile, error) {
 	// Get existing files

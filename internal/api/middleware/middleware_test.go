@@ -101,11 +101,11 @@ func TestSecurityHeaders_API(t *testing.T) {
 
 	// Check other security headers
 	headers := map[string]string{
-		"X-Content-Type-Options":      "nosniff",
-		"X-Frame-Options":              "DENY",
-		"X-XSS-Protection":             "1; mode=block",
-		"Strict-Transport-Security":   "max-age=31536000; includeSubDomains",
-		"Referrer-Policy":              "strict-origin-when-cross-origin",
+		"X-Content-Type-Options":    "nosniff",
+		"X-Frame-Options":           "DENY",
+		"X-XSS-Protection":          "1; mode=block",
+		"Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+		"Referrer-Policy":           "strict-origin-when-cross-origin",
 	}
 
 	for header, expected := range headers {
@@ -178,11 +178,11 @@ func TestResponseWriter(t *testing.T) {
 	})
 
 	req := httptest.NewRequest("GET", "/test", nil)
-	
+
 	// Wrap with our responseWriter
 	rr := httptest.NewRecorder()
 	wrapped := &responseWriter{ResponseWriter: rr, statusCode: http.StatusOK}
-	
+
 	handler.ServeHTTP(wrapped, req)
 
 	if wrapped.statusCode != http.StatusCreated {

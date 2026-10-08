@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/MohamedElashri/snipo/internal/utils"
 	"github.com/MohamedElashri/snipo/internal/auth"
-	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
+	"github.com/MohamedElashri/snipo/internal/utils"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 // Context keys for authentication and request tracking
@@ -150,27 +150,17 @@ func Recovery(logger *slog.Logger) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
-				logger.Error("panic recovered",
-					"error", err,
-					"stack", string(debug.Stack()),
-					"path", strings.ReplaceAll(strings.ReplaceAll(r.URL.Path, "\n", ""), "\r", ""),
-				)
+					logger.Error("panic recovered",
+						"error", err,
+						"stack", string(debug.Stack()),
+						"path", strings.ReplaceAll(strings.ReplaceAll(r.URL.Path, "\n", ""), "\r", ""),
+					)
 					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				}
 			}()
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-// RequireAuth checks for valid authentication (session or API token)
-func RequireAuth(authService *auth.Service) func(http.Handler) http.Handler {
-	return RequireAuthWithTokenRepo(authService, nil)
-}
-
-// RequireAuthWithTokenRepo checks for valid authentication with API token support
-func RequireAuthWithTokenRepo(authService *auth.Service, tokenRepo *repository.TokenRepository) func(http.Handler) http.Handler {
-	return RequireAuthWithSettings(authService, tokenRepo, nil)
 }
 
 // RequireAuthWithSettings checks for valid authentication with settings support

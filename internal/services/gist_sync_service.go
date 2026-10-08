@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/internal/repository"
+	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
 // GistSyncService handles gist synchronization operations

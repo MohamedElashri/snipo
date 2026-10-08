@@ -174,21 +174,6 @@ func GetExtensionFromLanguage(language string) string {
 	return ".txt"
 }
 
-// CreateHighlightedCodeBlock wraps highlighted code in a styled block
-func CreateHighlightedCodeBlock(code, language string) string {
-	highlighted := HighlightCode(code, language)
-
-	// Apply the code block style
-	return codeBlockStyle.Render(highlighted)
-}
-
-// CreateHighlightedCodeBlockWithFilename creates a highlighted code block with filename context
-func CreateHighlightedCodeBlockWithFilename(code, filename string) string {
-	// Try to get language from filename if not explicitly provided
-	language := GetLanguageFromFilename(filename)
-	return CreateHighlightedCodeBlock(code, language)
-}
-
 // IsMarkdown checks if the language or filename indicates markdown content
 func IsMarkdown(language, filename string) bool {
 	if language != "" {

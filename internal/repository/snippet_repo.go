@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"time"
 	"unicode"
 
 	"github.com/MohamedElashri/snipo/pkg/models"
@@ -236,65 +235,6 @@ func (r *SnippetRepository) Restore(ctx context.Context, id string) error {
 		return sql.ErrNoRows
 	}
 	return nil
-}
-
-// CleanupDeleted permanently deletes snippets older than the specified duration
-func (r *SnippetRepository) CleanupDeleted(ctx context.Context, days int) (int64, error) {
-	cutoff := time.Now().AddDate(0, 0, -days)
-
-	// Using transaction for safety
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	// Find IDs to delete
-	rows, err := tx.QueryContext(ctx, "SELECT id FROM snippets WHERE deleted_at < ?", cutoff)
-	if err != nil {
-		return 0, fmt.Errorf("failed to query old snippets: %w", err)
-	}
-
-	var ids []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			_ = rows.Close()
-			return 0, err
-		}
-		ids = append(ids, id)
-	}
-	_ = rows.Close()
-
-	if len(ids) == 0 {
-		return 0, nil
-	}
-
-	// Delete related data
-	// Note: This could be optimized with batch deletes or ensuring cascading deletes work
-	for _, id := range ids {
-		_, _ = tx.ExecContext(ctx, "DELETE FROM snippet_tags WHERE snippet_id = ?", id)
-		_, _ = tx.ExecContext(ctx, "DELETE FROM snippet_folders WHERE snippet_id = ?", id)
-		_, _ = tx.ExecContext(ctx, "DELETE FROM snippet_files WHERE snippet_id = ?", id)
-	}
-
-	// Delete snippets
-	query := fmt.Sprintf("DELETE FROM snippets WHERE id IN ('%s')", strings.Join(ids, "','"))
-	result, err := tx.ExecContext(ctx, query)
-	if err != nil {
-		return 0, fmt.Errorf("failed to delete snippets: %w", err)
-	}
-
-	deletedCount, err := result.RowsAffected()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get rows affected: %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return 0, fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
-	return deletedCount, nil
 }
 
 // Allowed sort columns - maps user input to safe SQL column identifiers
@@ -645,41 +585,6 @@ func (r *SnippetRepository) Search(ctx context.Context, query string, limit int)
 	}
 
 	return snippets, rows.Err()
-}
-
-// AutoArchiveExpired archives snippets that have passed their expiration date
-func (r *SnippetRepository) AutoArchiveExpired(ctx context.Context) (int64, error) {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	// Find expired snippets (expires_at is in the past, not already archived, not deleted)
-	query := `
-		UPDATE snippets
-		SET is_archived = 1, is_public = 0, updated_at = CURRENT_TIMESTAMP
-		WHERE expires_at IS NOT NULL
-		  AND expires_at < CURRENT_TIMESTAMP
-		  AND is_archived = 0
-		  AND deleted_at IS NULL
-	`
-
-	result, err := tx.ExecContext(ctx, query)
-	if err != nil {
-		return 0, fmt.Errorf("failed to auto-archive expired snippets: %w", err)
-	}
-
-	count, err := result.RowsAffected()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get affected rows: %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return 0, fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
-	return count, nil
 }
 
 var ftsSpecialChars = []rune{'*', '"', '(', ')', '{', '}', ':', '+', '-', '^'}
