@@ -20,7 +20,7 @@
 
 ---
 
-## 📖 What is Snipo?
+## What is Snipo?
 
 **Snipo** is a self-hosted snippet management ecosystem built for developers who want complete control over their data. It is designed specifically for a single user, avoiding the complexity of tenant isolation and user accounts in favor of simplicity and strong security.
 
@@ -29,7 +29,7 @@ Whether you're in the terminal, IDE, or browser, Snipo ensures your code fragmen
 > **Note**: Snipo is designed for a single user. One master password protects the entire instance. No user management overhead!
 
 
-## 🚀 Quick Start
+## Quick Start
 
 Getting started with Snipo via Docker is incredibly easy.
 
@@ -55,7 +55,7 @@ Snipo will now be running on `http://localhost:8080`.
 
 > **Important**: Before exposing Snipo to the internet, please read the [Deployment Guide](docs/deployment.md) for production recommendations!
 
-## 🧩 The Snipo Ecosystem
+## The Snipo Ecosystem
 
 Snipo extends far beyond a web interface. Check out the dedicated clients:
 
@@ -65,7 +65,7 @@ Snipo extends far beyond a web interface. Check out the dedicated clients:
 | **VS Code** | Editor extension for seamless workflow | [View Extension](vscode-extension/README.md) |
 | **Browser** | Chrome & Firefox companion extension | [View Browser Ext](extension/README.md) |
 
-## 📚 Documentation
+## Documentation
 
 Dive deeper into configuring, securing, and developing Snipo:
 
