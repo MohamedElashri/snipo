@@ -28,16 +28,6 @@ Whether you're in the terminal, IDE, or browser, Snipo ensures your code fragmen
 
 > **Note**: Snipo is designed for a single user. One master password protects the entire instance. No user management overhead!
 
-## ✨ Key Features
-
-- 🗂️ **Advanced Organization**: Multi-file snippets with folders, tags, and robust search capabilities.
-- 🎨 **Rich UI**: Full syntax highlighting, snippet history, and local frontend assets (no runtime CDN dependencies).
-- 🔄 **Ecosystem Integration**: 
-  - [Terminal Client (`snippy`)](tui/README.md) for CLI power users.
-  - [Browser Extensions](extension/README.md) (Chrome/Firefox) for quick captures.
-  - [VS Code Extension](vscode-extension/README.md) to manage snippets right in your editor.
-- ☁️ **Cloud Sync & Backups**: Optional automated S3 backups and seamless two-way GitHub Gist synchronization.
-- 🔒 **Security First**: Soft deletion, expiration links, encrypted backup exports, and granular Read/Write/Admin API tokens.
 
 ## 🚀 Quick Start
 
