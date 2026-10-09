@@ -326,6 +326,10 @@ func (r *FolderRepository) GetSnippetFolders(ctx context.Context, snippetID stri
 		folders = append(folders, folder)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate snippet folders: %w", err)
+	}
+
 	return folders, nil
 }
 

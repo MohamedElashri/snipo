@@ -53,6 +53,10 @@ func (r *SnippetFileRepository) GetBySnippetID(ctx context.Context, snippetID st
 		files = append(files, f)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate snippet files: %w", err)
+	}
+
 	return files, nil
 }
 

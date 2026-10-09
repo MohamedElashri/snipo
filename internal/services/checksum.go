@@ -12,6 +12,10 @@ import (
 
 // CalculateSnippetChecksum calculates a checksum for a snippet
 func CalculateSnippetChecksum(snippet *models.Snippet) (string, error) {
+	if snippet == nil {
+		return "", fmt.Errorf("snippet is nil")
+	}
+
 	data := map[string]interface{}{
 		"title":       snippet.Title,
 		"description": snippet.Description,

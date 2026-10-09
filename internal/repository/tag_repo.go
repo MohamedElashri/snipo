@@ -194,6 +194,10 @@ func (r *TagRepository) GetSnippetTags(ctx context.Context, snippetID string) ([
 		tags = append(tags, tag)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate snippet tags: %w", err)
+	}
+
 	return tags, nil
 }
 

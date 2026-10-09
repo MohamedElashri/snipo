@@ -94,7 +94,10 @@ func getClientIPForAuth(r *http.Request) string {
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	token := auth.GetSessionFromRequest(r)
 	if token != "" {
-		_ = h.authService.InvalidateSession(token)
+		if err := h.authService.InvalidateSession(token); err != nil {
+			InternalServerError(w, r, err, "Failed to invalidate session")
+			return
+		}
 	}
 
 	h.authService.ClearSessionCookie(w)
