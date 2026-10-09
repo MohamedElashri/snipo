@@ -115,6 +115,9 @@ function scanForCode() {
             container.classList.add('snipo-wrapper'); // helper class for relative
         }
 
+        // Prevent double injection if attribute was wiped but DOM persisted
+        if (container.querySelector('.snipo-btn')) return;
+
         const btn = document.createElement('button');
         btn.className = 'snipo-btn';
         btn.appendChild(createSVGFromString(SNIPO_ICON));
@@ -194,6 +197,10 @@ function initiateSaveFlow(code, language, title, btn) {
                 language: language,
                 title: title
             }, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error("Save failed:", chrome.runtime.lastError.message);
+                    showToast(false, "Failed to connect to background script.");
+                }
                 if (btn) setTimeout(() => { 
                     btn.textContent = '';
                     btn.appendChild(createSVGFromString(SNIPO_ICON));
@@ -208,12 +215,12 @@ function initiateSaveFlow(code, language, title, btn) {
 async function showModal(snippetData) {
     // 1. Fetch Tags and Folders in parallel
     const [tagsRes, foldersRes] = await Promise.all([
-        new Promise(resolve => chrome.runtime.sendMessage({ action: "fetchTags" }, resolve)),
-        new Promise(resolve => chrome.runtime.sendMessage({ action: "fetchFolders" }, resolve))
+        new Promise(resolve => chrome.runtime.sendMessage({ action: "fetchTags" }, res => resolve(res || {}))),
+        new Promise(resolve => chrome.runtime.sendMessage({ action: "fetchFolders" }, res => resolve(res || {})))
     ]);
 
-    const tags = tagsRes.success ? tagsRes.data : [];
-    const folders = foldersRes.success ? foldersRes.data : [];
+    const tags = tagsRes && tagsRes.success ? tagsRes.data : [];
+    const folders = foldersRes && foldersRes.success ? foldersRes.data : [];
 
     // List of common supported languages
     const supportedLanguages = [
@@ -526,8 +533,20 @@ async function showModal(snippetData) {
             tags: tagNames, // Send Names
             filename: filename // Send filename
         }, (response) => {
-            close();
-            // Toast will be shown by background msg listener
+            if (chrome.runtime.lastError) {
+                console.error("Save failed:", chrome.runtime.lastError.message);
+                saveBtn.innerText = 'Save Snippet';
+                saveBtn.disabled = false;
+                showToast(false, "Failed to connect to background script.");
+                return;
+            }
+            if (response && response.success) {
+                close();
+            } else {
+                saveBtn.innerText = 'Save Snippet';
+                saveBtn.disabled = false;
+                showToast(false, response ? response.error : "Unknown error");
+            }
         });
     });
 }
