@@ -848,19 +848,21 @@ func (m Model) openEditor() (tea.Model, tea.Cmd) {
 	_, err = tempFile.WriteString(m.textarea.Value())
 	if err != nil {
 		m.err = fmt.Errorf("could not write to temp file: %w", err)
-		os.Remove(tempFile.Name())
+		_ = os.Remove(tempFile.Name())
 		return m, nil
 	}
 	if err := tempFile.Close(); err != nil {
 		m.err = fmt.Errorf("could not close temp file: %w", err)
-		os.Remove(tempFile.Name())
+		_ = os.Remove(tempFile.Name())
 		return m, nil
 	}
 
 	cmd := exec.Command(editor, tempFile.Name())
 
 	return m, tea.ExecProcess(cmd, func(err error) tea.Msg {
-		defer os.Remove(tempFile.Name())
+		defer func() {
+			_ = os.Remove(tempFile.Name())
+		}()
 
 		if err != nil {
 			return editorFinishedMsg{err: err}
