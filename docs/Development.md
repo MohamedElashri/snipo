@@ -66,7 +66,7 @@ make vendor-verify
 `make govulncheck` downloads and runs the latest scanner, as CI does; no separate
 installation or PATH setup is needed. It requires network access and scans using
 the active Go toolchain. CI selects the version in `go.mod`, so use
-`GOTOOLCHAIN=go1.26.6 make govulncheck` to reproduce its standard-library findings.
+`GOTOOLCHAIN=go1.26.9 make govulncheck` to reproduce its standard-library findings.
 
 The main test target includes the race detector. Package-level tests are useful
 during iteration:

@@ -65,6 +65,9 @@ export class SnipoAPI {
         let apiToken = undefined;
         if (this.context) {
             apiToken = await this.context.secrets.get('snipo.apiToken');
+        } else {
+            console.warn('isConfigured called before SnipoAPI was initialized with a context.');
+            return false;
         }
         return !!(apiUrl && apiToken);
     }

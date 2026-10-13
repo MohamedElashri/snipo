@@ -275,6 +275,10 @@ func (r *GistSyncRepository) ListMappings(ctx context.Context) ([]*models.Snippe
 		mappings = append(mappings, mapping)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate mappings: %w", err)
+	}
+
 	return mappings, nil
 }
 
@@ -429,6 +433,10 @@ func (r *GistSyncRepository) ListConflicts(ctx context.Context, resolvedOnly boo
 		conflicts = append(conflicts, conflict)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate conflicts: %w", err)
+	}
+
 	return conflicts, nil
 }
 
@@ -522,6 +530,10 @@ func (r *GistSyncRepository) ListLogs(ctx context.Context, limit int) ([]*models
 		logs = append(logs, log)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate logs: %w", err)
+	}
+
 	return logs, nil
 }
 
@@ -592,6 +604,10 @@ func (r *GistSyncRepository) GetEnabledMappings(ctx context.Context) ([]*models.
 		}
 
 		mappings = append(mappings, mapping)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate mappings: %w", err)
 	}
 
 	return mappings, nil

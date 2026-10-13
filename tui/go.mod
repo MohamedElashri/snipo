@@ -1,6 +1,6 @@
 module github.com/MohamedElashri/snipo/tui
 
-go 1.26.6
+go 1.26.9
 
 require (
 	github.com/MohamedElashri/snipo v0.0.0-00010101000000-000000000000
@@ -40,7 +40,7 @@ require (
 	github.com/yuin/goldmark v1.7.17 // indirect
 	github.com/yuin/goldmark-emoji v1.0.5 // indirect
 	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/term v0.44.0 // indirect
 	golang.org/x/text v0.39.0 // indirect
 )

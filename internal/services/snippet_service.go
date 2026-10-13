@@ -356,20 +356,27 @@ func (s *SnippetService) List(ctx context.Context, filter models.SnippetFilter) 
 		return nil, err
 	}
 
-	// Load related browse metadata for each snippet. These are additive fields for
-	// the web list response, so keep individual lookup failures non-fatal.
 	if len(response.Data) > 0 {
 		for i := range response.Data {
 			if s.fileRepo != nil {
-				files, _ := s.fileRepo.GetBySnippetID(ctx, response.Data[i].ID)
+				files, err := s.fileRepo.GetBySnippetID(ctx, response.Data[i].ID)
+				if err != nil {
+					return nil, fmt.Errorf("failed to load files for snippet %s: %w", response.Data[i].ID, err)
+				}
 				response.Data[i].Files = files
 			}
 			if s.tagRepo != nil {
-				tags, _ := s.tagRepo.GetSnippetTags(ctx, response.Data[i].ID)
+				tags, err := s.tagRepo.GetSnippetTags(ctx, response.Data[i].ID)
+				if err != nil {
+					return nil, fmt.Errorf("failed to load tags for snippet %s: %w", response.Data[i].ID, err)
+				}
 				response.Data[i].Tags = tags
 			}
 			if s.folderRepo != nil {
-				folders, _ := s.folderRepo.GetSnippetFolders(ctx, response.Data[i].ID)
+				folders, err := s.folderRepo.GetSnippetFolders(ctx, response.Data[i].ID)
+				if err != nil {
+					return nil, fmt.Errorf("failed to load folders for snippet %s: %w", response.Data[i].ID, err)
+				}
 				response.Data[i].Folders = folders
 			}
 		}

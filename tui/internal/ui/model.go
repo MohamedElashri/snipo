@@ -270,6 +270,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.currentPage = msg.pagination.Page
 			m.totalPages = msg.pagination.TotalPages
 		}
+		if len(m.snippets) == 0 && m.currentPage > 1 {
+			m.currentPage--
+			return m, loadSnippets(m.client, m.currentPage, 20, m.searchQuery, m.filterTags, nil, "", nil, nil)
+		}
 		m.selectedIdx = 0
 		m.detailSnippet = nil // Clear detail snippet when loading list
 
@@ -345,12 +349,14 @@ func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if len(m.snippets) > 0 {
 			m.mode = ViewDetail
 			m.autoEdit = false
+			m.detailSnippet = nil
 			return m, loadSnippet(m.client, m.snippets[m.selectedIdx].ID)
 		}
 
 	case "e":
 		if len(m.snippets) > 0 {
 			m.autoEdit = true
+			m.detailSnippet = nil
 			return m, loadSnippet(m.client, m.snippets[m.selectedIdx].ID)
 		}
 
@@ -842,16 +848,22 @@ func (m Model) openEditor() (tea.Model, tea.Cmd) {
 	_, err = tempFile.WriteString(m.textarea.Value())
 	if err != nil {
 		m.err = fmt.Errorf("could not write to temp file: %w", err)
+		_ = os.Remove(tempFile.Name())
 		return m, nil
 	}
 	if err := tempFile.Close(); err != nil {
 		m.err = fmt.Errorf("could not close temp file: %w", err)
+		_ = os.Remove(tempFile.Name())
 		return m, nil
 	}
 
 	cmd := exec.Command(editor, tempFile.Name())
 
 	return m, tea.ExecProcess(cmd, func(err error) tea.Msg {
+		defer func() {
+			_ = os.Remove(tempFile.Name())
+		}()
+
 		if err != nil {
 			return editorFinishedMsg{err: err}
 		}
@@ -860,8 +872,6 @@ func (m Model) openEditor() (tea.Model, tea.Cmd) {
 		if err != nil {
 			return editorFinishedMsg{err: err}
 		}
-
-		_ = os.Remove(tempFile.Name())
 
 		return editorFinishedMsg{content: string(content)}
 	})

@@ -31,7 +31,13 @@ export class SettingsViewProvider implements vscode.WebviewViewProvider {
             const config = vscode.workspace.getConfiguration('snipo');
             const url = config.get<string>('apiUrl') || '';
             api.isConfigured().then(isConfigured => {
-                webviewView.webview.postMessage({ type: 'init', value: { apiUrl: url, isConfigured } });
+                try {
+                    webviewView.webview.postMessage({ type: 'init', value: { apiUrl: url, isConfigured } });
+                } catch (e) {
+                    // Ignore if webview is disposed
+                }
+            }).catch(e => {
+                console.error(e);
             });
         };
 

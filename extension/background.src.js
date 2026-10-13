@@ -108,8 +108,12 @@ async function saveSnippet(code, tab, language = "plaintext", title = null, fold
     try {
         const client = await getClient();
 
-        const finalTitle = title || `Snippet from ${new URL(tab.url).hostname}`;
-        const finalDesc = description || `Saved from ${tab.url}`;
+        const urlStr = tab && tab.url ? tab.url : "unknown";
+        let hostStr = "unknown";
+        try { if (tab && tab.url) hostStr = new URL(tab.url).hostname; } catch(e) {}
+
+        const finalTitle = title || `Snippet from ${hostStr}`;
+        const finalDesc = description || `Saved from ${urlStr}`;
         const finalFilename = filename || getDefaultFilename(language);
 
         const payload = {
@@ -132,7 +136,7 @@ async function saveSnippet(code, tab, language = "plaintext", title = null, fold
 
         const data = await client.createSnippet(payload);
         if (sendResponse) sendResponse({ success: true, data });
-        notifyTab(tab.id, { success: true });
+        if (tab && tab.id) notifyTab(tab.id, { success: true });
     } catch (error) {
         let msg = error.message;
         if (error.response && error.response.data && error.response.data.error) {
@@ -140,7 +144,7 @@ async function saveSnippet(code, tab, language = "plaintext", title = null, fold
         }
         console.error("Snipo Error:", error);
         if (sendResponse) sendResponse({ success: false, error: msg });
-        notifyTab(tab.id, { success: false, error: msg });
+        if (tab && tab.id) notifyTab(tab.id, { success: false, error: msg });
     }
 }
 

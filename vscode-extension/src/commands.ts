@@ -49,13 +49,21 @@ async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | 
         // Initial load
         quickPick.busy = true;
         api.getSnippets().then(snippets => {
-            quickPick.items = snippets.map(s => ({
-                label: `$(code) ${s.title}`,
-                description: s.language,
-                detail: s.description,
-                snippet: s
-            }));
-            quickPick.busy = false;
+            try {
+                quickPick.items = snippets.map(s => ({
+                    label: `$(code) ${s.title}`,
+                    description: s.language,
+                    detail: s.description,
+                    snippet: s
+                }));
+            } catch (e) {
+                // Ignore if quickPick is disposed
+            } finally {
+                quickPick.busy = false;
+            }
+        }).catch(e => {
+            console.error('Failed to load snippets', e);
+            try { quickPick.busy = false; } catch (_) {}
         });
 
         quickPick.onDidChangeValue(value => {
@@ -80,7 +88,7 @@ async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | 
                 } catch (e) {
                     // Ignore errors, handled in API
                 } finally {
-                    quickPick.busy = false;
+                    try { quickPick.busy = false; } catch (_) {}
                 }
             }, 300); // 300ms debounce
         });
@@ -112,7 +120,7 @@ export async function searchAndInsertSnippet() {
     if (snippet) {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
-            editor.insertSnippet(new vscode.SnippetString().appendText(snippet.content));
+            editor.insertSnippet(new vscode.SnippetString().appendText(snippet.content || ''));
         }
     }
 }
@@ -191,8 +199,13 @@ export async function replaceWithTemplate() {
 
     const snippet = await showDynamicSnippetPicker('Select a template to replace selection');
     if (snippet) {
-        const selection = editor.selection;
-        editor.insertSnippet(new vscode.SnippetString().appendText(snippet.content), selection);
+        const currentEditor = vscode.window.activeTextEditor;
+        if (!currentEditor) {
+            vscode.window.showWarningMessage('Editor was closed or changed. Cannot replace text.');
+            return;
+        }
+        const selection = currentEditor.selection;
+        currentEditor.insertSnippet(new vscode.SnippetString().appendText(snippet.content || ''), selection);
     }
 }
 
@@ -282,7 +295,7 @@ export async function updateSnippet() {
         // If user cancels the quick pick, use detected language (which defaults to plaintext)
         const finalLanguage = languageSelection ? languageSelection.label : detected;
 
-        vscode.window.withProgress({
+        await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: "Updating Snipo snippet...",
             cancellable: false
@@ -325,7 +338,7 @@ export async function deleteSnippetCommand(arg?: any) {
     if (confirm === 'Delete') {
         const success = await api.deleteSnippet(snippet.id);
         if (success) {
-            vscode.commands.executeCommand('snipo.refreshTree');
+            await vscode.commands.executeCommand('snipo.refreshTree');
         }
     }
 }
@@ -351,7 +364,7 @@ export async function openInVSCode(arg?: any) {
     if (snippet) {
         const doc = await vscode.workspace.openTextDocument({
             language: snippet.language || 'text',
-            content: snippet.content
+            content: snippet.content || ''
         });
         await vscode.window.showTextDocument(doc);
     }

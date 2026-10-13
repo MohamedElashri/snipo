@@ -40,6 +40,8 @@ func WriteAll(text string) error {
 	}
 
 	if _, err := in.Write([]byte(text)); err != nil {
+		_ = in.Close()
+		_ = cmd.Wait()
 		return err
 	}
 
