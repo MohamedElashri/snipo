@@ -43,9 +43,11 @@ coverage-func:
 
 lint:
 	golangci-lint run
+	@cd tui && golangci-lint run
 
 govulncheck:
 	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+	@cd tui && go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
 clean:
 	rm -rf bin/ coverage.out coverage.html data/
@@ -97,21 +99,25 @@ vendor-clean:
 update:
 	@echo "=== Safe dependency upgrade ==="
 	@echo ""
-	@echo "[1/4] Updating Go dependencies (kept within current major versions)..."
+	@echo "[1/4] Updating Go dependencies (root & TUI, within current major versions)..."
 	go get -u ./...
 	go mod tidy
+	@cd tui && go get -u ./... && go mod tidy
 	@echo ""
-	@echo "[2/4] Updating npm dependencies (respecting ^ semver ranges)..."
+	@echo "[2/4] Updating npm dependencies (all workspaces, respecting ^ semver ranges)..."
+	npm update --workspaces --include-workspace-root --no-audit --no-fund
 	$(MAKE) vendor-update
 	@echo ""
 	@echo "[3/4] Verifying build..."
 	go build ./...
+	@cd tui && go build ./...
 	@echo ""
 	@echo "[4/4] Running tests..."
 	go test ./...
+	@cd tui && go test ./...
 	@echo ""
 	@echo "Update complete. Review the diff, then run 'make govulncheck':"
-	@echo "  git diff go.mod go.sum package.json package-lock.json"
+	@echo "  git diff go.mod go.sum tui/go.mod tui/go.sum package.json package-lock.json"
 
 extension-build:
 	@echo "Building extension packages..."
