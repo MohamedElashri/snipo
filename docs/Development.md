@@ -149,23 +149,9 @@ those variables creates an unsafe deployment failure.
 
 ## Releases
 
-The existing Unified Release pipeline builds from `v*` tags. The bump script
-expects a numeric version without the tag's leading `v`:
-
-```bash
-./scripts/bump-version.sh X.Y.Z
-git diff
-```
-
-Commit and review version changes before creating any release tag. The current
-script does not synchronize every package/lockfile entry, and the current
-pipeline packages browser ZIPs without submitting them to the browser stores.
-Tests and security checks are not yet blocking dependencies of tag publication.
-
-The [coordinated release design](releasing.md) defines the planned one-tag
-workflow, required security gates, preview mode, store submissions, and recovery
-procedure. Complete its implementation and first-release checklist before
-using it to publish the major release.
+Follow the [release instructions](releasing.md) for the shared version tag,
+preparation steps, and publication commands. Complete the pending workflow
+improvements listed there before tagging the major release.
 
 ## Contribution checklist
 
