@@ -149,15 +149,23 @@ those variables creates an unsafe deployment failure.
 
 ## Releases
 
-Releases are built by GitHub Actions via the Unified Release pipeline from version tags. Before tagging, use the bump version script to synchronize versions across all components, and then push the tag:
+The existing Unified Release pipeline builds from `v*` tags. The bump script
+expects a numeric version without the tag's leading `v`:
 
 ```bash
-./scripts/bump-version.sh vX.Y.Z
-git tag vX.Y.Z
-git push origin vX.Y.Z
+./scripts/bump-version.sh X.Y.Z
+git diff
 ```
 
-The `unified-release.yml` pipeline will automatically build the Go server matrix (Linux/Docker), GoReleaser artifacts (TUI + Homebrew tap), web-ext (Browser), and vsce (VS Code) and aggregate all outputs securely into a single GitHub Release. Run the full test, lint, vulnerability, vendor, extension, and TUI checks before releasing.
+Commit and review version changes before creating any release tag. The current
+script does not synchronize every package/lockfile entry, and the current
+pipeline packages browser ZIPs without submitting them to the browser stores.
+Tests and security checks are not yet blocking dependencies of tag publication.
+
+The [coordinated release design](releasing.md) defines the planned one-tag
+workflow, required security gates, preview mode, store submissions, and recovery
+procedure. Complete its implementation and first-release checklist before
+using it to publish the major release.
 
 ## Contribution checklist
 
