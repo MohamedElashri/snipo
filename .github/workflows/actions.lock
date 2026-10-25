@@ -20,7 +20,7 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
     '.github/workflows/sanad-check.yml':
         - 'actions/checkout@v7.0.1'
-        - 'mohamedelashri/sanad@v1.0.0'
+        - 'mohamedelashri/sanad@v1.0.1'
     '.github/workflows/snipo-ci.yml':
         - 'actions/checkout@v7.0.1'
         - 'actions/setup-go@v7.0.0'
@@ -143,9 +143,9 @@ dependencies:
         commit: 'sha1-a4f02ab5355a589de60d917a659ce617ed19b3de'
         owner_id: 24697112
         repo_id: 209873006
-    'mohamedelashri/sanad@v1.0.0':
-        ref: 'v1.0.0'
-        commit: 'sha1-30529190ddfec2e4a8af2e7b8ef832d515f811f5'
+    'mohamedelashri/sanad@v1.0.1':
+        ref: 'v1.0.1'
+        commit: 'sha1-a73376eda34400ec92e51fcefec6ee287871da38'
         owner_id: 25898984
         repo_id: 1242434851
     'softprops/action-gh-release@v3.0.3':
