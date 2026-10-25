@@ -148,12 +148,14 @@ jobs:
           bash extension/build.sh all
           cd vscode-extension
           npx --no-install vsce package --no-dependencies -o "snipo-$VERSION.vsix"
+      - name: Stage flat release assets
+        run: |
+          mkdir -p dist/extensions
+          cp extension/dist/*.zip vscode-extension/*.vsix dist/extensions/
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: release-assets-extensions
-          path: |
-            extension/dist/*.zip
-            vscode-extension/*.vsix
+          path: dist/extensions/*
           if-no-files-found: error
 
   build-images:
