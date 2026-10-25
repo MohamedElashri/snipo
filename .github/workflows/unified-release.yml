@@ -39,6 +39,7 @@ jobs:
       - id: source
         env:
           PUBLISH: ${{ github.event_name == 'push' }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           VERSION=$(node -p "require('./extension/manifest.json').version")
@@ -46,6 +47,8 @@ jobs:
           if [ "$PUBLISH" = true ]; then
             test "$GITHUB_REF_NAME" = "v$VERSION"
             git merge-base --is-ancestor HEAD origin/main
+            LATEST=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+            test "$(printf '%s\n' "${LATEST#v}" "$VERSION" | sort -V | tail -1)" = "$VERSION"
           fi
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -347,6 +350,8 @@ jobs:
           Chrome/Firefox ZIPs below. Extension store submissions are pending.
           Firefox ZIPs are for temporary loading or store submission, not signed installation.
           NOTES
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          printf '\nDocker: `%s:%s` and `%s:%s-hardened`.\n' "$IMAGE" "$VERSION" "$IMAGE" "$VERSION" >> release-notes.md
           if gh release view "v$VERSION" >/dev/null 2>&1; then
             if [ "$(gh release view "v$VERSION" --json isDraft --jq .isDraft)" = true ]; then
               gh release upload "v$VERSION" dist/release/* --clobber
