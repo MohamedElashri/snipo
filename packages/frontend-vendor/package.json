@@ -12,7 +12,7 @@
     "@alpinejs/collapse": "^3.15.8",
     "@picocss/pico": "^2.1.1",
     "ace-builds": "^1.43.6",
-    "alpinejs": "^3.15.8",
+    "alpinejs": "^3.17.5",
     "htmx.org": "^2.0.8",
     "marked": "^18.0.14",
     "prismjs": "^1.30.0"
