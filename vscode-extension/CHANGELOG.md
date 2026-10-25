@@ -2,6 +2,13 @@
 
 All notable changes to the "snipo" extension will be documented in this file.
 
+## [2.0.0] - 2026-10-25
+
+- Join the coordinated Snipo release version and use the shared native-fetch API client.
+- Include dependency updates and security hardening since 0.0.3.
+- Build the VSIX with locked packaging tools and validate it in release checks.
+- Marketplace submission is pending; the VSIX is available in the GitHub release.
+
 ## [0.0.3] - 2026-08-24
 
 ### Changed

@@ -51,6 +51,7 @@ RUN apk add --no-cache ca-certificates tzdata \
 
 # Copy the binary with proper permissions
 COPY --from=builder --chown=root:root --chmod=755 /snipo /snipo
+COPY --from=builder /src/docs/openapi.yaml /docs/openapi.yaml
 
 # Work directory
 WORKDIR /data

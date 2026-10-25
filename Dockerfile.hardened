@@ -65,6 +65,7 @@ COPY --from=builder --chown=65532:65532 /tmp /tmp
 
 # Copy the binary
 COPY --from=builder /snipo /snipo
+COPY --from=builder /src/docs/openapi.yaml /docs/openapi.yaml
 
 
 WORKDIR /data
