@@ -3,7 +3,7 @@
 # ============================================================================
 # Build stage
 # ============================================================================
-FROM golang:1.26-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
 
 # Build arguments for target platform (automatically set by Docker Buildx)
 ARG TARGETOS
@@ -29,7 +29,7 @@ COPY . .
 RUN echo "Building for TARGETOS=${TARGETOS} TARGETARCH=${TARGETARCH}"
 
 # Build the binary with optimizations
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath -mod=readonly \
     -ldflags="-w -s -X main.Version=${VERSION} -X main.Commit=${COMMIT}" \
     -o /snipo \
     ./cmd/server
@@ -51,6 +51,7 @@ RUN apk add --no-cache ca-certificates tzdata \
 
 # Copy the binary with proper permissions
 COPY --from=builder --chown=root:root --chmod=755 /snipo /snipo
+COPY --from=builder /src/docs/openapi.yaml /docs/openapi.yaml
 
 # Work directory
 WORKDIR /data

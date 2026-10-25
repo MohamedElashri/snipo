@@ -3,7 +3,7 @@
 # Build script for Snipo Browser Extension
 # Creates distribution packages for Chrome and Firefox
 
-set -e
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR/dist"
@@ -98,10 +98,17 @@ build_firefox() {
     echo ""
     echo "Creating source code archive for Firefox review..."
     cd "$SCRIPT_DIR/.."
-    zip -r "$BUILD_DIR/snipo-source-v$VERSION.zip" extension/ \
+    zip -r "$BUILD_DIR/snipo-source-v$VERSION.zip" \
+        package.json package-lock.json .node-version LICENSE vscode-extension/package.json \
+        packages/api-client/ packages/frontend-vendor/ extension/ \
+        patches/ \
         -x "extension/dist/*" \
         -x "extension/.DS_Store" \
-        -x "extension/node_modules/*" \
+        -x "*/node_modules/*" \
+        -x "*/dist/*" \
+        -x "extension/background.js" \
+        -x "extension/playwright-report/*" \
+        -x "extension/test-results/*" \
         -x "*.git*"
     echo "✓ Source archive created: dist/snipo-source-v$VERSION.zip"
 }

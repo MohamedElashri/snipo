@@ -5,5 +5,12 @@
     "packages/*",
     "vscode-extension",
     "extension"
-  ]
+  ],
+  "devDependencies": {
+    "@vscode/vsce": "4.0.0",
+    "addons-linter": "10.14.0"
+  },
+  "overrides": {
+    "@azure/msal-node": "7.1.1"
+  }
 }

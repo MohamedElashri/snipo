@@ -42,7 +42,8 @@ data/
 *.db-wal
 
 # Documentation (not needed in image)
-docs/
+docs/*
+!docs/openapi.yaml
 *.md
 !README.md
 
@@ -66,9 +67,16 @@ patches/
 package.json
 package-lock.json
 go.work.sum
+node_modules/
+dist/
 
 # Secrets and temp files
 .encryption_salt
 .session_secret
 cookies.txt
 .env.example
+
+# Local agent/account configuration
+.aws/
+.agents/
+.codex/

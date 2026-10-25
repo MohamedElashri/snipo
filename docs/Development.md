@@ -150,8 +150,7 @@ those variables creates an unsafe deployment failure.
 ## Releases
 
 Follow the [release instructions](releasing.md) for the shared version tag,
-preparation steps, and publication commands. Complete the pending workflow
-improvements listed there before tagging the major release.
+preparation steps, preview, and publication commands.
 
 ## Contribution checklist
 

@@ -1,12 +1,13 @@
 const { test: base, chromium } = require('@playwright/test');
 const path = require('path');
 
-const extensionPath = path.join(__dirname, '..');
+const extensionPath = path.join(__dirname, '..', 'dist', 'chrome');
 
 exports.test = base.extend({
   context: async ({ }, use) => {
     const context = await chromium.launchPersistentContext('', {
-      headless: false,
+      channel: 'chromium',
+      headless: true,
       args: [
         `--disable-extensions-except=${extensionPath}`,
         `--load-extension=${extensionPath}`,

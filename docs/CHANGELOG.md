@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-10-25
+
+### Changed
+- Release the server, Snippy, VS Code extension, and browser packages together
+  under one version tag.
+- Replace Axios with native fetch in the shared client and replace external
+  routing and clipboard dependencies with native implementations.
+- Include updated Go/npm dependencies and committed frontend assets.
+
+### Security
+- Include the browser and VS Code hardening completed since their previous
+  published versions.
+- Block releases on tests, Go vulnerability checks, npm audits, and scans of
+  both container variants on amd64 and arm64.
+- Pin packaging tools and use the patched MSAL dependency for VS Code tooling.
+
+### Fixed
+- Synchronize browser package and lockfile versions with the release tag.
+- Include the shared client and workspace build inputs in Firefox source ZIPs.
+- Correct browser smoke testing and Firefox Android compatibility metadata.
+- Package Snippy for Linux, macOS, and Windows, including Linux deb/rpm files;
+  update Homebrew using unified release URLs and verified checksums.
+- Include the OpenAPI document in server archives and container images.
+
+### Upgrade
+- Back up the database and data volume, including encryption/session secrets,
+  before replacing the server. See [deployment](deployment.md).
+- Deploy server 2.0.0, then update clients. Browser and VS Code store uploads are
+  pending; the release includes packages for manual installation/submission.
+- Install Snippy through Homebrew or release binaries. Versioned `go install`
+  is not supported by the current module layout.
+
 ## [1.7.7] - 2026-09-26
 - **Go/JS:** Update the Go and NPM dependencies
 

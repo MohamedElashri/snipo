@@ -2,271 +2,467 @@ name: Unified Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
   workflow_dispatch:
     inputs:
-      tag_name:
-        description: 'Tag to build (e.g. v2.0.0)'
+      ref:
+        description: 'Commit, branch, or tag to preview (publishes nothing)'
         required: true
+        default: main
+
+concurrency:
+  group: unified-release
+  cancel-in-progress: false
 
 permissions:
-  contents: write
-  packages: write
+  contents: read
+
+env:
+  GORELEASER_VERSION: v2.19.0
 
 jobs:
-  build-snipo:
-    name: Build Snipo Backend
+  resolve:
+    name: Validate release source
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-          - goos: linux
-            goarch: arm64
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+      version: ${{ steps.source.outputs.version }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ inputs.tag_name || github.ref_name }}
+          ref: ${{ inputs.ref || github.ref }}
           fetch-depth: 0
-
-      - name: Setup Go
-        uses: actions/setup-go@v7.0.0
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
         with:
-          go-version-file: 'go.mod'
-
-      - name: Build
+          node-version-file: .node-version
+      - id: source
         env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: 0
+          PUBLISH: ${{ github.event_name == 'push' }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          VERSION=${{ inputs.tag_name || github.ref_name }}
-          COMMIT=$(git rev-parse --short HEAD)
-          go build \
-            -ldflags="-w -s -X main.Version=${VERSION#v} -X main.Commit=${COMMIT}" \
-            -o snipo \
-            ./cmd/server
+          set -euo pipefail
+          VERSION=$(node -p "require('./extension/manifest.json').version")
+          bash scripts/bump-version.sh --check "$VERSION"
+          if [ "$PUBLISH" = true ]; then
+            test "$GITHUB_REF_NAME" = "v$VERSION"
+            git merge-base --is-ancestor HEAD origin/main
+            LATEST=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+            test "$(printf '%s\n' "${LATEST#v}" "$VERSION" | sort -V | tail -1)" = "$VERSION"
+          fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Package
-        run: |
-          tar czf snipo_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz snipo README.md LICENSE
+  checks:
+    needs: resolve
+    uses: ./.github/workflows/release-checks.yml
+    with:
+      ref: ${{ needs.resolve.outputs.sha }}
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7.0.2
-        with:
-          name: snipo_${{ matrix.goos }}_${{ matrix.goarch }}
-          path: snipo_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz
-
-  build-snipo-docker:
-    name: Build Snipo Docker
+  build-snipo:
+    name: Package server
+    needs: [resolve, checks]
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - name: standard
-            dockerfile: Dockerfile
-            suffix: ""
-          - name: hardened
-            dockerfile: Dockerfile.hardened
-            suffix: "-hardened"
+        arch: [amd64, arm64]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ inputs.tag_name || github.ref_name }}
-
-      - name: Lowercase Repo Name
-        run: echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4.4.0
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4.4.1
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4.7.0
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@v7.0.0
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          go-version-file: go.mod
+      - name: Build and package
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: '0'
+          VERSION: ${{ needs.resolve.outputs.version }}
+          COMMIT: ${{ needs.resolve.outputs.sha }}
+        run: |
+          mkdir -p dist
+          go build -trimpath -mod=readonly -ldflags="-w -s -X main.Version=$VERSION -X main.Commit=$COMMIT" -o dist/snipo ./cmd/server
+          tar -czf "dist/snipo_${VERSION}_linux_${GOARCH}.tar.gz" -C dist snipo -C .. README.md LICENSE docs/openapi.yaml
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-assets-server-${{ matrix.arch }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
 
-      - name: Login to DHI Registry
-        if: matrix.name == 'hardened'
-        uses: docker/login-action@v4.7.0
+  build-snippy:
+    name: Package Snippy
+    needs: [resolve, checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: tui/go.mod
+          cache-dependency-path: tui/go.sum
+      - uses: goreleaser/goreleaser-action@v7.3.0
+        with:
+          version: ${{ env.GORELEASER_VERSION }}
+          args: release --snapshot --skip=publish --clean
+          workdir: tui
+        env:
+          RELEASE_VERSION: ${{ needs.resolve.outputs.version }}
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-assets-snippy
+          path: |
+            tui/dist/*.tar.gz
+            tui/dist/*.zip
+            tui/dist/*.deb
+            tui/dist/*.rpm
+          if-no-files-found: error
+      - name: Check packaged version
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+        run: tui/dist/snippy_linux_amd64_v1/snippy version | grep -F "Snippy $VERSION "
+
+  build-extensions:
+    name: Package extensions
+    needs: [resolve, checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Build packages
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+        run: |
+          npm ci
+          npm run build -w @snipo/api-client
+          bash extension/build.sh all
+          cd vscode-extension
+          npx --no-install vsce package --no-dependencies -o "snipo-$VERSION.vsix"
+      - name: Stage flat release assets
+        run: |
+          mkdir -p dist/extensions
+          cp extension/dist/*.zip vscode-extension/*.vsix dist/extensions/
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-assets-extensions
+          path: dist/extensions/*
+          if-no-files-found: error
+
+  build-images:
+    name: Scan ${{ matrix.variant }} ${{ matrix.arch }} image
+    needs: [resolve, checks]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [standard, hardened]
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - uses: docker/setup-qemu-action@v4.4.0
+      - uses: docker/setup-buildx-action@v4.4.1
+      - uses: docker/login-action@v4.7.0
+        if: matrix.variant == 'hardened'
         with:
           registry: dhi.io
           username: ${{ secrets.DHI_USERNAME }}
           password: ${{ secrets.DHI_API_KEY }}
-
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v6.2.0
-        with:
-          images: ghcr.io/${{ env.IMAGE_NAME }}
-          flavor: |
-            latest=false
-            suffix=${{ matrix.suffix }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=raw,value=latest,enable=${{ matrix.name == 'standard' }}
-            type=raw,value=latest-hardened,suffix=,enable=${{ matrix.name == 'hardened' }}
-
-      - name: Build and push
-        uses: docker/build-push-action@v7.4.0
+      - id: image
+        env:
+          VARIANT: ${{ matrix.variant }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          echo "tag=snipo:release-$VARIANT-$ARCH" >> "$GITHUB_OUTPUT"
+          if [ "$VARIANT" = hardened ]; then
+            echo 'dockerfile=Dockerfile.hardened' >> "$GITHUB_OUTPUT"
+          else
+            echo 'dockerfile=Dockerfile' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: docker/build-push-action@v7.4.0
         with:
           context: .
-          file: ${{ matrix.dockerfile }}
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          file: ${{ steps.image.outputs.dockerfile }}
+          platforms: linux/${{ matrix.arch }}
+          tags: ${{ steps.image.outputs.tag }}
+          outputs: type=docker,dest=image.tar
+          provenance: false
           build-args: |
-            VERSION=${{ inputs.tag_name || github.ref_name }}
-            COMMIT=${{ github.sha }}
-
-  build-snippy:
-    name: Build Snippy TUI
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ inputs.tag_name || github.ref_name }}
-          fetch-depth: 0
-
-      - name: Set up Go
-        uses: actions/setup-go@v7.0.0
-        with:
-          go-version-file: 'tui/go.mod'
-
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v7.3.0
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --skip=publish --clean
-          workdir: ./tui
+            VERSION=${{ needs.resolve.outputs.version }}
+            COMMIT=${{ needs.resolve.outputs.sha }}
+      - name: Verify version and health
         env:
-          GORELEASER_CURRENT_TAG: ${{ inputs.tag_name || github.ref_name }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7.0.2
+          IMAGE: ${{ steps.image.outputs.tag }}
+          VERSION: ${{ needs.resolve.outputs.version }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -euo pipefail
+          docker load -i image.tar
+          docker run --rm --platform "linux/$ARCH" "$IMAGE" version | grep -F "snipo $VERSION "
+          docker run -d --name smoke --platform "linux/$ARCH" --network none -e SNIPO_MASTER_PASSWORD=release-smoke -e SNIPO_SESSION_SECRET=release-smoke-session-secret-32chars "$IMAGE"
+          trap 'docker logs smoke; docker rm -f smoke' EXIT
+          for attempt in $(seq 1 30); do
+            if docker exec smoke /snipo health; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Install scanner
+        run: bash scripts/install-trivy.sh
+      - name: Scan final image
+        run: trivy image --input image.tar --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --format json --output image-scan.json
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
         with:
-          name: snippy-artifacts
-          path: tui/dist/*
+          name: image-scan-${{ matrix.variant }}-${{ matrix.arch }}
+          path: image-scan.json
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-image-${{ matrix.variant }}-${{ matrix.arch }}
+          path: image.tar
+          compression-level: 0
+          if-no-files-found: error
 
-  build-extensions:
-    name: Build Extensions
+  assemble:
+    name: Validate release assets
+    needs: [resolve, build-snipo, build-snippy, build-extensions, build-images]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ inputs.tag_name || github.ref_name }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7.1.0
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
         with:
-          node-version: '18'
+          node-version-file: .node-version
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: release-assets-*
+          merge-multiple: true
+          path: dist/release
+      - name: Record asset hashes
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          COMMIT: ${{ needs.resolve.outputs.sha }}
+        run: node scripts/release-manifest.mjs dist/release "$VERSION" "$COMMIT"
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: release-bundle
+          path: dist/release/*
+          if-no-files-found: error
 
-      - name: Install Dependencies
+  publish-images:
+    name: Publish scanned images
+    if: github.event_name == 'push'
+    needs: [resolve, assemble]
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: docker/setup-buildx-action@v4.4.1
+      - uses: docker/login-action@v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          pattern: release-image-*
+          path: images
+      - name: Push tested content and version indexes
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
         run: |
-          npm ci
-          npm run build -w @snipo/api-client
-
-      - name: Build Browser Extension
-        run: |
-          cd extension
-          chmod +x build.sh
-          ./build.sh all
-
-      - name: Build VS Code Extension
-        run: |
-          cd vscode-extension
-          npx @vscode/vsce package -o snipo.vsix
-
-      - name: Upload Browser Extension Artifacts
-        uses: actions/upload-artifact@v7.0.2
+          set -euo pipefail
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          for variant in standard hardened; do
+            suffix=''
+            if [ "$variant" = hardened ]; then suffix=-hardened; fi
+            for arch in amd64 arm64; do
+              docker load -i "images/release-image-$variant-$arch/image.tar"
+              ref="$IMAGE:$VERSION$suffix-$arch"
+              local_id=$(docker image inspect "snipo:release-$variant-$arch" --format '{{.Id}}')
+              if docker manifest inspect "$ref" > existing.json 2>/dev/null; then
+                test "$(jq -r '.config.digest' existing.json)" = "$local_id"
+              else
+                docker tag "snipo:release-$variant-$arch" "$ref"
+                docker push "$ref"
+              fi
+            done
+            # Creating an index from already-pushed, identical image manifests is retryable.
+            docker buildx imagetools create -t "$IMAGE:$VERSION$suffix" "$IMAGE:$VERSION$suffix-amd64" "$IMAGE:$VERSION$suffix-arm64"
+          done
+          jq -n --arg image "$IMAGE" --arg version "$VERSION" \
+            --arg standard "$(docker buildx imagetools inspect "$IMAGE:$VERSION" --format '{{.Manifest.Digest}}')" \
+            --arg hardened "$(docker buildx imagetools inspect "$IMAGE:$VERSION-hardened" --format '{{.Manifest.Digest}}')" \
+            '{image:$image,version:$version,standard:$standard,hardened:$hardened}' > image-digests.json
+      - uses: actions/upload-artifact@v7.0.2
         with:
-          name: browser-extensions
-          path: extension/dist/*.zip
-
-      - name: Upload VS Code Extension Artifact
-        uses: actions/upload-artifact@v7.0.2
-        with:
-          name: vscode-extension
-          path: vscode-extension/*.vsix
+          name: published-image-digests
+          path: image-digests.json
 
   publish-release:
-    name: Create GitHub Release
+    name: Publish complete GitHub release
+    needs: [resolve, assemble, publish-images]
     runs-on: ubuntu-latest
-    needs: [build-snipo, build-snippy, build-extensions]
+    permissions:
+      contents: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ inputs.tag_name || github.ref_name }}
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v8.0.2
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
         with:
-          path: artifacts
-          pattern: '*'
-          merge-multiple: true
-
-      - name: Generate Changelog
-        run: |
-          echo "## Unified Release ${{ inputs.tag_name || github.ref_name }}" > CHANGELOG.md
-          echo "Includes Snipo Backend, Snippy TUI, Browser Extensions, and VS Code Extension." >> CHANGELOG.md
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v3.0.3
+          node-version-file: .node-version
+      - uses: actions/download-artifact@v8.0.2
         with:
-          name: Release ${{ inputs.tag_name || github.ref_name }}
-          tag_name: ${{ inputs.tag_name || github.ref_name }}
-          body_path: CHANGELOG.md
-          files: artifacts/*
-          generate_release_notes: true
-
-      - name: Push Homebrew Formula
+          name: release-bundle
+          path: dist/release
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: published-image-digests
+          path: dist/release
+      - name: Finalize release
         env:
-          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.resolve.outputs.version }}
+          COMMIT: ${{ needs.resolve.outputs.sha }}
         run: |
-          if [ -z "$TAP_GITHUB_TOKEN" ]; then
-            echo "::warning::TAP_GITHUB_TOKEN not set, skipping Homebrew tap update"
-            exit 0
-          fi
-          git clone https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/MohamedElashri/homebrew-snippy.git tap-repo
-          cd tap-repo
-          mkdir -p Formula
-          cp ../artifacts/snippy.rb Formula/ || true
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Formula/snippy.rb
-          if git diff --staged --quiet; then
-            echo "No changes to Formula, skipping push"
+          set -euo pipefail
+          node scripts/release-manifest.mjs dist/release "$VERSION" "$COMMIT"
+          (cd dist/release && sha256sum --check checksums.txt)
+          sed -n "/^## \\[$VERSION\\]/,/^## \\[/p" docs/CHANGELOG.md | sed '$d' > release-notes.md
+          cat >> release-notes.md <<'NOTES'
+
+          All components are packaged from the tagged commit. Download the VSIX and
+          Chrome/Firefox ZIPs below. Extension store submissions are pending.
+          Firefox ZIPs are for temporary loading or store submission, not signed installation.
+          NOTES
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          printf '\nDocker: `%s:%s` and `%s:%s-hardened`.\n' "$IMAGE" "$VERSION" "$IMAGE" "$VERSION" >> release-notes.md
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            if [ "$(gh release view "v$VERSION" --json isDraft --jq .isDraft)" = true ]; then
+              gh release upload "v$VERSION" dist/release/* --clobber
+              gh release edit "v$VERSION" --notes-file release-notes.md --draft=false --latest
+            else
+              mkdir existing
+              gh release download "v$VERSION" -p checksums.txt -D existing
+              cmp existing/checksums.txt dist/release/checksums.txt
+            fi
           else
-            git commit -m "Update snippy formula to ${{ inputs.tag_name || github.ref_name }}"
-            git push origin HEAD:main || git push origin HEAD:master
+            gh release create "v$VERSION" --verify-tag --draft --title "Snipo $VERSION" --notes-file release-notes.md
+            gh release upload "v$VERSION" dist/release/*
+            gh release edit "v$VERSION" --draft=false --latest
           fi
 
-  publish-vscode:
-    name: Publish to VS Code Marketplace
+  promote-images:
+    name: Advance stable image tags
+    needs: [resolve, publish-release]
     runs-on: ubuntu-latest
-    needs: publish-release
+    permissions:
+      packages: write
+      contents: read
     steps:
-      - name: Download Artifacts
-        uses: actions/download-artifact@v8.0.2
+      - uses: docker/setup-buildx-action@v4.4.1
+      - uses: docker/login-action@v4.7.0
         with:
-          name: vscode-extension
-          path: .
-      - name: Publish
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: published-image-digests
+      - name: Promote verified digests
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ -n "${{ secrets.VSCE_PAT }}" ]; then
-            npx @vscode/vsce publish --packagePath *.vsix -p ${{ secrets.VSCE_PAT }}
-          else
-            echo "::warning::VSCE_PAT not found, skipping marketplace publish"
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" = "v$VERSION"
+          IMAGE=$(jq -r .image image-digests.json)
+          docker buildx imagetools create -t "$IMAGE:latest" "$IMAGE@$(jq -r .standard image-digests.json)"
+          docker buildx imagetools create -t "$IMAGE:latest-hardened" "$IMAGE@$(jq -r .hardened image-digests.json)"
+
+  homebrew:
+    name: Update Homebrew
+    needs: [resolve, publish-release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .node-version
+      - name: Download published manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.resolve.outputs.version }}
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" = "v$VERSION"
+          gh release download "v$VERSION" -p release-manifest.json -D published
+          node scripts/homebrew-formula.mjs published/release-manifest.json > snippy.rb
+      - uses: actions/checkout@v7.0.1
+        with:
+          repository: MohamedElashri/homebrew-snippy
+          token: ${{ secrets.TAP_GITHUB_TOKEN }}
+          path: tap
+      - name: Update formula
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+        run: |
+          mkdir -p tap/Formula
+          cp snippy.rb tap/Formula/snippy.rb
+          cd tap
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Formula/snippy.rb
+          if ! git diff --cached --quiet; then
+            git commit -m "Update snippy to $VERSION"
+            git push
           fi
+
+  summary:
+    name: Release status
+    if: always()
+    needs: [resolve, checks, assemble, publish-images, publish-release, promote-images, homebrew]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          CHECKS: ${{ needs.checks.result }}
+          ASSETS: ${{ needs.assemble.result }}
+          IMAGES: ${{ needs.publish-images.result }}
+          RELEASE: ${{ needs.publish-release.result }}
+          ALIASES: ${{ needs.promote-images.result }}
+          HOMEBREW: ${{ needs.homebrew.result }}
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Snipo $VERSION
+          | Destination | Result |
+          |---|---|
+          | Tests and dependency scans | $CHECKS |
+          | Packages and image scans | $ASSETS |
+          | Versioned Docker images | $IMAGES |
+          | GitHub release | $RELEASE |
+          | Stable Docker tags | $ALIASES |
+          | Homebrew | $HOMEBREW |
+          | VS Code / Chrome / Firefox stores | Pending manual submission |
+
+          Manual runs are previews: publishing jobs are skipped.
+          EOF

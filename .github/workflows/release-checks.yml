@@ -1,0 +1,96 @@
+name: Release Checks
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    name: Go (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ['.', 'tui']
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: ${{ matrix.module }}/go.mod
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+      - name: Verify, test, and vet
+        working-directory: ${{ matrix.module }}
+        run: |
+          go mod download
+          go mod verify
+          go test -race ./...
+          go vet ./...
+      - uses: golang/govulncheck-action@v1.1.0
+        with:
+          go-version-input: ''
+          go-version-file: ${{ matrix.module }}/go.mod
+          work-dir: ${{ matrix.module }}
+          go-package: ./...
+      - uses: golangci/golangci-lint-action@v9.3.0
+        with:
+          version: v2.15.0
+          working-directory: ${{ matrix.module }}
+          args: --timeout=5m
+
+  extensions:
+    name: Versions, frontend, and extensions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - name: Install and audit locked dependencies
+        run: |
+          npm ci
+          npm audit --audit-level=high
+          node packages/frontend-vendor/sync-vendor.js
+          git diff --exit-code -- internal/web/static/vendor package-lock.json
+      - name: Check version preparation
+        run: |
+          node --test scripts/release-version.test.mjs
+          VERSION=$(node -p "require('./extension/manifest.json').version")
+          bash scripts/bump-version.sh --check "$VERSION"
+      - name: Build extensions
+        run: |
+          npm run build -w @snipo/api-client
+          npm run compile-tests -w snipo
+          bash extension/build.sh all
+          npx --no-install addons-linter extension/dist/firefox --warnings-as-errors
+          cd vscode-extension
+          npx --no-install vsce package --no-dependencies -o snipo.vsix
+      - name: Browser smoke test
+        run: |
+          npx --no-install playwright install --with-deps chromium
+          npm test -w extension
+      - name: VS Code tests
+        run: xvfb-run -a npm test -w snipo
+      - name: Verify Firefox source is buildable
+        run: |
+          SOURCE=$(mktemp -d)
+          unzip -q extension/dist/snipo-source-v*.zip -d "$SOURCE"
+          cd "$SOURCE"
+          npm ci
+          npm run build -w @snipo/api-client
+          npm run build -w extension
+          cmp extension/background.js "$GITHUB_WORKSPACE/extension/dist/firefox/background.js"

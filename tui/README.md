@@ -70,11 +70,9 @@ make test
 make lint
 ```
 
-Or install directly:
-
-```bash
-go install github.com/MohamedElashri/snipo/tui/cmd/snippy@latest
-```
+For v2 releases, install a release binary or use Homebrew. Versioned
+`go install ...@latest` is not supported by the current nested-module layout;
+build from a repository checkout using the commands above.
 
 ## Troubleshooting
 

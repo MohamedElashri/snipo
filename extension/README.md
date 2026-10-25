@@ -41,17 +41,18 @@ browser storage, host access, and manifest permissions.
 
 ## Build
 
-The build requires Bash and `zip`:
+Use the Node version in `.node-version`, npm, Bash, and `zip`. From the
+repository root (or the extracted Firefox source archive):
 
 ```bash
-cd extension
-./build.sh chrome
-./build.sh firefox
-./build.sh all
+npm ci
+npm run build -w @snipo/api-client
+bash extension/build.sh all
 ```
 
-Output is written to `extension/dist`. The build has no JavaScript dependency
-installation step.
+Output is written to `extension/dist`. Pass `chrome` or `firefox` instead of
+`all` to build one browser package. The source archive includes the shared
+client and workspace lockfile needed to reproduce the Firefox bundle.
 
 ## Troubleshooting
 

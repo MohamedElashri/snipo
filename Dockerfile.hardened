@@ -3,7 +3,7 @@
 # ============================================================================
 # Build stage
 # ============================================================================
-FROM dhi.io/golang:1-alpine3.23-dev AS builder
+FROM --platform=$BUILDPLATFORM dhi.io/golang:1-alpine3.23-dev AS builder
 
 # Build arguments for target platform (automatically set by Docker Buildx)
 ARG TARGETOS
@@ -31,7 +31,7 @@ RUN echo "Building for TARGETOS=${TARGETOS} TARGETARCH=${TARGETARCH}"
 
 # Build the binary with optimizations
 # Force fresh build by using unique build ID
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath -mod=readonly \
     -ldflags="-w -s -X main.Version=${VERSION} -X main.Commit=${COMMIT}" \
     -o /snipo \
     ./cmd/server
@@ -65,6 +65,7 @@ COPY --from=builder --chown=65532:65532 /tmp /tmp
 
 # Copy the binary
 COPY --from=builder /snipo /snipo
+COPY --from=builder /src/docs/openapi.yaml /docs/openapi.yaml
 
 
 WORKDIR /data

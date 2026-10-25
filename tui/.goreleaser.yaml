@@ -1,64 +1,38 @@
-# tui/.goreleaser.yaml
 version: 2
-
 project_name: snippy
 
-before:
-  hooks:
-    - go mod tidy
-    - go mod download
+# Preview and tagged releases package the same version without GoReleaser publishing.
+snapshot:
+  version_template: '{{ .Env.RELEASE_VERSION }}'
 
 builds:
-  - id: snippy
-    dir: .
-    main: ./cmd/snippy
+  - main: ./cmd/snippy
     binary: snippy
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - windows
-      - darwin
-    goarch:
-      - amd64
-      - arm64
+    env: [CGO_ENABLED=0]
+    goos: [linux, windows, darwin]
+    goarch: [amd64, arm64]
     ldflags:
       - -s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}}
 
 archives:
-  - format: tar.gz
-    # this name template makes the OS and Arch compatible with the results of `uname`.
-    name_template: >-
-      {{ .ProjectName }}_
-      {{- title .Os }}_
-      {{- if eq .Arch "amd64" }}x86_64
-      {{- else if eq .Arch "386" }}i386
-      {{- else }}{{ .Arch }}{{ end }}
-      {{- if .Arm }}v{{ .Arm }}{{ end }}
-    # use zip for windows archives
+  - formats: [tar.gz]
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE
 
 nfpms:
-  - vendor: Mohamed Elashri
+  - file_name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Arch }}'
+    vendor: Mohamed Elashri
     homepage: https://github.com/MohamedElashri/snipo
     maintainer: Mohamed Elashri <snippy@elashri.com>
-    description: A rich terminal user interface (TUI) for Snipo - your self-hosted snippet manager.
+    description: Terminal client for the Snipo snippet manager.
     license: AGPL-3.0
-    formats:
-      - deb
-      - rpm
+    formats: [deb, rpm]
     bindir: /usr/bin
 
-brews:
-  - repository:
-      owner: MohamedElashri
-      name: homebrew-snippy
-    directory: Formula
-    homepage: "https://github.com/MohamedElashri/snipo"
-    description: "A rich terminal user interface (TUI) for Snipo - your self-hosted snippet manager."
-    license: "AGPL-3.0"
-    url_template: "https://github.com/MohamedElashri/snipo/releases/download/snippy-v{{ .Version }}/{{ .ArtifactName }}"
-    test: |
-      system "#{bin}/snippy version"
+checksum:
+  name_template: snippy_checksums.txt

@@ -1,55 +1,43 @@
 # Releasing Snipo
 
-Use one `vX.Y.Z` tag for the server, Snippy, VS Code extension, and both
-browser extensions. Target **v2.0.0** next, then `v2.0.1` for patches.
-Verify the chosen version exceeds every published store version.
+One `vX.Y.Z` tag releases the server, Snippy, VS Code extension, and both
+browser packages. Use `v2.0.0` for the coordinated major release, then `v2.0.1`
+for patches. All product versions must match; use no prerelease suffixes.
 
-## Before the first release
-
-The workflow improvements below are still pending. Complete them before tagging:
-
-- Make tests and Go/npm/container security checks block publication; add a
-  preview that builds everything without publishing.
-- Fix version/lockfile synchronization, Firefox source packaging, browser smoke
-  tests, and Homebrew URLs to use `vX.Y.Z`.
-- Configure store publishing credentials and jobs. Document supported Go
-  installation methods for v2.
-
-## Prepare a release PR
+## Prepare
 
 1. Fix security findings and update dependencies and vendored assets.
-2. Synchronize product versions:
+2. Run `./scripts/bump-version.sh 2.0.0`, review the diff, and update the main
+   and VS Code changelogs with upgrade instructions.
+3. Open and merge a release PR after all checks pass.
 
-   ```bash
-   ./scripts/bump-version.sh 2.0.0
-   git diff
-   ```
+## Preview
 
-   Use no leading `v`. Verify the server and TUI version values, both browser
-   manifests, both extension package files, and the root lockfile match.
-   The current script does not update every entry.
-3. Update the main and VS Code changelogs, including upgrade instructions.
-4. Run all component tests and security checks, then merge the PR into `main`.
+In Actions, run **Unified Release** manually with the merged commit SHA as
+`ref`. This runs tests, audits, image scans, and packaging without publishing.
+Install and test the resulting `release-bundle` artifacts.
+
+Required Actions secrets: `DHI_USERNAME`, `DHI_API_KEY`, and `TAP_GITHUB_TOKEN`.
+GitHub releases and GHCR use the workflow's built-in token.
 
 ## Publish
 
-Update `main`, run the preview on that commit, and install/test its packages:
+Tag the exact `main` commit that passed preview:
 
 ```bash
-git switch main
-git pull --ff-only origin main
-```
-
-After preview passes, tag that exact commit without pulling additional changes:
-
-```bash
-git tag -a v2.0.0 -m "Snipo ecosystem 2.0.0"
+git tag -a v2.0.0 <verified-commit-sha> -m "Snipo ecosystem 2.0.0"
 git push origin v2.0.0
 ```
 
-Once implemented, Actions will validate, build, and publish the GitHub release
-and Docker images, submit the extensions, and update Homebrew.
+Actions publishes the GitHub release, standard/hardened Docker images, and
+Homebrew formula. Check the run summary for each destination's result.
 
-Check each destination in the release summary; browser store reviews may still
-be pending. Retry failed destinations using the original artifacts. For changed
-code, prepare a new patch release; never move a published tag.
+## Extension stores and retries
+
+Store uploads are manual for now. Submit the release's VSIX to VS Code, the
+Chrome ZIP to Chrome Web Store, and the Firefox ZIP plus source ZIP to Mozilla.
+Firefox must sign the extension before it can be installed normally.
+
+Use **Re-run failed jobs** to retry a failed destination using the retained
+artifacts. Never move a published tag or replace published packages; changed
+code needs a new patch release.
