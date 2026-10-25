@@ -29,26 +29,26 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # sanad: ref=v7.0.1
+      uses: actions/checkout@v7.0.1
 
     - name: Setup Go
       if: matrix.language == 'go'
-      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # sanad: ref=v7.0.0
+      uses: actions/setup-go@v7.0.0
       with:
         go-version-file: 'go.mod'
         cache: true
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # sanad: ref=v4
+      uses: github/codeql-action/init@v4.39.1
       with:
         languages: ${{ matrix.language }}
         #queries: security-extended,security-and-quality
         queries: security-extended
         config-file: .codeql/config.yml
     - name: Autobuild
-      uses: github/codeql-action/autobuild@24c54180a607b1449ed407dd24f251e4e9147c8d # sanad: ref=v4
+      uses: github/codeql-action/autobuild@v4.39.1
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # sanad: ref=v4
+      uses: github/codeql-action/analyze@v4.39.1
       with:
         category: "/language:${{matrix.language}}"

@@ -1,6 +1,6 @@
 module github.com/MohamedElashri/snipo/tui
 
-go 1.26.9
+go 1.26.10
 
 require (
 	github.com/MohamedElashri/snipo v1.7.7

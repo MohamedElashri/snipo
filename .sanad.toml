@@ -1,0 +1,13 @@
+version = 1
+
+[native]
+  enabled = true
+
+[update]
+  level = "minor"
+  constraint = ""
+
+[observation]
+  minimum_age = ""
+
+[actions]
