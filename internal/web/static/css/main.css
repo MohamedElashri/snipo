@@ -2,6 +2,7 @@
 
 /* Core styles */
 @import './components/variables.css';
+@import './components/base.css';
 @import './components/layout.css';
 
 /* Component styles */

@@ -1,6 +1,9 @@
 {
   "name": "snipo-monorepo",
   "private": true,
+  "scripts": {
+    "test:web": "node scripts/test-web-styles.cjs"
+  },
   "workspaces": [
     "packages/*",
     "vscode-extension",

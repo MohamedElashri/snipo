@@ -28,7 +28,6 @@ const vendorConfig = {
     'prism-markdown.min.js': 'prismjs/components/prism-markdown.min.js',
   },
   css: {
-    'pico.min.css': '@picocss/pico/css/pico.min.css',
     'prism.min.css': 'prismjs/themes/prism.min.css',
     'prism-tomorrow.min.css': 'prismjs/themes/prism-tomorrow.min.css',
   },

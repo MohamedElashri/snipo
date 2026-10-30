@@ -15,8 +15,8 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.25rem 0.5rem;
-  background: var(--pico-card-background-color);
-  border-bottom: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-card-background);
+  border-bottom: 1px solid var(--snipo-border-muted);
 }
 .editor-toolbar button,
 .editor-toolbar .btn-icon,
@@ -61,7 +61,7 @@
   width: 100%;
   font-size: 0.9rem;
   font-weight: 600;
-  border: 2px solid var(--pico-muted-border-color);
+  border: 2px solid var(--snipo-border-muted);
   border-radius: 0.25rem;
   background: transparent;
   padding: 0.4rem 0.5rem;
@@ -107,8 +107,8 @@
   flex-wrap: wrap;
   gap: 1.5rem;
   padding: 0.5rem 1rem;
-  background: var(--pico-card-background-color);
-  border-bottom: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-card-background);
+  border-bottom: 1px solid var(--snipo-border-muted);
   align-items: center;
 }
 
@@ -120,7 +120,7 @@
 }
 
 .preview-meta-label {
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   font-weight: 500;
 }
 
@@ -167,8 +167,8 @@
   gap: 0.5rem;
   padding: 0 0.5rem;
   height: 60px;
-  background: var(--pico-card-background-color);
-  border-bottom: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-card-background);
+  border-bottom: 1px solid var(--snipo-border-muted);
   flex-shrink: 0;
 }
 
@@ -180,7 +180,7 @@
 }
 
 .current-file-name svg {
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   width: 14px;
   height: 14px;
   flex-shrink: 0;
@@ -205,7 +205,7 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: 0.25rem;
-  color: var(--pico-color);
+  color: var(--snipo-color);
   font-weight: 500;
   line-height: 1;
   min-height: 30px !important;
@@ -215,21 +215,21 @@
 }
 
 .filename-input:hover {
-  background: var(--pico-muted-border-color);
+  background: var(--snipo-border-muted);
 }
 
 .filename-input:focus {
-  background: var(--pico-background-color);
+  background: var(--snipo-background);
   border-color: var(--snipo-primary);
   outline: none;
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
 
 .filename-placeholder {
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   cursor: pointer;
   padding: 0 0.5rem;
-  border: 1px dashed var(--pico-muted-border-color);
+  border: 1px dashed var(--snipo-border-muted);
   border-radius: 0.25rem;
 }
 
@@ -242,7 +242,7 @@
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--pico-color);
+  color: var(--snipo-color);
   padding: 0 0.5rem;
   height: 30px;
   display: flex;
@@ -254,7 +254,7 @@
 }
 
 .filename-display:hover {
-  background: var(--pico-muted-border-color);
+  background: var(--snipo-border-muted);
   opacity: 0.9;
 }
 
@@ -271,16 +271,16 @@
   gap: 0.35rem;
   padding: 0 0.5rem;
   background: transparent;
-  border: 2px solid var(--pico-muted-border-color);
+  border: 2px solid var(--snipo-border-muted);
   border-radius: 0.25rem;
   cursor: pointer;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   white-space: nowrap;
 }
 
 .file-tab-compact:hover {
   border-color: var(--snipo-primary);
-  color: var(--pico-color);
+  color: var(--snipo-color);
 }
 
 .file-tab-compact.active {
@@ -312,10 +312,10 @@
   width: 24px;
   padding: 0;
   background: transparent;
-  border: 1px dashed var(--pico-muted-border-color);
+  border: 1px dashed var(--snipo-border-muted);
   border-radius: 0.25rem;
   cursor: pointer;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   flex-shrink: 0;
 }
 
@@ -335,8 +335,8 @@
   align-items: center;
   gap: 1rem;
   padding: 0.5rem 1rem;
-  background: var(--pico-card-background-color);
-  border-bottom: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-card-background);
+  border-bottom: 1px solid var(--snipo-border-muted);
 }
 
 .preview-file-current {
@@ -346,7 +346,7 @@
 }
 
 .preview-file-current svg {
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
 }
 
 .preview-filename {
@@ -404,7 +404,7 @@
   bottom: 0;
   overflow: auto;
   padding: 1.5rem 2rem;
-  background: var(--pico-card-background-color);
+  background: var(--snipo-card-background);
   font-size: var(--markdown-font-size, 14px);
 }
 
@@ -427,13 +427,13 @@
 
 .preview-markdown-scroll h1 {
   font-size: 1.75em;
-  border-bottom: 1px solid var(--pico-muted-border-color);
+  border-bottom: 1px solid var(--snipo-border-muted);
   padding-bottom: 0.5rem;
 }
 
 .preview-markdown-scroll h2 {
   font-size: 1.5em;
-  border-bottom: 1px solid var(--pico-muted-border-color);
+  border-bottom: 1px solid var(--snipo-border-muted);
   padding-bottom: 0.3rem;
 }
 
@@ -471,8 +471,8 @@
 .preview-markdown-scroll blockquote {
   margin: 1rem 0;
   padding: 0.5rem 1rem;
-  border-left: 4px solid var(--pico-primary);
-  background: var(--pico-muted-border-color);
+  border-left: 4px solid var(--snipo-link-color);
+  background: var(--snipo-border-muted);
   border-radius: 0 4px 4px 0;
 }
 
@@ -504,7 +504,7 @@
 }
 
 .preview-markdown-scroll a {
-  color: var(--pico-primary);
+  color: var(--snipo-link-color);
   text-decoration: none;
 }
 
@@ -528,19 +528,19 @@
 .preview-markdown-scroll th,
 .preview-markdown-scroll td {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--pico-muted-border-color);
+  border: 1px solid var(--snipo-border-muted);
   text-align: left;
 }
 
 .preview-markdown-scroll th {
-  background: var(--pico-muted-border-color);
+  background: var(--snipo-border-muted);
   font-weight: 600;
 }
 
 .preview-markdown-scroll hr {
   margin: 1.5rem 0;
   border: none;
-  border-top: 1px solid var(--pico-muted-border-color);
+  border-top: 1px solid var(--snipo-border-muted);
 }
 
 /* Edit Mode */
@@ -629,7 +629,7 @@
 }
 
 .ace-editor-container.rtl .ace_cursor {
-  border-left: 2px solid var(--pico-color) !important;
+  border-left: 2px solid var(--snipo-color) !important;
   border-right: none !important;
 }
 
@@ -663,8 +663,8 @@
   display: flex;
   gap: 0.5rem;
   padding: 0.35rem 0.5rem;
-  background: var(--pico-card-background-color);
-  border-bottom: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-card-background);
+  border-bottom: 1px solid var(--snipo-border-muted);
   flex-wrap: wrap;
   align-items: center;
   position: relative;
@@ -702,7 +702,7 @@
 .editor-field-inline label {
   font-size: 0.65rem;
   font-weight: 500;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -727,7 +727,7 @@
 .editor-label {
   font-size: 0.65rem;
   font-weight: 500;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -750,7 +750,7 @@
   max-height: 72px;
   padding: 0.3rem 0.5rem;
   font-size: 0.8rem;
-  border: 1px solid var(--pico-muted-border-color);
+  border: 1px solid var(--snipo-border-muted);
   border-radius: 0.25rem;
   background: transparent;
   margin: 0;
@@ -779,8 +779,8 @@
   gap: 0.25rem;
   flex-wrap: wrap;
   padding: 0.25rem 0.5rem;
-  background: var(--pico-form-element-background-color);
-  border: 1px solid var(--pico-form-element-border-color);
+  background: var(--snipo-input-bg);
+  border: 1px solid var(--snipo-input-border);
   border-radius: 0.25rem;
   min-height: 34px;
 }
@@ -849,22 +849,22 @@
   height: 34px;
   min-width: 60px;
   padding: 0.35rem 0.6rem;
-  background: var(--pico-form-element-background-color);
-  border: 1px solid var(--pico-form-element-border-color);
+  background: var(--snipo-input-bg);
+  border: 1px solid var(--snipo-input-border);
   border-radius: 0.25rem;
   transition: border-color 0.15s;
   position: relative;
 }
 
 .toggle-control:hover {
-  border-color: var(--pico-form-element-hover-border-color, var(--pico-muted-border-color));
+  border-color: var(--snipo-input-hover-border, var(--snipo-border-muted));
 }
 
 .toggle-control .control-thumb {
   display: block;
   width: 32px;
   height: 18px;
-  background: var(--pico-muted-border-color);
+  background: var(--snipo-border-muted);
   border-radius: 999px;
   position: relative;
   transition: background 0.2s;
@@ -904,13 +904,13 @@
 .gist-link-icon {
   display: inline-flex;
   align-items: center;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   transition: color 0.15s;
   margin-left: 0.25rem;
 }
 
 .gist-link-icon:hover {
-  color: var(--pico-color);
+  color: var(--snipo-color);
 }
 
 /* Public indicator in preview mode (read-only) */
@@ -919,7 +919,7 @@
   align-items: center;
   gap: 0.3rem;
   font-size: 0.85rem;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
 }
 
 .preview-public-indicator.is-public {
@@ -933,7 +933,7 @@
   gap: 0.5rem;
   cursor: pointer;
   font-size: 0.85rem;
-  color: var(--pico-color);
+  color: var(--snipo-color);
 }
 
 .gist-toggle-switch-preview input {
@@ -952,7 +952,7 @@
 .gist-link-icon {
   display: inline-flex;
   align-items: center;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   transition: color 0.2s;
   margin-left: 0.25rem;
 }
@@ -973,10 +973,10 @@
 }
 
 .editor-title-input.bordered {
-  border: 1px solid var(--pico-muted-border-color);
+  border: 1px solid var(--snipo-border-muted);
   border-radius: 0.375rem;
   padding: 0.4rem 0.75rem;
-  background: var(--pico-form-element-background-color);
+  background: var(--snipo-input-bg);
 }
 
 .editor-title-input.bordered:hover {
@@ -988,8 +988,8 @@
   width: 180px;
   min-width: 180px;
   max-width: 180px;
-  background: var(--pico-card-background-color);
-  border-left: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-card-background);
+  border-left: 1px solid var(--snipo-border-muted);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -997,7 +997,7 @@
 
 .tags-sidebar-header {
   padding: 0.4rem 0.5rem;
-  border-bottom: 1px solid var(--pico-muted-border-color);
+  border-bottom: 1px solid var(--snipo-border-muted);
 }
 
 .tags-sidebar-header label {
@@ -1005,7 +1005,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
 }
 
 .tags-list {
@@ -1052,12 +1052,12 @@
 
 .tag-add-section {
   padding: 0.35rem;
-  border-top: 1px solid var(--pico-muted-border-color);
+  border-top: 1px solid var(--snipo-border-muted);
 }
 
 .tag-add-section.top {
   border-top: none;
-  border-bottom: 1px solid var(--pico-muted-border-color);
+  border-bottom: 1px solid var(--snipo-border-muted);
   padding: 0.5rem;
 }
 
@@ -1075,7 +1075,7 @@
 
 .tags-suggestions {
   padding: 0.5rem;
-  border-top: 1px solid var(--pico-muted-border-color);
+  border-top: 1px solid var(--snipo-border-muted);
   overflow-y: auto;
   flex: 1;
   min-height: 0;
@@ -1083,7 +1083,7 @@
 
 .tags-suggestions-label {
   font-size: 0.7rem;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   display: block;
@@ -1102,7 +1102,7 @@
   gap: 0.5rem;
   padding: 0.3rem 0.5rem;
   background: transparent;
-  border: 1px solid var(--pico-muted-border-color);
+  border: 1px solid var(--snipo-border-muted);
   border-radius: 0.25rem;
   cursor: pointer;
   font-size: 0.7rem;
@@ -1113,7 +1113,7 @@
 }
 
 .tag-suggestion:hover {
-  background: var(--pico-muted-border-color);
+  background: var(--snipo-border-muted);
 }
 
 .tag-suggestion .tag-dot {
@@ -1135,8 +1135,8 @@
   width: 280px;
   min-width: 280px;
   max-width: 280px;
-  background: var(--pico-card-background-color);
-  border-left: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-card-background);
+  border-left: 1px solid var(--snipo-border-muted);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1162,7 +1162,7 @@
 
 .editor-details-section {
   padding: 0.75rem;
-  border-bottom: 1px solid var(--pico-muted-border-color);
+  border-bottom: 1px solid var(--snipo-border-muted);
 }
 
 .editor-details-section:last-child {
@@ -1175,7 +1175,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
 }
 
 .editor-details-sidebar .editor-label {
@@ -1275,7 +1275,7 @@
     max-width: none;
     max-height: 42vh;
     border-left: none;
-    border-top: 1px solid var(--pico-muted-border-color);
+    border-top: 1px solid var(--snipo-border-muted);
   }
 
   .editor-left {
@@ -1311,7 +1311,7 @@
   max-height: 42px !important;
   min-height: 42px !important;
   overflow: hidden;
-  border-top: 1px solid var(--pico-muted-border-color);
+  border-top: 1px solid var(--snipo-border-muted);
 }
 
 .editor-details-sidebar.details-collapsed .editor-details-header {
@@ -1472,12 +1472,12 @@
 }
 
 .expiration-date-input {
-  background: var(--pico-background-color);
-  border: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-background);
+  border: 1px solid var(--snipo-border-muted);
   border-radius: 4px;
   padding: 0.15rem 0.35rem;
   font-size: 0.7rem;
-  color: var(--pico-color);
+  color: var(--snipo-color);
   font-family: inherit;
   transition: border-color 0.15s;
 }
@@ -1493,7 +1493,7 @@
   border: none;
   cursor: pointer;
   padding: 1px;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1502,14 +1502,14 @@
 }
 
 .btn-clear-exp:hover {
-  color: var(--pico-danger);
+  color: var(--snipo-danger);
 }
 
 /* Expiration badge in preview mode */
 .expiration-badge-preview {
   font-size: 0.7rem;
   font-weight: 500;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
   background: rgba(245, 158, 11, 0.1);
@@ -1517,13 +1517,13 @@
 }
 
 .expiration-badge-preview.expired {
-  color: var(--pico-danger);
+  color: var(--snipo-danger);
   background: rgba(239, 68, 68, 0.12);
   font-weight: 600;
 }
 
 .expiration-badge-preview.never {
-  color: var(--pico-muted-color);
-  background: var(--pico-muted-border-color);
+  color: var(--snipo-text-muted);
+  background: var(--snipo-border-muted);
   font-style: italic;
 }

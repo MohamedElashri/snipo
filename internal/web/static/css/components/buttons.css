@@ -9,14 +9,14 @@
   padding: 0;
   border-radius: 0.25rem;
   background: transparent;
-  border: 1px solid var(--pico-muted-border-color);
+  border: 1px solid var(--snipo-border-muted);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   color: var(--icon-color);
 }
 
 .btn-icon:hover {
-  background: var(--pico-muted-border-color);
+  background: var(--snipo-border-muted);
   color: var(--icon-hover);
 }
 
@@ -46,14 +46,14 @@
 
 .btn-secondary {
   background: transparent;
-  border: 1px solid var(--pico-muted-border-color);
+  border: 1px solid var(--snipo-border-muted);
   color: inherit;
   cursor: pointer;
   border-radius: 0.25rem;
 }
 
 .btn-secondary:hover {
-  background: var(--pico-muted-border-color);
+  background: var(--snipo-border-muted);
 }
 
 .btn-action {
@@ -65,16 +65,16 @@
   font-size: 0.75rem;
   font-weight: 500;
   border-radius: 0.25rem;
-  border: 1px solid var(--pico-muted-border-color);
+  border: 1px solid var(--snipo-border-muted);
   background: transparent;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .btn-action:hover {
-  background: var(--pico-muted-border-color);
-  color: var(--pico-color);
+  background: var(--snipo-border-muted);
+  color: var(--snipo-color);
 }
 
 .btn-action.primary {
@@ -207,5 +207,5 @@
 }
 
 .btn-action.active {
-  background: var(--pico-muted-border-color);
+  background: var(--snipo-border-muted);
 }

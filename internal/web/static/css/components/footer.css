@@ -1,11 +1,11 @@
 /* Footer Component - Single line footer */
 
 .app-footer {
-  border-top: 1px solid var(--pico-muted-border-color);
+  border-top: 1px solid var(--snipo-border-muted);
   margin-top: auto;
   width: 100%;
   padding: 1rem 2rem;
-  background-color: var(--pico-background-color);
+  background-color: var(--snipo-background);
 }
 
 .footer-content {
@@ -20,25 +20,25 @@
 }
 
 .footer-text {
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
 }
 
 .footer-separator {
-  color: var(--pico-muted-border-color);
+  color: var(--snipo-border-muted);
 }
 
 .footer-link {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   text-decoration: none;
   transition: color 0.2s ease;
   font-weight: 500;
 }
 
 .footer-link:hover {
-  color: var(--pico-primary);
+  color: var(--snipo-link-color);
 }
 
 .footer-icon {

@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - Unreleased
+
+### Changed
+- Replace Pico CSS with local vanilla CSS while preserving the existing layout,
+  native controls, typography, and light/dark themes. Remove the package and
+  vendored stylesheet, and migrate theme references to Snipo CSS variables.
+- Update the customization guide and Settings help with current variables,
+  working selectors, theme behavior, RTL examples, and recovery instructions.
+- Update the VS Code extension's nock development dependency to 15.0.5.
+
+### Added
+- Add `npm run test:web` browser regression checks for desktop and mobile views
+  in light and dark themes, and run them in PR release checks.
+
+### Upgrade
+- Saved custom CSS using `--pico-*` variables needs to be updated to the Snipo
+  variables in the [customization migration guide](customization.md#migrating-custom-css-from-pico).
+- No database migration or configuration change is required for this patch.
+
 ## [2.0.0] - 2026-10-25
 
 ### Changed
