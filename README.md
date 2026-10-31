@@ -1,15 +1,6 @@
 # Snipo
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/demo-dark.png">
-    <img src="docs/demo.png" alt="Snipo demo showing 11 sample snippets, language labels, and tags" width="1000">
-  </picture>
-  <br>
-  <sub>Captured from Snipo's demo mode with its built-in sample snippets.</sub>
-</p>
-
-<p align="center">
   <strong>A lightweight, self-hosted snippet manager for single users.</strong><br>
   <em>Secure your code snippets, organize them seamlessly, and access them from anywhere.</em>
 </p>
@@ -32,6 +23,15 @@
 Whether you're in the terminal, IDE, or browser, Snipo ensures your code fragments, commands, and notes are always at your fingertips.
 
 > **Note**: Snipo is designed for a single user. One master password protects the entire instance. No user management overhead!
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/demo-dark.png">
+    <img src="docs/demo.png" alt="Snipo demo showing 11 sample snippets, language labels, and tags" width="1000">
+  </picture>
+  <br>
+  <sub>Captured from Snipo's demo mode with its built-in sample snippets.</sub>
+</p>
 
 <details>
   <summary>See the multi-file code preview</summary>
