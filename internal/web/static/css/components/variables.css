@@ -82,15 +82,15 @@ body {
 
   --card-preview-bg: #f1f5f9;
 
-  /* Preserve the effective palette of the previous interface. */
-  --snipo-color: #373c44;
+  /* Main surfaces and text share the light palette used by components. */
+  --snipo-color: var(--snipo-text-primary);
   --snipo-text-primary: #1e293b;
-  --snipo-text-muted: #646b79;
+  --snipo-text-muted: var(--snipo-text-secondary);
   --snipo-bg-primary: #ffffff;
   --snipo-bg-secondary: #f8fafc;
-  --snipo-border-muted: rgb(231, 234, 239.5);
+  --snipo-border-muted: #cbd5e1;
   --snipo-background: #fff;
-  --snipo-card-background: #fff;
+  --snipo-card-background: var(--snipo-bg-secondary);
 
   --snipo-text-secondary: #64748b;
   --snipo-border: #e2e8f0;

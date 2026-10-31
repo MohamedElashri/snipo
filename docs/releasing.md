@@ -1,14 +1,14 @@
 # Releasing Snipo
 
 One `vX.Y.Z` tag releases the server, Snippy, VS Code extension, and both
-browser packages. The next planned patch is `v2.0.1`. All product versions must
+browser packages. The next planned patch is `v2.0.2`. All product versions must
 match; use no prerelease suffixes. Preparing or merging a release PR does not
 publish a release; pushing its version tag starts publication.
 
 ## Prepare
 
 1. Fix security findings and update dependencies and vendored assets.
-2. Run `./scripts/bump-version.sh 2.0.1`, review the diff, and update the main
+2. Run `./scripts/bump-version.sh 2.0.2`, review the diff, and update the main
    and VS Code changelogs with upgrade instructions. Mark the version as
    **Unreleased** until publication is scheduled.
 3. Open and merge a release PR after all checks pass.
@@ -27,8 +27,8 @@ GitHub releases and GHCR use the workflow's built-in token.
 Tag the exact `main` commit that passed preview:
 
 ```bash
-git tag -a v2.0.1 <verified-commit-sha> -m "Snipo ecosystem 2.0.1"
-git push origin v2.0.1
+git tag -a v2.0.2 <verified-commit-sha> -m "Snipo ecosystem 2.0.2"
+git push origin v2.0.2
 ```
 
 Actions publishes the GitHub release, standard/hardened Docker images, and

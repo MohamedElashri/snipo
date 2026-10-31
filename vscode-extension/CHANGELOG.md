@@ -2,7 +2,12 @@
 
 All notable changes to the "snipo" extension will be documented in this file.
 
-## [2.0.1] - Unreleased
+## [2.0.2] - Unreleased
+
+- Align the extension version with the coordinated Snipo 2.0.2 hotfix for web
+  theme colors. Extension behavior is unchanged.
+
+## [2.0.1] - 2026-10-31
 
 - Keep the extension version aligned with the coordinated Snipo 2.0.1 release.
 - Update the nock development dependency to 15.0.5. Extension behavior is unchanged.
