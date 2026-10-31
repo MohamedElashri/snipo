@@ -83,6 +83,11 @@ jobs:
         run: |
           npx --no-install playwright install --with-deps chromium
           npm test -w extension
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Web interface regression checks
+        run: npm run test:web
       - name: VS Code tests
         run: xvfb-run -a npm test -w snipo
       - name: Verify Firefox source is buildable

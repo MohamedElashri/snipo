@@ -87,7 +87,7 @@
 }
 
 .text-muted {
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
 }
 
 .font-mono {
@@ -167,7 +167,7 @@
 }
 
 .border-b {
-  border-bottom: 1px solid var(--pico-muted-border-color);
+  border-bottom: 1px solid var(--snipo-border-muted);
 }
 
 /* Background utilities */
@@ -193,7 +193,7 @@
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--pico-muted-border-color);
+  border: 2px solid var(--snipo-border-muted);
   border-top-color: var(--snipo-primary);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
@@ -213,7 +213,7 @@
   justify-content: center;
   padding: 3rem 1.5rem;
   text-align: center;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
 }
 
 .empty-state svg {
@@ -266,7 +266,7 @@
 /* Divider */
 .divider {
   height: 1px;
-  background: var(--pico-muted-border-color);
+  background: var(--snipo-border-muted);
   margin: 1rem 0;
 }
 
@@ -288,7 +288,7 @@
 }
 
 .history-entry {
-  border: 1px solid var(--pico-muted-border-color);
+  border: 1px solid var(--snipo-border-muted);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -298,7 +298,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  background: var(--pico-card-background-color);
+  background: var(--snipo-card-background);
   gap: 1rem;
 }
 
@@ -309,7 +309,7 @@
 
 .history-entry-meta {
   font-size: 0.875rem;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   display: flex;
   gap: 0.5rem;
   align-items: center;
@@ -322,7 +322,7 @@
 
 .history-entry-preview {
   padding: 1rem;
-  border-top: 1px solid var(--pico-muted-border-color);
+  border-top: 1px solid var(--snipo-border-muted);
 }
 
 .history-preview-section {
@@ -335,7 +335,7 @@
 
 .history-code-preview {
   background: var(--editor-bg);
-  border: 1px solid var(--pico-muted-border-color);
+  border: 1px solid var(--snipo-border-muted);
   border-radius: 4px;
   padding: 0.75rem;
   font-size: 0.875rem;
@@ -359,13 +359,13 @@
 .history-detail-section h4 {
   margin-bottom: 0.75rem;
   font-size: 0.95rem;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .history-detail-content {
-  border: 1px solid var(--pico-muted-border-color);
+  border: 1px solid var(--snipo-border-muted);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -375,8 +375,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
-  background: var(--pico-card-background-color);
-  border-bottom: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-card-background);
+  border-bottom: 1px solid var(--snipo-border-muted);
 }
 
 .history-file-name {
@@ -414,8 +414,8 @@
 }
 
 .restore-info {
-  background: var(--pico-card-background-color);
-  border: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-card-background);
+  border: 1px solid var(--snipo-border-muted);
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -423,7 +423,7 @@
 
 .restore-info-item {
   padding: 0.5rem 0;
-  border-bottom: 1px solid var(--pico-muted-border-color);
+  border-bottom: 1px solid var(--snipo-border-muted);
 }
 
 .restore-info-item:last-child {
@@ -436,7 +436,7 @@
   border-radius: 8px;
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
-  color: var(--pico-color);
+  color: var(--snipo-color);
 }
 
 [data-theme="dark"] .restore-notice {
@@ -453,7 +453,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem;
-  background: var(--pico-card-background-color);
+  background: var(--snipo-card-background);
   border-radius: 0.5rem;
   margin-bottom: 0.5rem;
 }
@@ -508,8 +508,8 @@
 }
 
 .toast {
-  background: var(--pico-card-background-color);
-  border: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-card-background);
+  border: 1px solid var(--snipo-border-muted);
   border-radius: 0.5rem;
   padding: 0.75rem 1rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -555,7 +555,7 @@
 .login-card {
   width: 100%;
   max-width: 400px;
-  background: var(--pico-card-background-color);
+  background: var(--snipo-card-background);
   border-radius: 0.5rem;
   padding: 2rem;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
@@ -572,7 +572,7 @@
 }
 
 .login-header p {
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   margin: 0;
 }
 
@@ -585,10 +585,10 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: var(--pico-card-background-color);
-  border: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-card-background);
+  border: 1px solid var(--snipo-border-muted);
   border-radius: 2rem;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   text-decoration: none;
   font-size: 0.85rem;
   font-weight: 500;
@@ -597,7 +597,7 @@
 }
 
 .github-link:hover {
-  color: var(--pico-color);
+  color: var(--snipo-color);
   border-color: var(--snipo-primary);
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
   transform: translateY(-2px);
@@ -621,9 +621,9 @@
   gap: 0.5rem;
   margin: 2rem auto;
   padding: 0.5rem 0.75rem;
-  background: var(--pico-card-background-color);
+  background: var(--snipo-card-background);
   border-radius: 50px;
-  border: 1px solid var(--pico-muted-border-color);
+  border: 1px solid var(--snipo-border-muted);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: fit-content;
@@ -637,11 +637,11 @@
   height: 32px;
   padding: 0;
   border-radius: 50%;
-  background: var(--pico-background-color);
-  border: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-background);
+  border: 1px solid var(--snipo-border-muted);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: var(--pico-color);
+  color: var(--snipo-color);
   position: relative;
   overflow: hidden;
 }
@@ -680,7 +680,7 @@
 .pagination-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
-  background: var(--pico-card-background-color);
+  background: var(--snipo-card-background);
 }
 
 .pagination-btn svg {
@@ -700,12 +700,12 @@
   align-items: center;
   gap: 0.3rem;
   padding: 0.3rem 0.85rem;
-  background: var(--pico-background-color);
-  border: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-background);
+  border: 1px solid var(--snipo-border-muted);
   border-radius: 50px;
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--pico-color);
+  color: var(--snipo-color);
   min-width: 70px;
   justify-content: center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -713,7 +713,7 @@
 }
 
 .pagination-info:hover {
-  background: var(--pico-card-background-color);
+  background: var(--snipo-card-background);
   transform: scale(1.05);
 }
 
@@ -725,13 +725,13 @@
 }
 
 .pagination-info .page-separator {
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   margin: 0 0.1rem;
   font-weight: 300;
 }
 
 .pagination-info .page-total {
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   font-size: 0.8rem;
 }
 
@@ -769,17 +769,17 @@
   height: 32px;
   padding: 0 0.5rem;
   border-radius: 8px;
-  background: var(--pico-background-color);
-  border: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-background);
+  border: 1px solid var(--snipo-border-muted);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: var(--pico-color);
+  color: var(--snipo-color);
   font-size: 0.8rem;
   font-weight: 500;
 }
 
 .pagination-page-btn:hover {
-  background: var(--pico-card-background-color);
+  background: var(--snipo-card-background);
   border-color: var(--snipo-primary);
   color: var(--snipo-primary);
   transform: translateY(-2px);
@@ -805,7 +805,7 @@
   justify-content: center;
   min-width: 32px;
   height: 32px;
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   font-size: 0.9rem;
   font-weight: 600;
   user-select: none;
@@ -826,11 +826,11 @@
   height: 32px;
   padding: 0;
   border-radius: 8px;
-  background: var(--pico-background-color);
-  border: 1px solid var(--pico-muted-border-color);
+  background: var(--snipo-background);
+  border: 1px solid var(--snipo-border-muted);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
 }
 
 .pagination-goto-btn:hover {
@@ -845,7 +845,7 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  background: var(--pico-background-color);
+  background: var(--snipo-background);
   border: 1px solid var(--snipo-primary);
   border-radius: 8px;
   padding: 0.25rem;
@@ -856,10 +856,10 @@
   width: 50px;
   height: 28px;
   padding: 0 0.5rem;
-  border: 1px solid var(--pico-muted-border-color);
+  border: 1px solid var(--snipo-border-muted);
   border-radius: 6px;
-  background: var(--pico-card-background-color);
-  color: var(--pico-color);
+  background: var(--snipo-card-background);
+  color: var(--snipo-color);
   font-size: 0.8rem;
   font-weight: 600;
   text-align: center;
@@ -873,7 +873,7 @@
 }
 
 .pagination-input::placeholder {
-  color: var(--pico-muted-color);
+  color: var(--snipo-text-muted);
   opacity: 0.5;
 }
 
@@ -985,7 +985,7 @@
 
 .preview-markdown-scroll.rtl blockquote {
   border-left: none;
-  border-right: 4px solid var(--pico-primary);
+  border-right: 4px solid var(--snipo-link-color);
   padding: 0.5rem 1rem 0.5rem 0;
 }
 
