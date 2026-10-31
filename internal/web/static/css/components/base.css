@@ -88,12 +88,12 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-system);
 }
 
-h1 { --snipo-color: var(--snipo-h1-color); color: var(--snipo-h1-color); font-size: 2rem; line-height: 1.125; }
-h2 { --snipo-color: var(--snipo-h2-color); color: var(--snipo-h2-color); font-size: 1.75rem; line-height: 1.15; }
-h3 { --snipo-color: var(--snipo-h3-color); color: var(--snipo-h3-color); font-size: 1.5rem; line-height: 1.175; }
-h4 { --snipo-color: var(--snipo-h4-color); color: var(--snipo-h4-color); font-size: 1.25rem; line-height: 1.2; }
-h5 { --snipo-color: var(--snipo-h5-color); color: var(--snipo-h5-color); font-size: 1.125rem; line-height: 1.225; }
-h6 { --snipo-color: var(--snipo-h6-color); color: var(--snipo-h6-color); font-size: 1rem; line-height: 1.25; }
+h1 { color: var(--snipo-h1-color); font-size: 2rem; line-height: 1.125; }
+h2 { color: var(--snipo-h2-color); font-size: 1.75rem; line-height: 1.15; }
+h3 { color: var(--snipo-h3-color); font-size: 1.5rem; line-height: 1.175; }
+h4 { color: var(--snipo-h4-color); font-size: 1.25rem; line-height: 1.2; }
+h5 { color: var(--snipo-h5-color); font-size: 1.125rem; line-height: 1.225; }
+h6 { color: var(--snipo-h6-color); font-size: 1rem; line-height: 1.25; }
 
 :where(article, address, blockquote, dl, figure, form, ol, p, pre, table, ul) ~ h1 { margin-top: 3rem; }
 :where(article, address, blockquote, dl, figure, form, ol, p, pre, table, ul) ~ h2 { margin-top: 2.625rem; }
@@ -119,9 +119,9 @@ ins { color: var(--snipo-ins-color); text-decoration: none; }
 del { color: var(--snipo-del-color); }
 ::selection { background: var(--snipo-selection-bg); }
 
+/* Keep theme tokens inherited. Component colors must not resolve to a native
+   button's white text or an input's background instead of the page palette. */
 :where(a:not([role="button"])), [role="link"] {
-  --snipo-color: var(--snipo-link-color);
-  --snipo-background: transparent;
   outline: 0;
   background-color: transparent;
   color: var(--snipo-link-color);
@@ -133,7 +133,6 @@ del { color: var(--snipo-del-color); }
 }
 
 :where(a:not([role="button"])):is(:hover, :active, :focus), [role="link"]:is(:hover, :active, :focus) {
-  --snipo-color: var(--snipo-link-hover);
   color: var(--snipo-link-hover);
   text-decoration: underline;
   text-decoration-color: var(--snipo-link-hover);
@@ -145,8 +144,6 @@ del { color: var(--snipo-del-color); }
 
 button, [role="button"], [type="submit"], [type="button"], [type="reset"],
 input[type="file"]::file-selector-button {
-  --snipo-color: #fff;
-  --snipo-background: var(--snipo-button-bg);
   margin: 0;
   padding: 0.75rem 1rem;
   border: 0.0625rem solid var(--snipo-button-bg);
@@ -168,7 +165,8 @@ input[type="file"]::file-selector-button {
 
 button, [type="submit"], [type="button"], [type="reset"] { -webkit-appearance: button; }
 a[role="button"] { display: inline-block; }
-:is(button, [role="button"], [type="submit"], [type="button"], [type="reset"]):is(:hover, :active, :focus) {
+/* Native interaction defaults must yield to the component styles below. */
+:where(button, [role="button"], [type="submit"], [type="button"], [type="reset"]):is(:hover, :active, :focus) {
   background-color: var(--snipo-button-hover-bg);
   border-color: var(--snipo-button-hover-bg);
 }
@@ -182,8 +180,6 @@ fieldset:disabled :is(button, input, select, textarea) { opacity: 0.5; pointer-e
 
 /* Form controls use native semantics; no JavaScript styling dependency. */
 input, select, textarea {
-  --snipo-color: var(--snipo-input-color);
-  --snipo-background: var(--snipo-input-bg);
   margin: 0;
   border: 0.0625rem solid var(--snipo-input-border);
   border-radius: 0.25rem;
@@ -205,11 +201,11 @@ input:not([type="checkbox"], [type="radio"]) { height: 3.125rem; }
 input { overflow: visible; }
 select { text-transform: none; }
 textarea { display: block; overflow: auto; resize: vertical; }
-:is(input, select, textarea):not([readonly]):is(:active, :focus) {
+:where(input, select, textarea):not(:where([readonly])):is(:active, :focus) {
   background-color: var(--snipo-input-active-bg);
   border-color: var(--snipo-button-bg);
 }
-:is(input, select, textarea):not([readonly]):focus { box-shadow: 0 0 0 0.0625rem var(--snipo-button-bg); }
+:where(input, select, textarea):not(:where([readonly])):focus { box-shadow: 0 0 0 0.0625rem var(--snipo-button-bg); }
 input::placeholder, textarea::placeholder, select:invalid { color: var(--snipo-input-placeholder); opacity: 1; }
 
 fieldset { width: 100%; margin: 0 0 1rem; padding: 0; border: 0; }
@@ -263,7 +259,6 @@ label:has([type="checkbox"], [type="radio"]) { width: fit-content; cursor: point
 [type="color"]::-webkit-color-swatch { border: 0; border-radius: 0.125rem; }
 [type="color"]::-moz-color-swatch { border: 0; border-radius: 0.125rem; }
 [type="file"] {
-  --snipo-color: var(--snipo-text-muted);
   margin-left: -0.125rem;
   padding: 0.375rem 0 0.375rem 0.125rem;
   border: 0;

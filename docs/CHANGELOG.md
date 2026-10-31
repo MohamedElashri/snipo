@@ -5,7 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.1] - Unreleased
+## [2.0.2] - Unreleased
+
+### Fixed
+- Restore the light theme's text, card surfaces, and borders after the v2.0.1
+  CSS migration.
+- Keep theme colors inherited inside controls, links, and headings, and prevent
+  native focus/hover styles from overriding component colors in either theme.
+- Keep public snippet controls readable on hover in the light theme.
+
+### Changed
+- Extend browser regression checks to verify theme palettes, hover/focus colors,
+  theme switching, and persistence after reload on desktop and mobile. Save
+  screenshots of login, settings, snippets, the editor, and public pages.
+- Align Snippy and both extension packages with the coordinated 2.0.2 release;
+  their behavior is unchanged.
+
+### Upgrade
+- Replace the server and reload open browser tabs to load the corrected styles.
+- No database migration or configuration change is required for this patch.
+
+## [2.0.1] - 2026-10-31
 
 ### Changed
 - Replace Pico CSS with local vanilla CSS while preserving the existing layout,

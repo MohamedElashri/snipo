@@ -74,10 +74,11 @@ colors. Some components also use `--snipo-text-primary`,
 `--snipo-text-secondary`, `--snipo-bg-secondary`, and `--snipo-border` directly;
 update those separately when completing a palette.
 
-`--snipo-color` and `--snipo-background` are also set locally on links, buttons,
-and inputs. Headings set a local `--snipo-color` from their heading color. A root
-value therefore does not replace every element's foreground or background.
-Use the dedicated variables below or a scoped component rule for those elements.
+`--snipo-color` and `--snipo-background` stay inherited from the active theme,
+including inside links, buttons, headings, and inputs. Native element defaults
+use the dedicated variables below for their own colors; component styles can
+use the theme tokens without picking up a button's white text or blue background.
+Use a dedicated variable or a scoped component rule to customize those defaults.
 
 ## Variable reference
 

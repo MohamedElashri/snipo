@@ -2,7 +2,7 @@
   "name": "snipo",
   "displayName": "Snipo",
   "description": "Snipo snippets manager for VS Code",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "publisher": "muhammadelashri",
   "icon": "resources/icon.png",
   "repository": {
