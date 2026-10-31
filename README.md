@@ -1,7 +1,12 @@
 # Snipo
 
 <p align="center">
-  <img src="docs/demo.png" alt="Snipo web interface" width="800">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/demo-dark.png">
+    <img src="docs/demo.png" alt="Snipo demo showing 11 sample snippets, language labels, and tags" width="1000">
+  </picture>
+  <br>
+  <sub>Captured from Snipo's demo mode with its built-in sample snippets.</sub>
 </p>
 
 <p align="center">
@@ -27,6 +32,20 @@
 Whether you're in the terminal, IDE, or browser, Snipo ensures your code fragments, commands, and notes are always at your fingertips.
 
 > **Note**: Snipo is designed for a single user. One master password protects the entire instance. No user management overhead!
+
+<details>
+  <summary>See the multi-file code preview</summary>
+
+  <p align="center">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/demo-editor-dark.png">
+      <img src="docs/demo-editor.png" alt="Snipo demo REST API Client with three Python files, syntax highlighting, and tags" width="1000" loading="lazy">
+    </picture>
+  </p>
+
+  The demo's REST API Client includes `api_client.py`, `config.py`, and `main.py`.
+  Run `make demo` locally and sign in with the password `demo` to explore it.
+</details>
 
 
 ## Quick Start
