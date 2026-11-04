@@ -18,23 +18,30 @@ export const settingsMixin = {
   disableLoginPassword: '',
   _settingsUpdateTimeout: null,
 
-  async openSettings() {
+  apiEndpoint() { return window.location.origin + (window.SNIPO_CONFIG?.basePath || '') + '/api/v1'; },
+
+  async selectSettingsTab(tab) {
+    const allowed = ['general', 'appearance', 'editor', 'apikeys', 'backup', 'gist'];
+    this.settingsTab = allowed.includes(tab) ? tab : 'general';
+    this.updateUrl(this.showEditor ? { snippet: this.editingSnippet?.id, edit: this.isEditing } : {});
+    if (this.settingsTab === 'backup') await this.loadS3Status();
+    if (this.settingsTab === 'gist') await Promise.all([this.loadGistConfig(), this.loadGistMappings()]);
+  },
+
+  async openSettings(tab = 'general') {
+    this.closeMobileNavigation();
     this.showSettings = true;
-    this.settingsTab = 'general';
+    await this.selectSettingsTab(tab);
     this.createdToken = null;
     this.customCssChanged = false;
     await this.loadApiTokens();
   },
 
-  openEditorSettings() {
-    this.showSettings = true;
-    this.settingsTab = 'editor';
-    this.createdToken = null;
-    this.customCssChanged = false;
-  },
+  openEditorSettings() { this.openSettings('editor'); },
 
   closeSettings() {
     this.showSettings = false;
+    this.updateUrl(this.showEditor ? { snippet: this.editingSnippet?.id, edit: this.isEditing } : {});
     this.createdToken = null;
     this.customCssChanged = false;
   },

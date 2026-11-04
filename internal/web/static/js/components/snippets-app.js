@@ -20,6 +20,7 @@ import {
 import { theme } from '../modules/theme.js';
 
 // Import component mixins
+import { workspaceMixin } from './snippets/workspace-mixin.js';
 import { editorMixin } from './snippets/editor-mixin.js';
 import { fileManagerMixin } from './snippets/file-manager-mixin.js';
 import { foldersMixin } from './snippets/folders-mixin.js';
@@ -78,11 +79,13 @@ export function initSnippetsApp(Alpine) {
     totalSnippets: 0,
     favoritesCount: 0,
     loading: true,
-    viewMode: localStorage.getItem('snipo-view-mode') || 'grid',
+    loadError: '',
+    listRequest: 0,
+    restoringUrl: false,
+    viewMode: localStorage.getItem('snipo-view-mode') === 'grid' ? 'grid' : 'list',
     sortBy: localStorage.getItem('snipo-sort-by') || 'updated_at',
     showEditor: false,
     isEditing: false,
-    isSaving: false,
     showDeleteModal: false,
     deleteTarget: null,
     deleteFromGist: false,
@@ -97,8 +100,15 @@ export function initSnippetsApp(Alpine) {
 
     // Lifecycle
     async init() {
+      this._beforeUnload = () => this.saveDraft();
+      window.addEventListener('beforeunload', this._beforeUnload);
+      this.$nextTick(() => {
+        this._editorResize = new ResizeObserver(() => this.aceEditor?.resize());
+        const editor = this.$root.querySelector('.editor-container');
+        if (editor) this._editorResize.observe(editor);
+      });
       await Promise.all([
-        this.loadSnippets(),
+        this.loadTotalCount(),
         this.loadTags(),
         this.loadFolders(),
         this.loadFavoritesCount(),
@@ -107,16 +117,24 @@ export function initSnippetsApp(Alpine) {
         this.loadGistMappings()
       ]);
 
-      this.totalSnippets = this.pagination.total;
       this.loading = false;
       this.$nextTick(() => highlightAll());
 
       await this.restoreFromUrl();
-      window.addEventListener('popstate', () => this.restoreFromUrl());
+      this._popstate = () => this.restoreFromUrl();
+      window.addEventListener('popstate', this._popstate);
       this.loadDraft();
 
       // Verify gist mappings in background (removes stale mappings for deleted gists)
       this.verifyGistMappings();
+    },
+
+    destroy() {
+      this._editorResize?.disconnect();
+      window.removeEventListener('beforeunload', this._beforeUnload);
+      window.removeEventListener('popstate', this._popstate);
+      clearTimeout(this.autoSaveTimeout);
+      this.destroyAceEditor();
     },
 
     // Sidebar resize functionality
@@ -160,6 +178,7 @@ export function initSnippetsApp(Alpine) {
       const params = new URLSearchParams();
       params.set('page', this.pagination.page);
       params.set('limit', this.pagination.limit);
+      params.set('view', 'summary');
 
       // Handle sorting
       if (this.sortBy) {
@@ -182,11 +201,21 @@ export function initSnippetsApp(Alpine) {
       if (this.filter.isArchived !== null) params.set('is_archived', this.filter.isArchived);
       if (this.filter.isDeleted !== null) params.set('is_deleted', this.filter.isDeleted);
 
-      const result = await api.get(`/api/v1/snippets?${params}`);
-      if (result) {
-        this.snippets = result.data || [];
-        this.pagination = result.pagination || this.pagination;
-        this.$nextTick(() => highlightAll());
+      const request = ++this.listRequest;
+      this.loading = true;
+      this.loadError = '';
+      try {
+        const result = await api.get(`/api/v1/snippets?${params}`);
+        if (request !== this.listRequest) return;
+        if (!result || result.error) throw new Error(result?.error?.message || 'Unable to load snippets.');
+        if (result) {
+          this.snippets = result.data || [];
+          this.pagination = result.pagination || this.pagination;
+        }
+      } catch (error) {
+        if (request === this.listRequest) this.loadError = error.message || 'Unable to load snippets.';
+      } finally {
+        if (request === this.listRequest) this.loading = false;
       }
     },
 
@@ -219,20 +248,29 @@ export function initSnippetsApp(Alpine) {
       }
     },
 
+    async loadTotalCount() {
+      const result = await api.get('/api/v1/snippets?limit=1&view=summary');
+      if (result?.pagination) this.totalSnippets = result.pagination.total;
+    },
+
     async loadFavoritesCount() {
-      const result = await api.get('/api/v1/snippets?favorite=true&limit=1');
+      const result = await api.get('/api/v1/snippets?favorite=true&limit=1&view=summary');
       if (result && result.pagination) {
         this.favoritesCount = result.pagination.total;
       }
     },
 
     async search() {
+      if (this.showEditor && window.matchMedia?.('(max-width: 900px)').matches) this.cancelEdit();
       this.pagination.page = 1;
       await this.loadSnippets();
+      this.updateUrl(this.showEditor ? { snippet: this.editingSnippet?.id, edit: this.isEditing } : {});
     },
 
     async filterByTag(tagId) {
-      this.showEditor = false;
+      if (!this.prepareLibraryNavigation()) return;
+      this.filter.isArchived = null;
+      this.filter.isDeleted = null;
       this.filter.tagId = tagId;
       this.filter.folderId = null;
       this.filter.isFavorite = null;
@@ -242,7 +280,9 @@ export function initSnippetsApp(Alpine) {
     },
 
     async filterByFolder(folderId) {
-      this.showEditor = false;
+      if (!this.prepareLibraryNavigation()) return;
+      this.filter.isArchived = null;
+      this.filter.isDeleted = null;
       this.filter.folderId = folderId;
       this.filter.tagId = null;
       this.filter.isFavorite = null;
@@ -252,7 +292,7 @@ export function initSnippetsApp(Alpine) {
     },
 
     async clearFilters() {
-      this.showEditor = false;
+      if (!this.prepareLibraryNavigation()) return;
       this.filter = { query: '', tagId: null, folderId: null, language: '', isFavorite: null, isArchived: null, isDeleted: null };
       this.pagination.page = 1;
       await this.loadSnippets();
@@ -261,7 +301,9 @@ export function initSnippetsApp(Alpine) {
     },
 
     async showFavorites() {
-      this.showEditor = false;
+      if (!this.prepareLibraryNavigation()) return;
+      this.filter.isArchived = null;
+      this.filter.isDeleted = null;
       this.filter.isFavorite = true;
       this.filter.tagId = null;
       this.filter.folderId = null;
@@ -271,7 +313,7 @@ export function initSnippetsApp(Alpine) {
     },
 
     async showArchive() {
-      this.showEditor = false;
+      if (!this.prepareLibraryNavigation()) return;
       this.filter.isArchived = true;
       this.filter.isDeleted = null;
       this.filter.tagId = null;
@@ -283,7 +325,7 @@ export function initSnippetsApp(Alpine) {
     },
 
     async showTrash() {
-      this.showEditor = false;
+      if (!this.prepareLibraryNavigation()) return;
       this.filter.isDeleted = true;
       this.filter.isArchived = null;
       this.filter.tagId = null;
@@ -295,6 +337,7 @@ export function initSnippetsApp(Alpine) {
     },
 
     setViewMode(mode) {
+      if (!['grid', 'list'].includes(mode)) return;
       this.viewMode = mode;
       localStorage.setItem('snipo-view-mode', mode);
     },
@@ -320,81 +363,47 @@ export function initSnippetsApp(Alpine) {
 
     // URL routing
     updateUrl(params = {}) {
+      if (this.restoringUrl) return;
       const url = new URL(window.location);
-      url.searchParams.delete('snippet');
-      url.searchParams.delete('edit');
-      url.searchParams.delete('folder');
-      url.searchParams.delete('tag');
-      url.searchParams.delete('favorites');
-      url.searchParams.delete('trash');
-
-      if (params.snippet) url.searchParams.set('snippet', params.snippet);
-      if (params.edit) url.searchParams.set('edit', 'true');
-      if (params.folder) url.searchParams.set('folder', params.folder);
-      if (params.tag) url.searchParams.set('tag', params.tag);
-      if (params.favorites) url.searchParams.set('favorites', 'true');
-      if (params.trash) url.searchParams.set('trash', 'true');
-
-      history.pushState({}, '', url);
+      const values = {
+        q: this.filter.query, folder: this.filter.folderId, tag: this.filter.tagId,
+        language: this.filter.language, favorites: this.filter.isFavorite,
+        archive: this.filter.isArchived, trash: this.filter.isDeleted,
+        settings: this.showSettings ? this.settingsTab : null, ...params
+      };
+      for (const key of ['snippet', 'edit', 'folder', 'tag', 'favorites', 'trash', 'archive', 'q', 'language', 'settings']) {
+        url.searchParams.delete(key);
+        if (values[key]) url.searchParams.set(key, values[key]);
+      }
+      if (url.href !== window.location.href) history.pushState({}, '', url);
     },
 
     async restoreFromUrl() {
-      const params = new URLSearchParams(window.location.search);
-      const snippetId = params.get('snippet');
-      const isEdit = params.get('edit') === 'true';
-      const folderId = params.get('folder');
-      const tagId = params.get('tag');
-      const favorites = params.get('favorites') === 'true';
-      const trash = params.get('trash') === 'true';
-
-      if (folderId) {
-        this.filter.folderId = parseInt(folderId);
-        this.filter.tagId = null;
-        this.filter.isFavorite = null;
+      this.restoringUrl = true;
+      try {
+        this.preserveDraft();
+        this.destroyAceEditor();
+        const params = new URLSearchParams(window.location.search);
+        this.filter = {
+          query: params.get('q') || '', language: params.get('language') || '',
+          folderId: parseInt(params.get('folder'), 10) || null,
+          tagId: parseInt(params.get('tag'), 10) || null,
+          isFavorite: params.get('favorites') === 'true' || null,
+          isArchived: params.get('archive') === 'true' || null,
+          isDeleted: params.get('trash') === 'true' || null
+        };
+        this.showEditor = false;
+        this.isEditing = false;
+        this.showSettings = false;
         await this.loadSnippets();
-      } else if (tagId) {
-        this.filter.tagId = parseInt(tagId);
-        this.filter.folderId = null;
-        this.filter.isFavorite = null;
-        await this.loadSnippets();
-      } else if (favorites) {
-        this.filter.isFavorite = true;
-        this.filter.tagId = null;
-        this.filter.folderId = null;
-        await this.loadSnippets();
-      } else if (trash) {
-        await this.showTrash();
-      }
-
-      if (snippetId) {
-        // Sanitize snippetId: ensure it's a valid positive integer
-        const sanitizedId = parseInt(snippetId, 10);
-        if (!Number.isInteger(sanitizedId) || sanitizedId <= 0) {
-          console.error('Invalid snippet ID:', snippetId);
-          return;
-        }
-        const result = await api.get(`/api/v1/snippets/${sanitizedId}`);
-        if (result && !result.error) {
-          this.editingSnippet = {
-            ...result,
-            tags: (result.tags || []).map(t => t.name),
-            folder_id: result.folders?.[0]?.id || null,
-            files: result.files || []
-          };
-          this.activeFileIndex = 0;
-          if (isEdit && this._resetFileManagerState) {
-            this._resetFileManagerState();
-          }
-          if (isEdit && this._ensureEditableFiles) {
-            this._ensureEditableFiles();
-          }
-          this.showEditor = true;
-          this.isEditing = isEdit;
-          this.$nextTick(() => {
-            if (isEdit) this.updateAceEditor();
-            highlightAll();
-          });
-        }
+        const snippetId = params.get('snippet');
+        if (snippetId && /^[a-zA-Z0-9_-]+$/.test(snippetId)) {
+          await this.viewSnippet({ id: snippetId });
+          if (this.showEditor && params.get('edit') === 'true') this.startEditing();
+        } else if (params.get('edit') === 'true') this.newSnippet();
+        if (params.has('settings')) await this.openSettings(params.get('settings'));
+      } finally {
+        this.restoringUrl = false;
       }
     },
 
@@ -437,6 +446,10 @@ export function initSnippetsApp(Alpine) {
     // Helper methods for snippet cards
     async copySnippetFromCard(snippet) {
       try {
+        if (snippet.is_summary) {
+          snippet = await api.get(`/api/v1/snippets/${snippet.id}`);
+          if (!snippet || snippet.error) throw new Error('Could not load snippet');
+        }
         // Get content from either legacy content field or first file
         let contentToCopy = snippet.content || '';
         if (!contentToCopy && snippet.files && snippet.files.length > 0) {
@@ -460,6 +473,12 @@ export function initSnippetsApp(Alpine) {
 
     async copyFileFromCard(snippet, file) {
       try {
+        if (snippet.is_summary) {
+          const full = await api.get(`/api/v1/snippets/${snippet.id}`);
+          if (!full || full.error) throw new Error('Could not load snippet');
+          file = full.files?.find(candidate => candidate.id === file.id);
+          if (!file) throw new Error('File no longer exists');
+        }
         let contentToCopy = file.content;
 
         // Check if setting to exclude first line is enabled
@@ -492,6 +511,7 @@ export function initSnippetsApp(Alpine) {
     isArabicText,
 
     // Mix in other functionality
+    ...workspaceMixin,
     ...editorMixin,
     ...fileManagerMixin,
     ...foldersMixin,

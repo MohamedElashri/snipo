@@ -5,7 +5,7 @@
 <!-- Header -->
 <header class="main-header">
     <!-- Mobile menu toggle -->
-    <button class="btn-icon" @click="$store.app.toggleSidebar()" style="display: none;" id="menu-toggle">
+    <button class="btn-icon" @click="$store.app.toggleSidebar()" style="display: none;" id="menu-toggle" aria-label="Toggle navigation" :aria-expanded="$store.app.sidebarOpen">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="3" y1="12" x2="21" y2="12"></line>
             <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -22,8 +22,8 @@
 
     <!-- Search -->
     <div class="search-container">
-        <input type="search" class="search-input" placeholder="Search snippets... (/ or Ctrl+K)"
-            x-model="filter.query" @input.debounce.300ms="search()">
+        <input type="search" class="search-input" aria-label="Search snippets" placeholder="Search snippets... (/ or Ctrl+K)"
+            x-model="filter.query" @input.debounce.300ms="search()" @keydown.arrow-down.prevent="focusFirstResult()">
         <button class="search-help-btn" @click="showSearchHelp = !showSearchHelp" title="Search Help">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -35,11 +35,11 @@
 
     <!-- Left actions (New snippet) -->
     <div class="header-actions">
-        <button class="btn-icon btn-primary" @click="newSnippet()" title="New Snippet (Ctrl+N)">
+        <button class="btn-action primary new-snippet-button" @click="newSnippet()" title="New snippet (Ctrl/Cmd+N)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
+            </svg><span>New snippet</span>
         </button>
     </div>
 
@@ -87,30 +87,6 @@
             </div>
         </div>
         
-        <!-- View toggle -->
-        <div class="view-toggle">
-            <button class="btn-icon" :class="{ 'active': viewMode === 'grid' }" @click="setViewMode('grid')"
-                title="Grid View">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="14" width="7" height="7"></rect>
-                    <rect x="3" y="14" width="7" height="7"></rect>
-                </svg>
-            </button>
-            <button class="btn-icon" :class="{ 'active': viewMode === 'list' }" @click="setViewMode('list')"
-                title="List View">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="8" y1="6" x2="21" y2="6"></line>
-                    <line x1="8" y1="12" x2="21" y2="12"></line>
-                    <line x1="8" y1="18" x2="21" y2="18"></line>
-                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                </svg>
-            </button>
-        </div>
-
         <!-- Settings -->
         <button class="btn-icon" @click="openSettings()" title="Settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

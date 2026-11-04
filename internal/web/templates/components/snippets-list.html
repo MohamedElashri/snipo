@@ -1,13 +1,43 @@
 {{define "snippets-list"}}
 <!-- Content area -->
-<div class="snippet-list" x-show="!showEditor">
+<section class="snippet-list" aria-label="Snippet library" :aria-busy="loading">
+    <div class="library-heading"><div><h1 x-text="libraryTitle()">All snippets</h1><span class="library-count" x-text="pagination.total + (pagination.total === 1 ? ' snippet' : ' snippets')"></span></div>
+        <label class="library-layout-picker">View
+            <select aria-label="Snippet layout" :value="viewMode === 'grid' ? 'grid' : density === 'compact' ? 'compact' : 'list'" @change="setLibraryLayout($event.target.value)">
+                <option value="grid">Cards</option>
+                <option value="list">List</option>
+                <option value="compact">Compact</option>
+            </select>
+        </label>
+    </div>
+    <nav class="library-pagination" aria-label="Library pages" x-show="pagination.totalPages > 1">
+        <span x-text="((pagination.page - 1) * pagination.limit + 1) + '–' + Math.min(pagination.page * pagination.limit, pagination.total) + ' of ' + pagination.total"></span>
+        <div class="library-page-controls">
+            <button @click="goToPage(pagination.page - 1)" :disabled="loading || pagination.page <= 1" aria-label="Previous page">‹</button>
+            <select aria-label="Page" :value="pagination.page" @change="goToPage(Number($event.target.value))" :disabled="loading">
+                <template x-for="page in pagination.totalPages" :key="page"><option :value="page" x-text="'Page ' + page"></option></template>
+            </select>
+            <button @click="goToPage(pagination.page + 1)" :disabled="loading || pagination.page >= pagination.totalPages" aria-label="Next page">›</button>
+        </div>
+    </nav>
+    <details class="library-filters"><summary>Filter by language</summary>
+        <label>Language<select x-model="filter.language" @change="search()">
+            <option value="">All languages</option>
+            <template x-for="language in ['bash', 'go', 'javascript', 'json', 'markdown', 'plaintext', 'python', 'sql', 'typescript', 'yaml']" :key="language"><option :value="language" x-text="language"></option></template>
+        </select></label>
+    </details>
+    <div class="filter-chips" x-show="hasActiveFilters()">
+        <template x-for="chip in activeFilterChips()" :key="chip.key"><button class="filter-chip" @click="removeFilter(chip.key)" :aria-label="'Remove filter: ' + chip.label"><span x-text="chip.label"></span><span aria-hidden="true"> ×</span></button></template>
+        <button class="filter-clear" @click="clearFilters()">Clear all</button>
+    </div>
     <!-- Loading state -->
     <div class="loading" x-show="loading">
         <div class="spinner"></div>
     </div>
 
+    <div class="empty-state" x-show="loadError && !loading" role="alert"><h3>Could not load your library</h3><p x-text="loadError"></p><button class="btn-secondary" @click="loadSnippets()">Try again</button></div>
     <!-- Empty state -->
-    <div class="empty-state" x-show="!loading && snippets.length === 0">
+    <div class="empty-state" x-show="!loading && !loadError && snippets.length === 0">
         <template x-if="filter.isDeleted">
             <div>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48"
@@ -24,9 +54,10 @@
         <template x-if="!filter.isDeleted">
             <div>
                 <img src="{{.BasePath}}/static/logo.png" alt="Snipo" width="48" height="48" style="opacity: 0.5;">
-                <h3>No snippets yet</h3>
-                <p>Create your first snippet to get started</p>
-                <button class="btn-primary mt-4" @click="newSnippet()">
+                <h3 x-text="hasActiveFilters() ? 'No matching snippets' : 'Your library starts here'"></h3>
+                <p x-text="hasActiveFilters() ? 'Try a different search or remove a filter.' : 'Keep a useful command, a configuration, or a piece of code.'"></p>
+                <button class="btn-secondary" x-show="hasActiveFilters()" @click="clearFilters()">Clear filters</button>
+                <button class="btn-primary mt-4" x-show="!hasActiveFilters()" @click="newSnippet()">
                     Create Snippet
                 </button>
             </div>
@@ -34,67 +65,34 @@
     </div>
 
     <!-- Snippet grid/list -->
-    <div :class="viewMode === 'list' ? 'snippet-list-view' : 'snippet-grid'" x-show="!loading && snippets.length > 0">
+    <div :class="showEditor || viewMode === 'list' ? 'snippet-list-view' : 'snippet-grid'" x-show="!loading && snippets.length > 0">
         <template x-for="snippet in snippets" :key="snippet.id">
-            <article class="snippet-card">
-                <div class="snippet-card-body" @click="viewSnippet(snippet)">
+            <article class="snippet-card" :class="{ selected: showEditor && editingSnippet?.id === snippet.id }">
+                <div class="snippet-open" role="button" tabindex="0" :aria-label="'Open ' + snippet.title" :aria-current="showEditor && editingSnippet?.id === snippet.id ? 'true' : null" @click="viewSnippet(snippet)" @keydown.enter.prevent="viewSnippet(snippet)" @keydown.space.prevent="viewSnippet(snippet)" @keydown.arrow-down.prevent="focusResult($event, 1)" @keydown.arrow-up.prevent="focusResult($event, -1)">
                     <div class="snippet-card-header">
                         <h3 class="snippet-card-title" x-text="snippet.title"></h3>
-                        <span class="snippet-card-language" :style="{ background: getLanguageColor(snippet.language) }"
-                            x-text="snippet.language"></span>
+                        <span class="snippet-card-language" :style="{ background: getLanguageColor(snippet.files?.[0]?.language || snippet.language) }"
+                            x-text="snippet.files?.[0]?.language || snippet.language"></span>
                     </div>
 
                     <!-- Show description if exists, otherwise show first 2 lines of code -->
-                    <p class="snippet-card-description" x-show="snippet.description" x-text="snippet.description">
+                    <p class="snippet-card-description" x-show="snippet.description && !filter.query" x-text="snippet.description">
                     </p>
+                    <small class="match-filename" x-show="filter.query && snippet.preview_filename" x-text="snippet.preview_filename"></small>
                     <pre class="snippet-card-preview"
-                        x-show="!snippet.description"><code x-text="snippet.content.split('\n').slice(0, 2).join('\n')"></code></pre>
+                        x-show="!snippet.description || filter.query"><code x-text="snippetExcerpt(snippet)"></code></pre>
+                </div>
 
-                    <div class="snippet-card-file-tools" @click.stop>
-                        <div class="snippet-card-copy-actions">
-                            <!-- Single file: simple copy button -->
-                            <button x-show="!snippet.files || snippet.files.length <= 1" class="snippet-card-copy-btn"
-                                @click.stop="copySnippetFromCard(snippet)" title="Copy code">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
-                            </button>
-
-                            <!-- Multiple files: dropdown menu -->
-                            <div x-show="snippet.files && snippet.files.length > 1" class="snippet-card-copy-dropdown"
-                                x-data="{ open: false }" @click.outside="open = false">
-                                <button class="snippet-card-copy-btn" @click.stop="open = !open"
-                                    :title="'Copy file (' + (snippet.files?.length || 0) + ' files)'">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                    </svg>
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" style="margin-left: 2px;">
-                                        <polyline points="6 9 12 15 18 9"></polyline>
-                                    </svg>
-                                </button>
-                                <div x-show="open" x-cloak class="snippet-card-copy-menu" @click.stop>
-                                    <div class="snippet-card-copy-menu-header">Copy file:</div>
-                                    <template x-for="(file, index) in snippet.files" :key="file.id || index">
-                                        <button class="snippet-card-copy-menu-item"
-                                            @click="copyFileFromCard(snippet, file); open = false"
-                                            :title="'Copy ' + file.filename">
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2">
-                                                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-                                                <polyline points="13 2 13 9 20 9"></polyline>
-                                            </svg>
-                                            <span x-text="file.filename"></span>
-                                        </button>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
-
+                <div class="snippet-card-footer">
+                    <div class="snippet-card-tags">
+                        <template x-for="tag in (snippet.tags || []).slice(0, 3)" :key="tag.id">
+                            <span class="tag">
+                                <span class="tag-dot" :style="{ background: tag.color }"></span>
+                                <span x-text="tag.name"></span>
+                            </span>
+                        </template>
+                    </div>
+                    <div class="snippet-card-meta">
                         <span class="snippet-card-file-indicator"
                             :class="{ 'multi': snippet.files && snippet.files.length > 1 }"
                             :title="snippet.files && snippet.files.length > 1 ? snippet.files.length + ' files' : 'Single file'">
@@ -105,11 +103,48 @@
                             </svg>
                             <span x-text="snippet.files && snippet.files.length > 1 ? snippet.files.length + ' files' : 'Single file'"></span>
                         </span>
-                    </div>
-                </div>
+                        <!-- Single file: simple copy button -->
+                        <button x-show="!snippet.files || snippet.files.length <= 1" class="snippet-card-copy-btn"
+                            @click.stop="copySnippetFromCard(snippet)" title="Copy code">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
 
-                <div class="snippet-card-footer">
-                    <div class="snippet-card-meta">
+                        <!-- Multiple files: dropdown menu -->
+                        <div x-show="snippet.files && snippet.files.length > 1" class="snippet-card-copy-dropdown"
+                            x-data="{ open: false }" @click.outside="open = false">
+                            <button class="snippet-card-copy-btn" @click.stop="open = !open"
+                                :title="'Copy file (' + (snippet.files?.length || 0) + ' files)'">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" style="margin-left: 2px;">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div x-show="open" x-cloak class="snippet-card-copy-menu" @click.stop>
+                                <div class="snippet-card-copy-menu-header">Copy file:</div>
+                                <template x-for="(file, index) in snippet.files" :key="file.id || index">
+                                    <button class="snippet-card-copy-menu-item"
+                                        @click="copyFileFromCard(snippet, file); open = false"
+                                        :title="'Copy ' + file.filename">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                            <polyline points="13 2 13 9 20 9"></polyline>
+                                        </svg>
+                                        <span x-text="file.filename"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
                         <span x-show="snippet.is_favorite" title="Favorite">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor"
                                 stroke-width="2">
@@ -166,95 +201,5 @@
         </template>
     </div>
 
-    <!-- Pagination -->
-    <div class="pagination" x-show="pagination.totalPages > 1" x-data="{ showPageInput: false, pageInput: '' }">
-        <button @click="pagination.page--; loadSnippets()" :disabled="pagination.page <= 1" class="pagination-btn"
-            title="Previous page">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-        </button>
-
-        <!-- Page numbers for small total pages -->
-        <template x-if="pagination.totalPages <= 7">
-            <div class="pagination-pages">
-                <template x-for="page in pagination.totalPages" :key="page">
-                    <button @click="pagination.page = page; loadSnippets()"
-                        :class="{ 'active': pagination.page === page }" class="pagination-page-btn" x-text="page">
-                    </button>
-                </template>
-            </div>
-        </template>
-
-        <!-- Compact pagination with ellipsis for many pages -->
-        <template x-if="pagination.totalPages > 7">
-            <div class="pagination-pages">
-                <!-- First page -->
-                <button @click="pagination.page = 1; loadSnippets()" :class="{ 'active': pagination.page === 1 }"
-                    class="pagination-page-btn">
-                    1
-                </button>
-
-                <!-- Ellipsis and pages around current -->
-                <template x-if="pagination.page > 3">
-                    <span class="pagination-ellipsis">...</span>
-                </template>
-
-                <template
-                    x-for="page in Array.from({length: pagination.totalPages}, (_, i) => i + 1).filter(p => p > 1 && p < pagination.totalPages && Math.abs(p - pagination.page) <= 1)"
-                    :key="page">
-                    <button @click="pagination.page = page; loadSnippets()"
-                        :class="{ 'active': pagination.page === page }" class="pagination-page-btn" x-text="page">
-                    </button>
-                </template>
-
-                <template x-if="pagination.page < pagination.totalPages - 2">
-                    <span class="pagination-ellipsis">...</span>
-                </template>
-
-                <!-- Last page -->
-                <button @click="pagination.page = pagination.totalPages; loadSnippets()"
-                    :class="{ 'active': pagination.page === pagination.totalPages }" class="pagination-page-btn"
-                    x-text="pagination.totalPages">
-                </button>
-            </div>
-        </template>
-
-        <!-- Go to page input -->
-        <div class="pagination-goto" x-show="pagination.totalPages > 7">
-            <template x-if="!showPageInput">
-                <button @click="showPageInput = true; pageInput = pagination.page" class="pagination-goto-btn"
-                    title="Go to page">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                </button>
-            </template>
-            <template x-if="showPageInput">
-                <div class="pagination-input-group">
-                    <input type="number" x-model="pageInput"
-                        @keyup.enter="if(pageInput >= 1 && pageInput <= pagination.totalPages) { pagination.page = parseInt(pageInput); loadSnippets(); showPageInput = false; }"
-                        @keyup.escape="showPageInput = false" class="pagination-input" :min="1"
-                        :max="pagination.totalPages" placeholder="#" x-init="$nextTick(() => $el.focus())">
-                    <button
-                        @click="if(pageInput >= 1 && pageInput <= pagination.totalPages) { pagination.page = parseInt(pageInput); loadSnippets(); showPageInput = false; }"
-                        class="pagination-input-go" title="Go">
-                        ✓
-                    </button>
-                    <button @click="showPageInput = false" class="pagination-input-cancel" title="Cancel">
-                        ✕
-                    </button>
-                </div>
-            </template>
-        </div>
-
-        <button @click="pagination.page++; loadSnippets()" :disabled="pagination.page >= pagination.totalPages"
-            class="pagination-btn" title="Next page">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-        </button>
-    </div>
-</div>
+</section>
 {{end}}

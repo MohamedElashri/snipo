@@ -105,6 +105,9 @@ async function checkPage(page) {
         const context = await browser.newContext({ viewport: { width, height: 1000 }, reducedMotion: 'reduce' });
         const page = await context.newPage();
         const badAssets = [];
+        const pageErrors = [];
+        page.on('pageerror', error => { pageErrors.push(error.message); console.error(page.url(), error.stack); });
+        page.on('console', message => { if (message.type() === 'warning' && message.text().includes('Alpine')) console.error(message.text()); });
         page.on('response', response => {
           if (response.url().includes('/static/') && !response.ok()) badAssets.push(response.url());
         });
@@ -148,11 +151,11 @@ async function checkPage(page) {
 
         // Real controls must remain keyboard accessible, visibly focused, and themed.
         await appAction(page, 'openSettings');
-        const modal = page.locator('.settings-modal');
+        const modal = page.locator('.settings-page');
         const inactiveTab = modal.locator('.settings-tab:not(.active)').first();
         await inactiveTab.hover();
         await expectStyle(inactiveTab, 'color', palettes[theme].text, 'Tab hover uses theme text, not button white');
-        await expectStyle(inactiveTab, 'backgroundColor', palettes[theme].border);
+        await expectStyle(inactiveTab, 'backgroundColor', palettes[theme].surface);
         const checkbox = modal.locator('input[type="checkbox"]:visible').first();
         await checkbox.focus();
         assert.notEqual(await style(checkbox, 'boxShadow'), 'none');
@@ -187,17 +190,25 @@ async function checkPage(page) {
         await page.reload();
         await appReady(page);
         const card = page.locator('.snippet-card').filter({ hasText: 'Styles regression' }).first();
-        await expectStyle(card, 'backgroundColor', palettes[theme].surface);
+        await expectStyle(card, 'backgroundColor', palettes[theme].background);
         await expectStyle(card, 'borderTopColor', palettes[theme].border);
         await expectStyle(card.locator('.snippet-card-title'), 'color', palettes[theme].text);
         await expectStyle(card.locator('.snippet-card-description'), 'color', palettes[theme].muted);
         await page.screenshot({ path: path.join(temp, `${width}-${theme}-snippets.png`) });
         await card.locator('.snippet-card-title').click();
         await page.locator('.editor-container').waitFor({ state: 'visible' });
-        const copyButton = page.getByTitle('Copy options', { exact: true });
+        const copyButton = page.getByTitle('Copy active file', { exact: true });
         await copyButton.hover();
         await expectStyle(copyButton, 'color', palettes[theme].text, 'Action hover uses theme text');
-        await expectStyle(copyButton, 'borderTopColor', palettes[theme].border);
+        await expectStyle(copyButton, 'borderTopColor', theme === 'light' ? 'rgb(226, 232, 240)' : palettes[theme].border);
+        if (width > 900) {
+          await page.getByRole('button', { name: 'Hide snippet list', exact: true }).click();
+          assert.equal(await page.locator('.snippet-list').isVisible(), false);
+          await page.getByRole('button', { name: 'Show snippet list', exact: true }).click();
+          assert.equal(await page.locator('.snippet-list').isVisible(), true);
+        }
+        assert.equal(await page.locator('.snippet-details').getAttribute('open'), null);
+        await checkPage(page);
         await page.screenshot({ path: path.join(temp, `${width}-${theme}-editor.png`) });
         assert.equal(await page.locator('.preview-markdown-scroll h1').innerText(), 'Heading');
         assert.equal(await page.locator('.preview-markdown-scroll table').count(), 1);
@@ -207,21 +218,37 @@ async function checkPage(page) {
         await title.fill('مقتطف تجريبي');
         await title.press('Tab');
         assert.equal(await style(title, 'direction'), 'rtl');
+        await title.fill('Styles regression');
+        await page.evaluate(() => {
+          const app = Alpine.$data(document.querySelector('.app-container'));
+          app.aceEditor.setValue(app.aceEditor.getValue() + '\n\nSaved through the editor.', -1);
+        });
+        await appAction(page, 'saveSnippet');
+        await page.waitForFunction(() => {
+          const app = Alpine.$data(document.querySelector('.app-container'));
+          return app.showEditor && !app.isEditing && app.saveState === 'saved';
+        });
+        const saved = await (await page.request.get(origin + '/api/v1/snippets/' + snippet.id)).json();
+        assert.ok(saved.data.files[0].content.includes('Saved through the editor.'));
+        await page.reload();
+        await appReady(page);
+        await page.locator('.editor-container').waitFor({ state: 'visible' });
+        assert.equal(await page.locator('.login-container').count(), 0, 'Authenticated refresh must not render login');
+        await checkPage(page);
 
-        // Isolate public-page styling from its pre-existing UUID URL parsing issue.
-        await page.route(origin + '/api/v1/snippets/public/*', route => route.fulfill({ json: { data: snippet } }));
         await page.goto(origin + '/s/' + snippet.id);
         await page.waitForFunction(() => window.Alpine &&
           !Alpine.$data(document.querySelector('[x-data]')).loading);
         assert.equal(await page.locator('.public-title').innerText(), 'Styles regression');
         await checkTheme(page, theme);
-        await expectStyle(page.locator('.public-header'), 'backgroundColor', palettes[theme].surface);
+        await expectStyle(page.locator('.public-header'), 'backgroundColor', palettes[theme].background);
         const download = page.getByTitle('Download file', { exact: true });
         await download.hover();
         await expectStyle(download, 'backgroundColor', palettes[theme].border, 'Public file actions use the theme hover surface');
         await page.screenshot({ path: path.join(temp, `${width}-${theme}-public.png`) });
         await checkPage(page);
         assert.deepEqual(badAssets, [], 'All stylesheets and scripts must load locally');
+        assert.deepEqual(pageErrors, [], 'No JavaScript initialization or interaction errors');
         await context.close();
         console.log(`PASS: ${width}px ${theme}: login, settings, native controls, editor, Markdown, RTL, public page`);
       }
