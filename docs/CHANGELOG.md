@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - See which editor is active, including when Snipo falls back to Ace.
 
 ### Fixed
+- Close the browser save dialog with Escape and return focus to its save button.
+- Keep VS Code’s status indicator matched to the latest connection settings.
+- Return to the same snippet and file after closing Help in Snippy.
 - Save snippets from browser pages whose titles exceed 200 characters.
 - Refresh VS Code’s sidebar lists after creating, updating, or deleting snippets.
 - Keep programming-language suggestions out of Snippy’s API-key field.

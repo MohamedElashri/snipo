@@ -124,3 +124,13 @@ test('long page titles produce valid automatic snippet titles',async({page,conte
   await page.goto('https://code.test/title');await page.locator('.snipo-btn').click();
   await expect.poll(()=>bg.evaluate(()=>self.savedTitle&&Array.from(self.savedTitle).length)).toBe(200);
 });
+
+test('Escape closes the save dialog and returns focus to its button',async({page,context,extensionId})=>{
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await bg.evaluate(async()=>{await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'test',interactiveMode:true});self.fetch=async()=>Response.json({data:[]})});
+  await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<pre><code>sample</code></pre>'}));
+  await page.goto('https://code.test/escape');await page.locator('.snipo-btn').click();
+  await page.locator('#snipo-title').focus();await page.keyboard.press('Escape');
+  await expect(page.locator('.snipo-modal-overlay')).toHaveCount(0);
+  await expect(page.locator('.snipo-btn')).toBeFocused();
+});

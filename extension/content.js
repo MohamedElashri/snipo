@@ -193,7 +193,7 @@ function initiateSaveFlow(code, language, title, btn) {
                 code: code,
                 language: language,
                 title: title
-            });
+            }, btn);
         } else {
             // Quick Save
             if (btn) btn.textContent = '...';
@@ -220,7 +220,7 @@ function initiateSaveFlow(code, language, title, btn) {
 // --- MODAL LOGIC ---
 
 let modalOpen = false;
-async function showModal(snippetData) {
+async function showModal(snippetData, returnFocus = document.activeElement) {
     if (modalOpen) return;
     modalOpen = true;
     // 1. Fetch Tags and Folders in parallel
@@ -447,9 +447,21 @@ async function showModal(snippetData) {
     // Event Listeners
     const close = () => {
         modalOpen = false;
+        document.removeEventListener('keydown', onDialogKeyDown, true);
         overlay.classList.remove('visible');
+        if (returnFocus?.isConnected) returnFocus.focus();
         setTimeout(() => overlay.remove(), 200);
     };
+
+    const onDialogKeyDown = event => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            close();
+        }
+    };
+    document.addEventListener('keydown', onDialogKeyDown, true);
+    titleInput.focus();
 
     const suggestionsBox = overlay.querySelector('#snipo-tag-suggestions');
 

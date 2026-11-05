@@ -151,3 +151,15 @@ func TestLanguageMetadataDoesNotAutocompleteAPIKey(t *testing.T) {
 		t.Fatal("API key field acquired language suggestions")
 	}
 }
+
+func TestHelpReturnsToSelectedSnippet(t *testing.T) {
+	for _, key := range []tea.KeyMsg{{Type: tea.KeyRunes, Runes: []rune{'?'}}, {Type: tea.KeyEsc}} {
+		m := Model{mode: ViewDetail, selectedFileIdx: 1, detailScroll: 12, detailSnippet: &api.Snippet{ID: "keep"}}
+		next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'?'}})
+		next, _ = next.(Model).Update(key)
+		got := next.(Model)
+		if got.mode != ViewDetail || got.selectedFileIdx != 1 || got.detailScroll != 12 || got.detailSnippet.ID != "keep" {
+			t.Fatalf("help lost position: %+v", got)
+		}
+	}
+}

@@ -29,13 +29,14 @@ const (
 )
 
 type Model struct {
-	client  *api.Client
-	config  *config.Config
-	mode    ViewMode
-	width   int
-	height  int
-	err     error
-	message string
+	client         *api.Client
+	config         *config.Config
+	mode           ViewMode
+	helpReturnMode ViewMode
+	width          int
+	height         int
+	err            error
+	message        string
 
 	snippets    []api.Snippet
 	selectedIdx int
@@ -226,6 +227,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.quitting = true
 			return m, tea.Quit
 
+		case "esc":
+			if m.mode == ViewHelp {
+				m.mode = m.helpReturnMode
+				return m, nil
+			}
 		case "q":
 			if m.mode == ViewList || m.mode == ViewDetail || m.mode == ViewHelp {
 				m.quitting = true
@@ -237,9 +243,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break
 			}
 			if m.mode != ViewHelp {
+				m.helpReturnMode = m.mode
 				m.mode = ViewHelp
 			} else {
-				m.mode = ViewList
+				m.mode = m.helpReturnMode
 			}
 			return m, nil
 		}

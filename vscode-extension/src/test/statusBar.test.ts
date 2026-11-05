@@ -41,4 +41,16 @@ suite('StatusBar Test Suite', () => {
         assert.strictEqual(statusBarItem.command, 'snipo.searchAndInsert');
         assert.strictEqual(statusBarItem.show.calledOnce, true);
     });
+    test('a slow earlier configuration check cannot overwrite the latest status',async()=>{
+        let earlier!: (configured:boolean)=>void;
+        const configured=sinon.stub(api,'isConfigured');
+        configured.onFirstCall().returns(new Promise(resolve=>{earlier=resolve}));
+        configured.onSecondCall().resolves(true);
+        const bar=new SnipoStatusBar(mockContext);
+        await bar.update();
+        earlier(false);await new Promise(resolve=>setTimeout(resolve,0));
+        assert.strictEqual(createStatusBarItemStub.returnValues[0].text,'$(repo) Snipo');
+        bar.dispose();
+    });
+
 });
