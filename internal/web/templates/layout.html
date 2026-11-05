@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{.Title}} - Snipo</title>
     
+    <!-- Hide Alpine-controlled content before stylesheets or JavaScript load. -->
+    <style>[x-cloak] { display: none !important; }</style>
+
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{.BasePath}}/static/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="{{.BasePath}}/static/favicon-32x32.png">

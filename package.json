@@ -2,7 +2,8 @@
   "name": "snipo-monorepo",
   "private": true,
   "scripts": {
-    "test:web": "node scripts/test-web-styles.cjs"
+    "test:web": "node scripts/test-web-styles.cjs",
+    "test:frontend": "node --test tests/frontend/*.test.mjs"
   },
   "workspaces": [
     "packages/*",

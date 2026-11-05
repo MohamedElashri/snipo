@@ -10,9 +10,32 @@ export const editorMixin = {
   // This file contains editor-related methods and state
   // Methods: viewSnippet, editSnippet, newSnippet, saveSnippet, startEditing, cancelEditing, etc.
 
+  saveState: 'idle',
+  saving: false,
+  viewRequest: 0,
+
+  preserveDraft() {
+    if (this.isEditing) {
+      clearTimeout(this.autoSaveTimeout);
+      this.saveDraft();
+      if (this.saveState === 'local') {
+        this.hasDraft = true;
+        this.draftSnippet = JSON.parse(JSON.stringify(this.editingSnippet));
+      }
+    }
+  },
+
   async viewSnippet(snippet) {
-    const result = await api.get(`/api/v1/snippets/${snippet.id}`);
-    if (result) {
+    if (this.saving) return;
+    this.preserveDraft();
+    this.showSettings = false;
+    const request = ++this.viewRequest;
+    let result;
+    try { result = await api.get(`/api/v1/snippets/${snippet.id}`); }
+    catch { showToast('Could not open snippet. Try again.', 'error'); return; }
+    if (result && !result.error && request === this.viewRequest) {
+      this.destroyAceEditor();
+      this.saveState = 'saved';
       this.editingSnippet = {
         ...result,
         expires_at: this.resolveToShorthand(result.expires_at),
@@ -32,6 +55,12 @@ export const editorMixin = {
   },
 
   newSnippet() {
+    if (this.saving) return;
+    this.preserveDraft();
+    ++this.viewRequest;
+    this.destroyAceEditor();
+    this.saveState = 'idle';
+    this.showSettings = false;
     // Calculate default expiration if auto-archive is enabled and default days is set
     let defaultExpires = '';
     if (this.settings?.auto_archive_enabled && this.settings?.default_expiration_days > 0) {
@@ -115,30 +144,33 @@ export const editorMixin = {
   },
 
   cancelEditing() {
+    if (this.saving) return;
+    this.preserveDraft();
     this.isEditing = false;
     if (this.editingSnippet?.id) {
       this.viewSnippet(this.editingSnippet);
     } else {
       this.showEditor = false;
-      this.editingSnippet = null;
+      this.resetEditingSnippet();
       this.updateUrl({ snippet: null, edit: null });
     }
   },
 
   async saveSnippet() {
-    if (this.isSaving) return;
-
-    this.isSaving = true;
-
+    if (this.saving) return;
+    if (!this.editingSnippet.title?.trim()) {
+      showToast('Give this snippet a title before saving.', 'warning');
+      document.querySelector('.editor-title-input')?.focus();
+      return;
+    }
+    this.saving = true;
+    this.saveState = 'saving';
+    clearTimeout(this.autoSaveTimeout);
     try {
       if (this.aceEditor) {
-        if (this.editingSnippet.files && this.editingSnippet.files.length > 0 && this.syncCurrentContent) {
-          this.syncCurrentContent();
-        } else {
-          this.editingSnippet.content = this.aceEditor.getValue();
-        }
+        if (this.editingSnippet.files?.length && this.syncCurrentContent) this.syncCurrentContent();
+        else this.editingSnippet.content = this.aceEditor.getValue();
       }
-
       let folderId = this.editingSnippet.folder_id;
       if (folderId === '' || folderId === null || folderId === undefined) {
         folderId = null;
@@ -194,15 +226,19 @@ export const editorMixin = {
         const shouldSyncToGist = this.editingSnippet.sync_to_gist;
 
         showToast(wasUpdate ? 'Snippet updated' : 'Snippet created');
-        this.showEditor = false;
         this.isEditing = false;
+        this.saveState = 'saved';
         this.destroyAceEditor();
-        this.resetEditingSnippet();
         this.clearDraft();
-        this.updateUrl({});
-        await this.loadSnippets();
-        await this.loadTags();
-        await this.loadFavoritesCount();
+        this.hasDraft = false;
+        this.draftSnippet = null;
+        // Keep the saved snippet open, with the library context intact.
+        this.editingSnippet = { ...this.editingSnippet, ...result,
+          tags: (result.tags || []).map(t => typeof t === 'string' ? t : t.name),
+          folder_id: result.folders?.[0]?.id || folderId };
+        this.updateUrl({ snippet: snippetId });
+        this.$nextTick(() => this.highlightAll());
+        await Promise.allSettled([this.loadSnippets(), this.loadTags(), this.loadFavoritesCount(), this.loadTotalCount()]);
 
         // Auto-sync to gist if sync is enabled for this snippet
         if (wasUpdate && snippetId && this.isGistSyncEnabled && this.isGistSyncEnabled(snippetId)) {
@@ -212,23 +248,27 @@ export const editorMixin = {
             this.enableGistSyncForSnippet(snippetId);
           }
         }
-      } else if (result?.error) {
-        showToast(result.error.message || 'Error saving snippet', 'error');
+      } else {
+        throw new Error(result?.error?.message || 'Could not save. Check your connection and try again.');
       }
-    } catch (err) {
-      console.error('Failed to save snippet:', err);
-      showToast('Error saving snippet', 'error');
+    } catch (error) {
+      this.saveDraft();
+      this.saveState = 'error';
+      showToast(error.message || 'Could not save snippet', 'error');
     } finally {
-      this.isSaving = false;
+      this.saving = false;
     }
   },
 
   cancelEdit() {
+    if (this.saving) return;
+    this.preserveDraft();
+    ++this.viewRequest;
     this.showEditor = false;
     this.isEditing = false;
     this.destroyAceEditor();
     this.resetEditingSnippet();
-    this.clearDraft();
+    this.editorExpanded = false;
 
     if (this.filter.folderId) {
       this.updateUrl({ folder: this.filter.folderId });
@@ -302,14 +342,14 @@ export const editorMixin = {
       this.loadFavoritesCount()
     ]);
 
-    this.totalSnippets = this.snippets.length;
+    await this.loadTotalCount();
   },
 
   async restoreSnippet(snippet) {
     const result = await api.post(`/api/v1/snippets/${snippet.id}/restore`);
     if (result) {
       showToast('Snippet restored');
-      await this.loadSnippets();
+      await Promise.all([this.loadSnippets(), this.loadTotalCount()]);
     }
   },
 
@@ -325,15 +365,15 @@ export const editorMixin = {
     const result = await api.post(`/api/v1/snippets/${snippet.id}/duplicate`);
     if (result && !result.error) {
       showToast('Snippet duplicated');
-      await this.loadSnippets();
+      await Promise.all([this.loadSnippets(), this.loadTotalCount()]);
     }
   },
 
   async copyToClipboard(snippet) {
     try {
       // Get content from either legacy content field or first file
-      let contentToCopy = snippet.content || '';
-      if (!contentToCopy && snippet.files && snippet.files.length > 0) {
+      let contentToCopy = snippet === this.editingSnippet ? this.activeFile.content : snippet.content || '';
+      if (snippet !== this.editingSnippet && !contentToCopy && snippet.files && snippet.files.length > 0) {
         contentToCopy = snippet.files[0].content || '';
       }
 
@@ -360,10 +400,10 @@ export const editorMixin = {
       }
 
       // Get content from either legacy content field or first file
-      let content = snippet.content || '';
-      let language = snippet.language || 'plaintext';
+      let content = snippet === this.editingSnippet ? this.activeFile.content : snippet.content || '';
+      let language = snippet === this.editingSnippet ? this.activeFile.language : snippet.language || 'plaintext';
 
-      if (!content && snippet.files && snippet.files.length > 0) {
+      if (snippet !== this.editingSnippet && !content && snippet.files && snippet.files.length > 0) {
         content = snippet.files[0].content || '';
         language = snippet.files[0].language || language;
       }
@@ -418,7 +458,7 @@ export const editorMixin = {
       return;
     }
     try {
-      const shareUrl = `${window.location.origin}/s/${snippet.id}`;
+      const shareUrl = `${window.location.origin}${window.SNIPO_CONFIG?.basePath || ''}/s/${snippet.id}`;
       await navigator.clipboard.writeText(shareUrl);
       showToast('Share link copied to clipboard');
     } catch (err) {
@@ -519,7 +559,7 @@ export const editorMixin = {
       }
 
       try {
-        ace.config.set('basePath', '/static/vendor/js/ace');
+        ace.config.set('basePath', (window.SNIPO_CONFIG?.basePath || '') + '/static/vendor/js/ace');
 
         if (!container.id) {
           container.id = 'ace-editor-' + Date.now();

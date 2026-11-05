@@ -18,7 +18,7 @@ function isArabicText(text) {
 
 export function initPublicSnippet(Alpine) {
   Alpine.data('publicSnippet', () => ({
-    snippet: null,
+    snippet: { title: '', description: '', tags: [], files: [], is_public: false },
     loading: true,
     error: false,
     errorMessage: '',
@@ -27,7 +27,7 @@ export function initPublicSnippet(Alpine) {
 
     async init() {
       const path = window.location.pathname;
-      const match = path.match(/\/s\/([a-zA-Z0-9]+)/);
+      const match = path.match(/\/s\/([a-zA-Z0-9_-]+)\/?$/);
 
       if (!match) {
         this.error = true;
@@ -42,7 +42,7 @@ export function initPublicSnippet(Alpine) {
       await this.checkAuth();
 
       try {
-        const response = await fetch(`/api/v1/snippets/public/${snippetId}`);
+        const response = await fetch(`${window.SNIPO_CONFIG?.basePath || ''}/api/v1/snippets/public/${snippetId}`);
         const json = await response.json();
 
         // Handle error response format: { error: { code, message } }
@@ -98,7 +98,7 @@ export function initPublicSnippet(Alpine) {
 
     async checkAuth() {
       try {
-        const response = await fetch('/api/v1/auth/check', {
+        const response = await fetch((window.SNIPO_CONFIG?.basePath || '') + '/api/v1/auth/check', {
           credentials: 'include'
         });
         const json = await response.json();
@@ -117,7 +117,7 @@ export function initPublicSnippet(Alpine) {
       const newPublicState = !this.snippet.is_public;
       
       try {
-        const response = await fetch(`/api/v1/snippets/${this.snippet.id}`, {
+        const response = await fetch(`${window.SNIPO_CONFIG?.basePath || ''}/api/v1/snippets/${this.snippet.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -214,7 +214,7 @@ export function initPublicSnippet(Alpine) {
 
     async copyFileUrl() {
       const filename = sanitizeFilename(this.getCurrentFilename());
-      const fileUrl = `${window.location.origin}/api/v1/snippets/public/${this.snippet.id}/files/${encodeURIComponent(filename)}`;
+      const fileUrl = `${window.location.origin}${window.SNIPO_CONFIG?.basePath || ''}/api/v1/snippets/public/${this.snippet.id}/files/${encodeURIComponent(filename)}`;
       
       await navigator.clipboard.writeText(fileUrl);
       showToast('File URL copied to clipboard');

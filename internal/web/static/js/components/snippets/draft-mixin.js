@@ -1,3 +1,5 @@
+import { showToast } from '../../modules/toast.js';
+
 // Draft mixin - auto-save functionality
 export const draftMixin = {
   hasDraft: false,
@@ -17,7 +19,12 @@ export const draftMixin = {
       snippet: { ...this.editingSnippet },
       savedAt: new Date().toISOString()
     };
-    localStorage.setItem('snipo-draft', JSON.stringify(draft));
+    try {
+      localStorage.setItem('snipo-draft', JSON.stringify(draft));
+      this.saveState = 'local';
+    } catch {
+      this.saveState = 'local-error';
+    }
   },
 
   loadDraft() {
@@ -53,6 +60,8 @@ export const draftMixin = {
   },
 
   restoreDraft() {
+    if (this.saving) return;
+    this.showSettings = false;
     if (this.draftSnippet) {
       this.editingSnippet = { ...this.draftSnippet };
       this.activeFileIndex = 0;
@@ -65,7 +74,8 @@ export const draftMixin = {
       this.showEditor = true;
       this.isEditing = true;
       this.hasDraft = false;
-      this.clearDraft();
+      this.saveState = 'local';
+      this.updateUrl({ snippet: this.editingSnippet.id, edit: true });
       showToast('Draft restored');
       this.$nextTick(() => {
         this.updateAceEditor();
@@ -82,10 +92,12 @@ export const draftMixin = {
   },
 
   clearDraft() {
-    localStorage.removeItem('snipo-draft');
+    clearTimeout(this.autoSaveTimeout);
+    try { localStorage.removeItem('snipo-draft'); } catch { /* Storage may be disabled. */ }
   },
 
   scheduleAutoSave() {
+    this.saveState = 'unsaved';
     if (this.autoSaveTimeout) {
       clearTimeout(this.autoSaveTimeout);
     }

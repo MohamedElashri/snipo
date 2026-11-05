@@ -111,6 +111,11 @@ func (h *SnippetHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.URL.Query().Get("view") == "summary" {
+		SuccessList(w, r, summarizeSnippets(result.Data, filter.Query), result.Pagination.Page, result.Pagination.Limit, result.Pagination.Total)
+		return
+	}
+
 	// Use SuccessList to include pagination metadata
 	SuccessList(w, r, result.Data, result.Pagination.Page, result.Pagination.Limit, result.Pagination.Total)
 }
