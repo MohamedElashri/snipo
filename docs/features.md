@@ -99,8 +99,8 @@ Snipo uses Ace and keeps your code.
 Snipo also supports Markdown preview, custom CSS, and right-to-left text.
 Custom CSS examples are in the [customization guide](customization.md).
 
-RTL direction is selected from the text content. Mixed technical text uses the
-browser's bidirectional layout rather than changing the stored snippet.
+Ace and CodeMirror adapt text direction to the content. Monaco keeps its standard
+code layout. Text is saved as entered, including Arabic and mixed-language text.
 
 ## Keyboard shortcuts
 
