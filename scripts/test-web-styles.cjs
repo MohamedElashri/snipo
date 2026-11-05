@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 // Browser regression checks for the shared CSS, using the existing Playwright workspace dependency.
-// Run with npm run test:web (requires Go and Playwright's Chromium installed).
+// Run with npm run test:web; SNIPO_TEST_BROWSER can select chromium, firefox, or webkit.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const net = require('node:net');
 const { spawn, execFileSync } = require('node:child_process');
-const { chromium } = require('playwright');
+const { chromium, firefox, webkit } = require('playwright');
+const browserName = process.env.SNIPO_TEST_BROWSER || 'chromium';
+const browserType = { chromium, firefox, webkit }[browserName];
+assert.ok(browserType, `Unsupported browser: ${browserName}`);
 
 const root = path.resolve(__dirname, '..');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'snipo-web-styles-'));
@@ -99,7 +102,7 @@ async function checkPage(page) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     assert.ok(ready, `Server did not start. See ${temp}/server.log`);
-    browser = await chromium.launch({ headless: true });
+    browser = await browserType.launch({ headless: true });
 
     for (const width of [1440, 390]) {
       for (const theme of ['light', 'dark']) {
@@ -379,7 +382,7 @@ async function checkPage(page) {
           await fallback.close();
         }
         await context.close();
-        console.log(`PASS: ${width}px ${theme}: login, settings, native controls, editor, Markdown, RTL, public page`);
+        console.log(`PASS: ${browserName} ${width}px ${theme}: login, settings, native controls, editor, Markdown, RTL, public page`);
       }
     }
   } finally {
