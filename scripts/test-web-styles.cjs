@@ -77,13 +77,14 @@ async function checkPage(page) {
     const binary = path.join(temp, 'snipo');
     execFileSync('go', ['build', '-o', binary, './cmd/server'], { cwd: root, stdio: 'inherit' });
     const port = await freePort();
-    const origin = `http://127.0.0.1:${port}`;
+    const basePath = process.env.SNIPO_TEST_BASE_PATH || '';
+    const origin = `http://127.0.0.1:${port}${basePath}`;
     const log = fs.openSync(path.join(temp, 'server.log'), 'a');
     server = spawn(binary, ['serve'], {
       cwd: temp,
       env: { ...process.env, SNIPO_HOST: '127.0.0.1', SNIPO_PORT: String(port),
         SNIPO_DB_PATH: path.join(temp, 'test.db'), SNIPO_MASTER_PASSWORD: password,
-        SNIPO_DISABLE_AUTH: 'false', SNIPO_DEMO_MODE: 'false', SNIPO_BASE_PATH: '',
+        SNIPO_DISABLE_AUTH: 'false', SNIPO_DEMO_MODE: 'false', SNIPO_BASE_PATH: basePath,
         SNIPO_SESSION_SECRET: 'web-styles-test-session-secret',
         SNIPO_ENCRYPTION_SALT: 'web-styles-test-encryption-salt' },
       stdio: ['ignore', log, log]
@@ -109,7 +110,11 @@ async function checkPage(page) {
         page.on('pageerror', error => { pageErrors.push(error.message); console.error(page.url(), error.stack); });
         page.on('console', message => { if (message.type() === 'warning' && message.text().includes('Alpine')) console.error(message.text()); });
         page.on('response', response => {
-          if (response.url().includes('/static/') && !response.ok()) badAssets.push(response.url());
+          if (response.url().includes('/static/')) {
+            if (!response.ok() || !/\/static\/v\/[a-f0-9]{64}\//.test(new URL(response.url()).pathname)) {
+              badAssets.push(response.url());
+            }
+          }
         });
         await page.addInitScript(theme => {
           if (!localStorage.getItem('snipo-theme')) localStorage.setItem('snipo-theme', theme);

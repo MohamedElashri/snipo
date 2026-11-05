@@ -26,9 +26,9 @@ export const theme = {
     const prismLink = document.getElementById('prism-theme');
     if (prismLink) {
       if (themeName === 'dark') {
-        prismLink.href = (window.SNIPO_CONFIG?.basePath || '') + '/static/vendor/css/prism-tomorrow.min.css';
+        prismLink.href = window.SNIPO_CONFIG.assetBasePath + '/vendor/css/prism-tomorrow.min.css';
       } else {
-        prismLink.href = (window.SNIPO_CONFIG?.basePath || '') + '/static/vendor/css/prism.min.css';
+        prismLink.href = window.SNIPO_CONFIG.assetBasePath + '/vendor/css/prism.min.css';
       }
     }
   },

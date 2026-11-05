@@ -4,11 +4,9 @@ import (
 	"context"
 	"embed"
 	"html/template"
-	"io/fs"
 	"net/http"
 	"net/url"
 	"path/filepath"
-	"strings"
 
 	"github.com/MohamedElashri/snipo/internal/auth"
 	"github.com/MohamedElashri/snipo/internal/repository"
@@ -60,31 +58,14 @@ func (h *Handler) WithBasePath(basePath string) *Handler {
 	return h
 }
 
-// StaticHandler returns a handler for static files
-func StaticHandler(basePath string) http.Handler {
-	staticContent, _ := fs.Sub(staticFS, "static")
-	prefix := basePath + "/static/"
-
-	fileServer := http.StripPrefix(prefix, http.FileServer(http.FS(staticContent)))
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Prevent aggressive caching of static assets (JS/CSS) across deployments
-		// by forcing the browser to revalidate with the server using ETags/Last-Modified
-		if strings.HasSuffix(r.URL.Path, ".js") || strings.HasSuffix(r.URL.Path, ".css") {
-			w.Header().Set("Cache-Control", "no-cache, must-revalidate")
-		}
-
-		fileServer.ServeHTTP(w, r)
-	})
-}
-
 // PageData holds data passed to templates
 type PageData struct {
-	Title        string
-	DemoMode     bool
-	BasePath     string
-	Version      string
-	AuthDisabled bool
+	AssetBasePath string
+	Title         string
+	DemoMode      bool
+	BasePath      string
+	Version       string
+	AuthDisabled  bool
 }
 
 // Index serves the main application page
@@ -156,7 +137,8 @@ func (h *Handler) PublicSnippet(w http.ResponseWriter, r *http.Request) {
 }
 
 // render renders a template with layout
-func (h *Handler) render(w http.ResponseWriter, layout, content string, data interface{}) {
+func (h *Handler) render(w http.ResponseWriter, layout, content string, data PageData) {
+	data.AssetBasePath = data.BasePath + "/static/v/" + assetVersion
 	// Create a new template that combines layout, content, and components
 	tmpl, err := template.ParseFS(templatesFS,
 		filepath.Join("templates", layout),

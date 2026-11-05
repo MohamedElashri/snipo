@@ -15,7 +15,7 @@ func TestEmbeddedPagesRender(t *testing.T) {
 			if recorder.Code != 200 || strings.Contains(recorder.Body.String(), "Template execute error") {
 				t.Fatalf("render failed: %s", recorder.Body.String())
 			}
-			if !strings.Contains(recorder.Body.String(), `/snipo/static/css/main.css`) {
+			if !strings.Contains(recorder.Body.String(), `/snipo/static/v/`+assetVersion+`/css/main.css`) {
 				t.Fatal("assets must respect the deployment base path")
 			}
 			if page == "index.html" && !strings.Contains(recorder.Body.String(), `class="settings-page"`) {

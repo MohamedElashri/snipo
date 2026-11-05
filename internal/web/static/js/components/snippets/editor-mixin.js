@@ -559,7 +559,7 @@ export const editorMixin = {
       }
 
       try {
-        ace.config.set('basePath', (window.SNIPO_CONFIG?.basePath || '') + '/static/vendor/js/ace');
+        ace.config.set('basePath', window.SNIPO_CONFIG.assetBasePath + '/vendor/js/ace');
 
         if (!container.id) {
           container.id = 'ace-editor-' + Date.now();

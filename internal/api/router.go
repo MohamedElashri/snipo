@@ -329,7 +329,8 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		webHandler = webHandler.WithDemoMode(cfg.Config.Demo.Enabled).WithBasePath(cfg.BasePath)
 
 		// Static files
-		r.Handle("/static/*", web.StaticHandler(cfg.BasePath))
+		// Mount strips the deployment base path before this router receives requests.
+		r.Handle("/static/*", web.StaticHandler(""))
 
 		// Web pages
 		r.Get("/", webHandler.Index)
