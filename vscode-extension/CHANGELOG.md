@@ -2,7 +2,7 @@
 
 All notable changes to the "snipo" extension will be documented in this file.
 
-## [2.1.0] - Unreleased
+## [2.1.0] - 2026-11-05
 
 - Fix opening and saving snippets so their contents are returned correctly.
 - Keep search results matched to your latest query, even on slow connections.

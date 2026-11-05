@@ -5,10 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.1.1] - Unreleased
 
 ### Fixed
 - Prevent outdated cached styles and scripts from breaking the web interface after an update.
+- Fix styles, fonts, and editor assets when Snipo is hosted under a URL subpath.
+- Use Cards as the default view while remembering your last Cards, List, or Compact choice.
+- Hide tag labels in Cards view to keep dates and card controls aligned.
 
 ## [2.1.0] - 2026-11-05
 
