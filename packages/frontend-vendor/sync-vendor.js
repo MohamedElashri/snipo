@@ -109,6 +109,7 @@ function expectedPaths() {
 
 // ── Sync ────────────────────────────────────────────────────────────────
 function sync() {
+  require('./build-editors.cjs');
   let ok = true;
   for (const [subdir, files] of Object.entries(vendorConfig)) {
     const targetDir = path.join(VENDOR_DIR, subdir);
@@ -163,7 +164,7 @@ function cleanup() {
           fs.rmdirSync(full);
           console.log(`  REMOVED  ${rel}/`);
         }
-      } else if (!expected.has(rel)) {
+      } else if (!rel.startsWith('editors' + path.sep) && !expected.has(rel)) {
         fs.unlinkSync(full);
         console.log(`  REMOVED  ${rel}`);
         removed++;

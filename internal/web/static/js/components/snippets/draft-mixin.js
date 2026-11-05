@@ -78,7 +78,7 @@ export const draftMixin = {
       this.updateUrl({ snippet: this.editingSnippet.id, edit: true });
       showToast('Draft restored');
       this.$nextTick(() => {
-        this.updateAceEditor();
+        this.updateCodeEditor();
         this.highlightAll();
       });
     }

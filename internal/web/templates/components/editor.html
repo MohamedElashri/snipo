@@ -337,9 +337,10 @@
                     </button>
                 </div>
 
-                <!-- Code editor (Ace Editor) -->
+                <!-- Selected code editor -->
                 <div class="code-editor-wrapper">
-                    <div id="code-editor" x-ref="codeEditor" class="ace-editor-container"></div>
+                    <div x-show="editorLoading" class="editor-loading" role="status">Loading editor…</div>
+                    <div id="code-editor" x-ref="codeEditor" class="code-editor-container"></div>
                 </div>
             </div>
 

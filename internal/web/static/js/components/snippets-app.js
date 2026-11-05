@@ -1,3 +1,4 @@
+import { readEditorPreference } from '../modules/editors/index.js';
 // Snippets App Alpine component
 import { api } from '../modules/api.js';
 import { showToast } from '../modules/toast.js';
@@ -13,7 +14,6 @@ import {
   isArabicText
 } from '../utils/helpers.js';
 import {
-  getAceMode,
   getFileExtension,
   detectLanguageFromFilename
 } from '../utils/ace-utils.js';
@@ -95,16 +95,22 @@ export function initSnippetsApp(Alpine) {
     foldersCollapsed: false,
     tagsCollapsed: false,
 
-    aceEditor: null,
-    aceIgnoreChange: false,
+    codeEditor: null,
+    editorEngine: readEditorPreference(),
+    activeEditorEngine: 'ace',
+    editorRequest: 0,
+    editorLoading: false,
+    editorIgnoreChange: false,
     settings: { archive_enabled: false, history_enabled: true, trash_enabled: true },
 
     // Lifecycle
     async init() {
+      this._editorTheme = () => this.applyEditorSettings();
+      window.addEventListener('snipo-theme-change', this._editorTheme);
       this._beforeUnload = () => this.saveDraft();
       window.addEventListener('beforeunload', this._beforeUnload);
       this.$nextTick(() => {
-        this._editorResize = new ResizeObserver(() => this.aceEditor?.resize());
+        this._editorResize = new ResizeObserver(() => this.codeEditor?.resize());
         const editor = this.$root.querySelector('.editor-container');
         if (editor) this._editorResize.observe(editor);
       });
@@ -132,10 +138,11 @@ export function initSnippetsApp(Alpine) {
 
     destroy() {
       this._editorResize?.disconnect();
+      window.removeEventListener('snipo-theme-change', this._editorTheme);
       window.removeEventListener('beforeunload', this._beforeUnload);
       window.removeEventListener('popstate', this._popstate);
       clearTimeout(this.autoSaveTimeout);
-      this.destroyAceEditor();
+      this.destroyCodeEditor();
     },
 
     // Sidebar resize functionality
@@ -383,7 +390,7 @@ export function initSnippetsApp(Alpine) {
       this.restoringUrl = true;
       try {
         this.preserveDraft();
-        this.destroyAceEditor();
+        this.destroyCodeEditor();
         const params = new URLSearchParams(window.location.search);
         this.filter = {
           query: params.get('q') || '', language: params.get('language') || '',
@@ -506,7 +513,6 @@ export function initSnippetsApp(Alpine) {
     getLanguageColor,
     autoResizeInput,
     autoResizeTextarea,
-    getAceMode,
     getFileExtension,
     detectLanguageFromFilename,
     isArabicText,

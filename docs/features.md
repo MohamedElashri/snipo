@@ -81,8 +81,22 @@ Removing a mapping stops synchronization; it does not delete either copy.
 
 ## Appearance and editing
 
-Snipo supports light, dark, and automatic UI themes, configurable Ace editor
-themes and behavior, Markdown preview, custom CSS, and right-to-left text.
+Choose **Ace**, **CodeMirror 6**, or **Monaco** in **Settings → Editor → Code editor**.
+Ace remains the default. Your choice is remembered in this browser, and switching
+keeps unsaved code and local drafts. All three support multi-file snippets,
+syntax highlighting, search, font size, line numbers, tabs, wrapping, and
+Ctrl/Cmd+S to save. Switching editors or files starts a fresh undo history.
+
+CodeMirror offers a compact editor; Monaco adds a VS Code-style experience with
+JavaScript/TypeScript, JSON, HTML, and CSS language assistance. Both follow the
+app’s light/dark theme. Ace also offers its existing named editor themes;
+indent guides and print margins are available in Ace and Monaco.
+
+Editor assets and language workers are served by your own Snipo instance.
+CodeMirror and Monaco load only when selected. If a selected editor cannot load,
+Snipo uses Ace and keeps your code.
+
+Snipo also supports Markdown preview, custom CSS, and right-to-left text.
 Custom CSS examples are in the [customization guide](customization.md).
 
 RTL direction is selected from the text content. Mixed technical text uses the

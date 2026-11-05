@@ -13,7 +13,7 @@ initSnippetsApp({ data: (_, fn) => { factory = fn; } });
 function app() {
   const instance = factory();
   instance.$nextTick = () => {};
-  instance.destroyAceEditor = () => {};
+  instance.destroyCodeEditor = () => {};
   return instance;
 }
 beforeEach(() => { storage.clear(); window.location = new URL('http://localhost/snipo/'); });
@@ -223,12 +223,12 @@ test('layout choices persist independently of filters and restore on reload', ()
   assert.equal(state.viewMode, 'list');
 });
 
-test('save synchronizes the active Ace buffer before sending files and rejects duplicate saves', async () => {
+test('save synchronizes the active editor buffer before sending files and rejects duplicate saves', async () => {
   const state = app();
   state.isEditing = state.showEditor = true;
   state.editingSnippet.title = 'Buffer sync';
-  state.aceEditor = { getValue: () => 'latest code' };
-  state.syncCurrentContent = () => { state.editingSnippet.files[0].content = state.aceEditor.getValue(); };
+  state.codeEditor = { getValue: () => 'latest code' };
+  state.syncCurrentContent = () => { state.editingSnippet.files[0].content = state.codeEditor.getValue(); };
   let finish, requests = 0;
   api.post = async (_path, body) => {
     requests++;
@@ -252,4 +252,39 @@ test('missing or invalid layout preferences default to Cards', () => {
     assert.equal(app().viewMode, 'grid');
     assert.equal(app().density, 'comfortable');
   }
+});
+
+test('editor preference is remembered and unknown choices safely default to Ace', async () => {
+  for (const engine of ['ace', 'codemirror', 'monaco']) {
+    const state = app();
+    state.isEditing = false;
+    await state.changeEditor(engine);
+    assert.equal(app().editorEngine, engine);
+  }
+  storage.set('snipo-editor', 'unsupported');
+  assert.equal(app().editorEngine, 'ace');
+});
+
+test('language changes during editor loading preserve the file content', () => {
+  const state = app();
+  state.editingSnippet = { files: [{ content: 'keep me', language: 'python' }] };
+  state.activeFileIndex = 0;
+  state.codeEditor = null;
+  state.scheduleAutoSave = () => {};
+  state.updateActiveFileLanguage('javascript');
+  assert.equal(state.editingSnippet.files[0].content, 'keep me');
+  assert.equal(state.editingSnippet.files[0].language, 'javascript');
+});
+
+test('switching editors synchronizes unsaved code and keeps a recoverable draft', async () => {
+  const state = app();
+  state.isEditing = true;
+  state.editingSnippet = { title: 'Draft', files: [{ filename: 'main.txt', content: 'old', language: 'plaintext' }] };
+  state.activeFileIndex = 0;
+  state.codeEditor = { getValue: () => 'unsaved code' };
+  state.updateCodeEditor = async () => {};
+  await state.changeEditor('monaco');
+  assert.equal(state.editingSnippet.files[0].content, 'unsaved code');
+  assert.equal(JSON.parse(storage.get('snipo-draft')).snippet.files[0].content, 'unsaved code');
+  assert.equal(storage.get('snipo-editor'), 'monaco');
 });

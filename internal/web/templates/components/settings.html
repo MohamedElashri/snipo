@@ -694,6 +694,17 @@
                 <h4>Editor Settings</h4>
                 <p class="text-sm text-muted">Customize the code editor appearance and behavior.</p>
 
+                <div class="editor-field">
+                    <label for="editor-engine">Code editor</label>
+                    <select id="editor-engine" :value="editorEngine" @change="changeEditor($event.target.value)">
+                        <option value="ace">Ace — classic editor</option>
+                        <option value="codemirror">CodeMirror 6 — compact and flexible</option>
+                        <option value="monaco">Monaco — VS Code-style editor</option>
+                    </select>
+                    <small class="text-muted">Remembered in this browser. Switching keeps your unsaved code.</small>
+                </div>
+                <p class="text-sm text-muted" x-show="editorEngine !== 'ace'">This editor follows the app’s light or dark theme.</p>
+
                 <!-- Visual Settings -->
                 <div style="margin-bottom: 1rem;">
                     <h5>Visual</h5>
@@ -722,8 +733,8 @@
                         </div>
 
                         <div class="editor-field">
-                            <label>Editor Theme</label>
-                            <select x-model="settings.editor_theme" @change="updateSettings(); applyEditorSettings()">
+                            <label>Editor Theme (Ace)</label>
+                            <select :disabled="editorEngine !== 'ace'" x-model="settings.editor_theme" @change="updateSettings(); applyEditorSettings()">
                                 <option value="auto">Auto (Follow App Theme)</option>
                                 <optgroup label="Light Themes">
                                     <option value="chrome">Chrome</option>
@@ -761,7 +772,7 @@
                         </label>
                     </div>
 
-                    <div class="editor-field">
+                    <div class="editor-field" x-show="editorEngine !== 'codemirror'">
                         <label class="checkbox-label">
                             <input type="checkbox" x-model="settings.editor_show_indent_guides"
                                 @change="updateSettings(); applyEditorSettings()">
@@ -769,7 +780,7 @@
                         </label>
                     </div>
 
-                    <div class="editor-field">
+                    <div class="editor-field" x-show="editorEngine !== 'codemirror'">
                         <label class="checkbox-label">
                             <input type="checkbox" x-model="settings.editor_show_print_margin"
                                 @change="updateSettings(); applyEditorSettings()">

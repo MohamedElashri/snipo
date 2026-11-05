@@ -1,5 +1,4 @@
 // Ace Editor utilities
-import { theme } from '../modules/theme.js';
 
 // Ace Editor language mode mapping
 export function getAceMode(language) {

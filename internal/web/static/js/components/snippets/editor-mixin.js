@@ -1,7 +1,7 @@
 // Editor mixin - handles snippet editing operations
 import { api } from '../../modules/api.js';
 import { showToast } from '../../modules/toast.js';
-import { getAceMode } from '../../utils/ace-utils.js';
+import { loadEditor, editorEngines } from '../../modules/editors/index.js';
 import { theme } from '../../modules/theme.js';
 import { isArabicText, isPredominantlyArabic, sanitizeHTML } from '../../utils/helpers.js';
 
@@ -34,7 +34,7 @@ export const editorMixin = {
     try { result = await api.get(`/api/v1/snippets/${snippet.id}`); }
     catch { showToast('Could not open snippet. Try again.', 'error'); return; }
     if (result && !result.error && request === this.viewRequest) {
-      this.destroyAceEditor();
+      this.destroyCodeEditor();
       this.saveState = 'saved';
       this.editingSnippet = {
         ...result,
@@ -58,7 +58,7 @@ export const editorMixin = {
     if (this.saving) return;
     this.preserveDraft();
     ++this.viewRequest;
-    this.destroyAceEditor();
+    this.destroyCodeEditor();
     this.saveState = 'idle';
     this.showSettings = false;
     // Calculate default expiration if auto-archive is enabled and default days is set
@@ -95,7 +95,7 @@ export const editorMixin = {
     this.updateUrl({ edit: true });
 
     this.$nextTick(() => {
-      this.updateAceEditor();
+      this.updateCodeEditor();
       const titleInput = document.querySelector('.editor-title-input');
       if (titleInput) {
         titleInput.focus();
@@ -122,7 +122,7 @@ export const editorMixin = {
       this.isEditing = true;
       this.updateUrl({ snippet: snippet.id, edit: true });
       this.$nextTick(() => {
-        this.updateAceEditor();
+        this.updateCodeEditor();
         this.highlightAll();
         this.updateTextDirection();
       });
@@ -137,7 +137,7 @@ export const editorMixin = {
       this.updateUrl({ snippet: this.editingSnippet.id, edit: true });
     }
     this.$nextTick(() => {
-      this.updateAceEditor();
+      this.updateCodeEditor();
       this.highlightAll();
       this.updateTextDirection();
     });
@@ -167,9 +167,9 @@ export const editorMixin = {
     this.saveState = 'saving';
     clearTimeout(this.autoSaveTimeout);
     try {
-      if (this.aceEditor) {
+      if (this.codeEditor) {
         if (this.editingSnippet.files?.length && this.syncCurrentContent) this.syncCurrentContent();
-        else this.editingSnippet.content = this.aceEditor.getValue();
+        else this.editingSnippet.content = this.codeEditor.getValue();
       }
       let folderId = this.editingSnippet.folder_id;
       if (folderId === '' || folderId === null || folderId === undefined) {
@@ -228,7 +228,7 @@ export const editorMixin = {
         showToast(wasUpdate ? 'Snippet updated' : 'Snippet created');
         this.isEditing = false;
         this.saveState = 'saved';
-        this.destroyAceEditor();
+        this.destroyCodeEditor();
         this.clearDraft();
         this.hasDraft = false;
         this.draftSnippet = null;
@@ -266,7 +266,7 @@ export const editorMixin = {
     ++this.viewRequest;
     this.showEditor = false;
     this.isEditing = false;
-    this.destroyAceEditor();
+    this.destroyCodeEditor();
     this.resetEditingSnippet();
     this.editorExpanded = false;
 
@@ -518,191 +518,83 @@ export const editorMixin = {
     }
   },
 
-  // Ace Editor management
-  updateAceEditor() {
+  async updateCodeEditor() {
     const container = this.$refs.codeEditor;
-    if (!container) return;
-
-    if (this.editingSnippet?.files?.length > 0 &&
-      (this.activeFileIndex < 0 || this.activeFileIndex >= this.editingSnippet.files.length)) {
-      this.activeFileIndex = 0;
+    if (!container || !this.isEditing) return;
+    const request = ++this.editorRequest;
+    this.editorLoading = true;
+    const selected = this.editorEngine;
+    let create;
+    let active = selected;
+    try {
+      create = await loadEditor(selected);
+    } catch (error) {
+      console.error('Editor loading failed:', error);
+      active = 'ace';
+      create = await loadEditor('ace');
+      if (request === this.editorRequest) showToast('Could not load the selected editor. Using Ace; your content is safe.', 'error');
     }
-
-    const content = (this.editingSnippet.files && this.editingSnippet.files.length > 0)
-      ? (this.activeFile?.content || '')
-      : (this.editingSnippet.content || '');
-
-    const language = (this.editingSnippet.files && this.editingSnippet.files.length > 0)
-      ? (this.activeFile?.language || 'javascript')
-      : (this.editingSnippet.language || 'javascript');
-
-    const aceMode = getAceMode(language);
-
-    // Determine theme based on settings
-    let aceTheme = 'ace/theme/chrome';
-    const editorTheme = this.settings?.editor_theme || 'auto';
-    if (editorTheme === 'auto') {
-      const isDark = theme.get() === 'dark';
-      aceTheme = isDark ? 'ace/theme/monokai' : 'ace/theme/chrome';
-    } else {
-      aceTheme = `ace/theme/${editorTheme}`;
-    }
-
-    // Check if content is predominantly Arabic for RTL support
-    const isArabic = isArabicText(content);
-    const isPredominantlyArabicContent = isPredominantlyArabic(content);
-
-    if (!this.aceEditor) {
-      if (typeof ace === 'undefined') {
-        console.error('Ace Editor not loaded');
-        return;
-      }
-
-      try {
-        ace.config.set('basePath', window.SNIPO_CONFIG.assetBasePath + '/vendor/js/ace');
-
-        if (!container.id) {
-          container.id = 'ace-editor-' + Date.now();
-        }
-
-        this.aceEditor = ace.edit(container.id);
-        this.aceEditor.setTheme(aceTheme);
-        this.aceEditor.session.setMode(aceMode);
-        this.aceEditor.setValue(content, -1);
-
-        // Enable RTL for predominantly Arabic text
-        // For mixed content, we enable RTL but allow Unicode bidirectional algorithm to work
-        if (isPredominantlyArabicContent) {
-          this.aceEditor.setOption('rtl', true);
-          container.classList.add('rtl');
-          container.classList.remove('mixed');
-        } else if (isArabic) {
-          // Mixed content: enable RTL but use unicode-bidi for proper handling
-          this.aceEditor.setOption('rtl', true);
-          container.classList.add('rtl');
-          container.classList.add('mixed');
-        } else {
-          this.aceEditor.setOption('rtl', false);
-          container.classList.remove('rtl');
-          container.classList.remove('mixed');
-        }
-
-        // Apply settings from database
-        this.applyEditorSettings();
-
-        const self = this;
-        this.aceEditor.commands.addCommand({
-          name: 'saveSnippet',
-          bindKey: { win: 'Ctrl-S', mac: 'Command-S' },
-          exec() {
-            if (self.isEditing) {
-              self.saveSnippet();
-            }
+    if (request !== this.editorRequest || !this.isEditing || container !== this.$refs.codeEditor) return;
+    try {
+      if (this.editingSnippet?.files?.length && !this.editingSnippet.files[this.activeFileIndex]) this.activeFileIndex = 0;
+      const file = this.activeFile || this.editingSnippet;
+      if (this.codeEditor) {
+        this.editorIgnoreChange = true;
+        this.codeEditor.setValue(file.content || '');
+        this.codeEditor.setLanguage(file.language || 'plaintext');
+      } else {
+        this.activeEditorEngine = active;
+        this.codeEditor = create(container, {
+          content: file.content || '', language: file.language || 'plaintext',
+          settings: this.settings, dark: theme.get() === 'dark',
+          onSave: () => { if (this.isEditing) this.saveSnippet(); },
+          onChange: value => {
+            if (this.editorIgnoreChange) return;
+            if (this.editingSnippet.files?.length) this.updateActiveFileContent(value);
+            else { this.editingSnippet.content = value; this.scheduleAutoSave(); }
+            this.updateTextDirection();
           }
         });
-
-        this.aceEditor.session.on('change', () => {
-          if (self.aceIgnoreChange) return;
-
-          const value = self.aceEditor.getValue();
-          if (self.editingSnippet.files && self.editingSnippet.files.length > 0) {
-            self.updateActiveFileContent(value);
-          } else {
-            self.editingSnippet.content = value;
-            self.scheduleAutoSave();
-          }
-          
-          // Update text direction when content changes
-          self.updateTextDirection();
-        });
-      } catch (e) {
-        console.error('Ace Editor initialization error:', e);
-        this.aceEditor = null;
-        return;
       }
-    } else {
-      this.aceIgnoreChange = true;
-      try {
-        this.aceEditor.setValue(content, -1);
-        this.aceEditor.session.setMode(aceMode);
-        this.aceEditor.setTheme(aceTheme);
-        
-        // Update RTL setting based on content
-        if (isPredominantlyArabicContent) {
-          this.aceEditor.setOption('rtl', true);
-          container.classList.add('rtl');
-          container.classList.remove('mixed');
-        } else if (isArabic) {
-          // Mixed content
-          this.aceEditor.setOption('rtl', true);
-          container.classList.add('rtl');
-          container.classList.add('mixed');
-        } else {
-          this.aceEditor.setOption('rtl', false);
-          container.classList.remove('rtl');
-          container.classList.remove('mixed');
-        }
-      } catch (e) {
-        console.warn('Ace Editor update error:', e);
-      }
-      this.aceIgnoreChange = false;
+      this.applyEditorSettings();
+      this.updateTextDirection();
+      this.$nextTick(() => this.codeEditor?.resize());
+    } catch (error) {
+      console.error('Editor initialization failed:', error);
+      this.destroyCodeEditor();
+      showToast('Could not open the editor. Your snippet and draft are unchanged.', 'error');
+    } finally {
+      this.editorIgnoreChange = false;
+      this.editorLoading = false;
     }
+  },
 
-    this.$nextTick(() => {
-      if (this.aceEditor) {
-        this.aceEditor.resize();
-      }
-    });
+  async changeEditor(engine) {
+    if (!editorEngines.includes(engine)) return;
+    if (this.codeEditor) {
+      if (this.editingSnippet.files?.length) this.syncCurrentContent();
+      else this.editingSnippet.content = this.codeEditor.getValue();
+      this.saveDraft();
+    }
+    this.editorEngine = engine;
+    try { localStorage.setItem('snipo-editor', engine); } catch { /* Session-only preference. */ }
+    this.destroyCodeEditor();
+    if (this.isEditing) await this.updateCodeEditor();
   },
 
   applyEditorSettings() {
-    if (!this.aceEditor || !this.settings) return;
-
-    try {
-      const settings = this.settings;
-
-      // Apply visual settings
-      this.aceEditor.setOptions({
-        fontSize: settings.editor_font_size || 14,
-        showPrintMargin: settings.editor_show_print_margin || false,
-        showGutter: settings.editor_show_gutter !== false,
-        displayIndentGuides: settings.editor_show_indent_guides !== false,
-        highlightActiveLine: settings.editor_highlight_active_line !== false,
-        tabSize: settings.editor_tab_size || 2,
-        useSoftTabs: settings.editor_use_soft_tabs !== false,
-        wrap: settings.editor_word_wrap !== false
-      });
-
-      // Update theme if needed
-      const editorTheme = settings.editor_theme || 'auto';
-      let aceTheme = 'ace/theme/chrome';
-      if (editorTheme === 'auto') {
-        const isDark = theme.get() === 'dark';
-        aceTheme = isDark ? 'ace/theme/monokai' : 'ace/theme/chrome';
-      } else {
-        // Convert underscores to hyphens for Ace theme names
-        const themeName = editorTheme.replace(/_/g, '-');
-        aceTheme = `ace/theme/${themeName}`;
-      }
-      this.aceEditor.setTheme(aceTheme);
-    } catch (e) {
-      console.warn('Failed to apply editor settings:', e);
-    }
+    this.codeEditor?.configure(this.settings || {}, theme.get() === 'dark');
   },
 
-  destroyAceEditor() {
-    if (this.aceEditor) {
-      try {
-        this.aceEditor.destroy();
-        const container = this.$refs.codeEditor;
-        if (container) {
-          container.innerHTML = '';
-          container.className = 'ace-editor-container';
-        }
-      } catch (e) {
-        // Ignore errors during cleanup
-      }
-      this.aceEditor = null;
+  destroyCodeEditor() {
+    ++this.editorRequest;
+    this.editorLoading = false;
+    this.codeEditor?.destroy();
+    this.codeEditor = null;
+    const container = this.$refs?.codeEditor;
+    if (container) {
+      container.replaceChildren();
+      container.className = 'code-editor-container';
     }
   },
 
@@ -711,12 +603,14 @@ export const editorMixin = {
     this.$nextTick(() => {
       const title = this.editingSnippet?.title || '';
       const description = this.editingSnippet?.description || '';
-      const content = this.activeFile?.content || this.editingSnippet?.content || '';
+      const content = this.activeFile?.content ?? this.editingSnippet?.content ?? '';
 
       const isTitleArabic = isArabicText(title);
       const isDescriptionArabic = isArabicText(description);
       const isContentArabic = isArabicText(content);
       const isContentPredominantlyArabic = isPredominantlyArabic(content);
+
+      this.codeEditor?.setDirection(isContentArabic, !isContentPredominantlyArabic);
 
       // Update title input direction
       const titleInput = document.querySelector('.editor-title-input');
@@ -733,7 +627,7 @@ export const editorMixin = {
       }
 
       // Update description textarea direction
-      const descriptionTextarea = document.querySelector('.description-textarea');
+      const descriptionTextarea = document.querySelector('#snippet-description');
       if (descriptionTextarea) {
         descriptionTextarea.classList.toggle('rtl', isDescriptionArabic);
         descriptionTextarea.classList.toggle('ltr', !isDescriptionArabic);
