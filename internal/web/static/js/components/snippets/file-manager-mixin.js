@@ -28,7 +28,7 @@ export const fileManagerMixin = {
     if (this.editingSnippet.files.length === 0) {
       const language = this.editingSnippet.language || 'plaintext';
       const ext = this.getFileExtension ? this.getFileExtension(language) : 'txt';
-      const content = this.aceEditor ? this.aceEditor.getValue() : (this.editingSnippet.content || '');
+      const content = this.codeEditor ? this.codeEditor.getValue() : (this.editingSnippet.content || '');
       this.editingSnippet.files = [{
         id: 0,
         filename: 'main.' + ext,
@@ -45,7 +45,7 @@ export const fileManagerMixin = {
   },
 
   _syncEditorToFile() {
-    if (!this.aceEditor || !Array.isArray(this.editingSnippet?.files) || this.editingSnippet.files.length === 0) {
+    if (!this.codeEditor || !Array.isArray(this.editingSnippet?.files) || this.editingSnippet.files.length === 0) {
       return;
     }
 
@@ -53,30 +53,30 @@ export const fileManagerMixin = {
       this.activeFileIndex = 0;
     }
     
-    const currentContent = this.aceEditor.getValue();
+    const currentContent = this.codeEditor.getValue();
     this.editingSnippet.files[this.activeFileIndex].content = currentContent;
     this.fileManagerState.lastSyncedContent = currentContent;
     this.fileManagerState.editorDirty = false;
   },
 
   _loadFileToEditor(fileIndex) {
-    if (!this.aceEditor || !Array.isArray(this.editingSnippet?.files) || !this.editingSnippet.files[fileIndex]) {
+    if (!this.codeEditor || !Array.isArray(this.editingSnippet?.files) || !this.editingSnippet.files[fileIndex]) {
       return;
     }
 
     const file = this.editingSnippet.files[fileIndex];
     const content = file.content || '';
     
-    this.aceIgnoreChange = true;
+    this.editorIgnoreChange = true;
     try {
-      this.aceEditor.setValue(content, -1);
-      this.aceEditor.session.setMode(this.getAceMode(file.language));
+      this.codeEditor.setValue(content, -1);
+      this.codeEditor.setLanguage(file.language);
       this.fileManagerState.lastSyncedContent = content;
       this.fileManagerState.editorDirty = false;
-      this.aceEditor.resize();
-      this.aceEditor.focus();
+      this.codeEditor.resize();
+      this.codeEditor.focus();
     } finally {
-      this.aceIgnoreChange = false;
+      this.editorIgnoreChange = false;
     }
   },
 
@@ -107,10 +107,10 @@ export const fileManagerMixin = {
     
     this.$nextTick(() => {
       try {
-        if (this.aceEditor) {
+        if (this.codeEditor) {
           this._loadFileToEditor(targetIndex);
         } else {
-          this.updateAceEditor();
+          this.updateCodeEditor();
         }
         this.updateTextDirection();
       } catch (error) {
@@ -234,7 +234,7 @@ export const fileManagerMixin = {
   updateActiveFileLanguage(language) {
     this._syncEditorToFile();
     
-    const currentContent = this.aceEditor ? this.aceEditor.getValue() : '';
+    const currentContent = this.codeEditor ? this.codeEditor.getValue() : (this.activeFile?.content ?? this.editingSnippet.content ?? '');
 
     if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
       if (this.activeFileIndex < 0 || this.activeFileIndex >= this.editingSnippet.files.length) {
@@ -247,11 +247,11 @@ export const fileManagerMixin = {
       this.editingSnippet.content = currentContent;
     }
 
-    if (this.aceEditor) {
+    if (this.codeEditor) {
       try {
-        this.aceEditor.session.setMode(this.getAceMode(language));
+        this.codeEditor.setLanguage(language);
       } catch (e) {
-        console.warn('Ace setMode error:', e);
+        console.warn('Editor language update failed:', e);
       }
     }
 
@@ -279,11 +279,11 @@ export const fileManagerMixin = {
         if (detectedLang !== currentLang) {
           this.editingSnippet.files[this.activeFileIndex].language = detectedLang;
           
-          if (this.aceEditor) {
+          if (this.codeEditor) {
             try {
-              this.aceEditor.session.setMode(this.getAceMode(detectedLang));
+              this.codeEditor.setLanguage(detectedLang);
             } catch (e) {
-              console.warn('Ace setMode error:', e);
+              console.warn('Editor language update failed:', e);
             }
           }
         }

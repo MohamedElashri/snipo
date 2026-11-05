@@ -49,7 +49,7 @@ export const workspaceMixin = {
     this.isEditing = false;
     this.showSettings = false;
     this.closeMobileNavigation();
-    this.destroyAceEditor();
+    this.destroyCodeEditor();
     ++this.viewRequest;
     this.showEditor = false;
     return true;
@@ -67,7 +67,7 @@ export const workspaceMixin = {
   },
   toggleEditorExpanded() {
     this.editorExpanded = !this.editorExpanded;
-    this.$nextTick(() => this.aceEditor?.resize());
+    this.$nextTick(() => this.codeEditor?.resize());
   },
   focusFirstResult() { document.querySelector('.snippet-open')?.focus(); },
   focusResult(event, direction) {

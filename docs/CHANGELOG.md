@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Choose Ace, CodeMirror 6, or Monaco in Editor settings, with a remembered browser preference and safe switching between editors.
+- Use Monaco’s language assistance for JavaScript, TypeScript, JSON, HTML, and CSS with locally hosted workers.
+
+### Fixed
+- Keep undo from restoring a different file’s code after switching snippet files.
+- Restore unsaved code when refreshing an editing page.
+- Keep each tab’s draft separate so saving in another tab does not erase its recovery copy.
+- Make Ace’s manual completion shortcut available alongside its snippet and live-completion support.
+- Keep CodeMirror’s find and replace controls compact on smaller screens.
+- Keep the snippet title and code usable when browser zoom or side panels narrow the editor.
+
 ## [2.1.1] - 2026-11-05
 
 ### Fixed

@@ -1,5 +1,4 @@
 // Ace Editor utilities
-import { theme } from '../modules/theme.js';
 
 // Ace Editor language mode mapping
 export function getAceMode(language) {
@@ -26,7 +25,7 @@ export function getAceMode(language) {
     'yaml': 'ace/mode/yaml',
     'markdown': 'ace/mode/markdown',
     'tex': 'ace/mode/tex',
-    'bibtex': 'ace/mode/tex',
+    'bibtex': 'ace/mode/bibtex',
     'plaintext': 'ace/mode/text'
   };
   return modeMap[language] || 'ace/mode/text';

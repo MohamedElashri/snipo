@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 // Browser regression checks for the shared CSS, using the existing Playwright workspace dependency.
-// Run with npm run test:web (requires Go and Playwright's Chromium installed).
+// Run with npm run test:web; SNIPO_TEST_BROWSER can select chromium, firefox, or webkit.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const net = require('node:net');
 const { spawn, execFileSync } = require('node:child_process');
-const { chromium } = require('playwright');
+const { chromium, firefox, webkit } = require('playwright');
+const browserName = process.env.SNIPO_TEST_BROWSER || 'chromium';
+const browserType = { chromium, firefox, webkit }[browserName];
+assert.ok(browserType, `Unsupported browser: ${browserName}`);
 
 const root = path.resolve(__dirname, '..');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'snipo-web-styles-'));
@@ -99,17 +102,19 @@ async function checkPage(page) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     assert.ok(ready, `Server did not start. See ${temp}/server.log`);
-    browser = await chromium.launch({ headless: true });
+    browser = await browserType.launch({ headless: true });
 
     for (const width of [1440, 390]) {
       for (const theme of ['light', 'dark']) {
         const context = await browser.newContext({ viewport: { width, height: 1000 }, reducedMotion: 'reduce' });
         const page = await context.newPage();
         const badAssets = [];
+        const loadedWorkers = new Set();
         const pageErrors = [];
         page.on('pageerror', error => { pageErrors.push(error.message); console.error(page.url(), error.stack); });
         page.on('console', message => { if (message.type() === 'warning' && message.text().includes('Alpine')) console.error(message.text()); });
         page.on('response', response => {
+          if (response.ok()) loadedWorkers.add(new URL(response.url()).pathname.split('/').pop());
           if (response.url().includes('/static/')) {
             if (!response.ok() || !/\/static\/v\/[a-f0-9]{64}\//.test(new URL(response.url()).pathname)) {
               badAssets.push(response.url());
@@ -226,6 +231,120 @@ async function checkPage(page) {
         assert.equal(await page.locator('.preview-markdown-scroll table').count(), 1);
         await appAction(page, 'startEditing');
         await page.locator('#code-editor').waitFor({ state: 'visible' });
+        await page.waitForFunction(() => !!Alpine.$data(document.querySelector('.app-container')).codeEditor);
+        for (const engine of ['codemirror', 'monaco', 'ace']) {
+          const before = await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue());
+          await appAction(page, 'openEditorSettings');
+          await page.locator('#editor-engine').selectOption(engine);
+          await page.waitForFunction(engine => {
+            const app = Alpine.$data(document.querySelector('.app-container'));
+            return app.codeEditor && !app.editorLoading && app.activeEditorEngine === engine;
+          }, engine);
+          await appAction(page, 'closeSettings');
+          assert.equal(await page.locator('.editor-engine-indicator').innerText(), 'Editor: ' + ({ace: 'Ace', codemirror: 'CodeMirror 6', monaco: 'Monaco'})[engine]);
+          assert.equal(await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue()), before);
+          await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.focus());
+          await page.locator('#code-editor').waitFor({ state: 'visible' });
+          await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.focus());
+          await page.keyboard.type('typed');
+          await page.waitForFunction(() => Alpine.$data(document.querySelector('.app-container')).activeFile.content.includes('typed'));
+          await page.keyboard.press('ControlOrMeta+f');
+          await page.locator(engine === 'ace' ? '.ace_search' : engine === 'codemirror' ? '.cm-search' : '.monaco-editor .find-widget').waitFor({ state: 'visible' });
+          if (engine === 'codemirror') {
+            assert.ok((await page.locator('.cm-search input[name="search"]').boundingBox()).height <= 32);
+            assert.equal(await style(page.locator('.cm-search label').first(), 'display'), 'inline-flex');
+          }
+          await page.keyboard.press('Escape');
+          assert.equal(await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).isEditing), true);
+          const draftContent = await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue());
+          await page.reload();
+          await page.waitForFunction(engine => {
+            const app = Alpine.$data(document.querySelector('.app-container'));
+            return app.codeEditor && !app.editorLoading && app.activeEditorEngine === engine;
+          }, engine);
+          assert.equal(await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue()), draftContent);
+          const editorSelector = engine === 'ace' ? '#code-editor.ace_editor' : engine === 'codemirror' ? '#code-editor .cm-editor' : '#code-editor .monaco-editor';
+          const editorSurface = page.locator(editorSelector);
+          if (engine === 'ace') {
+            const original = await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue());
+            await page.evaluate(() => {
+              const editor = Alpine.$data(document.querySelector('.app-container')).codeEditor;
+              editor.setValue('const reviewValue = 42;\nreview');
+              editor.setLanguage('javascript');
+              editor.focus();
+            });
+            await page.keyboard.press('ArrowDown');
+            await page.keyboard.press('End');
+            await page.keyboard.press('Control+Space');
+            await page.locator('.ace_autocomplete').waitFor({ state: 'visible' });
+            await page.keyboard.press('Escape');
+            await page.evaluate(original => {
+              const app = Alpine.$data(document.querySelector('.app-container'));
+              app.codeEditor.setValue(original);
+              app.codeEditor.setLanguage(app.activeFile.language);
+            }, original);
+          }
+          const background = await style(editorSurface, 'backgroundColor');
+          await page.getByTitle('Toggle theme', { exact: true }).click();
+          await page.waitForFunction(({ selector, background }) => getComputedStyle(document.querySelector(selector)).backgroundColor !== background, { selector: editorSelector, background });
+          await page.getByTitle('Toggle theme', { exact: true }).click();
+          await expectStyle(editorSurface, 'backgroundColor', background);
+
+          if (engine === 'monaco') {
+            for (const language of ['typescript', 'json', 'html', 'css']) {
+              await page.evaluate(language => {
+                const app = Alpine.$data(document.querySelector('.app-container'));
+                app.updateActiveFileLanguage(language);
+                app.codeEditor.focus();
+              }, language);
+              // HTML/CSS start their worker on completion rather than validation.
+              for (let attempt = 0; attempt < 30 && !loadedWorkers.has(`monaco-${language}-worker.js`); attempt++) {
+                await page.keyboard.press('Control+Space');
+                await page.waitForTimeout(100);
+              }
+              assert.ok(loadedWorkers.has(`monaco-${language}-worker.js`), `${language} worker loads locally`);
+              await page.keyboard.press('Escape');
+            }
+            await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).updateActiveFileLanguage('markdown'));
+          }
+
+          await page.evaluate(() => {
+            const app = Alpine.$data(document.querySelector('.app-container'));
+            app.editingSnippet.files.push({ filename: 'second.txt', content: 'Second file', language: 'plaintext' });
+            app.selectFile(1);
+          });
+          await page.waitForFunction(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue() === 'Second file');
+          await page.keyboard.press('ControlOrMeta+z');
+          assert.equal(await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue()), 'Second file');
+          await page.evaluate(() => {
+            const app = Alpine.$data(document.querySelector('.app-container'));
+            app.selectFile(0);
+            app.editingSnippet.files.pop();
+          });
+          await page.waitForFunction(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue().includes('typed'));
+          await checkPage(page);
+          await page.setViewportSize({ width: 1000, height: 1000 });
+          const titleBox = await page.locator('.editor-title-input').boundingBox();
+          const actionsBox = await page.locator('.editor-actions').boundingBox();
+          assert.ok(titleBox.width >= 150, 'Narrow editor retains a usable title field');
+          assert.ok(actionsBox.y >= titleBox.y + titleBox.height - 1, 'Actions wrap below the title in a narrow editor');
+          await page.setViewportSize({ width, height: 1000 });
+          await page.screenshot({ path: path.join(temp, `${width}-${theme}-${engine}.png`) });
+          assert.equal(await page.evaluate(() => localStorage.getItem('snipo-editor')), engine);
+          await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.focus());
+          await page.keyboard.press('ControlOrMeta+s');
+          await page.waitForFunction(() => !Alpine.$data(document.querySelector('.app-container')).isEditing);
+          const persisted = await (await page.request.get(origin + '/api/v1/snippets/' + snippet.id)).json();
+          assert.ok(persisted.data.files[0].content.includes('typed'));
+          await appAction(page, 'startEditing');
+          await page.reload();
+          await appReady(page);
+          await page.waitForFunction(engine => {
+            const app = Alpine.$data(document.querySelector('.app-container'));
+            return app.codeEditor && app.activeEditorEngine === engine;
+          }, engine);
+
+        }
         const detailsToggle = page.getByTitle('Toggle details panel', { exact: true });
         if (await page.locator('.editor-details-sidebar').evaluate(el => el.classList.contains('details-collapsed'))) {
           await detailsToggle.click();
@@ -248,7 +367,7 @@ async function checkPage(page) {
         await title.fill('Styles regression');
         await page.evaluate(() => {
           const app = Alpine.$data(document.querySelector('.app-container'));
-          app.aceEditor.setValue(app.aceEditor.getValue() + '\n\nSaved through the editor.', -1);
+          app.codeEditor.setValue(app.codeEditor.getValue() + '\n\nSaved through the editor.', -1);
         });
         await appAction(page, 'saveSnippet');
         await page.waitForFunction(() => {
@@ -276,8 +395,21 @@ async function checkPage(page) {
         await checkPage(page);
         assert.deepEqual(badAssets, [], 'All stylesheets and scripts must load locally');
         assert.deepEqual(pageErrors, [], 'No JavaScript initialization or interaction errors');
+        if (width === 1440 && theme === 'light') {
+          const fallback = await context.newPage();
+          await fallback.route('**/vendor/editors/codemirror.js', route => route.abort());
+          await fallback.goto(origin + '/?snippet=' + snippet.id + '&edit=true');
+          await appReady(fallback);
+          await fallback.waitForFunction(() => !!Alpine.$data(document.querySelector('.app-container')).codeEditor);
+          const original = await fallback.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue());
+          await fallback.evaluate(() => Alpine.$data(document.querySelector('.app-container')).changeEditor('codemirror'));
+          assert.equal(await fallback.evaluate(() => Alpine.$data(document.querySelector('.app-container')).activeEditorEngine), 'ace');
+          assert.equal(await fallback.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue()), original);
+          assert.equal(await fallback.locator('.editor-engine-indicator').innerText(), 'Editor: Ace (fallback)');
+          await fallback.close();
+        }
         await context.close();
-        console.log(`PASS: ${width}px ${theme}: login, settings, native controls, editor, Markdown, RTL, public page`);
+        console.log(`PASS: ${browserName} ${width}px ${theme}: login, settings, native controls, editor, Markdown, RTL, public page`);
       }
     }
   } finally {

@@ -8,7 +8,7 @@ export const theme = {
     localStorage.setItem('snipo-theme', value);
     document.documentElement.setAttribute('data-theme', value);
     this.updatePrismTheme(value);
-    this.updateAceTheme(value);
+    window.dispatchEvent(new Event('snipo-theme-change'));
   },
   
   toggle() {
@@ -33,35 +33,6 @@ export const theme = {
     }
   },
   
-  updateAceTheme(themeName) {
-    if (typeof ace !== 'undefined') {
-      const editors = document.querySelectorAll('.ace_editor');
-      editors.forEach(editorEl => {
-        const editor = ace.edit(editorEl);
-        if (editor) {
-          // Check if there's a stored editor theme preference
-          try {
-            const settingsStr = sessionStorage.getItem('snipo-settings');
-            const settings = settingsStr ? JSON.parse(settingsStr) : null;
-            const editorTheme = settings?.editor_theme || 'auto';
-            
-            let aceTheme = 'ace/theme/chrome';
-            if (editorTheme === 'auto') {
-              aceTheme = themeName === 'dark' ? 'ace/theme/monokai' : 'ace/theme/chrome';
-            } else {
-              aceTheme = `ace/theme/${editorTheme}`;
-            }
-            editor.setTheme(aceTheme);
-          } catch (e) {
-            // Fallback to default behavior
-            const aceTheme = themeName === 'dark' ? 'ace/theme/monokai' : 'ace/theme/chrome';
-            editor.setTheme(aceTheme);
-          }
-        }
-      });
-    }
-  },
-
   /**
    * Apply custom CSS from settings
    * @param {string} customCSS - Custom CSS string to apply

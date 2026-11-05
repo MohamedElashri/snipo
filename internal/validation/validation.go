@@ -43,6 +43,7 @@ var allowedLanguages = map[string]bool{
 	"markdown": true, "sql": true, "bash": true, "shell": true, "powershell": true,
 	"dockerfile": true, "nginx": true, "toml": true, "ini": true, "makefile": true,
 	"lua": true, "perl": true, "r": true, "haskell": true, "elixir": true,
+	"cuda": true, "tex": true, "bibtex": true,
 	"clojure": true, "graphql": true, "protobuf": true, "terraform": true,
 }
 

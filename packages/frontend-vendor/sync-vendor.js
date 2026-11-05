@@ -35,6 +35,7 @@ const vendorConfig = {
     'ace.js': 'ace-builds/src-min-noconflict/ace.js',
     'ext-language_tools.js': 'ace-builds/src-min-noconflict/ext-language_tools.js',
     'ext-searchbox.js': 'ace-builds/src-min-noconflict/ext-searchbox.js',
+    'mode-bibtex.js': 'ace-builds/src-min-noconflict/mode-bibtex.js',
     'mode-c_cpp.js': 'ace-builds/src-min-noconflict/mode-c_cpp.js',
     'mode-csharp.js': 'ace-builds/src-min-noconflict/mode-csharp.js',
     'mode-css.js': 'ace-builds/src-min-noconflict/mode-css.js',
@@ -78,6 +79,13 @@ const vendorConfig = {
   },
 };
 
+// Ace's language tools load snippet definitions separately from language modes.
+vendorConfig['js/ace/snippets'] = Object.fromEntries(
+  [...Object.keys(vendorConfig['js/ace']).filter(name => name.startsWith('mode-'))
+    .map(name => name.slice(5)), 'xml.js']
+    .map(name => [name, `ace-builds/src-min-noconflict/snippets/${name}`])
+);
+
 const manualFiles = [
   'fonts/FiraCode-Bold.woff2',
   'fonts/FiraCode-Medium.woff2',
@@ -109,6 +117,7 @@ function expectedPaths() {
 
 // ── Sync ────────────────────────────────────────────────────────────────
 function sync() {
+  require('./build-editors.cjs');
   let ok = true;
   for (const [subdir, files] of Object.entries(vendorConfig)) {
     const targetDir = path.join(VENDOR_DIR, subdir);
@@ -163,7 +172,7 @@ function cleanup() {
           fs.rmdirSync(full);
           console.log(`  REMOVED  ${rel}/`);
         }
-      } else if (!expected.has(rel)) {
+      } else if (!rel.startsWith('editors' + path.sep) && !expected.has(rel)) {
         fs.unlinkSync(full);
         console.log(`  REMOVED  ${rel}`);
         removed++;
