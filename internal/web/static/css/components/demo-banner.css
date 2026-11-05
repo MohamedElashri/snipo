@@ -27,7 +27,7 @@
 }
 
 .demo-banner-content span {
-    font-size: 0.9rem;
+    font-size: var(--text-body);
     line-height: 1.4;
 }
 
@@ -57,7 +57,7 @@
     }
     
     .demo-banner-content span {
-        font-size: 0.85rem;
+        font-size: var(--text-body);
     }
     
     .demo-banner-content svg {
@@ -115,14 +115,14 @@
 
 .login-demo-text strong {
     display: block;
-    font-size: 1.1rem;
+    font-size: var(--text-heading-small);
     margin-bottom: 0.75rem;
     font-weight: 600;
 }
 
 .login-demo-text p {
     margin: 0.5rem 0;
-    font-size: 0.95rem;
+    font-size: var(--text-lead);
     line-height: 1.5;
 }
 
@@ -131,7 +131,7 @@
     padding: 0.25rem 0.75rem;
     border-radius: 6px;
     font-family: 'Monaco', 'Courier New', monospace;
-    font-size: 1.1rem;
+    font-size: var(--text-heading-small);
     font-weight: 600;
     letter-spacing: 0.5px;
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -139,7 +139,7 @@
 }
 
 .login-demo-warning {
-    font-size: 0.85rem;
+    font-size: var(--text-body);
     opacity: 0.95;
     margin-top: 0.75rem;
     padding-top: 0.75rem;
@@ -181,15 +181,15 @@
     }
     
     .login-demo-text strong {
-        font-size: 1rem;
+        font-size: var(--text-lead);
     }
     
     .login-demo-text p {
-        font-size: 0.9rem;
+        font-size: var(--text-body);
     }
     
     .login-demo-text code {
-        font-size: 1rem;
+        font-size: var(--text-lead);
         padding: 0.2rem 0.6rem;
     }
 }

@@ -62,7 +62,7 @@
   gap: 0.35rem;
   padding: 0.2rem 0.6rem;
   height: 28px;
-  font-size: 0.75rem;
+  font-size: var(--text-small);
   font-weight: 500;
   border-radius: 0.25rem;
   border: 1px solid var(--snipo-border-muted);
@@ -100,7 +100,7 @@
 
 .btn-sm {
   padding: 0.25rem 0.5rem !important;
-  font-size: 0.75rem !important;
+  font-size: var(--text-small) !important;
 }
 
 .btn-danger {
@@ -175,7 +175,7 @@
   cursor: pointer;
   text-decoration: none !important;
   color: #1e293b !important;
-  font-size: 0.8rem;
+  font-size: var(--text-body);
   font-weight: 500;
   text-align: left;
   width: 100%;

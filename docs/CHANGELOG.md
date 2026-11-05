@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix styles, fonts, and editor assets when Snipo is hosted under a URL subpath.
 - Use Cards as the default view while remembering your last Cards, List, or Compact choice.
 - Hide tag labels in Cards view to keep dates and card controls aligned.
+- Make text sizes more consistent throughout the web app and keep the editor’s description field compact and aligned.
 
 ## [2.1.0] - 2026-11-05
 

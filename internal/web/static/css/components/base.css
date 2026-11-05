@@ -50,14 +50,8 @@ html {
   tab-size: 4;
 }
 
-/* Preserve the existing rem scale at every viewport breakpoint. */
-@media (min-width: 576px) { html { font-size: 106.25%; } }
-@media (min-width: 768px) { html { font-size: 112.5%; } }
-@media (min-width: 1024px) { html { font-size: 118.75%; } }
-@media (min-width: 1280px) { html { font-size: 125%; } }
-@media (min-width: 1536px) { html { font-size: 131.25%; } }
-
 body {
+  font-size: var(--text-body);
   width: 100%;
   margin: 0;
 }
@@ -90,10 +84,10 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 { color: var(--snipo-h1-color); font-size: 2rem; line-height: 1.125; }
 h2 { color: var(--snipo-h2-color); font-size: 1.75rem; line-height: 1.15; }
-h3 { color: var(--snipo-h3-color); font-size: 1.5rem; line-height: 1.175; }
-h4 { color: var(--snipo-h4-color); font-size: 1.25rem; line-height: 1.2; }
-h5 { color: var(--snipo-h5-color); font-size: 1.125rem; line-height: 1.225; }
-h6 { color: var(--snipo-h6-color); font-size: 1rem; line-height: 1.25; }
+h3 { color: var(--snipo-h3-color); font-size: var(--text-title); line-height: 1.175; }
+h4 { color: var(--snipo-h4-color); font-size: var(--text-heading); line-height: 1.2; }
+h5 { color: var(--snipo-h5-color); font-size: var(--text-heading-small); line-height: 1.225; }
+h6 { color: var(--snipo-h6-color); font-size: var(--text-lead); line-height: 1.25; }
 
 :where(article, address, blockquote, dl, figure, form, ol, p, pre, table, ul) ~ h1 { margin-top: 3rem; }
 :where(article, address, blockquote, dl, figure, form, ol, p, pre, table, ul) ~ h2 { margin-top: 2.625rem; }
@@ -152,7 +146,7 @@ input[type="file"]::file-selector-button {
   background-color: var(--snipo-button-bg);
   box-shadow: 0 0 0 transparent;
   color: #fff;
-  font: 400 1rem/1.5 var(--font-sans);
+  font: 400 var(--text-body)/1.5 var(--font-sans);
   text-align: center;
   text-decoration: none;
   text-transform: none;
@@ -187,7 +181,7 @@ input, select, textarea {
   background-color: var(--snipo-input-bg);
   box-shadow: none;
   color: var(--snipo-input-color);
-  font: 400 1rem/1.5 var(--font-sans);
+  font: 400 var(--text-body)/1.5 var(--font-sans);
   letter-spacing: inherit;
   transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out,
     color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;

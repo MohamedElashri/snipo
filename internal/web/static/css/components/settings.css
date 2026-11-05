@@ -2,23 +2,23 @@
 .settings-page { overflow: auto; flex: 1; padding: 1.5rem 2rem; }
 .settings-shell { display: grid; grid-template-columns: 185px minmax(0, 780px); gap: 1.5rem 2rem; max-width: 1050px; margin-inline: auto; }
 .settings-heading { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--snipo-border); padding-bottom: 1rem; }
-.settings-heading h1 { font-size: 1.5rem; letter-spacing: -.03em; margin: 0 0 .3rem; }
-.settings-heading p, .settings-description { color: var(--snipo-text-secondary); font-size: .8rem; line-height: 1.6; }
+.settings-heading h1 { font-size: var(--text-title); letter-spacing: -.03em; margin: 0 0 .3rem; }
+.settings-heading p, .settings-description { color: var(--snipo-text-secondary); font-size: var(--text-body); line-height: 1.6; }
 .settings-heading p { margin: 0; }
 .settings-navigation { display: flex; flex-direction: column; justify-content: flex-start; gap: .35rem; align-self: start; position: sticky; top: 0; }
 .settings-navigation .settings-tab { width: 100%; margin: 0; padding: .65rem .75rem; border: 0; border-radius: 6px; justify-content: flex-start; color: var(--snipo-text-secondary); background: transparent; text-align: left; }
 .settings-navigation .settings-tab.active { background: rgba(var(--snipo-primary-rgb), .1); color: var(--snipo-primary); }
 .settings-content { min-width: 0; }
-.settings-content h4 { font-size: 1rem; }
-.settings-content h5 { font-size: .85rem; }
+.settings-content h4 { font-size: var(--text-lead); }
+.settings-content h5 { font-size: var(--text-body); }
 .settings-content .editor-field { margin-bottom: 1.2rem; }
-.connection-label { font-size: .75rem; }
-.connection-label input { font-family: var(--font-mono); font-size: .75rem; }
+.connection-label { font-size: var(--text-small); }
+.connection-label input { font-family: var(--font-mono); font-size: var(--text-small); }
 @media (max-width: 700px) {
   .settings-page { padding: 1rem; }
   .settings-shell { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
   .settings-navigation { position: static; flex-direction: row; flex-wrap: wrap; }
-  .settings-navigation .settings-tab { width: auto; font-size: .7rem; }
+  .settings-navigation .settings-tab { width: auto; font-size: var(--text-small); }
 }
 .settings-navigation .settings-tab.active::after { content: none; }
 .settings-navigation .settings-tab:not(.active):hover { color: var(--snipo-text-primary); background: var(--snipo-bg-secondary); }

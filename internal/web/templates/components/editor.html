@@ -371,8 +371,8 @@
 
                 <div class="editor-details-content">
                     <section class="editor-details-section">
-                        <label for="snippet-description">Description</label>
-                        <textarea id="snippet-description" x-model="editingSnippet.description" rows="2"
+                        <label class="editor-details-section-title" for="snippet-description">Description</label>
+                        <textarea class="editor-details-description" id="snippet-description" x-model="editingSnippet.description" rows="2"
                             :class="{ 'rtl': isArabicText(editingSnippet.description) }"
                             placeholder="Description (optional)" @input="scheduleAutoSave()"></textarea>
                     </section>

@@ -123,7 +123,7 @@ async function checkPage(page) {
         await page.waitForFunction(() => !!window.Alpine);
         await page.evaluate(() => document.fonts.ready);
         await checkPage(page);
-        const rem = width === 1440 ? 20 : 16;
+        const rem = 16;
         assert.equal(await style(page.locator('html'), 'fontSize'), rem + 'px');
         assert.equal(await style(page.locator('.login-card'), 'width'), width === 1440 ? '400px' : '326px');
         assert.equal(await style(page.locator('#password'), 'height'), rem * 3.125 + 'px');
@@ -226,6 +226,21 @@ async function checkPage(page) {
         assert.equal(await page.locator('.preview-markdown-scroll table').count(), 1);
         await appAction(page, 'startEditing');
         await page.locator('#code-editor').waitFor({ state: 'visible' });
+        const detailsToggle = page.getByTitle('Toggle details panel', { exact: true });
+        if (await page.locator('.editor-details-sidebar').evaluate(el => el.classList.contains('details-collapsed'))) {
+          await detailsToggle.click();
+        }
+        const description = page.locator('#snippet-description');
+        const language = page.locator('.editor-details-sidebar .language-select-full');
+        assert.equal(await style(description, 'fontSize'), await style(language, 'fontSize'));
+        assert.equal(await style(description, 'paddingLeft'), await style(language, 'paddingLeft'));
+        assert.equal(await style(description, 'height'), '64px');
+        await description.fill(Array(12).fill('A longer snippet description.').join('\n'));
+        assert.equal(await style(description, 'height'), '64px');
+        assert.equal(await description.evaluate(el => el.scrollHeight > el.clientHeight), true);
+        await description.fill('A compact description.');
+        await checkPage(page);
+        await page.screenshot({ path: path.join(temp, `${width}-${theme}-details.png`) });
         const title = page.locator('.editor-title-input');
         await title.fill('مقتطف تجريبي');
         await title.press('Tab');
