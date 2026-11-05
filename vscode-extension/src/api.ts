@@ -1,6 +1,13 @@
 import * as vscode from 'vscode';
 import { SnipoClient, Snippet, Tag, Folder } from '@snipo/api-client';
 
+export function normalizeServerURL(value: string): string {
+    const url = value.trim();
+    if (!url || /^[a-z][a-z\d+.-]*:\/\//i.test(url)) return url;
+    const local = /^(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(url);
+    return `${local ? 'http' : 'https'}://${url}`;
+}
+
 function isNetworkError(error: any): boolean {
     return !error.response && (error instanceof TypeError || error.code === 'ECONNREFUSED' ||
         /Network Error|Failed to fetch|fetch failed|NetworkError/i.test(error.message || ''));
@@ -51,13 +58,7 @@ export class SnipoAPI {
             apiToken = await this.context.secrets.get('snipo.apiToken');
         }
 
-        if (apiUrl) {
-            if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
-                apiUrl = apiUrl.startsWith('localhost') || apiUrl.startsWith('127.0.0.1')
-                    ? `http://${apiUrl}`
-                    : `https://${apiUrl}`;
-            }
-        }
+        apiUrl = normalizeServerURL(apiUrl || '');
         this.client.updateBaseURL(apiUrl || '');
         this.client.updateToken(apiToken);
     }
@@ -76,11 +77,7 @@ export class SnipoAPI {
     }
 
     async verifyConfiguration(apiUrl: string, apiToken: string): Promise<boolean> {
-        if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
-            apiUrl = apiUrl.startsWith('localhost') || apiUrl.startsWith('127.0.0.1')
-                ? `http://${apiUrl}`
-                : `https://${apiUrl}`;
-        }
+        apiUrl = normalizeServerURL(apiUrl);
         try {
             const tempClient = new SnipoClient({
                 baseURL: apiUrl,

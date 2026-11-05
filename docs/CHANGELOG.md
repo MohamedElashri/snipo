@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - See which editor is active, including when Snipo falls back to Ace.
 
 ### Fixed
+- Show nested folders in the browser extension’s save dialog.
+- Open the VS Code dashboard consistently for server URLs without a scheme or with surrounding spaces.
+- Preserve tag capitalization when creating or editing snippets in Snippy.
 - Keep the browser context-menu save dialog working on pages where Snipo is already loaded, and offer CUDA, TeX, and BibTeX with matching file extensions.
 - Open the latest snippet contents from VS Code’s sidebar and use cached results when native network requests fail.
 - Allow new lines while editing snippets longer than 99 lines in Snippy.

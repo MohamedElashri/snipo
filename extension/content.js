@@ -353,12 +353,17 @@ async function showModal(snippetData) {
     noFolderOption.value = '';
     noFolderOption.textContent = 'No Folder';
     folderSelect.appendChild(noFolderOption);
-    folders.forEach(f => {
-        const option = document.createElement('option');
-        option.value = f.id;
-        option.textContent = f.name;
-        folderSelect.appendChild(option);
-    });
+    function appendFolders(items, parentPath = '') {
+        items.forEach(folder => {
+            const path = parentPath ? `${parentPath} / ${folder.name}` : folder.name;
+            const option = document.createElement('option');
+            option.value = folder.id;
+            option.textContent = path;
+            folderSelect.appendChild(option);
+            if (folder.children?.length) appendFolders(folder.children, path);
+        });
+    }
+    appendFolders(folders);
     folderGroup.appendChild(folderLabel);
     folderGroup.appendChild(folderSelect);
     modal.appendChild(folderGroup);

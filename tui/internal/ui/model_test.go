@@ -30,7 +30,7 @@ func TestSubmitPreservesCodeAndVisibility(t *testing.T) {
 			defer server.Close()
 			expires := time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)
 			snippet := &api.Snippet{ID: "example", Title: "Example", Content: content, IsPublic: true,
-				IsArchived: true, ExpiresAt: &expires, Folders: []api.Folder{{ID: 7}},
+				Tags: []api.Tag{{Name: "API"}}, IsArchived: true, ExpiresAt: &expires, Folders: []api.Folder{{ID: 7}},
 				Files: []api.File{{ID: 1, Filename: "main.txt", Content: "old"}, {ID: 2, Filename: "other.txt", Content: "unchanged"}}}
 
 			m := Model{client: api.NewClient(server.URL, "token"), mode: mode, width: 100, height: 40, detailSnippet: snippet}
@@ -42,6 +42,9 @@ func TestSubmitPreservesCodeAndVisibility(t *testing.T) {
 			}
 			if err, ok := cmd().(errMsg); ok {
 				t.Fatalf("save failed: %v", err)
+			}
+			if len(saved.Tags) != 1 || saved.Tags[0] != "API" {
+				t.Errorf("tag capitalization lost: %v", saved.Tags)
 			}
 			if saved.Content != content {
 				t.Errorf("content = %q, want %q", saved.Content, content)

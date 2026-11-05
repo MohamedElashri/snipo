@@ -100,3 +100,15 @@ test('interactive save offers editor languages with matching filenames',async({p
     await expect(page.locator('#snipo-filename')).toHaveValue('snippet.'+extension);
   }
 });
+
+test('interactive saves can select nested folders',async({page,context,extensionId})=>{
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await bg.evaluate(async()=>{
+    await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'test',interactiveMode:true});
+    self.fetch=async url=>Response.json({data:String(url).includes('/folders')?[{id:1,name:'Parent',children:[{id:2,name:'Child',children:[{id:3,name:'Grandchild'}]}]}]:[]});
+  });
+  await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<pre><code>sample</code></pre>'}));
+  await page.goto('https://code.test/folders');await page.locator('.snipo-btn').click();
+  await expect(page.locator('#snipo-folder option')).toHaveText(['No Folder','Parent','Parent / Child','Parent / Child / Grandchild']);
+  await page.locator('#snipo-folder').selectOption('3');
+});

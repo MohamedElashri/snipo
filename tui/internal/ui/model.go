@@ -975,7 +975,7 @@ func (m Model) submitForm() (tea.Model, tea.Cmd) {
 		for _, part := range parts {
 			cleaned := strings.TrimSpace(part)
 			if cleaned != "" {
-				finalTags = append(finalTags, strings.ToLower(cleaned))
+				finalTags = append(finalTags, cleaned)
 			}
 		}
 	}

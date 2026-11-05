@@ -4,6 +4,8 @@ All notable changes to the "snipo" extension will be documented in this file.
 
 ## [2.2.0] - Unreleased
 
+- Handle server URLs consistently when opening the dashboard or connecting to Snipo.
+
 - Open current snippet contents from the sidebar and recover cached results after network failures.
 
 - Browse snippets beyond the first 50 items.

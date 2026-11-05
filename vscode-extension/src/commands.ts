@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { api, Snippet } from './api';
+import { api, Snippet, normalizeServerURL } from './api';
 
 const ALLOWED_LANGUAGES = [
     "tex", "bibtex", "cuda", "plaintext", "javascript", "typescript", "python", "go", "rust", "java", "c", "cpp", "csharp",
@@ -244,10 +244,7 @@ export async function openInSnipo(arg?: any) {
 
     if (snippetId) {
         const config = vscode.workspace.getConfiguration('snipo');
-        let apiUrlString = (config.get<string>('apiUrl') || 'http://localhost:3000').trim();
-        if (!/^[a-z][a-z\d+.-]*:\/\//i.test(apiUrlString)) {
-            apiUrlString = /^(localhost|127\.0\.0\.1)(:|\/|$)/i.test(apiUrlString) ? `http://${apiUrlString}` : `https://${apiUrlString}`;
-        }
+        const apiUrlString = normalizeServerURL(config.get<string>('apiUrl') || 'http://localhost:3000');
         try {
             const url = new URL(apiUrlString);
             if (url.protocol !== 'http:' && url.protocol !== 'https:') {
