@@ -383,7 +383,7 @@
                 <div class="backup-section"
                     style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--snipo-border-muted);">
                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.625rem;">
-                        <h4 style="margin: 0; font-size: 0.8rem;">S3 Cloud Backup</h4>
+                        <h4 style="margin: 0; font-size: var(--text-body);">S3 Cloud Backup</h4>
                         <span x-show="s3Status.enabled" class="badge badge-success">Enabled</span>
                         <span x-show="!s3Status.enabled" class="badge badge-muted">Not Configured</span>
                     </div>
@@ -392,7 +392,7 @@
                         <p class="text-sm text-muted">
                             S3 backup is not configured. Set environment variables:
                             <code
-                                style="display: block; margin-top: 0.375rem; padding: 0.375rem; background: var(--snipo-code-bg); border-radius: 0.25rem; font-size: 0.65rem;">
+                                style="display: block; margin-top: 0.375rem; padding: 0.375rem; background: var(--snipo-code-bg); border-radius: 0.25rem; font-size: var(--text-caption);">
                                 SNIPO_S3_ENABLED=true, SNIPO_S3_ENDPOINT, SNIPO_S3_ACCESS_KEY, SNIPO_S3_SECRET_KEY, SNIPO_S3_BUCKET
                             </code>
                         </p>
@@ -411,7 +411,7 @@
                             </div>
 
                             <div class="s3-backups-list">
-                                <h5 style="margin-bottom: 0.375rem; font-size: 0.75rem;">Available Backups</h5>
+                                <h5 style="margin-bottom: 0.375rem; font-size: var(--text-small);">Available Backups</h5>
                                 <div x-show="s3Backups.length === 0" class="text-sm text-muted">
                                     No backups in S3 yet.
                                 </div>
@@ -478,7 +478,7 @@
                         <div
                             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                             <div>
-                                <h5 style="margin: 0; font-size: 0.75rem;">Connection Status</h5>
+                                <h5 style="margin: 0; font-size: var(--text-small);">Connection Status</h5>
                                 <p class="text-sm text-muted" style="margin: 0.25rem 0 0 0;">
                                     <template x-if="gistConfig.has_token && gistConfig.enabled">
                                         <span style="color: var(--snipo-success);">✓ Connected as <strong
@@ -616,7 +616,7 @@
 
                     <!-- Mappings Section -->
                     <div class="backup-section" style="margin-top: 0.75rem;">
-                        <h5 style="margin-bottom: 0.5rem; font-size: 0.75rem;">Synced Snippets (<span
+                        <h5 style="margin-bottom: 0.5rem; font-size: var(--text-small);">Synced Snippets (<span
                                 x-text="gistMappings.length"></span>)</h5>
                         <div style="max-height: 250px; overflow-y: auto;">
                             <template x-if="gistMappings.length === 0">
@@ -631,7 +631,7 @@
                                                 style="display: flex; align-items: center; gap: 0.375rem; margin-bottom: 0.25rem;">
                                                 <span :class="getSyncStatusBadge(mapping.sync_status).class"
                                                     x-text="getSyncStatusBadge(mapping.sync_status).icon"></span>
-                                                <strong style="font-size: 0.8rem;" x-text="mapping.snippet_id"></strong>
+                                                <strong style="font-size: var(--text-body);" x-text="mapping.snippet_id"></strong>
                                             </div>
                                             <a :href="mapping.gist_url" target="_blank" class="text-sm"
                                                 style="color: var(--snipo-primary);">
@@ -663,13 +663,13 @@
                     <!-- Conflicts Section -->
                     <template x-if="gistConflicts.length > 0">
                         <div class="backup-section" style="margin-top: 0.75rem;">
-                            <h5 style="margin-bottom: 0.5rem; font-size: 0.75rem; color: var(--snipo-warning);">
+                            <h5 style="margin-bottom: 0.5rem; font-size: var(--text-small); color: var(--snipo-warning);">
                                 ⚠ Conflicts (<span x-text="gistConflicts.length"></span>)
                             </h5>
                             <template x-for="conflict in gistConflicts" :key="conflict.id">
                                 <div
                                     style="padding: 0.5rem 0.625rem; border: 1px solid var(--snipo-warning); border-radius: 0.375rem; margin-bottom: 0.375rem; background: rgba(245, 158, 11, 0.05);">
-                                    <p style="font-size: 0.8rem; margin-bottom: 0.375rem;">
+                                    <p style="font-size: var(--text-body); margin-bottom: 0.375rem;">
                                         <strong x-text="conflict.snippet_id"></strong>
                                     </p>
                                     <div style="display: flex; gap: 0.375rem;">

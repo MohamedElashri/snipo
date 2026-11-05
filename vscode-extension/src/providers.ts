@@ -56,7 +56,7 @@ export class SnipoCodeLensProvider implements vscode.CodeLensProvider {
         const topRange = new vscode.Range(0, 0, 0, 0);
         lenses.push(new vscode.CodeLens(topRange, {
             title: "Save File to Snipo",
-            command: "snipo.saveSelected", // This will capture the whole file if nothing is selected or if we handle it in the command
+            command: "snipo.saveSelected",
             arguments: [document]
         }));
 

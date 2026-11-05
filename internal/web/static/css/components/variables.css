@@ -14,6 +14,16 @@
   /* Sidebar */
   --sidebar-width: 220px;
 
+  /* UI type scale: stable across viewport widths and responsive to browser zoom.
+     Code and Markdown keep their independent, user-selected font sizes. */
+  --text-caption: 0.75rem;
+  --text-small: 0.8125rem;
+  --text-body: 0.875rem;
+  --text-lead: 1rem;
+  --text-heading-small: 1.125rem;
+  --text-heading: 1.25rem;
+  --text-title: 1.5rem;
+
   /* Fonts */
   --font-sans: 'Noto Sans', 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Fira Code', 'JetBrains Mono', 'Monaco', 'Consolas', 'Source Code Pro', 'Menlo', monospace;

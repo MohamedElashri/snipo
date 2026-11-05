@@ -29,7 +29,7 @@
   background-position: 0.6rem center;
   background-size: 14px 14px;
   flex: 1;
-  font-size: 0.8rem !important;
+  font-size: var(--text-body) !important;
   height: 36px !important;
   min-height: 36px !important;
   border-radius: 6px !important;
@@ -139,7 +139,7 @@
   justify-content: space-between;
   gap: 0.5rem;
   transition: background-color 0.2s;
-  font-size: 0.875rem;
+  font-size: var(--text-body);
   font-weight: normal;
   margin: 0;
 }
@@ -170,7 +170,7 @@
 }
 
 .sort-dropdown .dropdown-menu button span {
-  font-size: 0.575rem;
+  font-size: var(--text-caption);
 }
 
 /* Draft recovery banner */
@@ -195,7 +195,7 @@
   align-items: center;
   gap: 0.75rem;
   color: #92400e;
-  font-size: 0.875rem;
+  font-size: var(--text-body);
 }
 
 [data-theme="dark"] .draft-banner-content {
@@ -214,19 +214,19 @@
 
 .draft-banner-actions button {
   padding: 0.4rem 0.75rem;
-  font-size: 0.85rem;
+  font-size: var(--text-body);
 }
 
 .draft-item-title {
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: var(--text-body);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .draft-item-time {
-  font-size: 0.75rem;
+  font-size: var(--text-small);
   color: var(--snipo-text-muted);
 }
 
@@ -238,14 +238,14 @@
 
 .draft-item-title {
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: var(--text-body);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .draft-item-time {
-  font-size: 0.75rem;
+  font-size: var(--text-small);
   color: var(--snipo-text-muted);
 }
 

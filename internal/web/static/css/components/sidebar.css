@@ -60,7 +60,7 @@
 }
 
 .sidebar-header h1 {
-  font-size: 1.25rem;
+  font-size: var(--text-heading);
   margin: 0;
   font-weight: 600;
   color: inherit;
@@ -142,7 +142,7 @@
 }
 
 .sidebar-section-title {
-  font-size: 0.7rem;
+  font-size: var(--text-small);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #94a3b8;
@@ -159,7 +159,7 @@
   text-decoration: none;
   cursor: pointer;
   transition: background 0.15s;
-  font-size: 0.8rem;
+  font-size: var(--text-body);
 }
 
 .sidebar-item:hover {
@@ -188,7 +188,7 @@
 }
 
 .sidebar-item-count {
-  font-size: 0.7rem;
+  font-size: var(--text-small);
   background: rgba(255, 255, 255, 0.1);
   padding: 0.1rem 0.375rem;
   border-radius: 9999px;
@@ -275,7 +275,7 @@
   gap: 0.25rem;
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
-  font-size: 0.75rem;
+  font-size: var(--text-small);
   font-weight: 500;
 }
 

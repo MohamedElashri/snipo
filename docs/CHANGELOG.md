@@ -5,10 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.1.1] - Unreleased
 
 ### Fixed
 - Prevent outdated cached styles and scripts from breaking the web interface after an update.
+- Fix styles, fonts, and editor assets when Snipo is hosted under a URL subpath.
+- Use Cards as the default view while remembering your last Cards, List, or Compact choice.
+- Hide tag labels in Cards view to keep dates and card controls aligned.
+- Make text sizes more consistent throughout the web app and keep the editor’s description field compact and aligned.
+- Cancel saving or updating a snippet in VS Code without making unwanted changes.
+- Keep descriptions blank when you clear them in the browser extension.
+- Preserve code indentation, trailing newlines, and existing public visibility when saving in Snippy.
+- Make VS Code’s “Save File to Snipo” save the entire file, even when text is selected.
+- Fix the VS Code settings shortcut so it shows Snipo’s settings.
+- Fix updating existing snippets in VS Code and preserve folders, expiration, archive status, and additional files when editing from VS Code or Snippy.
 
 ## [2.1.0] - 2026-11-05
 

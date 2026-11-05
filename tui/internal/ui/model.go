@@ -977,20 +977,35 @@ func (m Model) submitForm() (tea.Model, tea.Cmd) {
 		}
 	}
 
-	content := strings.TrimSpace(m.textarea.Value())
+	content := m.textarea.Value()
 
 	input := api.SnippetInput{
 		Title:       title,
 		Description: description,
 		Language:    language,
 		Content:     content,
-		IsPublic:    false, // Default for now
+		IsPublic:    false,
 		Tags:        finalTags,
 	}
 
 	if m.mode == ViewCreate {
 		return m, createSnippet(m.client, input)
 	} else if m.mode == ViewEdit && m.detailSnippet != nil {
+		input.IsPublic = m.detailSnippet.IsPublic
+		input.IsArchived = m.detailSnippet.IsArchived
+		input.ExpiresAt = m.detailSnippet.ExpiresAt
+		if len(m.detailSnippet.Folders) > 0 {
+			input.FolderID = &m.detailSnippet.Folders[0].ID
+		}
+		// The form edits the primary file; keep the remaining files intact.
+		for i, file := range m.detailSnippet.Files {
+			fileInput := api.FileInput{ID: file.ID, Filename: file.Filename, Content: file.Content, Language: file.Language}
+			if i == 0 {
+				fileInput.Content = content
+				fileInput.Language = language
+			}
+			input.Files = append(input.Files, fileInput)
+		}
 		return m, updateSnippet(m.client, m.detailSnippet.ID, input)
 	}
 

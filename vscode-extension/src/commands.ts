@@ -131,23 +131,24 @@ export async function searchAndInsertSnippet() {
     }
 }
 
-export async function saveSelectedSnippet() {
+export async function saveSelectedSnippet(document?: vscode.TextDocument) {
     if (!(await api.isConfigured())) {
         vscode.window.showErrorMessage('Snipo is not configured. Please set apiUrl and apiToken in settings.');
         return;
     }
     const editor = vscode.window.activeTextEditor;
-    if (!editor) {
+    const sourceDocument = document || editor?.document;
+    if (!sourceDocument) {
         vscode.window.showWarningMessage('No active editor to save snippet from.');
         return;
     }
 
-    const selection = editor.selection;
-    let text = editor.document.getText(selection);
+    // The file CodeLens supplies a document; palette actions use the selection.
+    let text = document ? document.getText() : sourceDocument.getText(editor!.selection);
 
     if (!text) {
         // Fallback to entire document if no text is selected
-        text = editor.document.getText();
+        text = sourceDocument.getText();
         if (!text) {
             vscode.window.showWarningMessage('The current file is empty. Please select or write some code to save.');
             return;
@@ -159,9 +160,10 @@ export async function saveSelectedSnippet() {
     if (!title) return; // User cancelled or empty
 
     const descInput = await vscode.window.showInputBox({ prompt: 'Enter snippet description (optional)' });
-    const description = descInput?.trim() || '';
+    if (descInput === undefined) return;
+    const description = descInput.trim();
     
-    const detected = detectLanguage(editor.document.languageId);
+    const detected = detectLanguage(sourceDocument.languageId);
     
     const languageItems: vscode.QuickPickItem[] = ALLOWED_LANGUAGES.map(l => ({
         label: l,
@@ -180,8 +182,8 @@ export async function saveSelectedSnippet() {
         matchOnDescription: true
     });
 
-    // If user cancels the quick pick, use detected language (which defaults to plaintext)
-    const language = languageSelection ? languageSelection.label : detected;
+    if (!languageSelection) return;
+    const language = languageSelection.label;
 
     await api.createSnippet({
         title,
@@ -298,17 +300,33 @@ export async function updateSnippet() {
             matchOnDescription: true
         });
 
-        // If user cancels the quick pick, use detected language (which defaults to plaintext)
-        const finalLanguage = languageSelection ? languageSelection.label : detected;
+        if (!languageSelection) return;
+        const finalLanguage = languageSelection.label;
 
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
             title: "Updating Snipo snippet...",
             cancellable: false
         }, async () => {
+            // PUT replaces metadata, so use the latest complete snippet rather than
+            // the picker snapshot and preserve fields this command does not edit.
+            const current = await api.getSnippet(snippet.id);
+            if (!current) {
+                vscode.window.showErrorMessage('Could not load the snippet. Nothing was updated.');
+                return;
+            }
             await api.updateSnippet(snippet.id, {
+                title: current.title,
+                description: current.description,
+                is_public: current.is_public,
+                is_archived: current.is_archived,
+                expires_at: current.expires_at,
+                folder_id: current.folders?.[0]?.id ?? current.folder_id,
                 content: text,
-                language: finalLanguage
+                language: finalLanguage,
+                files: current.files?.map((file, index) => index === 0
+                    ? { ...file, content: text, language: finalLanguage }
+                    : file)
             });
         });
     }

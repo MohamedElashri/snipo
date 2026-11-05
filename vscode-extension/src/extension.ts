@@ -29,7 +29,7 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.commands.executeCommand('snipo-settings.focus');
         }),
         vscode.commands.registerCommand('snipo.openSettings', () => {
-            vscode.commands.executeCommand('workbench.action.openSettings', '@ext:mohamedelashri.snipo');
+            vscode.commands.executeCommand('workbench.action.openSettings', `@ext:${context.extension.id}`);
         })
     );
 

@@ -41,7 +41,7 @@
         align-items: center;
         gap: 0.5rem;
         font-weight: 700;
-        font-size: 1.25rem;
+        font-size: var(--text-heading);
         color: var(--snipo-primary);
         text-decoration: none;
     }
@@ -59,7 +59,7 @@
     }
 
     .public-title {
-        font-size: 1.5rem;
+        font-size: var(--text-title);
         font-weight: 700;
         margin: 0 0 0.5rem 0;
     }
@@ -78,7 +78,7 @@
 
     .public-date {
         color: var(--snipo-text-muted);
-        font-size: 0.85rem;
+        font-size: var(--text-body);
         margin-left: auto;
     }
 
@@ -108,7 +108,7 @@
 
     .file-name {
         padding: 0.5rem 1rem;
-        font-size: 0.85rem;
+        font-size: var(--text-body);
         color: var(--snipo-text-muted);
         font-family: var(--font-mono);
     }
@@ -119,7 +119,7 @@
         border: 1px solid var(--snipo-border-muted);
         border-radius: 4px;
         cursor: pointer;
-        font-size: 0.85rem;
+        font-size: var(--text-body);
         white-space: nowrap;
         transition: all 0.2s;
         color: var(--snipo-contrast) !important;
@@ -174,7 +174,7 @@
         margin: 0;
         padding: 1.5rem 2rem;
         background: transparent !important;
-        font-size: 0.9rem;
+        font-size: var(--text-body);
         line-height: 1.6;
     }
 
@@ -197,7 +197,7 @@
         text-align: center;
         background: var(--snipo-card-background);
         border-top: 1px solid var(--snipo-border-muted);
-        font-size: 0.85rem;
+        font-size: var(--text-body);
         color: var(--snipo-text-muted);
     }
 
@@ -218,5 +218,5 @@
   .public-header { flex-wrap: wrap; gap: .75rem; }
   .public-header-right { flex-wrap: wrap; }
 }
-.public-header .btn-primary { border-radius: 6px; font-size: .8rem; }
+.public-header .btn-primary { border-radius: 6px; font-size: var(--text-body); }
 .public-header-right .btn-action { display: inline-flex; gap: .35rem; align-items: center; }
