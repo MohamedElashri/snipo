@@ -53,7 +53,7 @@
         </template>
         <template x-if="!filter.isDeleted">
             <div>
-                <img src="{{.BasePath}}/static/logo.png" alt="Snipo" width="48" height="48" style="opacity: 0.5;">
+                <img src="{{.AssetBasePath}}/logo.png" alt="Snipo" width="48" height="48" style="opacity: 0.5;">
                 <h3 x-text="hasActiveFilters() ? 'No matching snippets' : 'Your library starts here'"></h3>
                 <p x-text="hasActiveFilters() ? 'Try a different search or remove a filter.' : 'Keep a useful command, a configuration, or a piece of code.'"></p>
                 <button class="btn-secondary" x-show="hasActiveFilters()" @click="clearFilters()">Clear filters</button>

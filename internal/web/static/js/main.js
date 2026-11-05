@@ -40,9 +40,9 @@ function loadScript(src) {
   });
 }
 
-const basePath = window.SNIPO_CONFIG?.basePath || '';
-await loadScript(basePath + '/static/vendor/js/alpine-collapse.min.js');
-await loadScript(basePath + '/static/vendor/js/alpine.min.js');
+const assetBasePath = window.SNIPO_CONFIG.assetBasePath;
+await loadScript(assetBasePath + '/vendor/js/alpine-collapse.min.js');
+await loadScript(assetBasePath + '/vendor/js/alpine.min.js');
 
 // Initialize keyboard shortcuts (DOM is already ready when modules execute)
 initKeyboardShortcuts();
