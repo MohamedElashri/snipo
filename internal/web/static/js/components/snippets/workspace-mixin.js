@@ -1,6 +1,5 @@
 // Presentation and navigation shared by the library and editor.
 export const workspaceMixin = {
-  density: localStorage.getItem('snipo-density') || 'comfortable',
   editorExpanded: false,
   tagSearch: '',
   showAllTags: false,

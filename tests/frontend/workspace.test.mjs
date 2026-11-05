@@ -21,7 +21,7 @@ beforeEach(() => { storage.clear(); window.location = new URL('http://localhost/
 test('workspace composes without evaluating computed state before initialization', () => {
   const state = app();
   assert.equal(state.libraryTitle(), 'All snippets');
-  assert.equal(state.viewMode, 'list');
+  assert.equal(state.viewMode, 'grid');
   assert.equal(state.hasActiveFilters(), false);
   state.filter.query = 'docker';
   assert.deepEqual(state.activeFilterChips(), [{ key: 'query', label: 'docker' }]);
@@ -215,6 +215,7 @@ test('layout choices persist independently of filters and restore on reload', ()
     assert.equal(storage.get('snipo-view-mode'), mode);
     assert.equal(storage.get('snipo-density'), density);
     assert.equal(app().viewMode, mode);
+    assert.equal(app().density, density);
     assert.equal(state.filter.query, 'docker');
     assert.equal(state.pagination.page, 3);
   }
@@ -242,4 +243,13 @@ test('save synchronizes the active Ace buffer before sending files and rejects d
   await first;
   assert.equal(state.saving, false);
   assert.equal(state.showEditor, true);
+});
+
+
+test('missing or invalid layout preferences default to Cards', () => {
+  for (const saved of [undefined, '', 'unknown']) {
+    if (saved !== undefined) storage.set('snipo-view-mode', saved);
+    assert.equal(app().viewMode, 'grid');
+    assert.equal(app().density, 'comfortable');
+  }
 });
