@@ -2,7 +2,14 @@
 
 All notable changes to the "snipo" extension will be documented in this file.
 
-## [2.0.2] - Unreleased
+## [2.1.0] - Unreleased
+
+- Correctly unwrap snippet responses when opening, creating, and updating snippets.
+- Prevent older requests from replacing newer search results.
+- Honor request timeouts and cancellation, and clear removed API credentials.
+- Join the unified 2.1.0 release with the redesigned web app and updated clients.
+
+## [2.0.2] - 2026-10-31
 
 - Align the extension version with the coordinated Snipo 2.0.2 hotfix for web
   theme colors. Extension behavior is unchanged.

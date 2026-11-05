@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.1.0] - Unreleased
 
 ### Changed
 - Add a list-and-preview workspace with Cards, List, and Compact display choices,
@@ -24,7 +24,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initialize login themes and public snippet state safely, support hyphenated public
   IDs, and avoid Alpine template errors inside public-page SVG icons.
 
-## [2.0.2] - Unreleased
+### Clients
+- Fix response-envelope handling in the shared browser/VS Code client so saved and
+  opened snippets expose their IDs, contents, and files correctly.
+- Bound shared-client requests to 30 seconds, honor verification timeouts and
+  cancellation, and normalize server URLs while preserving deployment prefixes.
+- Keep VS Code search results current when requests finish out of order and clear
+  stale API credentials when configuration is removed.
+- Prevent duplicate browser quick saves while a request is pending; restore the
+  save button after success or failure.
+- Fix Snippy pagination beyond the first page, multi-tag/folder filtering, and
+  server URLs with trailing slashes.
+- Synchronize the server, Snippy, VS Code, and Chrome/Firefox packages at 2.1.0.
+
+### Upgrade
+- Deploy the server and reload open web tabs, then update clients from the unified
+  release packages. No database migration or configuration change is required.
+- Existing list API consumers still receive full content unless they opt into
+  `view=summary`. Saved custom CSS may need adjustment for the redesigned workspace.
+- Browser and VS Code store submissions remain manual; preparing this release does
+  not publish packages or create a release tag.
+
+## [2.0.2] - 2026-10-31
 
 ### Fixed
 - Restore the light theme's text, card surfaces, and borders after the v2.0.1

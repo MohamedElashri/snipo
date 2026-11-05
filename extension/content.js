@@ -181,8 +181,11 @@ async function handleSaveClick(btn, preElement) {
 
 // Unified Save Flow (handles both Button and Context Menu)
 function initiateSaveFlow(code, language, title, btn) {
+    if (btn?.disabled) return;
+    if (btn) btn.disabled = true;
     chrome.storage.sync.get(['interactiveMode'], async (items) => {
         if (items.interactiveMode) {
+            if (btn) btn.disabled = false;
             showModal({
                 code: code,
                 language: language,
@@ -202,6 +205,7 @@ function initiateSaveFlow(code, language, title, btn) {
                     showToast(false, "Failed to connect to background script.");
                 }
                 if (btn) setTimeout(() => { 
+                    btn.disabled = false;
                     btn.textContent = '';
                     btn.appendChild(createSVGFromString(SNIPO_ICON));
                 }, 2000);

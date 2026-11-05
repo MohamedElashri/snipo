@@ -20,7 +20,7 @@ type Client struct {
 
 func NewClient(baseURL, apiKey string) *Client {
 	return &Client{
-		baseURL: baseURL,
+		baseURL: strings.TrimRight(strings.TrimSpace(baseURL), "/"),
 		apiKey:  apiKey,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
@@ -120,11 +120,14 @@ func (c *Client) ListSnippets(page, limit int, query string, tagIDs, folderIDs [
 	if archived != nil {
 		params.Set("is_archived", strconv.FormatBool(*archived))
 	}
-	for _, id := range tagIDs {
-		params.Add("tag_ids", strconv.Itoa(id))
-	}
-	for _, id := range folderIDs {
-		params.Add("folder_ids", strconv.Itoa(id))
+	for key, ids := range map[string][]int{"tag_ids": tagIDs, "folder_ids": folderIDs} {
+		if len(ids) > 0 {
+			values := make([]string, len(ids))
+			for i, id := range ids {
+				values[i] = strconv.Itoa(id)
+			}
+			params.Set(key, strings.Join(values, ","))
+		}
 	}
 
 	path := "/api/v1/snippets"

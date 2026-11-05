@@ -36,11 +36,12 @@ function detectLanguage(vscodeLang: string): string {
     return mappings[lang] || 'plaintext';
 }
 
-let searchTimeout: NodeJS.Timeout | undefined;
-let searchAbortController: AbortController | undefined;
-
 async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | undefined> {
     return new Promise((resolve) => {
+        let searchTimeout: NodeJS.Timeout | undefined;
+        let searchAbortController: AbortController | undefined;
+        let generation = 0;
+        let disposed = false;
         const quickPick = vscode.window.createQuickPick<vscode.QuickPickItem & { snippet?: Snippet }>();
         quickPick.placeholder = placeHolder;
         quickPick.matchOnDescription = true;
@@ -49,6 +50,7 @@ async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | 
         // Initial load
         quickPick.busy = true;
         api.getSnippets().then(snippets => {
+            if (disposed || generation !== 0) return;
             try {
                 quickPick.items = snippets.map(s => ({
                     label: `$(code) ${s.title}`,
@@ -63,10 +65,11 @@ async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | 
             }
         }).catch(e => {
             console.error('Failed to load snippets', e);
-            try { quickPick.busy = false; } catch (_) {}
+            if (!disposed && generation === 0) quickPick.busy = false;
         });
 
         quickPick.onDidChangeValue(value => {
+            const request = ++generation;
             if (searchTimeout) {
                 clearTimeout(searchTimeout);
             }
@@ -79,6 +82,7 @@ async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | 
                 searchAbortController = new AbortController();
                 try {
                     const snippets = value ? await api.searchSnippets(value, searchAbortController.signal) : await api.getSnippets();
+                    if (disposed || request !== generation) return;
                     quickPick.items = snippets.map(s => ({
                         label: `$(code) ${s.title}`,
                         description: s.language,
@@ -88,7 +92,7 @@ async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | 
                 } catch (e) {
                     // Ignore errors, handled in API
                 } finally {
-                    try { quickPick.busy = false; } catch (_) {}
+                    if (!disposed && request === generation) quickPick.busy = false;
                 }
             }, 300); // 300ms debounce
         });
@@ -100,6 +104,8 @@ async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | 
         });
 
         quickPick.onDidHide(() => {
+            disposed = true;
+            generation++;
             if (searchTimeout) clearTimeout(searchTimeout);
             if (searchAbortController) searchAbortController.abort();
             resolve(undefined);
