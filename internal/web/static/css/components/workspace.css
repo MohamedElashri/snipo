@@ -186,3 +186,18 @@ body:has(.app-container) { height: 100dvh; min-height: 0; overflow: hidden; }
 
 /* Override legacy mobile flex ordering inside the workspace grid toolbar. */
 .editor-toolbar > .btn-icon, .editor-toolbar > .editor-title-display, .editor-toolbar > .editor-title-wrapper { order: 0; }
+
+/* Zoom and resizable sidebars can narrow the editor independently of the viewport. */
+.workspace > .editor-container { container-type: inline-size; container-name: snippet-editor; }
+@container snippet-editor (max-width: 800px) {
+  .editor-toolbar { grid-template-columns: 32px minmax(0, 1fr); }
+  .editor-actions { grid-column: 1 / -1; justify-content: flex-end; min-width: 0; }
+}
+@container snippet-editor (max-width: 650px) {
+  .editor-main-row { flex-direction: column; overflow: auto; }
+  .editor-details-sidebar {
+    width: 100%; min-width: 0; max-width: none; max-height: 42vh;
+    border-left: none; border-top: 1px solid var(--snipo-border-muted);
+  }
+  .editor-left { flex-shrink: 0; min-height: 280px; }
+}

@@ -2,6 +2,9 @@ import test, { beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
 const storage = new Map();
+const tabStorage = new Map();
+const session = { getItem: key => tabStorage.get(key) ?? null, setItem: (key, value) => tabStorage.set(key, value) };
+globalThis.sessionStorage = session;
 globalThis.localStorage = { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
 globalThis.window = { location: new URL('http://localhost/snipo/'), SNIPO_CONFIG: { basePath: '/snipo' } };
 globalThis.document = { getElementById: () => null, querySelector: () => null, querySelectorAll: () => [] };
@@ -16,7 +19,7 @@ function app() {
   instance.destroyCodeEditor = () => {};
   return instance;
 }
-beforeEach(() => { storage.clear(); window.location = new URL('http://localhost/snipo/'); });
+beforeEach(() => { storage.clear(); tabStorage.clear(); window.location = new URL('http://localhost/snipo/'); });
 
 test('workspace composes without evaluating computed state before initialization', () => {
   const state = app();
@@ -291,6 +294,7 @@ test('switching editors synchronizes unsaved code and keeps a recoverable draft'
 
 test('reloading an edit URL restores its unsaved draft instead of server content', async () => {
   for (const id of ['existing', null]) {
+    tabStorage.clear();
     const state = app();
     window.location = new URL(`http://localhost/snipo/?edit=true${id ? `&snippet=${id}` : ''}`);
     storage.set('snipo-draft', JSON.stringify({ savedAt: new Date().toISOString(), snippet: {
@@ -307,6 +311,7 @@ test('reloading an edit URL restores its unsaved draft instead of server content
 
 test('an unrelated or expired draft does not replace the requested snippet', async () => {
   for (const [id, savedAt] of [['other', new Date().toISOString()], ['requested', '2000-01-01'], ['requested', 'invalid']]) {
+    tabStorage.clear();
     const state = app();
     window.location = new URL('http://localhost/snipo/?snippet=requested&edit=true');
     storage.set('snipo-draft', JSON.stringify({ savedAt, snippet: { id, title: 'Draft', files: [] } }));
@@ -316,4 +321,29 @@ test('an unrelated or expired draft does not replace the requested snippet', asy
     assert.equal(state.editingSnippet.title, 'Server');
     assert.equal(state.isEditing, true);
   }
+});
+
+test('saving or discarding in one tab preserves another tab recovery buffer', () => {
+  const tabs = [new Map(), new Map()];
+  const useTab = index => {
+    const tab = tabs[index];
+    globalThis.sessionStorage = { getItem: key => tab.get(key) ?? null, setItem: (key, value) => tab.set(key, value) };
+  };
+  try {
+    const first = app(), second = app();
+    first.isEditing = second.isEditing = true;
+    first.editingSnippet.title = 'First tab';
+    second.editingSnippet.title = 'Second tab';
+    useTab(0); first.saveDraft();
+    useTab(1); second.saveDraft();
+    useTab(0); first.clearDraft();
+    assert.equal(JSON.parse(storage.get('snipo-draft')).snippet.title, 'Second tab');
+    first.loadDraft();
+    assert.equal(first.hasDraft, false);
+    useTab(1); second.loadDraft();
+    assert.equal(second.draftSnippet.title, 'Second tab');
+    useTab(0); first.saveDraft();
+    useTab(1); second.loadDraft();
+    assert.equal(second.draftSnippet.title, 'Second tab');
+  } finally { globalThis.sessionStorage = session; }
 });

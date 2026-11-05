@@ -14,7 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Keep undo from restoring a different file’s code after switching snippet files.
 - Restore unsaved code when refreshing an editing page.
+- Keep each tab’s draft separate so saving in another tab does not erase its recovery copy.
+- Make Ace’s manual completion shortcut available alongside its snippet and live-completion support.
 - Keep CodeMirror’s find and replace controls compact on smaller screens.
+- Keep the snippet title and code usable when browser zoom or side panels narrow the editor.
 
 ## [2.1.1] - 2026-11-05
 

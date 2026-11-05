@@ -78,6 +78,13 @@ const vendorConfig = {
   },
 };
 
+// Ace's language tools load snippet definitions separately from language modes.
+vendorConfig['js/ace/snippets'] = Object.fromEntries(
+  [...Object.keys(vendorConfig['js/ace']).filter(name => name.startsWith('mode-'))
+    .map(name => name.slice(5)), 'xml.js']
+    .map(name => [name, `ace-builds/src-min-noconflict/snippets/${name}`])
+);
+
 const manualFiles = [
   'fonts/FiraCode-Bold.woff2',
   'fonts/FiraCode-Medium.woff2',

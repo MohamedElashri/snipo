@@ -26,6 +26,7 @@ export function createEditor(container, { content, language, settings, dark, onC
         displayIndentGuides: s.editor_show_indent_guides !== false,
         highlightActiveLine: s.editor_highlight_active_line !== false,
         enableSnippets: s.editor_enable_snippets !== false,
+        enableBasicAutocompletion: true,
         enableLiveAutocompletion: !!s.editor_enable_live_autocompletion
       });
       editor.setTheme(`ace/theme/${!s.editor_theme || s.editor_theme === 'auto' ? (isDark ? 'monokai' : 'chrome') : s.editor_theme}`);

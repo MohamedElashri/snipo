@@ -264,6 +264,25 @@ async function checkPage(page) {
           assert.equal(await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue()), draftContent);
           const editorSelector = engine === 'ace' ? '#code-editor.ace_editor' : engine === 'codemirror' ? '#code-editor .cm-editor' : '#code-editor .monaco-editor';
           const editorSurface = page.locator(editorSelector);
+          if (engine === 'ace') {
+            const original = await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue());
+            await page.evaluate(() => {
+              const editor = Alpine.$data(document.querySelector('.app-container')).codeEditor;
+              editor.setValue('const reviewValue = 42;\nreview');
+              editor.setLanguage('javascript');
+              editor.focus();
+            });
+            await page.keyboard.press('ArrowDown');
+            await page.keyboard.press('End');
+            await page.keyboard.press('Control+Space');
+            await page.locator('.ace_autocomplete').waitFor({ state: 'visible' });
+            await page.keyboard.press('Escape');
+            await page.evaluate(original => {
+              const app = Alpine.$data(document.querySelector('.app-container'));
+              app.codeEditor.setValue(original);
+              app.codeEditor.setLanguage(app.activeFile.language);
+            }, original);
+          }
           const background = await style(editorSurface, 'backgroundColor');
           await page.getByTitle('Toggle theme', { exact: true }).click();
           await page.waitForFunction(({ selector, background }) => getComputedStyle(document.querySelector(selector)).backgroundColor !== background, { selector: editorSelector, background });
@@ -303,6 +322,12 @@ async function checkPage(page) {
           });
           await page.waitForFunction(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue().includes('typed'));
           await checkPage(page);
+          await page.setViewportSize({ width: 1000, height: 1000 });
+          const titleBox = await page.locator('.editor-title-input').boundingBox();
+          const actionsBox = await page.locator('.editor-actions').boundingBox();
+          assert.ok(titleBox.width >= 150, 'Narrow editor retains a usable title field');
+          assert.ok(actionsBox.y >= titleBox.y + titleBox.height - 1, 'Actions wrap below the title in a narrow editor');
+          await page.setViewportSize({ width, height: 1000 });
           await page.screenshot({ path: path.join(temp, `${width}-${theme}-${engine}.png`) });
           assert.equal(await page.evaluate(() => localStorage.getItem('snipo-editor')), engine);
           await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.focus());
