@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preserve code indentation, trailing newlines, and existing public visibility when saving in Snippy.
 - Make VS Code’s “Save File to Snipo” save the entire file, even when text is selected.
 - Fix the VS Code settings shortcut so it shows Snipo’s settings.
+- Fix updating existing snippets in VS Code and preserve folders, expiration, archive status, and additional files when editing from VS Code or Snippy.
 
 ## [2.1.0] - 2026-11-05
 

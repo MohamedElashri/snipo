@@ -98,6 +98,47 @@ suite('Commands Test Suite', () => {
         assert.strictEqual(update.called, false);
     });
 
+    for (const fileCount of [0, 1, 2]) {
+        test(`update preserves metadata and ${fileCount} existing files`, async () => {
+            const current: any = {
+                id: 'existing', title: 'Latest title', description: 'Keep description',
+                content: 'old', language: 'python', is_public: true, is_archived: true,
+                expires_at: '2030-01-01T00:00:00Z', folders: [{ id: 7 }],
+                files: Array.from({ length: fileCount }, (_, i) => ({
+                    id: i + 1, filename: `file${i}.py`, content: `original ${i}`, language: 'python'
+                }))
+            };
+            const get = sinon.stub(api, 'getSnippet').resolves(current);
+            const update = sinon.stub(api, 'updateSnippet').resolves(null);
+            let accept: () => void = () => {};
+            const picker: any = {
+                selectedItems: [{ snippet: { id: 'existing', title: 'Stale title' } }],
+                onDidChangeValue: () => {}, onDidHide: () => {},
+                onDidAccept: (fn: () => void) => { accept = fn; },
+                show: () => accept(), hide: () => {}, dispose: () => {}
+            };
+            sinon.stub(vscode.window, 'createQuickPick').returns(picker);
+            sinon.stub(api, 'getSnippets').resolves([]);
+            showQuickPickStub.resolves({ label: 'typescript' });
+            await updateSnippet();
+            assert.strictEqual(get.calledOnceWith('existing'), true);
+            const payload = update.firstCall.args[1];
+            assert.deepStrictEqual(payload, {
+                title: current.title, description: current.description,
+                is_public: true, is_archived: true, expires_at: current.expires_at,
+                folder_id: 7, content: 'const test = true;', language: 'typescript',
+                files: current.files.map((file: any, i: number) => i === 0
+                    ? { ...file, content: 'const test = true;', language: 'typescript' } : file)
+            });
+            // Failed reads must never fall back to overwriting from the picker.
+            get.resolves(null);
+            update.resetHistory();
+            sinon.stub(vscode.window, 'showErrorMessage');
+            await updateSnippet();
+            assert.strictEqual(update.called, false);
+        });
+    }
+
     test('saveSelectedSnippet - fails if unconfigured', async () => {
         isConfiguredStub.resolves(false);
         const errorMessageStub = sinon.stub(vscode.window, 'showErrorMessage');

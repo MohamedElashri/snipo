@@ -7,6 +7,9 @@ export interface Snippet {
   is_favorite: boolean;
   is_public: boolean;
   folder_id?: number;
+  folders?: Folder[];
+  is_archived?: boolean;
+  expires_at?: string | null;
   tags?: Tag[];
   files?: SnippetFile[];
 }

@@ -308,9 +308,25 @@ export async function updateSnippet() {
             title: "Updating Snipo snippet...",
             cancellable: false
         }, async () => {
+            // PUT replaces metadata, so use the latest complete snippet rather than
+            // the picker snapshot and preserve fields this command does not edit.
+            const current = await api.getSnippet(snippet.id);
+            if (!current) {
+                vscode.window.showErrorMessage('Could not load the snippet. Nothing was updated.');
+                return;
+            }
             await api.updateSnippet(snippet.id, {
+                title: current.title,
+                description: current.description,
+                is_public: current.is_public,
+                is_archived: current.is_archived,
+                expires_at: current.expires_at,
+                folder_id: current.folders?.[0]?.id ?? current.folder_id,
                 content: text,
-                language: finalLanguage
+                language: finalLanguage,
+                files: current.files?.map((file, index) => index === 0
+                    ? { ...file, content: text, language: finalLanguage }
+                    : file)
             });
         });
     }
