@@ -113,7 +113,7 @@ async function saveSnippet(code, tab, language = "plaintext", title = null, fold
         try { if (tab && tab.url) hostStr = new URL(tab.url).hostname; } catch(e) {}
 
         const finalTitle = title || `Snippet from ${hostStr}`;
-        const finalDesc = description || `Saved from ${urlStr}`;
+        const finalDesc = description ?? `Saved from ${urlStr}`;
         const finalFilename = filename || getDefaultFilename(language);
 
         const payload = {

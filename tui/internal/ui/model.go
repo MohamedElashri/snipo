@@ -977,20 +977,21 @@ func (m Model) submitForm() (tea.Model, tea.Cmd) {
 		}
 	}
 
-	content := strings.TrimSpace(m.textarea.Value())
+	content := m.textarea.Value()
 
 	input := api.SnippetInput{
 		Title:       title,
 		Description: description,
 		Language:    language,
 		Content:     content,
-		IsPublic:    false, // Default for now
+		IsPublic:    false,
 		Tags:        finalTags,
 	}
 
 	if m.mode == ViewCreate {
 		return m, createSnippet(m.client, input)
 	} else if m.mode == ViewEdit && m.detailSnippet != nil {
+		input.IsPublic = m.detailSnippet.IsPublic
 		return m, updateSnippet(m.client, m.detailSnippet.ID, input)
 	}
 

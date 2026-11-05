@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
-import { searchAndInsertSnippet, saveSelectedSnippet } from '../commands';
+import { searchAndInsertSnippet, saveSelectedSnippet, updateSnippet } from '../commands';
 import { api } from '../api';
 
 suite('Commands Test Suite', () => {
@@ -50,6 +50,33 @@ suite('Commands Test Suite', () => {
         assert.strictEqual(args.title, 'My Snippet');
         assert.strictEqual(args.content, 'const test = true;');
         assert.strictEqual(args.language, 'typescript');
+    });
+
+    for (const step of ['description', 'language']) {
+        test(`saveSelectedSnippet - cancelling ${step} does not save`, async () => {
+            const create = sinon.stub(api, 'createSnippet');
+            showInputBoxStub.onFirstCall().resolves('Title');
+            showInputBoxStub.onSecondCall().resolves(step === 'description' ? undefined : '');
+            showQuickPickStub.resolves(step === 'language' ? undefined : { label: 'typescript' });
+            await saveSelectedSnippet();
+            assert.strictEqual(create.called, false);
+        });
+    }
+
+    test('updateSnippet - cancelling language does not overwrite snippet', async () => {
+        const update = sinon.stub(api, 'updateSnippet');
+        let accept: () => void = () => {};
+        const picker: any = {
+            selectedItems: [{ snippet: { id: 'existing', title: 'Existing' } }],
+            onDidChangeValue: () => {}, onDidHide: () => {},
+            onDidAccept: (fn: () => void) => { accept = fn; },
+            show: () => accept(), hide: () => {}, dispose: () => {}
+        };
+        sinon.stub(vscode.window, 'createQuickPick').returns(picker);
+        sinon.stub(api, 'getSnippets').resolves([]);
+        showQuickPickStub.resolves(undefined);
+        await updateSnippet();
+        assert.strictEqual(update.called, false);
     });
 
     test('saveSelectedSnippet - fails if unconfigured', async () => {

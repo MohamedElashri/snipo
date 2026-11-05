@@ -37,3 +37,26 @@ test('quick save prevents duplicate requests and recovers after failure', async 
   await button.evaluate(element => element.click());
   await expect.poll(() => background.evaluate(() => self.saveRequests)).toBe(2);
 });
+
+test('saving preserves an explicitly empty description and defaults an omitted one', async ({ page, context, extensionId }) => {
+  const background = context.serviceWorkers().find(worker => worker.url().includes(extensionId));
+  await background.evaluate(async () => {
+    await chrome.storage.sync.set({ instanceUrl: 'https://snipo.test', apiKey: 'test-token' });
+    self.savedPayloads = [];
+    self.fetch = async (_url, options) => {
+      self.savedPayloads.push(JSON.parse(options.body));
+      return Response.json({ data: { id: 'saved' } });
+    };
+  });
+  await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  for (const description of ['', undefined]) {
+    const response = await page.evaluate(description => chrome.runtime.sendMessage({
+      action: 'saveSnippet', code: '    indented();\n', title: 'Example', description
+    }), description);
+    expect(response.success).toBe(true);
+  }
+  const payloads = await background.evaluate(() => self.savedPayloads);
+  expect(payloads[0].description).toBe('');
+  expect(payloads[0].files[0].content).toBe('    indented();\n');
+  expect(payloads[1].description).toMatch(/^Saved from /);
+});

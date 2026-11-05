@@ -159,7 +159,8 @@ export async function saveSelectedSnippet() {
     if (!title) return; // User cancelled or empty
 
     const descInput = await vscode.window.showInputBox({ prompt: 'Enter snippet description (optional)' });
-    const description = descInput?.trim() || '';
+    if (descInput === undefined) return;
+    const description = descInput.trim();
     
     const detected = detectLanguage(editor.document.languageId);
     
@@ -180,8 +181,8 @@ export async function saveSelectedSnippet() {
         matchOnDescription: true
     });
 
-    // If user cancels the quick pick, use detected language (which defaults to plaintext)
-    const language = languageSelection ? languageSelection.label : detected;
+    if (!languageSelection) return;
+    const language = languageSelection.label;
 
     await api.createSnippet({
         title,
@@ -298,8 +299,8 @@ export async function updateSnippet() {
             matchOnDescription: true
         });
 
-        // If user cancels the quick pick, use detected language (which defaults to plaintext)
-        const finalLanguage = languageSelection ? languageSelection.label : detected;
+        if (!languageSelection) return;
+        const finalLanguage = languageSelection.label;
 
         await vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,

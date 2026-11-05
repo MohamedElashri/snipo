@@ -2,6 +2,10 @@
 
 All notable changes to the "snipo" extension will be documented in this file.
 
+## [2.1.1] - Unreleased
+
+- Cancel saving or updating a snippet without making unwanted changes.
+
 ## [2.1.0] - 2026-11-05
 
 - Fix opening and saving snippets so their contents are returned correctly.
