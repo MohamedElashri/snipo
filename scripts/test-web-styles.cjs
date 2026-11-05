@@ -188,6 +188,7 @@ async function checkPage(page) {
         // Seed through the API, then exercise the actual editor and Markdown preview.
         const created = await page.request.post(origin + '/api/v1/snippets', { data: {
           title: 'Styles regression', description: 'Theme color regression fixture', language: 'markdown', is_public: true,
+          tags: ['a-long-tag-for-card-layout', 'another-tag'],
           content: '# Heading\n\nA **bold** paragraph with `code`.\n\n- First\n- Second\n\n> Quoted text\n\n| A | B |\n|---|---|\n| One | Two |'
         } });
         assert.equal(created.ok(), true);
@@ -195,6 +196,12 @@ async function checkPage(page) {
         await page.reload();
         await appReady(page);
         const card = page.locator('.snippet-card').filter({ hasText: 'Styles regression' }).first();
+        const layoutPicker = page.getByRole('combobox', { name: 'Snippet layout' });
+        await layoutPicker.selectOption('grid');
+        await expectStyle(card.locator('.snippet-card-tags'), 'display', 'none');
+        await layoutPicker.selectOption('list');
+        if (width === 1440) await expectStyle(card.locator('.snippet-card-tags'), 'display', 'flex');
+
         await expectStyle(card, 'backgroundColor', palettes[theme].background);
         await expectStyle(card, 'borderTopColor', palettes[theme].border);
         await expectStyle(card.locator('.snippet-card-title'), 'color', palettes[theme].text);

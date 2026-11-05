@@ -123,6 +123,7 @@ body:has(.app-container) { height: 100dvh; min-height: 0; overflow: hidden; }
 .snippet-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); align-items: stretch; }
 .snippet-grid .snippet-card { display: flex; flex-direction: column; margin: 0; }
 .snippet-grid .snippet-card-footer { margin-top: auto; padding-top: .6rem; }
+.snippet-grid .snippet-card-tags { display: none; }
 [data-density="compact"] .snippet-list-view .match-filename { display: none; }
 
 /* Shared geometry for native buttons and the More disclosure. */
