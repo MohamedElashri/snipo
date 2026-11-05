@@ -234,7 +234,7 @@ async function showModal(snippetData) {
         'plaintext', 'javascript', 'typescript', 'python', 'go', 'rust', 'java',
         'c', 'cpp', 'csharp', 'php', 'ruby', 'swift', 'kotlin', 'scala',
         'html', 'css', 'scss', 'json', 'yaml', 'xml', 'markdown',
-        'sql', 'bash', 'shell', 'powershell', 'dockerfile'
+        'sql', 'bash', 'shell', 'powershell', 'dockerfile', 'cuda', 'tex', 'bibtex'
     ];
 
     // Ensure detected language is in list or add it if valid, otherwise fallback
@@ -243,6 +243,7 @@ async function showModal(snippetData) {
     // Helper to get extension
     const getExt = (lang) => {
         const extMap = {
+            'cuda': 'cu', 'tex': 'tex', 'bibtex': 'bib',
             'plaintext': 'txt', 'javascript': 'js', 'typescript': 'ts', 'python': 'py',
             'go': 'go', 'rust': 'rs', 'java': 'java', 'c': 'c', 'cpp': 'cpp',
             'csharp': 'cs', 'php': 'php', 'ruby': 'rb', 'swift': 'swift',

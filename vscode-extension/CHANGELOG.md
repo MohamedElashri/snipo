@@ -4,6 +4,8 @@ All notable changes to the "snipo" extension will be documented in this file.
 
 ## [2.2.0] - Unreleased
 
+- Open current snippet contents from the sidebar and recover cached results after network failures.
+
 - Browse snippets beyond the first 50 items.
 - Save snippets as CUDA, TeX, or BibTeX, with LaTeX files detected as TeX.
 - Open snippets in the browser when the configured server URL omits its scheme.

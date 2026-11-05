@@ -390,6 +390,12 @@ export async function openInVSCode(arg?: any) {
     }
 
     if (snippet) {
+        const current = await api.getSnippet(snippet.id);
+        if (!current) {
+            vscode.window.showErrorMessage('Could not load the snippet. Nothing was opened.');
+            return;
+        }
+        snippet = current;
         const doc = await vscode.workspace.openTextDocument({
             language: snippet.language || 'text',
             content: snippet.content || ''

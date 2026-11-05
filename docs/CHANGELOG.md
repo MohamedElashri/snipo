@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - See which editor is active, including when Snipo falls back to Ace.
 
 ### Fixed
+- Keep the browser context-menu save dialog working on pages where Snipo is already loaded, and offer CUDA, TeX, and BibTeX with matching file extensions.
+- Open the latest snippet contents from VS Code’s sidebar and use cached results when native network requests fail.
+- Allow new lines while editing snippets longer than 99 lines in Snippy.
 - Preserve code indentation and trailing newlines when saving code blocks with the browser extension.
 - Prevent duplicate browser-extension save dialogs and recover from stalled connection checks.
 - Show snippets beyond the first 50 in VS Code, offer CUDA, TeX, and BibTeX, and open configured server URLs without a scheme.

@@ -1,6 +1,11 @@
 import * as vscode from 'vscode';
 import { SnipoClient, Snippet, Tag, Folder } from '@snipo/api-client';
 
+function isNetworkError(error: any): boolean {
+    return !error.response && (error instanceof TypeError || error.code === 'ECONNREFUSED' ||
+        /Network Error|Failed to fetch|fetch failed|NetworkError/i.test(error.message || ''));
+}
+
 // Extending types if necessary for VSCode specific properties, though we can cast
 export interface VSTag extends Tag {
     snippet_count?: number;
@@ -121,7 +126,7 @@ export class SnipoAPI {
             console.error('Error fetching snippets', error);
             if (error.response?.status === 401) {
                 vscode.window.showErrorMessage('Snipo API Token is invalid. Please update it in settings.');
-            } else if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+            } else if (isNetworkError(error)) {
                 vscode.window.showErrorMessage('Failed to connect to Snipo server. Showing cached snippets (if any).');
             } else {
                 vscode.window.showErrorMessage('Failed to fetch snippets from Snipo');
@@ -145,7 +150,7 @@ export class SnipoAPI {
             console.error('Error searching snippets', error);
             
             // Offline fallback for search
-            if (this.context && (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error'))) {
+            if (this.context && (isNetworkError(error))) {
                 const cachedSnippets = this.context.globalState.get<Snippet[]>('snippets_all_undefined') || [];
                 const lowerQuery = query.toLowerCase();
                 return cachedSnippets.filter(s => 
@@ -170,7 +175,7 @@ export class SnipoAPI {
         } catch (error: any) {
             console.error('Error fetching snippet', error);
             // Offline fallback
-            if (this.context && (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error'))) {
+            if (this.context && (isNetworkError(error))) {
                 // Try to find in cache
                 const cached = this.context.globalState.get<Snippet[]>('snippets_all_undefined') || [];
                 const found = cached.find(s => s.id === id);

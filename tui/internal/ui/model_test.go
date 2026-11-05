@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -115,5 +116,24 @@ func TestEditSelectedFile(t *testing.T) {
 	cmd()
 	if saved.Files[0].Content != "primary" || saved.Files[1].Content != "updated" {
 		t.Fatalf("wrong file overwritten: %+v", saved.Files)
+	}
+}
+
+func TestLongSnippetAllowsNewlines(t *testing.T) {
+	content := strings.Repeat("line\n", 250)
+	for _, editing := range []bool{false, true} {
+		m := Model{width: 100, height: 40}
+		if editing {
+			m.initEditForm(&api.Snippet{Content: content})
+		} else {
+			m.initCreateForm()
+			m.textarea.SetValue(content)
+		}
+		m.textarea.Focus()
+		before := m.textarea.Value()
+		m.textarea, _ = m.textarea.Update(tea.KeyMsg{Type: tea.KeyEnter})
+		if len(m.textarea.Value()) != len(before)+1 {
+			t.Fatalf("editing=%v: Enter stopped working in a long snippet", editing)
+		}
 	}
 }

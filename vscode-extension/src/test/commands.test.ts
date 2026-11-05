@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
-import { searchAndInsertSnippet, saveSelectedSnippet, updateSnippet, openInSnipo } from '../commands';
+import { searchAndInsertSnippet, saveSelectedSnippet, updateSnippet, openInSnipo, openInVSCode } from '../commands';
 import { api } from '../api';
 import { SnipoCodeLensProvider } from '../providers';
 
@@ -199,6 +199,16 @@ suite('Commands Test Suite', () => {
         assert.strictEqual(open.firstCall.args[0].authority,'localhost:9288');
         assert.strictEqual(open.firstCall.args[0].path,'/snipo/');
         assert.strictEqual(open.firstCall.args[0].query,'snippet=example');
+    });
+
+    test('opening a sidebar snippet fetches its current content', async () => {
+        const fresh = {id:'current',title:'Current',content:'updated on server',language:'plaintext'} as any;
+        const get = sinon.stub(api,'getSnippet').resolves(fresh);
+        const open = sinon.stub(vscode.workspace,'openTextDocument').resolves({} as any);
+        sinon.stub(vscode.window,'showTextDocument').resolves({} as any);
+        await openInVSCode({...fresh,content:'stale sidebar content'});
+        assert.strictEqual(get.calledWith('current'),true);
+        assert.strictEqual((open.firstCall.args[0] as any).content,'updated on server');
     });
 
 });

@@ -576,6 +576,7 @@ func (m *Model) initCreateForm() {
 	m.inputs[3].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Padding(0, 1) // Yellow
 
 	m.textarea = textarea.New()
+	m.textarea.MaxHeight = 0 // Viewport height must not limit the number of code lines.
 	m.textarea.Placeholder = "Snippet content..."
 	m.textarea.SetWidth(m.width - 8)
 	textAreaHeight := m.height - 11
@@ -646,6 +647,7 @@ func (m *Model) initEditForm(snippet *api.Snippet) {
 	m.inputs[3].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Padding(0, 1) // Yellow
 
 	m.textarea = textarea.New()
+	m.textarea.MaxHeight = 0 // Viewport height must not limit the number of code lines.
 	m.textarea.Placeholder = "Snippet content..."
 	m.textarea.SetValue(content)
 	m.textarea.SetWidth(m.width - 8)

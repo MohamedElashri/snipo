@@ -86,3 +86,17 @@ test('connection check times out and restores the test button',async({page,exten
   await page.locator('#test-btn').click();
   await expect(page.locator('#test-btn')).toBeEnabled({timeout:25000});await expect(page.locator('#status')).toContainText(/timed out/i);
 });
+
+test('interactive save offers editor languages with matching filenames',async({page,context,extensionId})=>{
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await bg.evaluate(async()=>{
+    await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'test',interactiveMode:true});
+    self.fetch=async()=>Response.json({data:[]});
+  });
+  await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<pre><code>sample</code></pre>'}));
+  await page.goto('https://code.test/languages');await page.locator('.snipo-btn').click();
+  for(const [language,extension] of [['cuda','cu'],['tex','tex'],['bibtex','bib']]){
+    await page.locator('#snipo-language').selectOption(language);
+    await expect(page.locator('#snipo-filename')).toHaveValue('snippet.'+extension);
+  }
+});

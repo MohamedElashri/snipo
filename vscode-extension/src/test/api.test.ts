@@ -81,4 +81,13 @@ suite('SnipoAPI Test Suite', () => {
         // Aborted requests should return empty array based on our catch block
         assert.deepStrictEqual(snippets, []);
     });
+    test('native fetch offline errors use the cached search results', async () => {
+        const cached=[{id:'cached',title:'Offline example',description:'',content:'code',language:'plaintext'}];
+        const state = (api as any).context.globalState;
+        sinon.stub(state,'get').returns(cached);
+        fetchStub.rejects(new TypeError('fetch failed'));
+        const results = await api.searchSnippets('Offline');
+        assert.strictEqual(results[0]?.id,'cached');
+    });
+
 });
