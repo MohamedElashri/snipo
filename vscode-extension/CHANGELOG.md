@@ -4,10 +4,10 @@ All notable changes to the "snipo" extension will be documented in this file.
 
 ## [2.1.0] - Unreleased
 
-- Correctly unwrap snippet responses when opening, creating, and updating snippets.
-- Prevent older requests from replacing newer search results.
-- Honor request timeouts and cancellation, and clear removed API credentials.
-- Join the unified 2.1.0 release with the redesigned web app and updated clients.
+- Fix opening and saving snippets so their contents are returned correctly.
+- Keep search results matched to your latest query, even on slow connections.
+- Stop waiting indefinitely when the server does not respond.
+- Stop using saved credentials after they are removed from settings.
 
 ## [2.0.2] - 2026-10-31
 

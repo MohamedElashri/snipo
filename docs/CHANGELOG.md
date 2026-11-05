@@ -7,43 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.1.0] - Unreleased
 
-### Changed
-- Add a list-and-preview workspace with Cards, List, and Compact display choices,
-  searchable tag navigation, top pagination, and a control to hide the result list.
-- Keep saved snippets open, preserve recoverable local drafts, and expose settings
-  as a dedicated page with URL-addressable sections.
-- Compact snippet actions and collapse optional preview details to prioritize code;
-  retain mobile touch targets and upstream file-management and security behavior.
-- Use opt-in lightweight snippet summaries for browsing, fetching full code for
-  opening and copying. Existing API list consumers retain full content by default.
+### Web app
+- Choose Cards, List, or Compact views to browse your snippets.
+- Search tags, keep your filters while opening snippets, and hide the snippet list
+  when you want more room for code.
+- Enjoy a more compact snippet toolbar and improved mobile layouts.
+- Keep snippets open after saving and recover unfinished edits from local drafts.
+- Find settings on a dedicated page with direct links to each section.
+- Browse large snippets with lighter previews while opening and copying the full code.
+- Fix outdated search results, briefly visible password prompts on refresh, and
+  display issues on login and shared snippet pages.
+- Fix shared links and themes when Snipo is hosted under a URL subpath.
 
-### Fixed
-- Prevent stale search responses and preserve filters when opening or closing snippets.
-- Hide password dialogs in initial HTML before JavaScript initializes.
-- Respect path-prefix deployments in public links and theme assets.
-- Initialize login themes and public snippet state safely, support hyphenated public
-  IDs, and avoid Alpine template errors inside public-page SVG icons.
+### Browser extension
+- Prevent repeated clicks from saving the same snippet while a save is in progress.
+- Make the save button available again after a failed save.
+- Stop waiting indefinitely when the server does not respond.
 
-### Clients
-- Fix response-envelope handling in the shared browser/VS Code client so saved and
-  opened snippets expose their IDs, contents, and files correctly.
-- Bound shared-client requests to 30 seconds, honor verification timeouts and
-  cancellation, and normalize server URLs while preserving deployment prefixes.
-- Keep VS Code search results current when requests finish out of order and clear
-  stale API credentials when configuration is removed.
-- Prevent duplicate browser quick saves while a request is pending; restore the
-  save button after success or failure.
-- Fix Snippy pagination beyond the first page, multi-tag/folder filtering, and
-  server URLs with trailing slashes.
-- Synchronize the server, Snippy, VS Code, and Chrome/Firefox packages at 2.1.0.
+### VS Code
+- Fix opening and saving snippets so their contents are returned correctly.
+- Keep search results matched to your latest query.
+- Stop waiting indefinitely for an unresponsive server and stop using credentials
+  after they are removed from settings.
 
-### Upgrade
-- Deploy the server and reload open web tabs, then update clients from the unified
-  release packages. No database migration or configuration change is required.
-- Existing list API consumers still receive full content unless they opt into
-  `view=summary`. Saved custom CSS may need adjustment for the redesigned workspace.
-- Browser and VS Code store submissions remain manual; preparing this release does
-  not publish packages or create a release tag.
+### Snippy
+- Fix navigation beyond the first page of snippets.
+- Apply all selected tags and folders when filtering.
+- Accept server URLs with trailing slashes.
 
 ## [2.0.2] - 2026-10-31
 
