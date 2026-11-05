@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - See which editor is active, including when Snipo falls back to Ace.
 
 ### Fixed
+- Prevent a late Monaco completion response from causing an error after switching files or editors.
 - Highlight TeX and BibTeX in all three editors and preserve CUDA, TeX, and BibTeX when saving.
 - Recover from stalled editor downloads instead of leaving the editor loading indefinitely.
 - Keep undo from restoring a different file’s code after switching snippet files.

@@ -117,7 +117,7 @@ function expectedPaths() {
 
 // ── Sync ────────────────────────────────────────────────────────────────
 function sync() {
-  require('./build-editors.cjs');
+  require('node:child_process').execFileSync(process.execPath, [path.join(__dirname, 'build-editors.cjs')], { stdio: 'inherit' });
   let ok = true;
   for (const [subdir, files] of Object.entries(vendorConfig)) {
     const targetDir = path.join(VENDOR_DIR, subdir);
