@@ -2,7 +2,14 @@
 
 All notable changes to the "snipo" extension will be documented in this file.
 
-## [2.0.2] - Unreleased
+## [2.1.0] - Unreleased
+
+- Fix opening and saving snippets so their contents are returned correctly.
+- Keep search results matched to your latest query, even on slow connections.
+- Stop waiting indefinitely when the server does not respond.
+- Stop using saved credentials after they are removed from settings.
+
+## [2.0.2] - 2026-10-31
 
 - Align the extension version with the coordinated Snipo 2.0.2 hotfix for web
   theme colors. Extension behavior is unchanged.

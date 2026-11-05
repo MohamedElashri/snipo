@@ -73,7 +73,7 @@ jobs:
           bash scripts/bump-version.sh --check "$VERSION"
       - name: Build extensions
         run: |
-          npm run build -w @snipo/api-client
+          npm test -w @snipo/api-client
           npm run compile-tests -w snipo
           bash extension/build.sh all
           npx --no-install addons-linter extension/dist/firefox --warnings-as-errors

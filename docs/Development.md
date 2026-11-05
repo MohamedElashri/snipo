@@ -183,57 +183,7 @@ state exists. Use methods for derived mixin state. Keep layout-specific CSS in
 `workspace.css` and standalone component rules in their component stylesheet.
 User CSS continues to load after application styles.
 
-Run frontend regression tests with Node.js 22.7+:
-
-```bash
-npm run test:frontend
-```
-
-These cover component construction, search races/errors, URL restoration,
-string snippet IDs, draft recovery, save failure/success, and settings navigation.
-Run `go test ./...` for backend and embedded-template checks.
-
-For manual verification use a temporary database. Check light and dark themes,
-wide and narrow viewports, keyboard-only search → result → edit → save, browser
-Back, draft recovery, multi-file copying, settings sections, and public reading.
-`Ctrl/Cmd+S` saves an open edit. Arrow keys move through focused library results;
-Enter opens the focused result. Escape dismisses the frontmost supported layer
-before closing the editor, keeping a local draft when editing.
-
-
-### Library scale checks
-
-Use `scripts/scale-preview.py` against an **empty temporary localhost instance**;
-never point a seed run at your working database. The script refuses non-empty
-libraries and non-loopback URLs. Start the server with a separate `SNIPO_DB_PATH`,
-then run:
-
-```sh
-python3 scripts/scale-preview.py http://127.0.0.1:18081 --snippets 160 --tags 12
-python3 scripts/scale-preview.py http://127.0.0.1:18082 --snippets 160 --tags 60
-# Repeat without seeding, using the browser's lightweight representation:
-python3 scripts/scale-preview.py http://127.0.0.1:18082 --measure-only --summary --output /tmp/scale.json
-```
-
-November 2026 local check: each library contained 160 synthetic snippets, including
-long (1,200-line) and multi-file examples. Thirty warm serial HTTP requests per
-operation gave these results after porting to upstream main `89e694a` (v2.0.2):
-
-| Dataset | First page p95 | Last page p95 | Content search p95 | Tags p95 | First page bytes |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 160 snippets / 12 tags | 3.44 ms | 4.41 ms | 9.64 ms | 4.56 ms | 20,358 |
-| 160 snippets / 60 tags | 3.18 ms | 4.86 ms | 9.40 ms | 14.85 ms | 20,448 |
-
-The summary representation limits preview text and omits full file contents from
-the list payload. It currently still loads full content in the service, so this
-is not a database-memory optimization.
-Default API list responses and detail responses retain full content. Card copy
-fetches detail first. Summary previews can identify matches in secondary files.
-
-Manual desktop checks covered next-page navigation, finding and filtering `zsh`
-among 60 tags, and searching `canary-000` in a secondary README. Sidebar tags are
-bounded to ten for larger collections (plus the selected tag), searchable, and
-expandable. Pagination remains at the top of the scrolling library.
-These HTTP numbers exclude browser rendering, WAN latency, concurrent users,
-and low-powered self-hosting hardware; they are a reproducible local baseline,
-not a production performance guarantee.
+The library requests lightweight snippet previews. Opening or copying a snippet
+fetches its full contents. Default API list responses continue to include full
+content for other clients. Tag navigation shows ten tags initially, keeps the
+selected tag visible, and supports searching or expanding the list.

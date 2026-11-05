@@ -5,26 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.1.0] - Unreleased
 
-### Changed
-- Add a list-and-preview workspace with Cards, List, and Compact display choices,
-  searchable tag navigation, top pagination, and a control to hide the result list.
-- Keep saved snippets open, preserve recoverable local drafts, and expose settings
-  as a dedicated page with URL-addressable sections.
-- Compact snippet actions and collapse optional preview details to prioritize code;
-  retain mobile touch targets and upstream file-management and security behavior.
-- Use opt-in lightweight snippet summaries for browsing, fetching full code for
-  opening and copying. Existing API list consumers retain full content by default.
+### Web app
+- Choose Cards, List, or Compact views to browse your snippets.
+- Search tags, keep your filters while opening snippets, and hide the snippet list
+  when you want more room for code.
+- Enjoy a more compact snippet toolbar and improved mobile layouts.
+- Keep snippets open after saving and recover unfinished edits from local drafts.
+- Find settings on a dedicated page with direct links to each section.
+- Browse large snippets with lighter previews while opening and copying the full code.
+- Fix outdated search results, briefly visible password prompts on refresh, and
+  display issues on login and shared snippet pages.
+- Fix shared links and themes when Snipo is hosted under a URL subpath.
 
-### Fixed
-- Prevent stale search responses and preserve filters when opening or closing snippets.
-- Hide password dialogs in initial HTML before JavaScript initializes.
-- Respect path-prefix deployments in public links and theme assets.
-- Initialize login themes and public snippet state safely, support hyphenated public
-  IDs, and avoid Alpine template errors inside public-page SVG icons.
+### Browser extension
+- Prevent repeated clicks from saving the same snippet while a save is in progress.
+- Make the save button available again after a failed save.
+- Stop waiting indefinitely when the server does not respond.
 
-## [2.0.2] - Unreleased
+### VS Code
+- Fix opening and saving snippets so their contents are returned correctly.
+- Keep search results matched to your latest query.
+- Stop waiting indefinitely for an unresponsive server and stop using credentials
+  after they are removed from settings.
+
+### Snippy
+- Fix navigation beyond the first page of snippets.
+- Apply all selected tags and folders when filtering.
+- Accept server URLs with trailing slashes.
+
+## [2.0.2] - 2026-10-31
 
 ### Fixed
 - Restore the light theme's text, card surfaces, and borders after the v2.0.1
