@@ -25,7 +25,7 @@ export function getAceMode(language) {
     'yaml': 'ace/mode/yaml',
     'markdown': 'ace/mode/markdown',
     'tex': 'ace/mode/tex',
-    'bibtex': 'ace/mode/tex',
+    'bibtex': 'ace/mode/bibtex',
     'plaintext': 'ace/mode/text'
   };
   return modeMap[language] || 'ace/mode/text';

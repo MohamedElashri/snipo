@@ -241,6 +241,7 @@ async function checkPage(page) {
             return app.codeEditor && !app.editorLoading && app.activeEditorEngine === engine;
           }, engine);
           await appAction(page, 'closeSettings');
+          assert.equal(await page.locator('.editor-engine-indicator').innerText(), 'Editor: ' + ({ace: 'Ace', codemirror: 'CodeMirror 6', monaco: 'Monaco'})[engine]);
           assert.equal(await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue()), before);
           await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.focus());
           await page.locator('#code-editor').waitFor({ state: 'visible' });
@@ -404,6 +405,7 @@ async function checkPage(page) {
           await fallback.evaluate(() => Alpine.$data(document.querySelector('.app-container')).changeEditor('codemirror'));
           assert.equal(await fallback.evaluate(() => Alpine.$data(document.querySelector('.app-container')).activeEditorEngine), 'ace');
           assert.equal(await fallback.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue()), original);
+          assert.equal(await fallback.locator('.editor-engine-indicator').innerText(), 'Editor: Ace (fallback)');
           await fallback.close();
         }
         await context.close();

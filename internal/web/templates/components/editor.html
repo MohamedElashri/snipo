@@ -149,6 +149,8 @@
 
     <div class="editor-status" x-show="isEditing">
         <span role="status" aria-live="polite" x-text="saveState === 'saving' ? 'Saving to server…' : saveState === 'error' ? 'Save failed — your changes are still open. Retry Save.' : saveState === 'local-error' ? 'Draft could not be stored locally. Save to keep your changes.' : saveState === 'local' ? 'Draft saved on this device · Save to store on server' : isEditing ? 'Unsaved changes' : 'Saved to server'"></span>
+        <span class="editor-engine-indicator" role="status" aria-live="polite"
+              x-text="editorLoading ? 'Loading ' + editorLabel(editorEngine) + '…' : codeEditor ? 'Editor: ' + editorLabel(activeEditorEngine) + (activeEditorEngine !== editorEngine ? ' (fallback)' : '') : 'Editor unavailable'"></span>
     </div>
 
     <div class="sharing-notice" x-show="isEditing && editingSnippet.is_public" role="note">

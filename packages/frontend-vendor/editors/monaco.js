@@ -1,5 +1,17 @@
 import * as monaco from 'monaco-editor/editor/editor.main.js';
 
+// Monaco does not ship TeX or BibTeX tokenizers. Keep these menu languages colored too.
+monaco.languages.register({ id: 'tex', extensions: ['.tex'], aliases: ['TeX', 'LaTeX'] });
+monaco.languages.setMonarchTokensProvider('tex', { tokenizer: { root: [
+  [/%.*$/, 'comment'], [/\\[a-zA-Z@]+\*?/, 'keyword'], [/\\./, 'string.escape'],
+  [/\$\$?|[{}\[\]&_^]/, 'delimiter'], [/\d+(?:\.\d+)?/, 'number']
+] } });
+monaco.languages.register({ id: 'bibtex', extensions: ['.bib'], aliases: ['BibTeX'] });
+monaco.languages.setMonarchTokensProvider('bibtex', { tokenizer: { root: [
+  [/%.*$/, 'comment'], [/@[\w-]+/, 'keyword'], [/[\w-]+(?=\s*=)/, 'attribute.name'],
+  [/"(?:[^"\\]|\\.)*"/, 'string'], [/\d+/, 'number'], [/[{}(),=]/, 'delimiter']
+] } });
+
 self.MonacoEnvironment = {
   getWorker(_id, label) {
     const worker = ({ javascript: 'typescript', typescript: 'typescript', json: 'json', html: 'html',
@@ -8,7 +20,7 @@ self.MonacoEnvironment = {
   }
 };
 function mode(language) {
-  return ({ bash: 'shell', plaintext: 'plaintext', cpp: 'cpp', cuda: 'cpp', tex: 'plaintext', bibtex: 'plaintext' })[language] || language;
+  return ({ bash: 'shell', plaintext: 'plaintext', cpp: 'cpp', cuda: 'cpp' })[language] || language;
 }
 export function createEditor(container, { content, language, settings, dark, onChange, onSave }) {
   let preferences = settings;

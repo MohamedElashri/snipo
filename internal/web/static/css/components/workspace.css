@@ -48,8 +48,9 @@ body:has(.app-container) { height: 100dvh; min-height: 0; overflow: hidden; }
 [data-density="compact"] .snippet-list-view .snippet-card-preview { display: none; }
 .editor-toolbar { flex-wrap: wrap; padding: .75rem; gap: .5rem; }
 .editor-title-display { font-size: var(--text-lead); }
-.editor-status { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .4rem .9rem; border-bottom: 1px solid var(--snipo-border); color: var(--snipo-text-secondary); font-size: var(--text-caption); }
+.editor-status { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .5rem; padding: .4rem .9rem; border-bottom: 1px solid var(--snipo-border); color: var(--snipo-text-secondary); font-size: var(--text-caption); }
 .editor-status button { margin: 0; padding: .15rem .4rem; font-size: var(--text-caption); }
+.editor-engine-indicator { margin-inline-start: auto; white-space: nowrap; font-weight: 500; }
 .app-footer { padding: .6rem 1rem; }
 .sidebar-section-title { text-transform: none; letter-spacing: normal; }
 @media (max-width: 1100px) {

@@ -817,3 +817,21 @@ func TestSnippetInput_DescriptionLengthUpdate(t *testing.T) {
 		})
 	}
 }
+
+func TestEditorLanguagesPreserved(t *testing.T) {
+	for _, language := range []string{"cuda", "tex", "bibtex"} {
+		t.Run(language, func(t *testing.T) {
+			input := &models.SnippetInput{Title: "Language", Content: "sample", Language: language}
+			if errs := ValidateSnippetInput(input); errs.HasErrors() {
+				t.Fatal(errs)
+			}
+			input.Files = []models.SnippetFileInput{{Filename: "sample", Content: "sample", Language: language}}
+			if errs := ValidateSnippetInput(input); errs.HasErrors() {
+				t.Fatal(errs)
+			}
+			if input.Files[0].Language != language {
+				t.Fatalf("language changed to %s", input.Files[0].Language)
+			}
+		})
+	}
+}

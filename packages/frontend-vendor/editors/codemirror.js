@@ -23,10 +23,24 @@ import { powerShell } from '@codemirror/legacy-modes/mode/powershell';
 import { stex } from '@codemirror/legacy-modes/mode/stex';
 import { yaml } from '@codemirror/legacy-modes/mode/yaml';
 
+const bibtex = {
+  token(stream) {
+    if (stream.eatSpace()) return null;
+    if (stream.match(/^%.*/)) return 'comment';
+    if (stream.match(/^@[\w-]+/)) return 'keyword';
+    if (stream.match(/^[\w-]+(?=\s*=)/)) return 'propertyName';
+    if (stream.match(/^"(?:[^"\\]|\\.)*"/)) return 'string';
+    if (stream.match(/^\d+/)) return 'number';
+    if (stream.match(/^[{}(),=]/)) return 'punctuation';
+    stream.next();
+    return null;
+  }
+};
+
 function languageSupport(language) {
   const modern = { javascript, typescript: () => javascript({ typescript: true }), python, php, json, html, css, markdown, sql };
   if (modern[language]) return modern[language]();
-  const legacy = { go, rust, bash: shell, shell, yaml, cpp, c, cuda: cpp, java, csharp, kotlin, scala, ruby, swift, powershell: powerShell, tex: stex, bibtex: stex };
+  const legacy = { go, rust, bash: shell, shell, yaml, cpp, c, cuda: cpp, java, csharp, kotlin, scala, ruby, swift, powershell: powerShell, tex: stex, bibtex };
   return legacy[language] ? StreamLanguage.define(legacy[language]) : [];
 }
 

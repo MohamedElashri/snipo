@@ -35,6 +35,7 @@ const vendorConfig = {
     'ace.js': 'ace-builds/src-min-noconflict/ace.js',
     'ext-language_tools.js': 'ace-builds/src-min-noconflict/ext-language_tools.js',
     'ext-searchbox.js': 'ace-builds/src-min-noconflict/ext-searchbox.js',
+    'mode-bibtex.js': 'ace-builds/src-min-noconflict/mode-bibtex.js',
     'mode-c_cpp.js': 'ace-builds/src-min-noconflict/mode-c_cpp.js',
     'mode-csharp.js': 'ace-builds/src-min-noconflict/mode-csharp.js',
     'mode-css.js': 'ace-builds/src-min-noconflict/mode-css.js',

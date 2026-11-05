@@ -14,6 +14,10 @@ export const editorMixin = {
   saving: false,
   viewRequest: 0,
 
+  editorLabel(engine) {
+    return { ace: 'Ace', codemirror: 'CodeMirror 6', monaco: 'Monaco' }[engine] || engine;
+  },
+
   preserveDraft() {
     if (this.isEditing) {
       clearTimeout(this.autoSaveTimeout);
@@ -527,15 +531,16 @@ export const editorMixin = {
     let create;
     let active = selected;
     try {
-      create = await loadEditor(selected);
-    } catch (error) {
-      console.error('Editor loading failed:', error);
-      active = 'ace';
-      create = await loadEditor('ace');
-      if (request === this.editorRequest) showToast('Could not load the selected editor. Using Ace; your content is safe.', 'error');
-    }
-    if (request !== this.editorRequest || !this.isEditing || container !== this.$refs.codeEditor) return;
-    try {
+      try {
+        create = await loadEditor(selected);
+      } catch (error) {
+        if (request !== this.editorRequest || !this.isEditing) return;
+        console.error('Editor loading failed:', error);
+        active = 'ace';
+        create = await loadEditor('ace');
+        if (request === this.editorRequest) showToast('Could not load the selected editor. Using Ace; your content is safe.', 'error');
+      }
+      if (request !== this.editorRequest || !this.isEditing || container !== this.$refs.codeEditor) return;
       if (this.editingSnippet?.files?.length && !this.editingSnippet.files[this.activeFileIndex]) this.activeFileIndex = 0;
       const file = this.activeFile || this.editingSnippet;
       if (this.codeEditor) {
@@ -560,12 +565,16 @@ export const editorMixin = {
       this.updateTextDirection();
       this.$nextTick(() => this.codeEditor?.resize());
     } catch (error) {
+      if (request !== this.editorRequest || !this.isEditing) return;
       console.error('Editor initialization failed:', error);
       this.destroyCodeEditor();
+      this.editorIgnoreChange = false;
       showToast('Could not open the editor. Your snippet and draft are unchanged.', 'error');
     } finally {
-      this.editorIgnoreChange = false;
-      this.editorLoading = false;
+      if (request === this.editorRequest) {
+        this.editorIgnoreChange = false;
+        this.editorLoading = false;
+      }
     }
   },
 
