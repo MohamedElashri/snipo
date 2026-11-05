@@ -131,23 +131,24 @@ export async function searchAndInsertSnippet() {
     }
 }
 
-export async function saveSelectedSnippet() {
+export async function saveSelectedSnippet(document?: vscode.TextDocument) {
     if (!(await api.isConfigured())) {
         vscode.window.showErrorMessage('Snipo is not configured. Please set apiUrl and apiToken in settings.');
         return;
     }
     const editor = vscode.window.activeTextEditor;
-    if (!editor) {
+    const sourceDocument = document || editor?.document;
+    if (!sourceDocument) {
         vscode.window.showWarningMessage('No active editor to save snippet from.');
         return;
     }
 
-    const selection = editor.selection;
-    let text = editor.document.getText(selection);
+    // The file CodeLens supplies a document; palette actions use the selection.
+    let text = document ? document.getText() : sourceDocument.getText(editor!.selection);
 
     if (!text) {
         // Fallback to entire document if no text is selected
-        text = editor.document.getText();
+        text = sourceDocument.getText();
         if (!text) {
             vscode.window.showWarningMessage('The current file is empty. Please select or write some code to save.');
             return;
@@ -162,7 +163,7 @@ export async function saveSelectedSnippet() {
     if (descInput === undefined) return;
     const description = descInput.trim();
     
-    const detected = detectLanguage(editor.document.languageId);
+    const detected = detectLanguage(sourceDocument.languageId);
     
     const languageItems: vscode.QuickPickItem[] = ALLOWED_LANGUAGES.map(l => ({
         label: l,

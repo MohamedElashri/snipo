@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cancel saving or updating a snippet in VS Code without making unwanted changes.
 - Keep descriptions blank when you clear them in the browser extension.
 - Preserve code indentation, trailing newlines, and existing public visibility when saving in Snippy.
+- Make VS Code’s “Save File to Snipo” save the entire file, even when text is selected.
+- Fix the VS Code settings shortcut so it shows Snipo’s settings.
 
 ## [2.1.0] - 2026-11-05
 

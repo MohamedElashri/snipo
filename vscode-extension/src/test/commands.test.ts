@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 import { searchAndInsertSnippet, saveSelectedSnippet, updateSnippet } from '../commands';
 import { api } from '../api';
+import { SnipoCodeLensProvider } from '../providers';
 
 suite('Commands Test Suite', () => {
     let showQuickPickStub: sinon.SinonStub;
@@ -50,6 +51,24 @@ suite('Commands Test Suite', () => {
         assert.strictEqual(args.title, 'My Snippet');
         assert.strictEqual(args.content, 'const test = true;');
         assert.strictEqual(args.language, 'typescript');
+    });
+
+    test('Save File CodeLens saves its whole document, not the active selection', async () => {
+        const create = sinon.stub(api, 'createSnippet').resolves(null);
+        const document = await vscode.workspace.openTextDocument({
+            content: 'first line\nsecond line\n', language: 'python'
+        });
+        const cancellation = new vscode.CancellationTokenSource();
+        const lenses = await new SnipoCodeLensProvider().provideCodeLenses(document, cancellation.token);
+        const command = lenses![0].command!;
+        assert.strictEqual(command.command, 'snipo.saveSelected');
+        showInputBoxStub.onFirstCall().resolves('Whole file');
+        showInputBoxStub.onSecondCall().resolves('');
+        showQuickPickStub.callsFake(async items => items[0]);
+        await saveSelectedSnippet(command.arguments![0]);
+        assert.strictEqual(create.firstCall.args[0].content, document.getText());
+        assert.strictEqual(create.firstCall.args[0].language, 'python');
+        cancellation.dispose();
     });
 
     for (const step of ['description', 'language']) {

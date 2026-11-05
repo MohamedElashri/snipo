@@ -27,6 +27,14 @@ suite('SnipoAPI Test Suite', () => {
         sinon.restore();
     });
 
+    test('settings command filters by the installed extension ID', async () => {
+        const execute = sinon.stub(vscode.commands, 'executeCommand').callThrough();
+        execute.withArgs('workbench.action.openSettings').resolves();
+        await vscode.commands.executeCommand('snipo.openSettings');
+        assert.strictEqual(execute.calledWith('workbench.action.openSettings',
+            '@ext:muhammadelashri.snipo'), true);
+    });
+
     test('verifyConfiguration - success', async () => {
         fetchStub.resolves({ ok: true, status: 200, json: async () => ({}) });
 
