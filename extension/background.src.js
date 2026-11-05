@@ -17,8 +17,19 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 action: "contextMenuSave", code: info.selectionText, title: tab.title
             });
         } catch (error) {
-            console.warn("Could not open the save dialog.", error);
-            await saveSnippet(info.selectionText, tab, "plaintext", tab.title);
+            try {
+                // Firefox already grants scripting access. Use it only when the
+                // page has no receiver; never reinject an existing content script.
+                if (!chrome.scripting) throw error;
+                await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ["styles.css"] });
+                await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+                await chrome.tabs.sendMessage(tab.id, {
+                    action: "contextMenuSave", code: info.selectionText, title: tab.title
+                });
+            } catch (injectionError) {
+                console.warn("Could not open the save dialog.", injectionError);
+                await saveSnippet(info.selectionText, tab, "plaintext", tab.title);
+            }
         }
     }
 });
