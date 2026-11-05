@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { api } from './api';
+import { api, normalizeServerURL } from './api';
 
 export class SettingsViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'snipo-settings';
@@ -96,7 +96,13 @@ export class SettingsViewProvider implements vscode.WebviewViewProvider {
                     const config = vscode.workspace.getConfiguration('snipo');
                     const currentUrl = config.get<string>('apiUrl');
                     if (currentUrl) {
-                        vscode.env.openExternal(vscode.Uri.parse(currentUrl));
+                        try {
+                            const url = new URL(normalizeServerURL(currentUrl));
+                            if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('Invalid protocol');
+                            await vscode.env.openExternal(vscode.Uri.parse(url.toString()));
+                        } catch {
+                            vscode.window.showErrorMessage('Invalid Snipo URL in settings.');
+                        }
                     }
                     break;
                 }

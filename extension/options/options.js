@@ -20,7 +20,8 @@ function showStatus(message, type = 'success') {
 // Refactored connection check to be reusable
 async function verifyConnection(instanceUrl, apiKey) {
     // Normalized URL: remove trailing slash
-    const normalizedUrl = instanceUrl.replace(/\/+$/, '');
+    const normalizedUrl = instanceUrl.trim().replace(/\/+$/, '');
+    apiKey = apiKey.trim();
 
     // Validate URL format roughly
     try {
@@ -29,37 +30,46 @@ async function verifyConnection(instanceUrl, apiKey) {
         throw new Error('Invalid Instance URL.');
     }
 
-    const response = await fetch(`${normalizedUrl}/api/v1/snippets?limit=1`, {
-        method: 'GET',
-        headers: {
-            'X-API-Key': apiKey,
-            'Content-Type': 'application/json'
-        }
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    try {
+        const response = await fetch(`${normalizedUrl}/api/v1/snippets?limit=1`, {
+            signal: controller.signal,
+            method: 'GET',
+            headers: {
+                'X-API-Key': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
 
-    if (response.ok) {
-        return true;
-    } else {
-        let errorMsg = 'Connection failed.';
-        if (response.status === 401 || response.status === 403) {
-            errorMsg = 'Invalid API Key or insufficient permissions.';
-        } else if (response.status === 404) {
-            errorMsg = 'API endpoint not found. Check Instance URL.';
+        if (response.ok) {
+            return true;
         } else {
-            try {
-                const data = await response.json();
-                if (data.error && data.error.message) {
-                    errorMsg = data.error.message;
-                }
-            } catch (e) { }
+            let errorMsg = 'Connection failed.';
+            if (response.status === 401 || response.status === 403) {
+                errorMsg = 'Invalid API Key or insufficient permissions.';
+            } else if (response.status === 404) {
+                errorMsg = 'API endpoint not found. Check Instance URL.';
+            } else {
+                try {
+                    const data = await response.json();
+                    if (data.error && data.error.message) {
+                        errorMsg = data.error.message;
+                    }
+                } catch (e) { }
+            }
+            throw new Error(errorMsg);
         }
-        throw new Error(errorMsg);
-    }
+    } catch (error) {
+        if (error.name === 'AbortError') throw new Error('Connection timed out. Please try again.');
+        throw error;
+    } finally { clearTimeout(timeout); }
+
 }
 
 document.getElementById('test-btn').addEventListener('click', async () => {
-    const instanceUrl = document.getElementById('instanceUrl').value;
-    const apiKey = document.getElementById('apiKey').value;
+    const instanceUrl = document.getElementById('instanceUrl').value.trim();
+    const apiKey = document.getElementById('apiKey').value.trim();
 
     if (!instanceUrl || !apiKey) {
         showStatus('Please fill in all fields.', 'error');
@@ -90,8 +100,8 @@ document.getElementById('test-btn').addEventListener('click', async () => {
 async function saveOptions(e) {
     e.preventDefault();
 
-    let instanceUrl = document.getElementById('instanceUrl').value;
-    const apiKey = document.getElementById('apiKey').value;
+    let instanceUrl = document.getElementById('instanceUrl').value.trim();
+    const apiKey = document.getElementById('apiKey').value.trim();
     const interactiveMode = document.getElementById('interactiveMode').checked;
 
     if (!instanceUrl || !apiKey) {

@@ -16,7 +16,10 @@ suite('HTTP API integration', () => {
             req.resume();
             req.on('end', () => {
                 res.setHeader('Content-Type', 'application/json');
-                if (req.url === '/api/v1/snippets' && req.method === 'POST') {
+                if (req.url?.includes('limit=50')) {
+                    const page=Number(new URL(req.url, 'http://test').searchParams.get('page') || 1);
+                    res.end(JSON.stringify({data:page===1?Array.from({length:50},(_,i)=>({...snippet,id:String(i)})):[{...snippet,id:'50'}],pagination:{page,totalPages:2}}));
+                } else if (req.url === '/api/v1/snippets' && req.method === 'POST') {
                     res.writeHead(201);
                     res.end(JSON.stringify({ data: snippet }));
                 } else {
@@ -53,7 +56,7 @@ suite('HTTP API integration', () => {
 
     test('list returns snippets from the server envelope', async () => {
         const result = await client.getSnippets();
-        assert.strictEqual(result.length, 1);
-        assert.strictEqual(result[0].id, snippet.id);
+        assert.strictEqual(result.length, 51);
+        assert.strictEqual(result[50].id, '50');
     });
 });

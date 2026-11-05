@@ -11,25 +11,25 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     if (info.menuItemId === "save-to-snipo" && info.selectionText) {
         try {
-            await chrome.scripting.insertCSS({
-                target: { tabId: tab.id },
-                files: ["styles.css"]
+            // Content scripts are already present on supported pages. Reinjecting
+            // the script redeclares its globals and breaks interactive saves.
+            await chrome.tabs.sendMessage(tab.id, {
+                action: "contextMenuSave", code: info.selectionText, title: tab.title
             });
-            await chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                files: ["content.js"]
-            });
-            chrome.tabs.sendMessage(tab.id, {
-                action: "contextMenuSave",
-                code: info.selectionText,
-                title: tab.title
-            }).catch(err => {
-                console.warn("Could not send context menu action to content script.", err);
-                saveSnippet(info.selectionText, tab, "plaintext", tab.title);
-            });
-        } catch (err) {
-            console.warn("Could not inject script.", err);
-            saveSnippet(info.selectionText, tab, "plaintext", tab.title);
+        } catch (error) {
+            try {
+                // Firefox already grants scripting access. Use it only when the
+                // page has no receiver; never reinject an existing content script.
+                if (!chrome.scripting) throw error;
+                await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ["styles.css"] });
+                await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+                await chrome.tabs.sendMessage(tab.id, {
+                    action: "contextMenuSave", code: info.selectionText, title: tab.title
+                });
+            } catch (injectionError) {
+                console.warn("Could not open the save dialog.", injectionError);
+                await saveSnippet(info.selectionText, tab, "plaintext", tab.title);
+            }
         }
     }
 });
@@ -67,12 +67,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 async function getClient() {
     const config = await chrome.storage.sync.get(['instanceUrl', 'apiKey']);
-    if (!config.instanceUrl || !config.apiKey) {
+    const instanceUrl = config.instanceUrl?.trim();
+    const apiKey = config.apiKey?.trim();
+    if (!instanceUrl || !apiKey) {
         throw new Error("Configuration missing");
     }
     return new SnipoClient({
-        baseURL: config.instanceUrl,
-        token: config.apiKey
+        baseURL: instanceUrl,
+        token: apiKey
     });
 }
 
@@ -91,7 +93,8 @@ async function withClient(action) {
 
 function getDefaultFilename(language) {
     const extMap = {
-        'plaintext': 'txt', 'javascript': 'js', 'typescript': 'ts', 'python': 'py',
+        'cuda': 'cu', 'tex': 'tex', 'bibtex': 'bib',
+            'plaintext': 'txt', 'javascript': 'js', 'typescript': 'ts', 'python': 'py',
         'go': 'go', 'rust': 'rs', 'java': 'java', 'c': 'c', 'cpp': 'cpp',
         'csharp': 'cs', 'php': 'php', 'ruby': 'rb', 'swift': 'swift',
         'kotlin': 'kt', 'scala': 'scala', 'html': 'html', 'css': 'css',

@@ -8,11 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.0] - Unreleased
 
 ### Added
+- Save CUDA, TeX, and BibTeX from both the browser extension and VS Code.
+- Dismiss the browser-extension save dialog with Escape and return focus to its save button.
 - Choose Ace, CodeMirror 6, or Monaco in Editor settings, with a remembered browser preference and safe switching between editors.
 - Use Monaco’s language assistance for JavaScript, TypeScript, JSON, HTML, and CSS without relying on external services.
 - See which editor is active, including when Snipo falls back to Ace.
 
 ### Fixed
+- Keep VS Code’s offline snippet, tag, and folder caches separate for each Snipo server.
+- Ignore surrounding spaces in pasted browser-extension connection settings.
+- Clear old Snippy errors after a successful retry.
+- Keep VS Code’s status indicator matched to the latest connection settings.
+- Return to the same snippet and file after closing Help in Snippy.
+- Save snippets from browser pages whose titles exceed 200 characters.
+- Refresh VS Code’s sidebar lists after creating, updating, or deleting snippets.
+- Keep programming-language suggestions out of Snippy’s API-key field.
+- Show nested folders in the browser extension’s save dialog.
+- Open the VS Code dashboard consistently for server URLs without a scheme or with surrounding spaces.
+- Preserve tag capitalization when creating or editing snippets in Snippy.
+- Keep the browser context-menu save dialog working on pages where Snipo is already loaded.
+- Open the latest snippet contents from VS Code’s sidebar and use cached results when native network requests fail.
+- Allow new lines while editing snippets longer than 99 lines in Snippy.
+- Preserve code indentation and trailing newlines when saving code blocks with the browser extension.
+- Prevent duplicate browser-extension save dialogs and recover from stalled connection checks.
+- Show snippets beyond the first 50 in VS Code and open configured server URLs without a scheme.
+- Copy and edit the selected snippet file in Snippy, and allow question marks while filling out forms.
 - Prevent a late Monaco completion response from causing an error after switching files or editors.
 - Highlight TeX and BibTeX in all three editors and preserve CUDA, TeX, and BibTeX when saving.
 - Recover from stalled editor downloads instead of leaving the editor loading indefinitely.

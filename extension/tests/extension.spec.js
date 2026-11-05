@@ -60,3 +60,100 @@ test('saving preserves an explicitly empty description and defaults an omitted o
   expect(payloads[0].files[0].content).toBe('    indented();\n');
   expect(payloads[1].description).toMatch(/^Saved from /);
 });
+
+test('code-block saves retain leading spaces and trailing newlines', async ({page,context,extensionId}) => {
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await bg.evaluate(async()=>{await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'test',interactiveMode:false});self.payload=null;self.fetch=async(_u,o)=>{self.payload=JSON.parse(o.body);return Response.json({data:{id:'saved'}})}});
+  await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<pre><code>    indented();\n\n</code></pre>'}));
+  await page.goto('https://code.test/whitespace');await page.locator('.snipo-btn').click();
+  await expect.poll(()=>bg.evaluate(()=>self.payload?.files[0].content)).toBe('    indented();\n\n');
+});
+
+test('repeated interactive clicks open only one save dialog',async({page,context,extensionId})=>{
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await bg.evaluate(async()=>{await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'test',interactiveMode:true});self.fetch=async()=>{await new Promise(r=>setTimeout(r,300));return Response.json({data:[]})}});
+  await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<pre><code>hello</code></pre>'}));
+  await page.goto('https://code.test/dialog');await page.locator('.snipo-btn').evaluate(b=>{b.click();setTimeout(()=>b.click(),50)});
+  await page.waitForTimeout(1000);await expect(page.locator('.snipo-modal-overlay')).toHaveCount(1);
+});
+
+test('connection check times out and restores the test button',async({page,extensionId})=>{
+  await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  test.setTimeout(45000);
+  await page.locator('[data-tab="tab-settings"]').click();
+  await page.route('https://stalled.test/**',()=>{});
+  await page.locator('#instanceUrl').fill('https://stalled.test');await page.locator('#apiKey').fill('test');
+  await page.locator('#test-btn').click();
+  await expect(page.locator('#test-btn')).toBeEnabled({timeout:25000});await expect(page.locator('#status')).toContainText(/timed out/i);
+});
+
+test('interactive save offers editor languages with matching filenames',async({page,context,extensionId})=>{
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await bg.evaluate(async()=>{
+    await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'test',interactiveMode:true});
+    self.fetch=async()=>Response.json({data:[]});
+  });
+  await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<pre><code>sample</code></pre>'}));
+  await page.goto('https://code.test/languages');await page.locator('.snipo-btn').click();
+  for(const [language,extension] of [['cuda','cu'],['tex','tex'],['bibtex','bib']]){
+    await page.locator('#snipo-language').selectOption(language);
+    await expect(page.locator('#snipo-filename')).toHaveValue('snippet.'+extension);
+  }
+});
+
+test('interactive saves can select nested folders',async({page,context,extensionId})=>{
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await bg.evaluate(async()=>{
+    await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'test',interactiveMode:true});
+    self.fetch=async url=>Response.json({data:String(url).includes('/folders')?[{id:1,name:'Parent',children:[{id:2,name:'Child',children:[{id:3,name:'Grandchild'}]}]}]:[]});
+  });
+  await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<pre><code>sample</code></pre>'}));
+  await page.goto('https://code.test/folders');await page.locator('.snipo-btn').click();
+  await expect(page.locator('#snipo-folder option')).toHaveText(['No Folder','Parent','Parent / Child','Parent / Child / Grandchild']);
+  await page.locator('#snipo-folder').selectOption('3');
+});
+
+test('long page titles produce valid automatic snippet titles',async({page,context,extensionId})=>{
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await bg.evaluate(async()=>{
+    await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'test',interactiveMode:false});
+    self.savedTitle=null;
+    self.fetch=async(_url,options)=>{self.savedTitle=JSON.parse(options.body).title;return Response.json({data:{id:'saved'}})};
+  });
+  await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<title>'+ '🚀'.repeat(220)+'</title><pre><code>sample</code></pre>'}));
+  await page.goto('https://code.test/title');await page.locator('.snipo-btn').click();
+  await expect.poll(()=>bg.evaluate(()=>self.savedTitle&&Array.from(self.savedTitle).length)).toBe(200);
+});
+
+test('Escape closes the save dialog and returns focus to its button',async({page,context,extensionId})=>{
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await bg.evaluate(async()=>{await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'test',interactiveMode:true});self.fetch=async()=>Response.json({data:[]})});
+  await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<pre><code>sample</code></pre>'}));
+  await page.goto('https://code.test/escape');await page.locator('.snipo-btn').click();
+  await page.locator('#snipo-title').focus();await page.keyboard.press('Escape');
+  await expect(page.locator('.snipo-modal-overlay')).toHaveCount(0);
+  await expect(page.locator('.snipo-btn')).toBeFocused();
+});
+
+test('pasted API-key whitespace is removed before saving',async({page,context,extensionId})=>{
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await bg.evaluate(async()=>{
+    await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'  pasted-token  '});
+    self.authorization=null;
+    self.fetch=async(_url,options)=>{self.authorization=options.headers.Authorization;return Response.json({data:{id:'saved'}})};
+  });
+  await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  await page.evaluate(()=>chrome.runtime.sendMessage({action:'saveSnippet',code:'sample',title:'Example'}));
+  expect(await bg.evaluate(()=>self.authorization)).toBe('Bearer pasted-token');
+});
+
+test('configuration saves normalized connection fields',async({page,context,extensionId})=>{
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await page.route('https://snipo.test/**',r=>r.fulfill({contentType:'application/json',body:'{"data":[]}'}));
+  await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  await page.locator('[data-tab="tab-settings"]').click();
+  await page.locator('#instanceUrl').fill('https://snipo.test/');
+  await page.locator('#apiKey').fill('  pasted-token  ');
+  await page.locator('#save-btn').click();
+  await expect.poll(()=>bg.evaluate(async()=>chrome.storage.sync.get(['instanceUrl','apiKey']))).toEqual({instanceUrl:'https://snipo.test',apiKey:'pasted-token'});
+});

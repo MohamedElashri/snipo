@@ -2,6 +2,22 @@
 
 All notable changes to the "snipo" extension will be documented in this file.
 
+## [2.2.0] - Unreleased
+
+- Keep each server’s offline cache separate when switching Snipo instances.
+
+- Keep the status indicator matched to the latest connection settings.
+
+- Refresh sidebar lists after creating, updating, or deleting snippets.
+
+- Handle server URLs consistently when opening the dashboard or connecting to Snipo.
+
+- Open current snippet contents from the sidebar and recover cached results after network failures.
+
+- Browse snippets beyond the first 50 items.
+- Save snippets as CUDA, TeX, or BibTeX, with LaTeX files detected as TeX.
+- Open snippets in the browser when the configured server URL omits its scheme.
+
 ## [2.1.1] - 2026-11-05
 
 - Cancel saving or updating a snippet without making unwanted changes.

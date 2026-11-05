@@ -1,6 +1,24 @@
 import * as vscode from 'vscode';
 import { SnipoClient, Snippet, Tag, Folder } from '@snipo/api-client';
 
+export function normalizeServerURL(value: string): string {
+    const url = value.trim();
+    if (!url || /^[a-z][a-z\d+.-]*:\/\//i.test(url)) return url;
+    const local = /^(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(url);
+    return `${local ? 'http' : 'https'}://${url}`;
+}
+
+function isNetworkError(error: any): boolean {
+    return !error.response && (error instanceof TypeError || error.code === 'ECONNREFUSED' ||
+        /Network Error|Failed to fetch|fetch failed|NetworkError/i.test(error.message || ''));
+}
+
+function refreshSidebar(): void {
+    for (const command of ['snipo.refreshTree', 'snipo.refreshTagsTree']) {
+        void vscode.commands.executeCommand(command).then(undefined, error => console.error('Sidebar refresh failed', error));
+    }
+}
+
 // Extending types if necessary for VSCode specific properties, though we can cast
 export interface VSTag extends Tag {
     snippet_count?: number;
@@ -15,6 +33,11 @@ export interface VSFolder extends Folder {
 export class SnipoAPI {
     private client: SnipoClient;
     private context?: vscode.ExtensionContext;
+    private cacheScope = '';
+
+    private cacheKey(key: string): string {
+        return JSON.stringify(['snipo-cache', this.cacheScope, key]);
+    }
 
     constructor() {
         this.client = new SnipoClient({ baseURL: '' });
@@ -46,13 +69,8 @@ export class SnipoAPI {
             apiToken = await this.context.secrets.get('snipo.apiToken');
         }
 
-        if (apiUrl) {
-            if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
-                apiUrl = apiUrl.startsWith('localhost') || apiUrl.startsWith('127.0.0.1')
-                    ? `http://${apiUrl}`
-                    : `https://${apiUrl}`;
-            }
-        }
+        apiUrl = normalizeServerURL(apiUrl || '');
+        this.cacheScope = (apiUrl || '').replace(/\/+$/, '');
         this.client.updateBaseURL(apiUrl || '');
         this.client.updateToken(apiToken);
     }
@@ -71,11 +89,7 @@ export class SnipoAPI {
     }
 
     async verifyConfiguration(apiUrl: string, apiToken: string): Promise<boolean> {
-        if (!apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
-            apiUrl = apiUrl.startsWith('localhost') || apiUrl.startsWith('127.0.0.1')
-                ? `http://${apiUrl}`
-                : `https://${apiUrl}`;
-        }
+        apiUrl = normalizeServerURL(apiUrl);
         try {
             const tempClient = new SnipoClient({
                 baseURL: apiUrl,
@@ -94,6 +108,8 @@ export class SnipoAPI {
         let cacheKey = `snippets_all_${isFavorite}`;
         if (tagId) cacheKey = `snippets_tag_${tagId}`;
         if (folderId) cacheKey = `snippets_folder_${folderId}`;
+        cacheKey = this.cacheKey(cacheKey);
+        const scope = this.cacheScope;
 
         try {
             const params: any = { limit: 50 };
@@ -102,8 +118,17 @@ export class SnipoAPI {
             if (tagId !== undefined) params.tag_ids = tagId;
             if (folderId !== undefined) params.folder_ids = folderId;
 
-            const response = await this.client.client.get('/api/v1/snippets', { params });
-            const data = response.data.data || [];
+            const data: Snippet[] = [];
+            let page = 1;
+            let totalPages = 1;
+            do {
+                if (scope !== this.cacheScope) return [];
+                const response = await this.client.client.get('/api/v1/snippets', { params: { ...params, page } });
+                if (scope !== this.cacheScope) return [];
+                data.push(...(response.data.data || []));
+                totalPages = response.data.pagination?.totalPages || 1;
+                page++;
+            } while (page <= totalPages);
             
             // Cache full lists (not search queries)
             if (this.context && !query) {
@@ -111,10 +136,11 @@ export class SnipoAPI {
             }
             return data;
         } catch (error: any) {
+            if (scope !== this.cacheScope) return [];
             console.error('Error fetching snippets', error);
             if (error.response?.status === 401) {
                 vscode.window.showErrorMessage('Snipo API Token is invalid. Please update it in settings.');
-            } else if (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error')) {
+            } else if (isNetworkError(error)) {
                 vscode.window.showErrorMessage('Failed to connect to Snipo server. Showing cached snippets (if any).');
             } else {
                 vscode.window.showErrorMessage('Failed to fetch snippets from Snipo');
@@ -128,6 +154,7 @@ export class SnipoAPI {
     }
 
     async searchSnippets(query: string, signal?: AbortSignal): Promise<Snippet[]> {
+        const cacheKey = this.cacheKey('snippets_all_undefined');
         try {
             const response = await this.client.client.get('/api/v1/snippets/search', { params: { q: query }, signal });
             return Array.isArray(response.data) ? response.data : (response.data.data || []);
@@ -138,8 +165,8 @@ export class SnipoAPI {
             console.error('Error searching snippets', error);
             
             // Offline fallback for search
-            if (this.context && (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error'))) {
-                const cachedSnippets = this.context.globalState.get<Snippet[]>('snippets_all_undefined') || [];
+            if (this.context && (isNetworkError(error))) {
+                const cachedSnippets = this.context.globalState.get<Snippet[]>(cacheKey) || [];
                 const lowerQuery = query.toLowerCase();
                 return cachedSnippets.filter(s => 
                     s.title.toLowerCase().includes(lowerQuery) || 
@@ -158,18 +185,20 @@ export class SnipoAPI {
     }
 
     async getSnippet(id: string): Promise<Snippet | null> {
+        const cacheKey = this.cacheKey('snippets_all_undefined');
+        const recentKey = this.cacheKey('recent_snippets');
         try {
             return await this.client.getSnippet(id);
         } catch (error: any) {
             console.error('Error fetching snippet', error);
             // Offline fallback
-            if (this.context && (error.code === 'ECONNREFUSED' || error.message?.includes('Network Error'))) {
+            if (this.context && (isNetworkError(error))) {
                 // Try to find in cache
-                const cached = this.context.globalState.get<Snippet[]>('snippets_all_undefined') || [];
+                const cached = this.context.globalState.get<Snippet[]>(cacheKey) || [];
                 const found = cached.find(s => s.id === id);
                 if (found) return found;
                 
-                const cachedRecent = this.context.globalState.get<Snippet[]>('recent_snippets') || [];
+                const cachedRecent = this.context.globalState.get<Snippet[]>(recentKey) || [];
                 const foundRecent = cachedRecent.find(s => s.id === id);
                 if (foundRecent) return foundRecent;
             }
@@ -180,6 +209,7 @@ export class SnipoAPI {
     async createSnippet(data: Partial<Snippet>): Promise<Snippet | null> {
         try {
             const snippet = await this.client.createSnippet(data);
+            refreshSidebar();
             vscode.window.showInformationMessage('Snippet created successfully!');
             return snippet;
         } catch (error: any) {
@@ -198,6 +228,7 @@ export class SnipoAPI {
     async updateSnippet(id: string, data: Partial<Snippet>): Promise<Snippet | null> {
         try {
             const snippet = await this.client.updateSnippet(id, data);
+            refreshSidebar();
             vscode.window.showInformationMessage('Snippet updated successfully!');
             return snippet;
         } catch (error: any) {
@@ -216,6 +247,7 @@ export class SnipoAPI {
     async deleteSnippet(id: string): Promise<boolean> {
         try {
             await this.client.deleteSnippet(id);
+            refreshSidebar();
             vscode.window.showInformationMessage('Snippet deleted successfully!');
             return true;
         } catch (error: any) {
@@ -230,7 +262,7 @@ export class SnipoAPI {
     }
 
     async getRecentSnippets(): Promise<Snippet[]> {
-        const cacheKey = 'recent_snippets';
+        const cacheKey = this.cacheKey('recent_snippets');
         try {
             const data = await this.client.getRecentSnippets();
             if (this.context) {
@@ -247,7 +279,7 @@ export class SnipoAPI {
     }
 
     async getTags(): Promise<VSTag[]> {
-        const cacheKey = 'tags_all';
+        const cacheKey = this.cacheKey('tags_all');
         try {
             const data = await this.client.getTags();
             if (this.context) {
@@ -264,7 +296,7 @@ export class SnipoAPI {
     }
 
     async getFolders(): Promise<VSFolder[]> {
-        const cacheKey = 'folders_all';
+        const cacheKey = this.cacheKey('folders_all');
         try {
             const data = await this.client.getFolders();
             if (this.context) {

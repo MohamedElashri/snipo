@@ -155,7 +155,7 @@ async function handleSaveClick(btn, preElement) {
     if (cloneBtn) cloneBtn.remove();
 
     const codeElement = clone.querySelector('code');
-    const textContent = (codeElement ? codeElement.textContent : clone.textContent).trim();
+    const textContent = (codeElement ? codeElement.textContent : clone.textContent);
 
     // Detect language
     let language = 'plaintext';
@@ -181,6 +181,9 @@ async function handleSaveClick(btn, preElement) {
 
 // Unified Save Flow (handles both Button and Context Menu)
 function initiateSaveFlow(code, language, title, btn) {
+    // Page titles may exceed the server's 200-character limit. Keep user-entered
+    // titles in the dialog separate from this automatic page-title default.
+    title = Array.from(title || '').slice(0, 200).join('');
     if (btn?.disabled) return;
     if (btn) btn.disabled = true;
     chrome.storage.sync.get(['interactiveMode'], async (items) => {
@@ -190,7 +193,7 @@ function initiateSaveFlow(code, language, title, btn) {
                 code: code,
                 language: language,
                 title: title
-            });
+            }, btn);
         } else {
             // Quick Save
             if (btn) btn.textContent = '...';
@@ -216,7 +219,10 @@ function initiateSaveFlow(code, language, title, btn) {
 
 // --- MODAL LOGIC ---
 
-async function showModal(snippetData) {
+let modalOpen = false;
+async function showModal(snippetData, returnFocus = document.activeElement) {
+    if (modalOpen) return;
+    modalOpen = true;
     // 1. Fetch Tags and Folders in parallel
     const [tagsRes, foldersRes] = await Promise.all([
         new Promise(resolve => chrome.runtime.sendMessage({ action: "fetchTags" }, res => resolve(res || {}))),
@@ -231,7 +237,7 @@ async function showModal(snippetData) {
         'plaintext', 'javascript', 'typescript', 'python', 'go', 'rust', 'java',
         'c', 'cpp', 'csharp', 'php', 'ruby', 'swift', 'kotlin', 'scala',
         'html', 'css', 'scss', 'json', 'yaml', 'xml', 'markdown',
-        'sql', 'bash', 'shell', 'powershell', 'dockerfile'
+        'sql', 'bash', 'shell', 'powershell', 'dockerfile', 'cuda', 'tex', 'bibtex'
     ];
 
     // Ensure detected language is in list or add it if valid, otherwise fallback
@@ -240,6 +246,7 @@ async function showModal(snippetData) {
     // Helper to get extension
     const getExt = (lang) => {
         const extMap = {
+            'cuda': 'cu', 'tex': 'tex', 'bibtex': 'bib',
             'plaintext': 'txt', 'javascript': 'js', 'typescript': 'ts', 'python': 'py',
             'go': 'go', 'rust': 'rs', 'java': 'java', 'c': 'c', 'cpp': 'cpp',
             'csharp': 'cs', 'php': 'php', 'ruby': 'rb', 'swift': 'swift',
@@ -349,12 +356,17 @@ async function showModal(snippetData) {
     noFolderOption.value = '';
     noFolderOption.textContent = 'No Folder';
     folderSelect.appendChild(noFolderOption);
-    folders.forEach(f => {
-        const option = document.createElement('option');
-        option.value = f.id;
-        option.textContent = f.name;
-        folderSelect.appendChild(option);
-    });
+    function appendFolders(items, parentPath = '') {
+        items.forEach(folder => {
+            const path = parentPath ? `${parentPath} / ${folder.name}` : folder.name;
+            const option = document.createElement('option');
+            option.value = folder.id;
+            option.textContent = path;
+            folderSelect.appendChild(option);
+            if (folder.children?.length) appendFolders(folder.children, path);
+        });
+    }
+    appendFolders(folders);
     folderGroup.appendChild(folderLabel);
     folderGroup.appendChild(folderSelect);
     modal.appendChild(folderGroup);
@@ -434,9 +446,22 @@ async function showModal(snippetData) {
 
     // Event Listeners
     const close = () => {
+        modalOpen = false;
+        document.removeEventListener('keydown', onDialogKeyDown, true);
         overlay.classList.remove('visible');
+        if (returnFocus?.isConnected) returnFocus.focus();
         setTimeout(() => overlay.remove(), 200);
     };
+
+    const onDialogKeyDown = event => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            close();
+        }
+    };
+    document.addEventListener('keydown', onDialogKeyDown, true);
+    titleInput.focus();
 
     const suggestionsBox = overlay.querySelector('#snipo-tag-suggestions');
 

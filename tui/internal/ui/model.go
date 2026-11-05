@@ -29,13 +29,14 @@ const (
 )
 
 type Model struct {
-	client  *api.Client
-	config  *config.Config
-	mode    ViewMode
-	width   int
-	height  int
-	err     error
-	message string
+	client         *api.Client
+	config         *config.Config
+	mode           ViewMode
+	helpReturnMode ViewMode
+	width          int
+	height         int
+	err            error
+	message        string
 
 	snippets    []api.Snippet
 	selectedIdx int
@@ -226,6 +227,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.quitting = true
 			return m, tea.Quit
 
+		case "esc":
+			if m.mode == ViewHelp {
+				m.mode = m.helpReturnMode
+				return m, nil
+			}
 		case "q":
 			if m.mode == ViewList || m.mode == ViewDetail || m.mode == ViewHelp {
 				m.quitting = true
@@ -233,10 +239,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "?":
+			if m.mode != ViewList && m.mode != ViewDetail && m.mode != ViewHelp {
+				break
+			}
 			if m.mode != ViewHelp {
+				m.helpReturnMode = m.mode
 				m.mode = ViewHelp
 			} else {
-				m.mode = ViewList
+				m.mode = m.helpReturnMode
 			}
 			return m, nil
 		}
@@ -259,12 +269,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case languagesLoadedMsg:
 		m.allowedLanguages = msg.languages
 		// If edit/create form is already open, update suggestions immediately
-		if len(m.inputs) > 1 {
+		if (m.mode == ViewCreate || m.mode == ViewEdit) && len(m.inputs) > 1 {
 			m.inputs[1].ShowSuggestions = true
 			m.inputs[1].SetSuggestions(m.allowedLanguages)
 		}
 
 	case snippetsLoadedMsg:
+		m.err = nil
 		m.snippets = msg.snippets
 		if msg.pagination != nil {
 			m.currentPage = msg.pagination.Page
@@ -278,6 +289,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.detailSnippet = nil // Clear detail snippet when loading list
 
 	case snippetLoadedMsg:
+		m.err = nil
 		m.detailSnippet = msg.snippet
 		m.detailScroll = 0    // Reset scroll when loading new snippet
 		m.selectedFileIdx = 0 // Reset file selection
@@ -309,6 +321,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.folders = msg.folders
 
 	case successMsg:
+		m.err = nil
 		m.message = msg.message
 		m.mode = ViewList
 		cmds = append(cmds, loadSnippets(m.client, m.currentPage, 20, m.searchQuery, m.filterTags, nil, "", nil, nil))
@@ -523,7 +536,11 @@ func (m Model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "c":
 		if m.detailSnippet != nil {
-			return m, copyToClipboard(m.detailSnippet.Content)
+			content := m.detailSnippet.Content
+			if m.selectedFileIdx >= 0 && m.selectedFileIdx < len(m.detailSnippet.Files) {
+				content = m.detailSnippet.Files[m.selectedFileIdx].Content
+			}
+			return m, copyToClipboard(content)
 		}
 
 	case "e":
@@ -569,6 +586,7 @@ func (m *Model) initCreateForm() {
 	m.inputs[3].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Padding(0, 1) // Yellow
 
 	m.textarea = textarea.New()
+	m.textarea.MaxHeight = 0 // Viewport height must not limit the number of code lines.
 	m.textarea.Placeholder = "Snippet content..."
 	m.textarea.SetWidth(m.width - 8)
 	textAreaHeight := m.height - 11
@@ -606,7 +624,13 @@ func (m *Model) initEditForm(snippet *api.Snippet) {
 	m.inputs[1] = textinput.New()
 	m.inputs[1].Prompt = "Language:    "
 	m.inputs[1].Placeholder = "Language"
-	m.inputs[1].SetValue(snippet.Language)
+	language := snippet.Language
+	content := snippet.Content
+	if m.selectedFileIdx >= 0 && m.selectedFileIdx < len(snippet.Files) {
+		language = snippet.Files[m.selectedFileIdx].Language
+		content = snippet.Files[m.selectedFileIdx].Content
+	}
+	m.inputs[1].SetValue(language)
 	m.inputs[1].CharLimit = 50
 	m.inputs[1].ShowSuggestions = true
 	m.inputs[1].SetSuggestions(m.allowedLanguages)
@@ -633,8 +657,9 @@ func (m *Model) initEditForm(snippet *api.Snippet) {
 	m.inputs[3].PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Padding(0, 1) // Yellow
 
 	m.textarea = textarea.New()
+	m.textarea.MaxHeight = 0 // Viewport height must not limit the number of code lines.
 	m.textarea.Placeholder = "Snippet content..."
-	m.textarea.SetValue(snippet.Content)
+	m.textarea.SetValue(content)
 	m.textarea.SetWidth(m.width - 8)
 	textAreaHeight := m.height - 11
 	if textAreaHeight < 10 {
@@ -960,7 +985,7 @@ func (m Model) submitForm() (tea.Model, tea.Cmd) {
 		for _, part := range parts {
 			cleaned := strings.TrimSpace(part)
 			if cleaned != "" {
-				finalTags = append(finalTags, strings.ToLower(cleaned))
+				finalTags = append(finalTags, cleaned)
 			}
 		}
 	}
@@ -997,10 +1022,10 @@ func (m Model) submitForm() (tea.Model, tea.Cmd) {
 		if len(m.detailSnippet.Folders) > 0 {
 			input.FolderID = &m.detailSnippet.Folders[0].ID
 		}
-		// The form edits the primary file; keep the remaining files intact.
+		// Edit the selected file and preserve every other file.
 		for i, file := range m.detailSnippet.Files {
 			fileInput := api.FileInput{ID: file.ID, Filename: file.Filename, Content: file.Content, Language: file.Language}
-			if i == 0 {
+			if i == m.selectedFileIdx {
 				fileInput.Content = content
 				fileInput.Language = language
 			}
