@@ -1556,3 +1556,43 @@
 
 .editor-loading { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; background: var(--editor-bg); color: var(--snipo-text-muted); }
 .code-editor-container .cm-editor { height: 100%; }
+
+/* Keep embedded search tools independent of the app's full-width form fields. */
+.code-editor-container .cm-search {
+  font-family: var(--font-sans, sans-serif);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.code-editor-container .cm-search .cm-textfield {
+  display: inline-block;
+  width: 12rem;
+  max-width: calc(100% - 2rem);
+  height: 30px;
+  min-height: 0;
+  padding: 3px 6px;
+  margin: 2px;
+  font: inherit;
+}
+.code-editor-container .cm-search label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 6px 2px 0;
+  font: inherit;
+}
+.code-editor-container .cm-search input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+.code-editor-container .cm-search button {
+  width: auto;
+  min-height: 0;
+  margin: 2px;
+  padding: 3px 6px;
+  font: inherit;
+}
+.code-editor-container .cm-search button[name="close"] {
+  padding: 0 4px;
+  color: inherit;
+}

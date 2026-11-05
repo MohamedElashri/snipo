@@ -403,9 +403,13 @@ export function initSnippetsApp(Alpine) {
         this.showEditor = false;
         this.isEditing = false;
         this.showSettings = false;
+        this.loadDraft();
         await this.loadSnippets();
         const snippetId = params.get('snippet');
-        if (snippetId && /^[a-zA-Z0-9_-]+$/.test(snippetId)) {
+        const editing = params.get('edit') === 'true';
+        if (editing && this.draftSnippet && (this.draftSnippet.id || null) === snippetId) {
+          this.restoreDraft();
+        } else if (snippetId && /^[a-zA-Z0-9_-]+$/.test(snippetId)) {
           await this.viewSnippet({ id: snippetId });
           if (this.showEditor && params.get('edit') === 'true') this.startEditing();
         } else if (params.get('edit') === 'true') this.newSnippet();

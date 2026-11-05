@@ -29,6 +29,9 @@ export const draftMixin = {
 
   loadDraft() {
     if (this.showEditor) return;
+    this.hasDraft = false;
+    this.draftSnippet = null;
+    this.draftSavedAt = null;
 
     try {
       const draftJson = localStorage.getItem('snipo-draft');
@@ -41,7 +44,7 @@ export const draftMixin = {
       const now = new Date();
       const hoursDiff = (now - savedAt) / (1000 * 60 * 60);
 
-      if (hoursDiff > 24) {
+      if (!Number.isFinite(hoursDiff) || hoursDiff > 24) {
         this.clearDraft();
         return;
       }

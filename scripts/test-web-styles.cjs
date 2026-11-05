@@ -246,8 +246,19 @@ async function checkPage(page) {
           await page.waitForFunction(() => Alpine.$data(document.querySelector('.app-container')).activeFile.content.includes('typed'));
           await page.keyboard.press('ControlOrMeta+f');
           await page.locator(engine === 'ace' ? '.ace_search' : engine === 'codemirror' ? '.cm-search' : '.monaco-editor .find-widget').waitFor({ state: 'visible' });
+          if (engine === 'codemirror') {
+            assert.ok((await page.locator('.cm-search input[name="search"]').boundingBox()).height <= 32);
+            assert.equal(await style(page.locator('.cm-search label').first(), 'display'), 'inline-flex');
+          }
           await page.keyboard.press('Escape');
           assert.equal(await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).isEditing), true);
+          const draftContent = await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue());
+          await page.reload();
+          await page.waitForFunction(engine => {
+            const app = Alpine.$data(document.querySelector('.app-container'));
+            return app.codeEditor && !app.editorLoading && app.activeEditorEngine === engine;
+          }, engine);
+          assert.equal(await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).codeEditor.getValue()), draftContent);
           const editorSelector = engine === 'ace' ? '#code-editor.ace_editor' : engine === 'codemirror' ? '#code-editor .cm-editor' : '#code-editor .monaco-editor';
           const editorSurface = page.locator(editorSelector);
           const background = await style(editorSurface, 'backgroundColor');

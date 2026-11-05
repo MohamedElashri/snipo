@@ -288,3 +288,32 @@ test('switching editors synchronizes unsaved code and keeps a recoverable draft'
   assert.equal(JSON.parse(storage.get('snipo-draft')).snippet.files[0].content, 'unsaved code');
   assert.equal(storage.get('snipo-editor'), 'monaco');
 });
+
+test('reloading an edit URL restores its unsaved draft instead of server content', async () => {
+  for (const id of ['existing', null]) {
+    const state = app();
+    window.location = new URL(`http://localhost/snipo/?edit=true${id ? `&snippet=${id}` : ''}`);
+    storage.set('snipo-draft', JSON.stringify({ savedAt: new Date().toISOString(), snippet: {
+      id, title: 'Unsaved title', files: [{ filename: 'draft.txt', content: 'unsaved marker', language: 'plaintext' }]
+    } }));
+    state.loadSnippets = async () => {};
+    api.get = async () => { throw new Error('Must not replace matching draft'); };
+    await state.restoreFromUrl();
+    assert.equal(state.editingSnippet.files[0].content, 'unsaved marker');
+    assert.equal(state.isEditing, true);
+    assert.equal(state.saveState, 'local');
+  }
+});
+
+test('an unrelated or expired draft does not replace the requested snippet', async () => {
+  for (const [id, savedAt] of [['other', new Date().toISOString()], ['requested', '2000-01-01'], ['requested', 'invalid']]) {
+    const state = app();
+    window.location = new URL('http://localhost/snipo/?snippet=requested&edit=true');
+    storage.set('snipo-draft', JSON.stringify({ savedAt, snippet: { id, title: 'Draft', files: [] } }));
+    state.loadSnippets = async () => {};
+    api.get = async () => ({ id: 'requested', title: 'Server', files: [], tags: [] });
+    await state.restoreFromUrl();
+    assert.equal(state.editingSnippet.title, 'Server');
+    assert.equal(state.isEditing, true);
+  }
+});

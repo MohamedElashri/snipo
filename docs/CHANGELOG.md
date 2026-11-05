@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Keep undo from restoring a different file’s code after switching snippet files.
+- Restore unsaved code when refreshing an editing page.
+- Keep CodeMirror’s find and replace controls compact on smaller screens.
 
 ## [2.1.1] - 2026-11-05
 
