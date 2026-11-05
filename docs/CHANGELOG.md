@@ -5,13 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.2.0] - Unreleased
 
 ### Added
 - Choose Ace, CodeMirror 6, or Monaco in Editor settings, with a remembered browser preference and safe switching between editors.
-- Use Monaco’s language assistance for JavaScript, TypeScript, JSON, HTML, and CSS with locally hosted workers.
+- Use Monaco’s language assistance for JavaScript, TypeScript, JSON, HTML, and CSS without relying on external services.
+- See which editor is active, including when Snipo falls back to Ace.
 
 ### Fixed
+- Prevent a late Monaco completion response from causing an error after switching files or editors.
+- Highlight TeX and BibTeX in all three editors and preserve CUDA, TeX, and BibTeX when saving.
+- Recover from stalled editor downloads instead of leaving the editor loading indefinitely.
 - Keep undo from restoring a different file’s code after switching snippet files.
 - Restore unsaved code when refreshing an editing page.
 - Keep each tab’s draft separate so saving in another tab does not erase its recovery copy.
