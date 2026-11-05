@@ -24,17 +24,17 @@ export class SnipoAPI {
         this.context = context;
         await this.updateConfig();
 
-        vscode.workspace.onDidChangeConfiguration(async e => {
+        context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(async e => {
             if (e.affectsConfiguration('snipo.apiUrl')) {
                 await this.updateConfig();
             }
-        });
+        }));
 
-        context.secrets.onDidChange(async e => {
+        context.subscriptions.push(context.secrets.onDidChange(async e => {
             if (e.key === 'snipo.apiToken') {
                 await this.updateConfig();
             }
-        });
+        }));
     }
 
     private async updateConfig() {
@@ -52,11 +52,9 @@ export class SnipoAPI {
                     ? `http://${apiUrl}`
                     : `https://${apiUrl}`;
             }
-            this.client.updateBaseURL(apiUrl);
         }
-        if (apiToken) {
-            this.client.updateToken(apiToken);
-        }
+        this.client.updateBaseURL(apiUrl || '');
+        this.client.updateToken(apiToken);
     }
 
     async isConfigured(): Promise<boolean> {

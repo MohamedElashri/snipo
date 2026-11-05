@@ -73,7 +73,7 @@ jobs:
           bash scripts/bump-version.sh --check "$VERSION"
       - name: Build extensions
         run: |
-          npm run build -w @snipo/api-client
+          npm test -w @snipo/api-client
           npm run compile-tests -w snipo
           bash extension/build.sh all
           npx --no-install addons-linter extension/dist/firefox --warnings-as-errors
@@ -87,7 +87,9 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Web interface regression checks
-        run: npm run test:web
+        run: |
+          npm run test:frontend
+          npm run test:web
       - name: VS Code tests
         run: xvfb-run -a npm test -w snipo
       - name: Verify Firefox source is buildable

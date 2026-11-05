@@ -1,6 +1,6 @@
 {{define "editor"}}
 <!-- Snippet View/Editor -->
-<div class="editor-container" x-show="showEditor" x-cloak>
+<div class="editor-container" :inert="saving" x-show="showEditor" x-cloak>
     <!-- Toolbar -->
     <div class="editor-toolbar" x-show="editorHeaderVisible">
         <button class="btn-icon" @click="cancelEdit()" title="Back">
@@ -19,22 +19,21 @@
         <div class="editor-title-wrapper" x-show="isEditing">
             <textarea class="editor-title-input"
                 :class="{ 'rtl': isArabicText(editingSnippet.title) }"
-                x-model="editingSnippet.title" placeholder="Snippet title..." rows="1"
+                aria-label="Snippet title" x-model="editingSnippet.title" placeholder="Snippet title..." rows="1"
                 @input="scheduleAutoSave(); autoResizeTextarea($event.target)"
                 x-init="$watch('isEditing', (v) => { if(v) $nextTick(() => autoResizeTextarea($el)) })"></textarea>
         </div>
 
-        <!-- Description (edit mode, separate element for mobile row layout) -->
-        <textarea x-model="editingSnippet.description"
-            :class="{ 'rtl': isArabicText(editingSnippet.description) }"
-            placeholder="Description (optional)" rows="1"
-            class="description-textarea editor-description-under-title"
-            x-show="isEditing"
-            @input="scheduleAutoSave(); autoResizeTextarea($event.target)"
-            x-init="$watch('isEditing', (v) => { if(v) $nextTick(() => autoResizeTextarea($el)) })"></textarea>
-
-        <div class="editor-toolbar-actions" :class="{ 'editing': isEditing }">
-            <div class="editor-actions-row">
+        <div class="editor-actions">
+            <button class="btn-action snippet-list-toggle" @click="toggleEditorExpanded()"
+                :aria-pressed="editorExpanded" :aria-label="editorExpanded ? 'Show snippet list' : 'Hide snippet list'"
+                :title="editorExpanded ? 'Show snippet list' : 'Hide snippet list'">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                    <path d="M9 3v18"></path>
+                    <path :d="editorExpanded ? 'm13 9 3 3-3 3' : 'm16 9-3 3 3 3'"></path>
+                </svg>
+            </button>
             <button class="btn-action" @click="toggleFavorite(editingSnippet)" x-show="editingSnippet?.id"
                 title="Toggle Favorite">
                 <svg viewBox="0 0 24 24" :fill="editingSnippet?.is_favorite ? 'currentColor' : 'none'"
@@ -45,37 +44,10 @@
                 </svg>
                 <span x-text="editingSnippet?.is_favorite ? 'Favorited' : 'Favorite'"></span>
             </button>
-            <!-- Copy dropdown menu -->
-            <div class="dropdown" x-data="{ open: false }" @click.outside="open = false"
-                x-show="editingSnippet?.id || editingSnippet?.files?.length > 0 || editingSnippet?.content">
-                <button class="btn-action" @click="open = !open" :class="{ 'active': open }" title="Copy options">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                    <span>Copy</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"
-                        style="margin-left: 2px;">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                </button>
-                <div class="dropdown-menu" x-show="open" x-transition x-cloak>
-                    <a href="#" class="dropdown-item" @click.prevent="copyToClipboard(editingSnippet); open = false">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                        <span>Copy Code</span>
-                    </a>
-                    <a href="#" class="dropdown-item" @click.prevent="copyAsRichText(editingSnippet); open = false">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                            <polyline points="16 18 22 12 16 6"></polyline>
-                            <polyline points="8 6 2 12 8 18"></polyline>
-                        </svg>
-                        <span>Copy as Rich Text</span>
-                    </a>
-                </div>
-            </div>
+            <button class="btn-action" @click="copyToClipboard(editingSnippet)" title="Copy active file">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <span>Copy</span>
+            </button>
             <button class="btn-action" @click="copyShareLink(editingSnippet)"
                 x-show="editingSnippet?.id && editingSnippet?.is_public" title="Copy Share Link">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -85,6 +57,9 @@
                 <span>Share</span>
             </button>
 
+            <details class="editor-more" x-show="editingSnippet?.id">
+                <summary>More<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary><div class="editor-more-menu">
+                    <button class="btn-action" @click="copyAsRichText(editingSnippet)">Copy as rich text</button>
             <!-- Archive button -->
             <button class="btn-action" @click="toggleArchive(editingSnippet)"
                 x-show="editingSnippet?.id && settings.archive_enabled"
@@ -128,6 +103,9 @@
                 <span>Delete</span>
             </button>
 
+                </div>
+            </details>
+
             <!-- Edit button (preview mode) -->
             <button class="btn-action primary" x-show="!isEditing && !editingSnippet?.deleted_at"
                 @click="startEditing()">
@@ -147,34 +125,40 @@
                 </svg>
                 <span>Restore</span>
             </button>
-            </div>
 
             <!-- Save button (edit mode) -->
-            <div class="editor-actions-row editor-edit-actions" x-show="isEditing">
-            <button class="btn-action primary" x-show="isEditing" @click="saveSnippet()" :disabled="isSaving"
-                :aria-busy="isSaving.toString()" aria-keyshortcuts="Control+S Meta+S">
+            <button class="btn-action primary" x-show="isEditing" @click="saveSnippet()" :disabled="saving" :aria-busy="saving.toString()" aria-keyshortcuts="Control+S Meta+S">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                     <polyline points="17 21 17 13 7 13 7 21"></polyline>
                     <polyline points="7 3 7 8 15 8"></polyline>
                 </svg>
-                <span x-text="isSaving ? 'Saving' : 'Save'"></span>
+                <span x-text="saving ? 'Saving…' : 'Save'"></span>
             </button>
 
             <!-- Close/Cancel button (edit mode) -->
-            <button class="btn-action" x-show="isEditing" @click="cancelEditing()" title="Close and discard changes">
+            <button class="btn-action" x-show="isEditing" @click="cancelEditing()" title="Close editing and keep a local draft">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
                 <span>Close</span>
             </button>
-            </div>
         </div>
+    </div>
+
+    <div class="editor-status" x-show="isEditing">
+        <span role="status" aria-live="polite" x-text="saveState === 'saving' ? 'Saving to server…' : saveState === 'error' ? 'Save failed — your changes are still open. Retry Save.' : saveState === 'local-error' ? 'Draft could not be stored locally. Save to keep your changes.' : saveState === 'local' ? 'Draft saved on this device · Save to store on server' : isEditing ? 'Unsaved changes' : 'Saved to server'"></span>
+    </div>
+
+    <div class="sharing-notice" x-show="isEditing && editingSnippet.is_public" role="note">
+        Anyone with the public link can read this snippet and its files. Turn off Public and save to revoke access.
     </div>
 
     <!-- PREVIEW MODE: Full-width code preview with metadata -->
     <div class="preview-mode" x-show="!isEditing">
+        <details class="snippet-details">
+            <summary><span>Snippet details</span><span class="snippet-visibility" x-text="editingSnippet.is_public ? 'Public' : 'Private'"></span></summary>
         <!-- Metadata row 1: Description -->
         <div class="preview-metadata-row" x-show="editingSnippet.description">
             <div class="preview-meta-item">
@@ -257,6 +241,8 @@
                 </button>
             </div>
         </div>
+
+        </details>
 
         <!-- File bar for multi-file preview -->
         <div class="preview-file-bar" x-show="editingSnippet.files && editingSnippet.files.length > 0">
@@ -384,6 +370,12 @@
                 </div>
 
                 <div class="editor-details-content">
+                    <section class="editor-details-section">
+                        <label for="snippet-description">Description</label>
+                        <textarea id="snippet-description" x-model="editingSnippet.description" rows="2"
+                            :class="{ 'rtl': isArabicText(editingSnippet.description) }"
+                            placeholder="Description (optional)" @input="scheduleAutoSave()"></textarea>
+                    </section>
                     <section class="editor-details-section">
                         <div class="editor-details-section-title">Organize</div>
                         <div class="editor-field-inline compact">

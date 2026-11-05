@@ -61,4 +61,38 @@ suite('Commands Test Suite', () => {
         assert.strictEqual(errorMessageStub.calledOnce, true);
         assert.strictEqual(showInputBoxStub.called, false);
     });
+    test('search picker ignores stale initial and search responses', async () => {
+        const clock = sinon.useFakeTimers();
+        let change: (value: string) => void = () => {};
+        let hide: () => void = () => {};
+        const picker: any = {
+            items: [], selectedItems: [], busy: false,
+            onDidChangeValue: (fn: typeof change) => { change = fn; },
+            onDidAccept: () => {}, onDidHide: (fn: typeof hide) => { hide = fn; },
+            show: () => {}, dispose: sinon.stub(), hide: () => hide()
+        };
+        sinon.stub(vscode.window, 'createQuickPick').returns(picker);
+        let resolveInitial!: (items: any[]) => void;
+        let resolveOld!: (items: any[]) => void;
+        sinon.stub(api, 'getSnippets').returns(new Promise(resolve => { resolveInitial = resolve; }));
+        const search = sinon.stub(api, 'searchSnippets');
+        search.onFirstCall().returns(new Promise(resolve => { resolveOld = resolve; }));
+        search.onSecondCall().resolves([{ id: 'new', title: 'Newest' } as any]);
+        const pending = searchAndInsertSnippet();
+        await clock.tickAsync(0);
+        change('old');
+        await clock.tickAsync(300);
+        change('new');
+        await clock.tickAsync(300);
+        assert.strictEqual(picker.items[0].snippet.id, 'new');
+        resolveInitial([{ id: 'initial', title: 'Initial' }]);
+        resolveOld([{ id: 'old', title: 'Old' }]);
+        await clock.tickAsync(0);
+        assert.strictEqual(picker.items[0].snippet.id, 'new');
+        assert.strictEqual(picker.busy, false);
+        hide();
+        await pending;
+        assert.strictEqual(picker.dispose.calledOnce, true);
+    });
+
 });

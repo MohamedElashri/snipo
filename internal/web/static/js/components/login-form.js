@@ -1,8 +1,10 @@
+import { theme } from '../modules/theme.js';
 import { api } from '../modules/api.js';
 
 // Login form component
 export function initLoginForm(Alpine) {
   Alpine.data('loginForm', () => ({
+    theme,
     password: '',
     error: '',
     loading: false,

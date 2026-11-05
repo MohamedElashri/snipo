@@ -2,7 +2,8 @@
   "name": "snipo-monorepo",
   "private": true,
   "scripts": {
-    "test:web": "node scripts/test-web-styles.cjs"
+    "test:web": "node scripts/test-web-styles.cjs",
+    "test:frontend": "node --test tests/frontend/*.test.mjs"
   },
   "workspaces": [
     "packages/*",
@@ -10,7 +11,7 @@
     "extension"
   ],
   "devDependencies": {
-    "@vscode/vsce": "4.0.0",
+    "@vscode/vsce": "4.1.0",
     "addons-linter": "10.15.0"
   },
   "overrides": {

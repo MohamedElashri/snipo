@@ -5,7 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.2] - Unreleased
+## [Unreleased]
+
+### Fixed
+- Prevent outdated cached styles and scripts from breaking the web interface after an update.
+
+## [2.1.0] - 2026-11-05
+
+### Web app
+- Choose Cards, List, or Compact views to browse your snippets.
+- Search tags, keep your filters while opening snippets, and hide the snippet list
+  when you want more room for code.
+- Enjoy a more compact snippet toolbar and improved mobile layouts.
+- Keep snippets open after saving and recover unfinished edits from local drafts.
+- Find settings on a dedicated page with direct links to each section.
+- Browse large snippets with lighter previews while opening and copying the full code.
+- Fix outdated search results, briefly visible password prompts on refresh, and
+  display issues on login and shared snippet pages.
+- Fix shared links and themes when Snipo is hosted under a URL subpath.
+
+### Browser extension
+- Prevent repeated clicks from saving the same snippet while a save is in progress.
+- Make the save button available again after a failed save.
+- Stop waiting indefinitely when the server does not respond.
+
+### VS Code
+- Fix opening and saving snippets so their contents are returned correctly.
+- Keep search results matched to your latest query.
+- Stop waiting indefinitely for an unresponsive server and stop using credentials
+  after they are removed from settings.
+
+### Snippy
+- Fix navigation beyond the first page of snippets.
+- Apply all selected tags and folders when filtering.
+- Accept server URLs with trailing slashes.
+
+## [2.0.2] - 2026-10-31
 
 ### Fixed
 - Restore the light theme's text, card surfaces, and borders after the v2.0.1

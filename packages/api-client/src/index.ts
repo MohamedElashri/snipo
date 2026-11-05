@@ -41,19 +41,19 @@ export class SnipoClient {
   private token?: string;
 
   constructor(options: SnipoApiOptions) {
-    this.baseURL = options.baseURL.replace(/\/$/, '');
+    this.baseURL = options.baseURL.trim().replace(/\/+$/, '');
     this.token = options.token;
   }
 
-  updateToken(token: string) {
+  updateToken(token?: string) {
     this.token = token;
   }
 
   updateBaseURL(url: string) {
-    this.baseURL = url.replace(/\/$/, '');
+    this.baseURL = url.trim().replace(/\/+$/, '');
   }
 
-  private async request<T>(endpoint: string, options: RequestInit & { params?: Record<string, any> } = {}): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit & { params?: Record<string, any>; timeout?: number } = {}): Promise<T> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...((options.headers as Record<string, string>) || {})
@@ -71,8 +71,15 @@ export class SnipoClient {
       url = urlObj.toString();
     }
 
+    // Bound every request, including response-body reads, and preserve caller cancellation.
+    const { params: _params, timeout = 30000, signal, ...init } = options;
+    const controller = new AbortController();
+    const abort = () => controller.abort(signal?.reason);
+    if (signal?.aborted) abort();
+    else signal?.addEventListener('abort', abort, { once: true });
+    const timer = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), timeout);
     try {
-      const response = await fetch(url, { ...options, headers });
+      const response = await fetch(url, { ...init, headers, signal: controller.signal });
       if (!response.ok) {
         let errData = {};
         try { errData = await response.json(); } catch(e) {}
@@ -85,11 +92,9 @@ export class SnipoClient {
         return {} as T;
       }
       return await response.json();
-    } catch (e: any) {
-      if (e.name === 'AbortError') {
-        throw e;
-      }
-      throw e;
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', abort);
     }
   }
 
@@ -108,16 +113,20 @@ export class SnipoClient {
     return response.data || [];
   }
 
+  private unwrapSnippet(response: Snippet | { data: Snippet }): Snippet {
+    return 'data' in response ? response.data : response;
+  }
+
   async getSnippet(id: string): Promise<Snippet> {
-    return this.request<Snippet>(`/api/v1/snippets/${encodeURIComponent(id)}`);
+    return this.unwrapSnippet(await this.request<Snippet | { data: Snippet }>(`/api/v1/snippets/${encodeURIComponent(id)}`));
   }
 
   async createSnippet(data: Partial<Snippet>): Promise<Snippet> {
-    return this.request<Snippet>('/api/v1/snippets', { method: 'POST', body: JSON.stringify(data) });
+    return this.unwrapSnippet(await this.request<Snippet | { data: Snippet }>('/api/v1/snippets', { method: 'POST', body: JSON.stringify(data) }));
   }
 
   async updateSnippet(id: string, data: Partial<Snippet>): Promise<Snippet> {
-    return this.request<Snippet>(`/api/v1/snippets/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) });
+    return this.unwrapSnippet(await this.request<Snippet | { data: Snippet }>(`/api/v1/snippets/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }));
   }
 
   async deleteSnippet(id: string): Promise<void> {

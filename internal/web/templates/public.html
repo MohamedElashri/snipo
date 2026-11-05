@@ -26,33 +26,33 @@
         <header class="public-header">
             <div class="public-header-left">
                 <a href="{{.BasePath}}/" class="public-logo">
-                    <img src="{{.BasePath}}/static/logo.png" alt="Snipo" width="24" height="24">
+                    <img src="{{.AssetBasePath}}/logo.png" alt="Snipo" width="24" height="24">
                     <span>Snipo</span>
                 </a>
             </div>
             <div class="public-header-right">
-                <button class="btn-icon" @click="copyCode()" title="Copy Code">
+                <button class="btn-action" @click="copyCode()" title="Copy active file">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
+                    </svg><span>Copy</span>
                 </button>
                 <button x-show="isAuthenticated" class="btn-icon" @click="togglePublic()" :title="snippet.is_public ? 'Make Private' : 'Make Public'">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <template x-if="snippet.is_public">
+                        <g x-show="snippet.is_public">
                             <g>
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <path d="M2 12h20"></path>
                                 <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                             </g>
-                        </template>
-                        <template x-if="!snippet.is_public">
+                        </g>
+                        <g x-show="!snippet.is_public">
                             <g>
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                 <circle cx="12" cy="12" r="3"></circle>
                                 <line x1="3" y1="3" x2="21" y2="21"></line>
                             </g>
-                        </template>
+                        </g>
                     </svg>
                 </button>
                 <a href="{{.BasePath}}/" class="btn-primary" style="padding: 0.5rem 1rem; text-decoration: none;">
@@ -71,7 +71,7 @@
                 x-show="snippet.description" x-text="snippet.description"></p>
             
             <div class="public-meta">
-                <span class="language-badge" :style="{ background: getLanguageColor(snippet.language) }" x-text="snippet.language"></span>
+                <span class="language-badge" :style="{ background: getLanguageColor(getCurrentLanguage()) }" x-text="getCurrentLanguage()"></span>
                 <template x-for="tag in (snippet.tags || [])" :key="tag.id">
                     <span class="tag-badge" x-text="tag.name"></span>
                 </template>
@@ -128,210 +128,5 @@
     </div>
 </div>
 
-<style>
-    .public-snippet-container {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .public-loading, .public-error {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
-        text-align: center;
-    }
-    
-    .public-error svg {
-        color: var(--snipo-danger);
-        margin-bottom: 1rem;
-    }
-    
-    .public-snippet {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .public-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1rem 2rem;
-        background: var(--snipo-card-background);
-        border-bottom: 1px solid var(--snipo-border-muted);
-    }
-    
-    .public-logo {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-weight: 700;
-        font-size: 1.25rem;
-        color: var(--snipo-primary);
-        text-decoration: none;
-    }
-    
-    .public-header-right {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .public-info {
-        padding: 2rem;
-        background: var(--snipo-card-background);
-        border-bottom: 1px solid var(--snipo-border-muted);
-    }
-    
-    .public-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin: 0 0 0.5rem 0;
-    }
-    
-    .public-description {
-        color: var(--snipo-text-muted);
-        margin: 0 0 1rem 0;
-    }
-    
-    .public-meta {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .public-date {
-        color: var(--snipo-text-muted);
-        font-size: 0.85rem;
-        margin-left: auto;
-    }
-    
-    .public-files-tabs {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1rem;
-        padding: 0.5rem 1rem;
-        background: var(--snipo-card-background);
-        border-bottom: 1px solid var(--snipo-border-muted);
-        overflow-x: auto;
-    }
-    
-    .file-tabs {
-        display: flex;
-        gap: 0.25rem;
-        flex: 1;
-        overflow-x: auto;
-    }
-    
-    .file-info {
-        display: flex;
-        align-items: center;
-        flex: 1;
-    }
-    
-    .file-name {
-        padding: 0.5rem 1rem;
-        font-size: 0.85rem;
-        color: var(--snipo-text-muted);
-        font-family: var(--font-mono);
-    }
-    
-    .file-tab {
-        padding: 0.5rem 1rem;
-        background: transparent;
-        border: 1px solid var(--snipo-border-muted);
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.85rem;
-        white-space: nowrap;
-        transition: all 0.2s;
-        color: var(--snipo-contrast) !important;
-    }
-    
-    .file-tab:hover {
-        background: var(--snipo-border-muted);
-        color: var(--snipo-contrast) !important;
-    }
-    
-    .file-tab.active {
-        background: var(--snipo-primary);
-        color: white !important;
-        border-color: var(--snipo-primary);
-    }
-    
-    .file-actions {
-        display: flex;
-        gap: 0.25rem;
-    }
-    
-    .btn-icon-small {
-        padding: 0.35rem;
-        background: transparent;
-        border: 1px solid var(--snipo-border-muted);
-        border-radius: 4px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s;
-        color: var(--snipo-contrast) !important;
-    }
-    
-    .btn-icon-small svg {
-        stroke: currentColor;
-    }
-    
-    .btn-icon-small:hover {
-        background: var(--snipo-border-muted);
-        border-color: var(--snipo-primary);
-        color: var(--snipo-primary) !important;
-    }
-    
-    .public-code {
-        flex: 1;
-        overflow: auto;
-        background: var(--editor-bg);
-    }
-    
-    .public-code pre {
-        margin: 0;
-        padding: 1.5rem 2rem;
-        background: transparent !important;
-        font-size: 0.9rem;
-        line-height: 1.6;
-    }
-    
-    .public-code code {
-        background: transparent !important;
-        font-family: var(--font-mono);
-        display: inline;
-        padding: 0;
-    }
-    
-    .public-code code * {
-        display: inline;
-        margin: 0;
-        padding: 0;
-        line-height: inherit;
-    }
-    
-    .public-footer {
-        padding: 1rem 2rem;
-        text-align: center;
-        background: var(--snipo-card-background);
-        border-top: 1px solid var(--snipo-border-muted);
-        font-size: 0.85rem;
-        color: var(--snipo-text-muted);
-    }
-    
-    .public-footer a {
-        color: var(--snipo-primary);
-    }
-</style>
+
 {{end}}

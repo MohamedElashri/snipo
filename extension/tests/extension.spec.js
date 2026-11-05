@@ -11,3 +11,29 @@ test('extension background script is running and popup opens', async ({ page, ex
   // Verify the page title or a specific element to ensure it loaded correctly
   await expect(page).toHaveTitle(/Snipo/i);
 });
+
+test('quick save prevents duplicate requests and recovers after failure', async ({ page, context, extensionId }) => {
+  const background = context.serviceWorkers().find(worker => worker.url().includes(extensionId));
+  await background.evaluate(async () => {
+    await chrome.storage.sync.set({ instanceUrl: 'https://snipo.test', apiKey: 'test-token', interactiveMode: false });
+    self.saveRequests = 0;
+    self.fetch = async () => {
+      self.saveRequests++;
+      await new Promise(resolve => setTimeout(resolve, 200));
+      return Response.json({ error: { message: 'Temporary failure' } }, { status: 503 });
+    };
+  });
+  await page.route('https://code.test/**', route => route.fulfill({
+    contentType: 'text/html', body: '<html><title>Code</title><body><pre><code>console.log("hello");</code></pre></body></html>'
+  }));
+  await page.goto('https://code.test/example');
+  const button = page.locator('.snipo-btn');
+  await expect(button).toHaveCount(1);
+  await button.evaluate(element => { element.click(); element.click(); });
+  await expect(button).toBeDisabled();
+  await expect(page.locator('.snipo-toast')).toContainText('Temporary failure');
+  expect(await background.evaluate(() => self.saveRequests)).toBe(1);
+  await expect(button).toBeEnabled();
+  await button.evaluate(element => element.click());
+  await expect.poll(() => background.evaluate(() => self.saveRequests)).toBe(2);
+});

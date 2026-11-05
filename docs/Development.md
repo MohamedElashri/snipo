@@ -158,3 +158,32 @@ preparation steps, preview, and publication commands.
 2. Run `gofmt` on Go code and the checks above.
 3. Update one canonical documentation page instead of copying guidance.
 4. Note user-visible changes in [CHANGELOG.md](CHANGELOG.md).
+
+## Web workspace architecture
+
+The frontend overhaul is organized into three layers:
+
+1. **Workspace and visual foundation:** `workspace.css` composes the navigation,
+   independently scrolling library, and preview/editor. Wide screens retain the
+   results list while a snippet is open; narrow screens use list-to-detail
+   navigation. Density and view preferences are local to the browser.
+2. **Retrieval and editing:** `workspace-mixin.js` owns library presentation,
+   filter chips, result keyboard navigation, and editor expansion. The existing
+   editor and draft mixins own save state and recovery. Save explicitly persists
+   to the server; timed draft saves persist only on the current device. Search
+   request sequencing prevents stale responses from replacing newer results.
+3. **Settings and public reading:** `components/settings.html` is a workspace
+   destination with URL-addressable sections (`?settings=backup`), styled by
+   `settings.css`. Confirmation dialogs remain in `modals.html`. Public page
+   styles live in `public.css`, separate from the template and workspace.
+
+Keep feature behavior in its existing mixin. Do not use getters in spread-in
+mixins: JavaScript evaluates them while composing the component, before Alpine
+state exists. Use methods for derived mixin state. Keep layout-specific CSS in
+`workspace.css` and standalone component rules in their component stylesheet.
+User CSS continues to load after application styles.
+
+The library requests lightweight snippet previews. Opening or copying a snippet
+fetches its full contents. Default API list responses continue to include full
+content for other clients. Tag navigation shows ten tags initially, keeps the
+selected tag visible, and supports searching or expanding the list.

@@ -367,6 +367,12 @@ paths:
             type: integer
             default: 1
             minimum: 1
+        - name: view
+          in: query
+          description: Optional summary projection for library browsing. With summary, content and file contents are empty; is_summary is true, preview contains at most two lines (500 characters plus ellipsis), and preview_filename identifies the preview file. Fetch snippet detail before copying or editing. The default response retains full content.
+          schema:
+            type: string
+            enum: [summary]
         - name: limit
           in: query
           schema:
