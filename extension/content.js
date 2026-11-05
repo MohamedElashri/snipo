@@ -181,6 +181,9 @@ async function handleSaveClick(btn, preElement) {
 
 // Unified Save Flow (handles both Button and Context Menu)
 function initiateSaveFlow(code, language, title, btn) {
+    // Page titles may exceed the server's 200-character limit. Keep user-entered
+    // titles in the dialog separate from this automatic page-title default.
+    title = Array.from(title || '').slice(0, 200).join('');
     if (btn?.disabled) return;
     if (btn) btn.disabled = true;
     chrome.storage.sync.get(['interactiveMode'], async (items) => {

@@ -112,3 +112,15 @@ test('interactive saves can select nested folders',async({page,context,extension
   await expect(page.locator('#snipo-folder option')).toHaveText(['No Folder','Parent','Parent / Child','Parent / Child / Grandchild']);
   await page.locator('#snipo-folder').selectOption('3');
 });
+
+test('long page titles produce valid automatic snippet titles',async({page,context,extensionId})=>{
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await bg.evaluate(async()=>{
+    await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'test',interactiveMode:false});
+    self.savedTitle=null;
+    self.fetch=async(_url,options)=>{self.savedTitle=JSON.parse(options.body).title;return Response.json({data:{id:'saved'}})};
+  });
+  await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<title>'+ '🚀'.repeat(220)+'</title><pre><code>sample</code></pre>'}));
+  await page.goto('https://code.test/title');await page.locator('.snipo-btn').click();
+  await expect.poll(()=>bg.evaluate(()=>self.savedTitle&&Array.from(self.savedTitle).length)).toBe(200);
+});

@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - See which editor is active, including when Snipo falls back to Ace.
 
 ### Fixed
+- Save snippets from browser pages whose titles exceed 200 characters.
+- Refresh VS Code’s sidebar lists after creating, updating, or deleting snippets.
+- Keep programming-language suggestions out of Snippy’s API-key field.
 - Show nested folders in the browser extension’s save dialog.
 - Open the VS Code dashboard consistently for server URLs without a scheme or with surrounding spaces.
 - Preserve tag capitalization when creating or editing snippets in Snippy.

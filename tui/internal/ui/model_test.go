@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/MohamedElashri/snipo/tui/internal/api"
+	"github.com/MohamedElashri/snipo/tui/internal/config"
 )
 
 func TestSubmitPreservesCodeAndVisibility(t *testing.T) {
@@ -138,5 +139,15 @@ func TestLongSnippetAllowsNewlines(t *testing.T) {
 		if len(m.textarea.Value()) != len(before)+1 {
 			t.Fatalf("editing=%v: Enter stopped working in a long snippet", editing)
 		}
+	}
+}
+
+func TestLanguageMetadataDoesNotAutocompleteAPIKey(t *testing.T) {
+	m := Model{mode: ViewSettings, config: &config.Config{APIKey: "go"}}
+	m.initSettingsForm()
+	next, _ := m.Update(languagesLoadedMsg{languages: []string{"golang"}})
+	got := next.(Model)
+	if got.inputs[1].ShowSuggestions {
+		t.Fatal("API key field acquired language suggestions")
 	}
 }

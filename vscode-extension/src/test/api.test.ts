@@ -90,4 +90,14 @@ suite('SnipoAPI Test Suite', () => {
         assert.strictEqual(results[0]?.id,'cached');
     });
 
+    test('successful writes refresh all sidebar lists',async()=>{
+        fetchStub.resolves({ok:true,status:200,json:async()=>({data:{id:'saved',title:'Saved',content:'code'}})});
+        const execute=sinon.stub(vscode.commands,'executeCommand').resolves();
+        for(const action of [()=>api.createSnippet({title:'Saved',content:'code'}),()=>api.updateSnippet('saved',{content:'updated'}),()=>api.deleteSnippet('saved')]){
+            execute.resetHistory();await action();
+            assert.ok(execute.calledWith('snipo.refreshTree'));
+            assert.ok(execute.calledWith('snipo.refreshTagsTree'));
+        }
+    });
+
 });

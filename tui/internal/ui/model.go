@@ -262,7 +262,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case languagesLoadedMsg:
 		m.allowedLanguages = msg.languages
 		// If edit/create form is already open, update suggestions immediately
-		if len(m.inputs) > 1 {
+		if (m.mode == ViewCreate || m.mode == ViewEdit) && len(m.inputs) > 1 {
 			m.inputs[1].ShowSuggestions = true
 			m.inputs[1].SetSuggestions(m.allowedLanguages)
 		}

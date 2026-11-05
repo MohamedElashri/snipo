@@ -13,6 +13,12 @@ function isNetworkError(error: any): boolean {
         /Network Error|Failed to fetch|fetch failed|NetworkError/i.test(error.message || ''));
 }
 
+function refreshSidebar(): void {
+    for (const command of ['snipo.refreshTree', 'snipo.refreshTagsTree']) {
+        void vscode.commands.executeCommand(command).then(undefined, error => console.error('Sidebar refresh failed', error));
+    }
+}
+
 // Extending types if necessary for VSCode specific properties, though we can cast
 export interface VSTag extends Tag {
     snippet_count?: number;
@@ -189,6 +195,7 @@ export class SnipoAPI {
     async createSnippet(data: Partial<Snippet>): Promise<Snippet | null> {
         try {
             const snippet = await this.client.createSnippet(data);
+            refreshSidebar();
             vscode.window.showInformationMessage('Snippet created successfully!');
             return snippet;
         } catch (error: any) {
@@ -207,6 +214,7 @@ export class SnipoAPI {
     async updateSnippet(id: string, data: Partial<Snippet>): Promise<Snippet | null> {
         try {
             const snippet = await this.client.updateSnippet(id, data);
+            refreshSidebar();
             vscode.window.showInformationMessage('Snippet updated successfully!');
             return snippet;
         } catch (error: any) {
@@ -225,6 +233,7 @@ export class SnipoAPI {
     async deleteSnippet(id: string): Promise<boolean> {
         try {
             await this.client.deleteSnippet(id);
+            refreshSidebar();
             vscode.window.showInformationMessage('Snippet deleted successfully!');
             return true;
         } catch (error: any) {
