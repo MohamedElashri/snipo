@@ -134,3 +134,26 @@ test('Escape closes the save dialog and returns focus to its button',async({page
   await expect(page.locator('.snipo-modal-overlay')).toHaveCount(0);
   await expect(page.locator('.snipo-btn')).toBeFocused();
 });
+
+test('pasted API-key whitespace is removed before saving',async({page,context,extensionId})=>{
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await bg.evaluate(async()=>{
+    await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'  pasted-token  '});
+    self.authorization=null;
+    self.fetch=async(_url,options)=>{self.authorization=options.headers.Authorization;return Response.json({data:{id:'saved'}})};
+  });
+  await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  await page.evaluate(()=>chrome.runtime.sendMessage({action:'saveSnippet',code:'sample',title:'Example'}));
+  expect(await bg.evaluate(()=>self.authorization)).toBe('Bearer pasted-token');
+});
+
+test('configuration saves normalized connection fields',async({page,context,extensionId})=>{
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await page.route('https://snipo.test/**',r=>r.fulfill({contentType:'application/json',body:'{"data":[]}'}));
+  await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  await page.locator('[data-tab="tab-settings"]').click();
+  await page.locator('#instanceUrl').fill('https://snipo.test/');
+  await page.locator('#apiKey').fill('  pasted-token  ');
+  await page.locator('#save-btn').click();
+  await expect.poll(()=>bg.evaluate(async()=>chrome.storage.sync.get(['instanceUrl','apiKey']))).toEqual({instanceUrl:'https://snipo.test',apiKey:'pasted-token'});
+});

@@ -20,7 +20,8 @@ function showStatus(message, type = 'success') {
 // Refactored connection check to be reusable
 async function verifyConnection(instanceUrl, apiKey) {
     // Normalized URL: remove trailing slash
-    const normalizedUrl = instanceUrl.replace(/\/+$/, '');
+    const normalizedUrl = instanceUrl.trim().replace(/\/+$/, '');
+    apiKey = apiKey.trim();
 
     // Validate URL format roughly
     try {
@@ -67,8 +68,8 @@ async function verifyConnection(instanceUrl, apiKey) {
 }
 
 document.getElementById('test-btn').addEventListener('click', async () => {
-    const instanceUrl = document.getElementById('instanceUrl').value;
-    const apiKey = document.getElementById('apiKey').value;
+    const instanceUrl = document.getElementById('instanceUrl').value.trim();
+    const apiKey = document.getElementById('apiKey').value.trim();
 
     if (!instanceUrl || !apiKey) {
         showStatus('Please fill in all fields.', 'error');
@@ -99,8 +100,8 @@ document.getElementById('test-btn').addEventListener('click', async () => {
 async function saveOptions(e) {
     e.preventDefault();
 
-    let instanceUrl = document.getElementById('instanceUrl').value;
-    const apiKey = document.getElementById('apiKey').value;
+    let instanceUrl = document.getElementById('instanceUrl').value.trim();
+    const apiKey = document.getElementById('apiKey').value.trim();
     const interactiveMode = document.getElementById('interactiveMode').checked;
 
     if (!instanceUrl || !apiKey) {

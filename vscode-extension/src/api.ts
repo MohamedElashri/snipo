@@ -33,6 +33,11 @@ export interface VSFolder extends Folder {
 export class SnipoAPI {
     private client: SnipoClient;
     private context?: vscode.ExtensionContext;
+    private cacheScope = '';
+
+    private cacheKey(key: string): string {
+        return JSON.stringify(['snipo-cache', this.cacheScope, key]);
+    }
 
     constructor() {
         this.client = new SnipoClient({ baseURL: '' });
@@ -65,6 +70,7 @@ export class SnipoAPI {
         }
 
         apiUrl = normalizeServerURL(apiUrl || '');
+        this.cacheScope = (apiUrl || '').replace(/\/+$/, '');
         this.client.updateBaseURL(apiUrl || '');
         this.client.updateToken(apiToken);
     }
@@ -102,6 +108,8 @@ export class SnipoAPI {
         let cacheKey = `snippets_all_${isFavorite}`;
         if (tagId) cacheKey = `snippets_tag_${tagId}`;
         if (folderId) cacheKey = `snippets_folder_${folderId}`;
+        cacheKey = this.cacheKey(cacheKey);
+        const scope = this.cacheScope;
 
         try {
             const params: any = { limit: 50 };
@@ -114,7 +122,9 @@ export class SnipoAPI {
             let page = 1;
             let totalPages = 1;
             do {
+                if (scope !== this.cacheScope) return [];
                 const response = await this.client.client.get('/api/v1/snippets', { params: { ...params, page } });
+                if (scope !== this.cacheScope) return [];
                 data.push(...(response.data.data || []));
                 totalPages = response.data.pagination?.totalPages || 1;
                 page++;
@@ -126,6 +136,7 @@ export class SnipoAPI {
             }
             return data;
         } catch (error: any) {
+            if (scope !== this.cacheScope) return [];
             console.error('Error fetching snippets', error);
             if (error.response?.status === 401) {
                 vscode.window.showErrorMessage('Snipo API Token is invalid. Please update it in settings.');
@@ -143,6 +154,7 @@ export class SnipoAPI {
     }
 
     async searchSnippets(query: string, signal?: AbortSignal): Promise<Snippet[]> {
+        const cacheKey = this.cacheKey('snippets_all_undefined');
         try {
             const response = await this.client.client.get('/api/v1/snippets/search', { params: { q: query }, signal });
             return Array.isArray(response.data) ? response.data : (response.data.data || []);
@@ -154,7 +166,7 @@ export class SnipoAPI {
             
             // Offline fallback for search
             if (this.context && (isNetworkError(error))) {
-                const cachedSnippets = this.context.globalState.get<Snippet[]>('snippets_all_undefined') || [];
+                const cachedSnippets = this.context.globalState.get<Snippet[]>(cacheKey) || [];
                 const lowerQuery = query.toLowerCase();
                 return cachedSnippets.filter(s => 
                     s.title.toLowerCase().includes(lowerQuery) || 
@@ -173,6 +185,8 @@ export class SnipoAPI {
     }
 
     async getSnippet(id: string): Promise<Snippet | null> {
+        const cacheKey = this.cacheKey('snippets_all_undefined');
+        const recentKey = this.cacheKey('recent_snippets');
         try {
             return await this.client.getSnippet(id);
         } catch (error: any) {
@@ -180,11 +194,11 @@ export class SnipoAPI {
             // Offline fallback
             if (this.context && (isNetworkError(error))) {
                 // Try to find in cache
-                const cached = this.context.globalState.get<Snippet[]>('snippets_all_undefined') || [];
+                const cached = this.context.globalState.get<Snippet[]>(cacheKey) || [];
                 const found = cached.find(s => s.id === id);
                 if (found) return found;
                 
-                const cachedRecent = this.context.globalState.get<Snippet[]>('recent_snippets') || [];
+                const cachedRecent = this.context.globalState.get<Snippet[]>(recentKey) || [];
                 const foundRecent = cachedRecent.find(s => s.id === id);
                 if (foundRecent) return foundRecent;
             }
@@ -248,7 +262,7 @@ export class SnipoAPI {
     }
 
     async getRecentSnippets(): Promise<Snippet[]> {
-        const cacheKey = 'recent_snippets';
+        const cacheKey = this.cacheKey('recent_snippets');
         try {
             const data = await this.client.getRecentSnippets();
             if (this.context) {
@@ -265,7 +279,7 @@ export class SnipoAPI {
     }
 
     async getTags(): Promise<VSTag[]> {
-        const cacheKey = 'tags_all';
+        const cacheKey = this.cacheKey('tags_all');
         try {
             const data = await this.client.getTags();
             if (this.context) {
@@ -282,7 +296,7 @@ export class SnipoAPI {
     }
 
     async getFolders(): Promise<VSFolder[]> {
-        const cacheKey = 'folders_all';
+        const cacheKey = this.cacheKey('folders_all');
         try {
             const data = await this.client.getFolders();
             if (this.context) {

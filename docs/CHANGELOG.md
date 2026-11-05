@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - See which editor is active, including when Snipo falls back to Ace.
 
 ### Fixed
+- Keep VS Code’s offline snippet, tag, and folder caches separate for each Snipo server.
+- Ignore surrounding spaces in pasted browser-extension connection settings.
+- Clear old Snippy errors after a successful retry.
 - Close the browser save dialog with Escape and return focus to its save button.
 - Keep VS Code’s status indicator matched to the latest connection settings.
 - Return to the same snippet and file after closing Help in Snippy.

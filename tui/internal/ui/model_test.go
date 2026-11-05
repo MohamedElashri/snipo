@@ -2,6 +2,7 @@ package ui
 
 import (
 	"encoding/json"
+	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"net/http"
 	"net/http/httptest"
@@ -160,6 +161,16 @@ func TestHelpReturnsToSelectedSnippet(t *testing.T) {
 		got := next.(Model)
 		if got.mode != ViewDetail || got.selectedFileIdx != 1 || got.detailScroll != 12 || got.detailSnippet.ID != "keep" {
 			t.Fatalf("help lost position: %+v", got)
+		}
+	}
+}
+
+func TestSuccessfulRetryClearsOldError(t *testing.T) {
+	for _, message := range []tea.Msg{snippetsLoadedMsg{}, snippetLoadedMsg{snippet: &api.Snippet{ID: "ok"}}, successMsg{message: "Saved"}} {
+		m := Model{mode: ViewList, err: fmt.Errorf("connection refused")}
+		next, _ := m.Update(message)
+		if next.(Model).err != nil {
+			t.Fatalf("successful %T kept old error", message)
 		}
 	}
 }

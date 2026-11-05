@@ -56,12 +56,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 async function getClient() {
     const config = await chrome.storage.sync.get(['instanceUrl', 'apiKey']);
-    if (!config.instanceUrl || !config.apiKey) {
+    const instanceUrl = config.instanceUrl?.trim();
+    const apiKey = config.apiKey?.trim();
+    if (!instanceUrl || !apiKey) {
         throw new Error("Configuration missing");
     }
     return new SnipoClient({
-        baseURL: config.instanceUrl,
-        token: config.apiKey
+        baseURL: instanceUrl,
+        token: apiKey
     });
 }
 

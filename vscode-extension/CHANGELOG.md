@@ -4,6 +4,8 @@ All notable changes to the "snipo" extension will be documented in this file.
 
 ## [2.2.0] - Unreleased
 
+- Keep each server’s offline cache separate when switching Snipo instances.
+
 - Keep the status indicator matched to the latest connection settings.
 
 - Refresh sidebar lists after creating, updating, or deleting snippets.

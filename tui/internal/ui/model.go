@@ -275,6 +275,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case snippetsLoadedMsg:
+		m.err = nil
 		m.snippets = msg.snippets
 		if msg.pagination != nil {
 			m.currentPage = msg.pagination.Page
@@ -288,6 +289,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.detailSnippet = nil // Clear detail snippet when loading list
 
 	case snippetLoadedMsg:
+		m.err = nil
 		m.detailSnippet = msg.snippet
 		m.detailScroll = 0    // Reset scroll when loading new snippet
 		m.selectedFileIdx = 0 // Reset file selection
@@ -319,6 +321,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.folders = msg.folders
 
 	case successMsg:
+		m.err = nil
 		m.message = msg.message
 		m.mode = ViewList
 		cmds = append(cmds, loadSnippets(m.client, m.currentPage, 20, m.searchQuery, m.filterTags, nil, "", nil, nil))
