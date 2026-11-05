@@ -155,7 +155,7 @@ async function handleSaveClick(btn, preElement) {
     if (cloneBtn) cloneBtn.remove();
 
     const codeElement = clone.querySelector('code');
-    const textContent = (codeElement ? codeElement.textContent : clone.textContent).trim();
+    const textContent = (codeElement ? codeElement.textContent : clone.textContent);
 
     // Detect language
     let language = 'plaintext';
@@ -216,7 +216,10 @@ function initiateSaveFlow(code, language, title, btn) {
 
 // --- MODAL LOGIC ---
 
+let modalOpen = false;
 async function showModal(snippetData) {
+    if (modalOpen) return;
+    modalOpen = true;
     // 1. Fetch Tags and Folders in parallel
     const [tagsRes, foldersRes] = await Promise.all([
         new Promise(resolve => chrome.runtime.sendMessage({ action: "fetchTags" }, res => resolve(res || {}))),
@@ -434,6 +437,7 @@ async function showModal(snippetData) {
 
     // Event Listeners
     const close = () => {
+        modalOpen = false;
         overlay.classList.remove('visible');
         setTimeout(() => overlay.remove(), 200);
     };

@@ -60,3 +60,29 @@ test('saving preserves an explicitly empty description and defaults an omitted o
   expect(payloads[0].files[0].content).toBe('    indented();\n');
   expect(payloads[1].description).toMatch(/^Saved from /);
 });
+
+test('code-block saves retain leading spaces and trailing newlines', async ({page,context,extensionId}) => {
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await bg.evaluate(async()=>{await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'test',interactiveMode:false});self.payload=null;self.fetch=async(_u,o)=>{self.payload=JSON.parse(o.body);return Response.json({data:{id:'saved'}})}});
+  await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<pre><code>    indented();\n\n</code></pre>'}));
+  await page.goto('https://code.test/whitespace');await page.locator('.snipo-btn').click();
+  await expect.poll(()=>bg.evaluate(()=>self.payload?.files[0].content)).toBe('    indented();\n\n');
+});
+
+test('repeated interactive clicks open only one save dialog',async({page,context,extensionId})=>{
+  const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
+  await bg.evaluate(async()=>{await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'test',interactiveMode:true});self.fetch=async()=>{await new Promise(r=>setTimeout(r,300));return Response.json({data:[]})}});
+  await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<pre><code>hello</code></pre>'}));
+  await page.goto('https://code.test/dialog');await page.locator('.snipo-btn').evaluate(b=>{b.click();setTimeout(()=>b.click(),50)});
+  await page.waitForTimeout(1000);await expect(page.locator('.snipo-modal-overlay')).toHaveCount(1);
+});
+
+test('connection check times out and restores the test button',async({page,extensionId})=>{
+  await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  test.setTimeout(45000);
+  await page.locator('[data-tab="tab-settings"]').click();
+  await page.route('https://stalled.test/**',()=>{});
+  await page.locator('#instanceUrl').fill('https://stalled.test');await page.locator('#apiKey').fill('test');
+  await page.locator('#test-btn').click();
+  await expect(page.locator('#test-btn')).toBeEnabled({timeout:25000});await expect(page.locator('#status')).toContainText(/timed out/i);
+});

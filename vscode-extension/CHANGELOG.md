@@ -2,6 +2,12 @@
 
 All notable changes to the "snipo" extension will be documented in this file.
 
+## [2.2.0] - Unreleased
+
+- Browse snippets beyond the first 50 items.
+- Save snippets as CUDA, TeX, or BibTeX, with LaTeX files detected as TeX.
+- Open snippets in the browser when the configured server URL omits its scheme.
+
 ## [2.1.1] - 2026-11-05
 
 - Cancel saving or updating a snippet without making unwanted changes.

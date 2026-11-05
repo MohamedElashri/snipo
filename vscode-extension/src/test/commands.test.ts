@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
-import { searchAndInsertSnippet, saveSelectedSnippet, updateSnippet } from '../commands';
+import { searchAndInsertSnippet, saveSelectedSnippet, updateSnippet, openInSnipo } from '../commands';
 import { api } from '../api';
 import { SnipoCodeLensProvider } from '../providers';
 
@@ -180,6 +180,25 @@ suite('Commands Test Suite', () => {
         hide();
         await pending;
         assert.strictEqual(picker.dispose.calledOnce, true);
+    });
+
+    test('new editor languages are offered and LaTeX is detected', async () => {
+        sinon.stub(api, 'createSnippet').resolves(null);
+        showInputBoxStub.onFirstCall().resolves('TeX');showInputBoxStub.onSecondCall().resolves('');
+        await saveSelectedSnippet({languageId:'latex',getText:()=> 'sample'} as any);
+        const items=showQuickPickStub.firstCall.args[0] as vscode.QuickPickItem[];
+        for(const lang of ['tex','bibtex','cuda']) assert.ok(items.some(i=>i.label===lang),lang+' missing');
+        assert.strictEqual(items[0].label,'tex');
+    });
+    test('open browser accepts the same schemeless URL as the API', async () => {
+        sinon.stub(vscode.workspace,'getConfiguration').returns({get:()=> 'localhost:9288/snipo/'} as any);
+        const open=sinon.stub(vscode.env,'openExternal').resolves(true);
+        await openInSnipo('example');
+        assert.strictEqual(open.calledOnce,true);
+        assert.strictEqual(open.firstCall.args[0].scheme,'http');
+        assert.strictEqual(open.firstCall.args[0].authority,'localhost:9288');
+        assert.strictEqual(open.firstCall.args[0].path,'/snipo/');
+        assert.strictEqual(open.firstCall.args[0].query,'snippet=example');
     });
 
 });

@@ -233,6 +233,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "?":
+			if m.mode != ViewList && m.mode != ViewDetail && m.mode != ViewHelp {
+				break
+			}
 			if m.mode != ViewHelp {
 				m.mode = ViewHelp
 			} else {
@@ -523,7 +526,11 @@ func (m Model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "c":
 		if m.detailSnippet != nil {
-			return m, copyToClipboard(m.detailSnippet.Content)
+			content := m.detailSnippet.Content
+			if m.selectedFileIdx >= 0 && m.selectedFileIdx < len(m.detailSnippet.Files) {
+				content = m.detailSnippet.Files[m.selectedFileIdx].Content
+			}
+			return m, copyToClipboard(content)
 		}
 
 	case "e":
@@ -606,7 +613,13 @@ func (m *Model) initEditForm(snippet *api.Snippet) {
 	m.inputs[1] = textinput.New()
 	m.inputs[1].Prompt = "Language:    "
 	m.inputs[1].Placeholder = "Language"
-	m.inputs[1].SetValue(snippet.Language)
+	language := snippet.Language
+	content := snippet.Content
+	if m.selectedFileIdx >= 0 && m.selectedFileIdx < len(snippet.Files) {
+		language = snippet.Files[m.selectedFileIdx].Language
+		content = snippet.Files[m.selectedFileIdx].Content
+	}
+	m.inputs[1].SetValue(language)
 	m.inputs[1].CharLimit = 50
 	m.inputs[1].ShowSuggestions = true
 	m.inputs[1].SetSuggestions(m.allowedLanguages)
@@ -634,7 +647,7 @@ func (m *Model) initEditForm(snippet *api.Snippet) {
 
 	m.textarea = textarea.New()
 	m.textarea.Placeholder = "Snippet content..."
-	m.textarea.SetValue(snippet.Content)
+	m.textarea.SetValue(content)
 	m.textarea.SetWidth(m.width - 8)
 	textAreaHeight := m.height - 11
 	if textAreaHeight < 10 {
@@ -997,10 +1010,10 @@ func (m Model) submitForm() (tea.Model, tea.Cmd) {
 		if len(m.detailSnippet.Folders) > 0 {
 			input.FolderID = &m.detailSnippet.Folders[0].ID
 		}
-		// The form edits the primary file; keep the remaining files intact.
+		// Edit the selected file and preserve every other file.
 		for i, file := range m.detailSnippet.Files {
 			fileInput := api.FileInput{ID: file.ID, Filename: file.Filename, Content: file.Content, Language: file.Language}
-			if i == 0 {
+			if i == m.selectedFileIdx {
 				fileInput.Content = content
 				fileInput.Language = language
 			}

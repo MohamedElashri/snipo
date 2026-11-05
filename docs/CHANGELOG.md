@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - See which editor is active, including when Snipo falls back to Ace.
 
 ### Fixed
+- Preserve code indentation and trailing newlines when saving code blocks with the browser extension.
+- Prevent duplicate browser-extension save dialogs and recover from stalled connection checks.
+- Show snippets beyond the first 50 in VS Code, offer CUDA, TeX, and BibTeX, and open configured server URLs without a scheme.
+- Copy and edit the selected snippet file in Snippy, and allow question marks while filling out forms.
 - Prevent a late Monaco completion response from causing an error after switching files or editors.
 - Highlight TeX and BibTeX in all three editors and preserve CUDA, TeX, and BibTeX when saving.
 - Recover from stalled editor downloads instead of leaving the editor loading indefinitely.

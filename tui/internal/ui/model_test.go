@@ -2,8 +2,12 @@ package ui
 
 import (
 	"encoding/json"
+	tea "github.com/charmbracelet/bubbletea"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -30,6 +34,7 @@ func TestSubmitPreservesCodeAndVisibility(t *testing.T) {
 
 			m := Model{client: api.NewClient(server.URL, "token"), mode: mode, width: 100, height: 40, detailSnippet: snippet}
 			m.initEditForm(snippet)
+			m.textarea.SetValue(content)
 			_, cmd := m.submitForm()
 			if cmd == nil {
 				t.Fatal("expected a save command")
@@ -55,5 +60,60 @@ func TestSubmitPreservesCodeAndVisibility(t *testing.T) {
 				t.Errorf("public = %v for mode %v", saved.IsPublic, mode)
 			}
 		})
+	}
+}
+
+func TestQuestionMarkInForm(t *testing.T) {
+	m := Model{mode: ViewCreate, width: 100, height: 40}
+	m.initCreateForm()
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'?'}})
+	got := next.(Model)
+	if got.mode != ViewCreate || got.inputs[0].Value() != "?" {
+		t.Fatalf("question mark lost draft: mode %v value %q", got.mode, got.inputs[0].Value())
+	}
+}
+func TestCopySelectedFile(t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Skip("macOS clipboard integration")
+	}
+	dir := t.TempDir()
+	out := filepath.Join(dir, "copied")
+	if err := os.WriteFile(filepath.Join(dir, "pbcopy"), []byte("#!/bin/sh\ncat > "+out+"\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir+":"+os.Getenv("PATH"))
+	m := Model{mode: ViewDetail, selectedFileIdx: 1, detailSnippet: &api.Snippet{Content: "primary", Files: []api.File{{Content: "primary"}, {Content: "secondary"}}}}
+	_, cmd := m.updateDetail(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	cmd()
+	data, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "secondary" {
+		t.Fatalf("copied %q", data)
+	}
+}
+func TestEditSelectedFile(t *testing.T) {
+	var saved api.SnippetInput
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&saved)
+		_, _ = w.Write([]byte(`{"data":{"title":"saved"}}`))
+	}))
+	defer server.Close()
+	snippet := &api.Snippet{ID: "files", Title: "Files", Content: "primary", Language: "go", Files: []api.File{{Filename: "main.go", Content: "primary", Language: "go"}, {Filename: "other.py", Content: "secondary", Language: "python"}}}
+	m := Model{mode: ViewDetail, allowedLanguages: []string{"go", "python"}, width: 100, height: 40, selectedFileIdx: 1, detailSnippet: snippet, client: api.NewClient(server.URL, "token")}
+	next, _ := m.updateDetail(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'e'}})
+	m = next.(Model)
+	if m.textarea.Value() != "secondary" || m.inputs[1].Value() != "python" {
+		t.Fatalf("editing wrong file: %q %q", m.textarea.Value(), m.inputs[1].Value())
+	}
+	m.textarea.SetValue("updated")
+	_, cmd := m.submitForm()
+	if cmd == nil {
+		t.Fatal(m.err)
+	}
+	cmd()
+	if saved.Files[0].Content != "primary" || saved.Files[1].Content != "updated" {
+		t.Fatalf("wrong file overwritten: %+v", saved.Files)
 	}
 }

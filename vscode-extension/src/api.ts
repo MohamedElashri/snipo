@@ -102,8 +102,15 @@ export class SnipoAPI {
             if (tagId !== undefined) params.tag_ids = tagId;
             if (folderId !== undefined) params.folder_ids = folderId;
 
-            const response = await this.client.client.get('/api/v1/snippets', { params });
-            const data = response.data.data || [];
+            const data: Snippet[] = [];
+            let page = 1;
+            let totalPages = 1;
+            do {
+                const response = await this.client.client.get('/api/v1/snippets', { params: { ...params, page } });
+                data.push(...(response.data.data || []));
+                totalPages = response.data.pagination?.totalPages || 1;
+                page++;
+            } while (page <= totalPages);
             
             // Cache full lists (not search queries)
             if (this.context && !query) {

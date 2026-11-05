@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { api, Snippet } from './api';
 
 const ALLOWED_LANGUAGES = [
-    "plaintext", "javascript", "typescript", "python", "go", "rust", "java", "c", "cpp", "csharp", 
+    "tex", "bibtex", "cuda", "plaintext", "javascript", "typescript", "python", "go", "rust", "java", "c", "cpp", "csharp",
     "php", "ruby", "swift", "kotlin", "scala", "html", "css", "scss", "json", "yaml", "xml", 
     "markdown", "sql", "bash", "shell", "powershell", "dockerfile", "nginx", "toml", "ini", 
     "makefile", "lua", "perl", "r", "haskell", "elixir", "clojure", "graphql", "protobuf", "terraform"
@@ -16,6 +16,7 @@ function detectLanguage(vscodeLang: string): string {
     }
 
     const mappings: Record<string, string> = {
+        'latex': 'tex',
         'jsonc': 'json',
         'typescriptreact': 'typescript',
         'javascriptreact': 'javascript',
@@ -243,7 +244,10 @@ export async function openInSnipo(arg?: any) {
 
     if (snippetId) {
         const config = vscode.workspace.getConfiguration('snipo');
-        const apiUrlString = config.get<string>('apiUrl') || 'http://localhost:3000';
+        let apiUrlString = (config.get<string>('apiUrl') || 'http://localhost:3000').trim();
+        if (!/^[a-z][a-z\d+.-]*:\/\//i.test(apiUrlString)) {
+            apiUrlString = /^(localhost|127\.0\.0\.1)(:|\/|$)/i.test(apiUrlString) ? `http://${apiUrlString}` : `https://${apiUrlString}`;
+        }
         try {
             const url = new URL(apiUrlString);
             if (url.protocol !== 'http:' && url.protocol !== 'https:') {

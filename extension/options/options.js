@@ -29,32 +29,41 @@ async function verifyConnection(instanceUrl, apiKey) {
         throw new Error('Invalid Instance URL.');
     }
 
-    const response = await fetch(`${normalizedUrl}/api/v1/snippets?limit=1`, {
-        method: 'GET',
-        headers: {
-            'X-API-Key': apiKey,
-            'Content-Type': 'application/json'
-        }
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+    try {
+        const response = await fetch(`${normalizedUrl}/api/v1/snippets?limit=1`, {
+            signal: controller.signal,
+            method: 'GET',
+            headers: {
+                'X-API-Key': apiKey,
+                'Content-Type': 'application/json'
+            }
+        });
 
-    if (response.ok) {
-        return true;
-    } else {
-        let errorMsg = 'Connection failed.';
-        if (response.status === 401 || response.status === 403) {
-            errorMsg = 'Invalid API Key or insufficient permissions.';
-        } else if (response.status === 404) {
-            errorMsg = 'API endpoint not found. Check Instance URL.';
+        if (response.ok) {
+            return true;
         } else {
-            try {
-                const data = await response.json();
-                if (data.error && data.error.message) {
-                    errorMsg = data.error.message;
-                }
-            } catch (e) { }
+            let errorMsg = 'Connection failed.';
+            if (response.status === 401 || response.status === 403) {
+                errorMsg = 'Invalid API Key or insufficient permissions.';
+            } else if (response.status === 404) {
+                errorMsg = 'API endpoint not found. Check Instance URL.';
+            } else {
+                try {
+                    const data = await response.json();
+                    if (data.error && data.error.message) {
+                        errorMsg = data.error.message;
+                    }
+                } catch (e) { }
+            }
+            throw new Error(errorMsg);
         }
-        throw new Error(errorMsg);
-    }
+    } catch (error) {
+        if (error.name === 'AbortError') throw new Error('Connection timed out. Please try again.');
+        throw error;
+    } finally { clearTimeout(timeout); }
+
 }
 
 document.getElementById('test-btn').addEventListener('click', async () => {
