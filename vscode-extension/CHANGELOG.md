@@ -2,7 +2,7 @@
 
 All notable changes to the "snipo" extension will be documented in this file.
 
-## [2.1.1] - Unreleased
+## [2.1.1] - 2026-11-05
 
 - Cancel saving or updating a snippet without making unwanted changes.
 - Make VS Code’s “Save File to Snipo” save the entire file, even when text is selected.
