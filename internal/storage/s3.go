@@ -16,6 +16,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
+var ErrObjectTooLarge = errors.New("object exceeds download size limit")
+
 // S3Config holds S3 storage configuration
 type S3Config struct {
 	Endpoint        string
@@ -102,7 +104,10 @@ func (s *S3Storage) Upload(ctx context.Context, key string, content []byte, cont
 }
 
 // Download retrieves content from S3
-func (s *S3Storage) Download(ctx context.Context, key string) ([]byte, error) {
+func (s *S3Storage) Download(ctx context.Context, key string, maxBytes int64) ([]byte, error) {
+	if maxBytes <= 0 {
+		return nil, ErrObjectTooLarge
+	}
 	result, err := s.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
@@ -116,7 +121,13 @@ func (s *S3Storage) Download(ctx context.Context, key string) ([]byte, error) {
 		}
 	}()
 
-	content, err := io.ReadAll(result.Body)
+	if result.ContentLength != nil && *result.ContentLength > maxBytes {
+		return nil, ErrObjectTooLarge
+	}
+	content, err := io.ReadAll(io.LimitReader(result.Body, maxBytes+1))
+	if int64(len(content)) > maxBytes {
+		return nil, ErrObjectTooLarge
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to read object: %w", err)
 	}

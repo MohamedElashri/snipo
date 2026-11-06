@@ -8,7 +8,7 @@ export const draftMixin = {
   autoSaveTimeout: null,
 
   saveDraft() {
-    if (!this.isEditing) return;
+    if (this._sessionEnded || !this.isEditing) return;
 
     const hasContent = this.editingSnippet.title ||
       this.editingSnippet.content ||
@@ -122,6 +122,7 @@ export const draftMixin = {
   },
 
   scheduleAutoSave() {
+    if (this._sessionEnded) return;
     this.saveState = 'unsaved';
     if (this.autoSaveTimeout) {
       clearTimeout(this.autoSaveTimeout);

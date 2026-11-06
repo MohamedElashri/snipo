@@ -3,7 +3,7 @@ import { api } from '../../modules/api.js';
 import { showToast } from '../../modules/toast.js';
 import { loadEditor, editorEngines } from '../../modules/editors/index.js';
 import { theme } from '../../modules/theme.js';
-import { isArabicText, isPredominantlyArabic, sanitizeHTML } from '../../utils/helpers.js';
+import { isArabicText, isPredominantlyArabic, sanitizeHTML, escapeHTML } from '../../utils/helpers.js';
 
 export const editorMixin = {
   // Editor operations (imported from original app.js)
@@ -677,7 +677,7 @@ export const editorMixin = {
 
   renderMarkdown(content) {
     if (typeof marked === 'undefined' || !content) {
-      return content || '';
+      return escapeHTML(content);
     }
 
     try {
@@ -701,7 +701,7 @@ export const editorMixin = {
       return html;
     } catch (e) {
       console.error('Error rendering markdown:', e);
-      return content;
+      return escapeHTML(content);
     }
   },
 

@@ -164,6 +164,16 @@ func buildFolderTree(folders []models.Folder) []models.Folder {
 
 // Update updates an existing folder
 func (r *FolderRepository) Update(ctx context.Context, id int64, input *models.FolderInput) (*models.Folder, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	if input.ParentID != nil {
+		if err := r.checkCircularReference(ctx, tx, id, *input.ParentID); err != nil {
+			return nil, err
+		}
+	}
 	icon := input.Icon
 	if icon == "" {
 		icon = "folder"
@@ -177,7 +187,7 @@ func (r *FolderRepository) Update(ctx context.Context, id int64, input *models.F
 	`
 
 	folder := &models.Folder{}
-	err := r.db.QueryRowContext(ctx, query, input.Name, input.ParentID, icon, input.SortOrder, id).Scan(
+	err = tx.QueryRowContext(ctx, query, input.Name, input.ParentID, icon, input.SortOrder, id).Scan(
 		&folder.ID,
 		&folder.Name,
 		&folder.ParentID,
@@ -192,6 +202,9 @@ func (r *FolderRepository) Update(ctx context.Context, id int64, input *models.F
 		return nil, fmt.Errorf("failed to update folder: %w", err)
 	}
 
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit folder update: %w", err)
+	}
 	return folder, nil
 }
 
@@ -216,9 +229,14 @@ func (r *FolderRepository) Delete(ctx context.Context, id int64) error {
 
 // Move moves a folder to a new parent
 func (r *FolderRepository) Move(ctx context.Context, id int64, newParentID *int64) (*models.Folder, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
 	// Check for circular reference
 	if newParentID != nil {
-		if err := r.checkCircularReference(ctx, id, *newParentID); err != nil {
+		if err := r.checkCircularReference(ctx, tx, id, *newParentID); err != nil {
 			return nil, err
 		}
 	}
@@ -231,7 +249,7 @@ func (r *FolderRepository) Move(ctx context.Context, id int64, newParentID *int6
 	`
 
 	folder := &models.Folder{}
-	err := r.db.QueryRowContext(ctx, query, newParentID, id).Scan(
+	err = tx.QueryRowContext(ctx, query, newParentID, id).Scan(
 		&folder.ID,
 		&folder.Name,
 		&folder.ParentID,
@@ -246,16 +264,25 @@ func (r *FolderRepository) Move(ctx context.Context, id int64, newParentID *int6
 		return nil, fmt.Errorf("failed to move folder: %w", err)
 	}
 
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit folder move: %w", err)
+	}
 	return folder, nil
 }
 
 // checkCircularReference checks if moving a folder would create a circular reference
-func (r *FolderRepository) checkCircularReference(ctx context.Context, folderID, newParentID int64) error {
+func (r *FolderRepository) checkCircularReference(ctx context.Context, tx *sql.Tx, folderID, newParentID int64) error {
 	// Check if newParentID is a descendant of folderID
 	currentID := newParentID
+	visited := make(map[int64]bool)
 	for {
+		// Reject both new cycles and malformed chains already present in the database.
+		if currentID == folderID || visited[currentID] {
+			return ErrFolderCycle
+		}
+		visited[currentID] = true
 		var parentID *int64
-		err := r.db.QueryRowContext(ctx, `SELECT parent_id FROM folders WHERE id = ?`, currentID).Scan(&parentID)
+		err := tx.QueryRowContext(ctx, `SELECT parent_id FROM folders WHERE id = ?`, currentID).Scan(&parentID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil // Parent doesn't exist, no circular reference
@@ -268,7 +295,7 @@ func (r *FolderRepository) checkCircularReference(ctx context.Context, folderID,
 		}
 
 		if *parentID == folderID {
-			return fmt.Errorf("cannot move folder: would create circular reference")
+			return ErrFolderCycle
 		}
 
 		currentID = *parentID

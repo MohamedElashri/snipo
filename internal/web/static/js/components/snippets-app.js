@@ -20,6 +20,7 @@ import {
 import { theme } from '../modules/theme.js';
 
 // Import component mixins
+import { sessionMixin } from './snippets/session-mixin.js';
 import { workspaceMixin } from './snippets/workspace-mixin.js';
 import { editorMixin } from './snippets/editor-mixin.js';
 import { fileManagerMixin } from './snippets/file-manager-mixin.js';
@@ -105,6 +106,7 @@ export function initSnippetsApp(Alpine) {
 
     // Lifecycle
     async init() {
+      this.initSessionGuard();
       this._editorTheme = () => this.applyEditorSettings();
       window.addEventListener('snipo-theme-change', this._editorTheme);
       this._beforeUnload = () => this.saveDraft();
@@ -137,6 +139,7 @@ export function initSnippetsApp(Alpine) {
     },
 
     destroy() {
+      this.destroySessionGuard();
       this._editorResize?.disconnect();
       window.removeEventListener('snipo-theme-change', this._editorTheme);
       window.removeEventListener('beforeunload', this._beforeUnload);
@@ -357,18 +360,6 @@ export function initSnippetsApp(Alpine) {
       await this.loadSnippets();
     },
 
-    async logout() {
-      try {
-        await api.post('/api/v1/auth/logout');
-      } catch (err) {
-        console.error('logout failed:', err);
-      }
-      // Redirect to login page to ensure clean state
-      // This works with auth proxies and handles the case when login is disabled
-      const basePath = window.SNIPO_CONFIG?.basePath || '';
-      window.location.href = basePath + '/login';
-    },
-
     // URL routing
     updateUrl(params = {}) {
       if (this.restoringUrl) return;
@@ -522,6 +513,7 @@ export function initSnippetsApp(Alpine) {
     isArabicText,
 
     // Mix in other functionality
+    ...sessionMixin,
     ...workspaceMixin,
     ...editorMixin,
     ...fileManagerMixin,

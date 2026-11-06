@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- Protect Markdown previews and keep sign-in redirects on your Snipo instance.
+- Strengthen protection against unwanted browser requests and repeated password attempts.
+- Stop serving shared snippets and their files after they are moved to Trash.
+- Clear local drafts and cached settings on logout, and lock other open Snipo tabs. Save unfinished edits before logging out.
+- Keep private Gist edits from being sent to an existing public Gist.
+- Limit backup imports and S3 restores to 50 MiB, including decoded ZIP metadata.
+- Keep authenticated client requests on the configured Snipo server without following redirects.
+- Keep browser-extension save dialogs and private folder and tag suggestions separate from visited websites.
+- Prevent VS Code workspaces from changing the server used with your saved API token.
+- Display terminal control characters safely in Snippy while preserving the original code when saving or copying.
+
+### Fixed
+- Include all active and archived snippets in backups, including collections larger than 100 snippets.
+- Reject invalid replacement backups before clearing existing data.
+- Prevent folder moves and edits from creating circular folder hierarchies.
+- Keep sign-in usable after an incorrect password and show a retry message if logout fails.
+- Allow instance owners to authorize administrative requests with their master password when the login page is disabled.
+- Apply the configured login rate-limit window and use trusted proxy addresses consistently.
+- Remove pending browser-extension drafts when save windows close, including windows closed while still opening.
+
+### Changed
+- Configure the VS Code server URL in user settings; workspace overrides are ignored.
+- Open browser-extension save dialogs in a separate extension window, with a tab fallback when popup windows are unavailable.
+
 ## [2.2.0] - 2026-11-06
 
 ### Added

@@ -18,6 +18,8 @@ const (
 	githubAPIVersion = "2022-11-28"
 )
 
+var ErrGistVisibilityMismatch = errors.New("cannot sync a private snippet to a public gist; unlink it and create a new secret gist")
+
 // GistNotFoundError indicates a gist was not found (deleted or never existed)
 type GistNotFoundError struct {
 	GistID string
@@ -86,6 +88,17 @@ func (c *GitHubClient) CreateGist(ctx context.Context, req *models.GistRequest) 
 
 // UpdateGist updates an existing gist
 func (c *GitHubClient) UpdateGist(ctx context.Context, gistID string, req *models.GistRequest) (*models.GistResponse, error) {
+	// GitHub cannot make a public gist secret; PATCH ignores public:false.
+	// Check before uploading any private content, not after the write response.
+	if !req.Public {
+		existing, err := c.GetGist(ctx, gistID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check gist visibility: %w", err)
+		}
+		if existing.Public {
+			return nil, ErrGistVisibilityMismatch
+		}
+	}
 	url := fmt.Sprintf("%s/gists/%s", githubAPIBaseURL, gistID)
 
 	body, err := json.Marshal(req)
@@ -147,12 +160,19 @@ func (c *GitHubClient) GetGist(ctx context.Context, gistID string) (*models.Gist
 		return nil, fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
-	var gist models.GistResponse
-	if err := json.NewDecoder(resp.Body).Decode(&gist); err != nil {
+	var response struct {
+		models.GistResponse
+		Public *bool `json:"public"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return &gist, nil
+	if response.Public == nil {
+		return nil, errors.New("GitHub response is missing gist visibility")
+	}
+	response.GistResponse.Public = *response.Public
+	return &response.GistResponse, nil
 }
 
 // DeleteGist deletes a gist
@@ -179,8 +199,6 @@ func (c *GitHubClient) DeleteGist(ctx context.Context, gistID string) error {
 
 	return nil
 }
-
-
 
 // GetAuthenticatedUser retrieves the authenticated user's information
 func (c *GitHubClient) GetAuthenticatedUser(ctx context.Context) (string, error) {

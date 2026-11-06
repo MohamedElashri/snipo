@@ -201,7 +201,7 @@ func runServer() {
 		Version:            Version,
 		Commit:             Commit,
 		RateLimit:          cfg.Auth.RateLimit,
-		RateLimitWindow:    int(cfg.Auth.RateLimitWindow.Seconds()),
+		RateLimitWindow:    cfg.Auth.RateLimitWindow,
 		MaxFilesPerSnippet: cfg.Server.MaxFilesPerSnippet,
 		S3Config:           &cfg.S3,
 		BasePath:           cfg.Server.BasePath,

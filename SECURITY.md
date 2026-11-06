@@ -40,6 +40,8 @@ authentication proxy.
   expiring token with the least privilege required.
 - GitHub tokens are encrypted in the database with AES-256-GCM using keys
   derived from `SNIPO_ENCRYPTION_SALT` and `SNIPO_SESSION_SECRET`.
+- The VS Code client uses the Snipo URL from user settings. Workspace settings
+  cannot override the destination used with your saved API token.
 - Password-protected exports use AES-256-GCM with a PBKDF2-SHA-256-derived key.
 
 Set stable values for `SNIPO_SESSION_SECRET` and `SNIPO_ENCRYPTION_SALT` before
@@ -55,6 +57,11 @@ Generation and quoting instructions are in the
 
 Session cookies are `HttpOnly`, `Secure`, and `SameSite=Strict`, with a default
 lifetime of seven days. HTTPS is therefore required outside local development.
+
+Logging out clears local recovery drafts and cached settings, and other open
+Snipo tabs reload without the ended session. Save your changes before logging
+out. Appearance and layout preferences are retained. Private pages and API
+responses must not be cached by a reverse proxy.
 
 Permissions are cumulative:
 
@@ -73,18 +80,37 @@ requirements are defined in the [OpenAPI specification](docs/openapi.yaml).
 - Terminate TLS at a reverse proxy and keep port 8080 private.
 - Leave `SNIPO_TRUST_PROXY=false` for direct connections. Enable it only when a
   trusted proxy overwrites `X-Forwarded-For` and clients cannot reach Snipo
-  directly.
+  directly. Snipo uses the final forwarded address; earlier entries are not
+  trusted. Multiple proxy hops need a trusted client-IP policy at the final proxy.
+- Browser writes using a session cookie require the same origin or an exact
+  trusted origin from `SNIPO_ALLOWED_ORIGINS`. A wildcard does not grant cookie
+  write access. Valid API-token clients authenticate separately.
+- Clients must use the final Snipo URL; authenticated API requests do not follow
+  redirects, and the shared JavaScript client restricts requests to its configured
+  origin.
 - CORS is same-origin by default. Set exact origins in
   `SNIPO_ALLOWED_ORIGINS`; use `*` only for controlled development.
 - Disable unused public sharing, API token, or backup endpoints with the
   corresponding feature flags.
+- Password verification runs one memory-heavy check at a time. Concurrent login
+  attempts receive a short retry delay instead of starting additional checks.
+- `SNIPO_RATE_LIMIT` controls login requests per client over `SNIPO_RATE_WINDOW`
+  (one minute by default).
 - Rate limits are in memory and local to one Snipo process. They are not a
   replacement for proxy-level limits or denial-of-service protection.
 
 Snipo sends CSP, clickjacking, MIME-sniffing, referrer, permissions, and HSTS
 headers. HSTS only protects connections that already use HTTPS. The web CSP
-currently allows inline styles and `unsafe-eval` for the frontend/editor stack,
-so it reduces but does not eliminate XSS risk.
+currently allows inline scripts, inline styles, and `unsafe-eval` for the
+frontend/editor stack, so it reduces but does not eliminate XSS risk.
+
+## Browser extension
+
+Code-block save buttons require a real user click. Interactive saves open a
+separate extension window (or a tab when popups are unavailable) so websites cannot read or change the dialog,
+private folder names, tag suggestions, or the text you type there. Pending save
+drafts stay in trusted browser-session storage and are removed when the dialog
+closes. They are not synced with your extension settings.
 
 ## Data and backups
 
@@ -94,8 +120,26 @@ database WAL/SHM files when taking a live filesystem-level backup. Prefer the
 built-in export for portable backups. An encrypted export requires both its
 password and the `SNIPO_ENCRYPTION_SALT` used when it was created.
 
+Backups include active and archived snippets across all pages; items in Trash
+are excluded. Unsupported backup formats and invalid replacement records are
+rejected before existing data is cleared.
+
+Backup imports and S3 restores accept at most 50 MiB of file data. Compressed
+backups also have a 50 MiB limit on their decoded JSON metadata. Larger backups
+must be split before importing.
+
 Public snippets and their files are available without credentials to anyone
 who has the URL. Treat a public link as published data, not as an access secret.
+
+GitHub secret Gists are unlisted, and anyone with their URL can read them. Making
+an already published Snipo snippet private does not withdraw its GitHub history.
+Private edits cannot sync to an existing public Gist: unlink that Gist and create
+a new secret one first. Previously published copies remain outside Snipo's
+control.
+
+Snippy displays terminal control characters in snippet content and metadata as
+visible escape text. Saving and explicitly copying code preserve the original
+content.
 
 Custom CSS is stored in the shared database and injected into the web page.
 Only the instance owner should be able to change it. The browser performs basic

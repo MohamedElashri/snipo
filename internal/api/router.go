@@ -27,7 +27,7 @@ type RouterConfig struct {
 	Version            string
 	Commit             string
 	RateLimit          int
-	RateLimitWindow    int // in seconds
+	RateLimitWindow    time.Duration
 	MaxFilesPerSnippet int
 	S3Config           *config.S3Config
 	SnippetService     *services.SnippetService // For demo mode
@@ -53,7 +53,11 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	r.Use(middleware.CORS(allowedOrigins)) // CORS handling
 
 	// Rate limiting for auth endpoints
-	authRateLimiter := middleware.NewRateLimiter(cfg.RateLimit, 60*1000*1000*1000) // 1 minute in nanoseconds
+	authWindow := cfg.RateLimitWindow
+	if authWindow <= 0 {
+		authWindow = time.Minute
+	}
+	authRateLimiter := middleware.NewRateLimiter(cfg.RateLimit, authWindow)
 
 	// API rate limiter with permission-based limits (use config values or defaults)
 	readLimit, writeLimit, adminLimit := 1000, 500, 100
@@ -174,16 +178,18 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		// Auth endpoints (with rate limiting)
 		r.Group(func(r *Router) {
 			r.Use(authRateLimiter.Middleware)
+			r.Use(middleware.ProtectBrowserWrites(allowedOrigins))
 			r.Post("/api/v1/auth/login", authHandler.Login)
 		})
 
-		r.Post("/api/v1/auth/logout", authHandler.Logout)
+		r.With(middleware.ProtectBrowserWrites(allowedOrigins)).Post("/api/v1/auth/logout", authHandler.Logout)
 		r.Get("/api/v1/auth/check", authHandler.Check)
 	})
 
 	// Protected routes (auth required + rate limiting)
 	r.Group(func(r *Router) {
 		r.Use(middleware.RequireAuthWithSettings(cfg.AuthService, tokenRepo, settingsRepo))
+		r.Use(middleware.ProtectBrowserWrites(allowedOrigins))
 
 		// Auth management (protected, requires any auth)
 
@@ -244,7 +250,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 		// API Token management (admin only)
 		if cfg.Config == nil || cfg.Config.Features.APITokens {
 			r.Route("/api/v1/tokens", func(r *Router) {
-				r.Use(middleware.RequireAdmin)
+				r.Use(middleware.RequireAdminWithPassword(cfg.AuthService))
 				r.Use(apiRateLimiter.RateLimitAdmin)
 				r.Get("/", tokenHandler.List)
 				r.Post("/", tokenHandler.Create)
