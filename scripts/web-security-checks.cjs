@@ -193,7 +193,7 @@ exports.checkLogoutSecurity = async function (browser, origin, password) {
     assert.equal((await page.request.get(origin + '/api/v1/auth/check')).status(), 200);
     await page.waitForFunction(() => document.body.textContent.includes('Could not log out.'));
     await page.unroute('**/api/v1/auth/logout');
-    await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).logout());
+    await page.getByTitle('Log out and clear local drafts', { exact: true }).click();
     await page.waitForURL(origin + '/login');
     assert.equal((await page.request.get(origin + '/api/v1/snippets')).status(), 401,
       'Fixture must actually be logged out at the server');
