@@ -1,58 +1,50 @@
-# Changelog
+# VS Code extension changelog
 
-All notable changes to the "snipo" extension will be documented in this file.
+Changes below apply to Snipo's VS Code extension.
 
 ## [2.2.1] - 2026-11-06
 
-- Keep the server used with your saved API token controlled by user settings; workspace overrides are ignored.
-- Stop authenticated requests from following redirects to another destination.
+- **VS Code extension:** Keep the server used with your saved API token controlled by user settings; workspace overrides are ignored.
+- **VS Code extension:** Stop authenticated requests from following redirects to another destination.
 
 ## [2.2.0] - 2026-11-06
 
-- Keep each server’s offline cache separate when switching Snipo instances.
-
-- Keep the status indicator matched to the latest connection settings.
-
-- Refresh sidebar lists after creating, updating, or deleting snippets.
-
-- Handle server URLs consistently when opening the dashboard or connecting to Snipo.
-
-- Open current snippet contents from the sidebar and recover cached results after network failures.
-
-- Browse snippets beyond the first 50 items.
-- Save snippets as CUDA, TeX, or BibTeX, with LaTeX files detected as TeX.
-- Open snippets in the browser when the configured server URL omits its scheme.
+- **VS Code extension:** Keep each server’s offline cache separate when switching Snipo instances.
+- **VS Code extension:** Keep the status indicator matched to the latest connection settings.
+- **VS Code extension:** Refresh sidebar lists after creating, updating, or deleting snippets.
+- **VS Code extension:** Handle server URLs consistently when opening the dashboard or connecting to Snipo.
+- **VS Code extension:** Open current snippet contents from the sidebar and recover cached results after network failures.
+- **VS Code extension:** Browse snippets beyond the first 50 items.
+- **VS Code extension:** Save snippets as CUDA, TeX, or BibTeX, with LaTeX files detected as TeX.
+- **VS Code extension:** Open snippets in the browser when the configured server URL omits its scheme.
 
 ## [2.1.1] - 2026-11-05
 
-- Cancel saving or updating a snippet without making unwanted changes.
-- Make VS Code’s “Save File to Snipo” save the entire file, even when text is selected.
-- Fix the VS Code settings shortcut so it shows Snipo’s settings.
-- Fix updating existing snippets while preserving their metadata and additional files.
+- **VS Code extension:** Cancel saving or updating a snippet without making unwanted changes.
+- **VS Code extension:** Make “Save File to Snipo” save the entire file, even when text is selected.
+- **VS Code extension:** Fix the settings shortcut so it shows Snipo’s settings.
+- **VS Code extension:** Fix updating existing snippets while preserving their metadata and additional files.
 
 ## [2.1.0] - 2026-11-05
 
-- Fix opening and saving snippets so their contents are returned correctly.
-- Keep search results matched to your latest query, even on slow connections.
-- Stop waiting indefinitely when the server does not respond.
-- Stop using saved credentials after they are removed from settings.
+- **VS Code extension:** Fix opening and saving snippets so their contents are returned correctly.
+- **VS Code extension:** Keep search results matched to your latest query, even on slow connections.
+- **VS Code extension:** Stop waiting indefinitely when the server does not respond.
+- **VS Code extension:** Stop using saved credentials after they are removed from settings.
 
 ## [2.0.2] - 2026-10-31
 
-- Align the extension version with the coordinated Snipo 2.0.2 hotfix for web
-  theme colors. Extension behavior is unchanged.
+- **VS Code extension:** No user-visible changes in this release.
 
 ## [2.0.1] - 2026-10-31
 
-- Keep the extension version aligned with the coordinated Snipo 2.0.1 release.
-- Update the nock development dependency to 15.0.5. Extension behavior is unchanged.
+- **VS Code extension:** No user-visible changes in this release.
 
 ## [2.0.0] - 2026-10-25
 
-- Join the coordinated Snipo release version and use the shared native-fetch API client.
-- Include dependency updates and security hardening since 0.0.3.
-- Build the VSIX with locked packaging tools and validate it in release checks.
-- Marketplace submission is pending; the VSIX is available in the GitHub release.
+- **VS Code extension:** Join the coordinated releases for the server and clients.
+- **VS Code extension:** Use shared HTTP connection handling when communicating with Snipo.
+- **VS Code extension:** Activate when Snipo commands or views are used instead of loading in every workspace.
 
 ## [0.0.3] - 2026-08-24
 

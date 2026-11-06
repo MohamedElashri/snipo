@@ -8,183 +8,165 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.2.1] - 2026-11-06
 
 ### Security
-- Protect Markdown previews and keep sign-in redirects on your Snipo instance.
-- Strengthen protection against unwanted browser requests and repeated password attempts.
-- Stop serving shared snippets and their files after they are moved to Trash.
-- Clear local drafts and cached settings on logout, and lock other open Snipo tabs. Save unfinished edits before logging out.
-- Keep private Gist edits from being sent to an existing public Gist.
-- Limit backup imports and S3 restores to 50 MiB, including decoded ZIP metadata.
-- Keep authenticated client requests on the configured Snipo server without following redirects.
-- Keep browser-extension save dialogs and private folder and tag suggestions separate from visited websites.
-- Prevent VS Code workspaces from changing the server used with your saved API token.
-- Display terminal control characters safely in Snippy while preserving the original code when saving or copying.
+
+- **Web app:** Protect Markdown previews and keep sign-in redirects on your Snipo instance.
+- **Server:** Strengthen protection against unwanted browser requests and repeated password attempts.
+- **Server:** Stop serving shared snippets and their files after they are moved to Trash.
+- **Web app:** Clear local drafts and cached settings on logout, and lock other open Snipo tabs. Save unfinished edits before logging out.
+- **Server:** Keep private Gist edits from being sent to an existing public Gist.
+- **Server:** Limit backup imports and S3 restores to 50 MiB, including decoded ZIP metadata.
+- **Browser extension, VS Code extension, and Snippy:** Keep authenticated requests on the configured Snipo server without following redirects.
+- **Browser extension:** Keep save dialogs and private folder and tag suggestions separate from visited websites.
+- **VS Code extension:** Prevent workspaces from changing the server used with your saved API token.
+- **Snippy:** Display terminal control characters safely while preserving the original code when saving or copying.
 
 ### Fixed
-- Include all active and archived snippets in backups, including collections larger than 100 snippets.
-- Reject invalid replacement backups before clearing existing data.
-- Prevent folder moves and edits from creating circular folder hierarchies.
-- Keep sign-in usable after an incorrect password and show a retry message if logout fails.
-- Allow instance owners to authorize administrative requests with their master password when the login page is disabled.
-- Apply the configured login rate-limit window and use trusted proxy addresses consistently.
-- Remove pending browser-extension drafts when save windows close, including windows closed while still opening.
+
+- **Server:** Include all active and archived snippets in backups, including collections larger than 100 snippets.
+- **Server:** Reject invalid replacement backups before clearing existing data.
+- **Server:** Prevent folder moves and edits from creating circular folder hierarchies.
+- **Web app:** Keep sign-in usable after an incorrect password and show a retry message if logout fails.
+- **Server:** Allow instance owners to authorize administrative requests with their master password when the login page is disabled.
+- **Server:** Apply the configured login rate-limit window and use trusted proxy addresses consistently.
+- **Browser extension:** Remove pending drafts when save windows close, including windows closed while still opening.
 
 ### Changed
-- Configure the VS Code server URL in user settings; workspace overrides are ignored.
-- Open browser-extension save dialogs in a separate extension window, with a tab fallback when popup windows are unavailable.
+
+- **VS Code extension:** Configure the server URL in user settings; workspace overrides are ignored.
+- **Browser extension:** Open save dialogs in a separate extension window, with a tab fallback when popup windows are unavailable.
 
 ## [2.2.0] - 2026-11-06
 
 ### Added
-- Save CUDA, TeX, and BibTeX from both the browser extension and VS Code.
-- Dismiss the browser-extension save dialog with Escape and return focus to its save button.
-- Choose Ace, CodeMirror 6, or Monaco in Editor settings, with a remembered browser preference and safe switching between editors.
-- Use Monaco’s language assistance for JavaScript, TypeScript, JSON, HTML, and CSS without relying on external services.
-- See which editor is active, including when Snipo falls back to Ace.
+
+- **Browser extension and VS Code extension:** Save CUDA, TeX, and BibTeX snippets.
+- **Browser extension:** Dismiss the save dialog with Escape and return focus to its save button.
+- **Web app:** Choose Ace, CodeMirror 6, or Monaco in Editor settings, with a remembered browser preference and safe switching between editors.
+- **Web app:** Use Monaco’s language assistance for JavaScript, TypeScript, JSON, HTML, and CSS without relying on external services.
+- **Web app:** See which editor is active, including when Snipo falls back to Ace.
 
 ### Fixed
-- Keep VS Code’s offline snippet, tag, and folder caches separate for each Snipo server.
-- Ignore surrounding spaces in pasted browser-extension connection settings.
-- Clear old Snippy errors after a successful retry.
-- Keep VS Code’s status indicator matched to the latest connection settings.
-- Return to the same snippet and file after closing Help in Snippy.
-- Save snippets from browser pages whose titles exceed 200 characters.
-- Refresh VS Code’s sidebar lists after creating, updating, or deleting snippets.
-- Keep programming-language suggestions out of Snippy’s API-key field.
-- Show nested folders in the browser extension’s save dialog.
-- Open the VS Code dashboard consistently for server URLs without a scheme or with surrounding spaces.
-- Preserve tag capitalization when creating or editing snippets in Snippy.
-- Keep the browser context-menu save dialog working on pages where Snipo is already loaded.
-- Open the latest snippet contents from VS Code’s sidebar and use cached results when native network requests fail.
-- Allow new lines while editing snippets longer than 99 lines in Snippy.
-- Preserve code indentation and trailing newlines when saving code blocks with the browser extension.
-- Prevent duplicate browser-extension save dialogs and recover from stalled connection checks.
-- Show snippets beyond the first 50 in VS Code and open configured server URLs without a scheme.
-- Copy and edit the selected snippet file in Snippy, and allow question marks while filling out forms.
-- Prevent a late Monaco completion response from causing an error after switching files or editors.
-- Highlight TeX and BibTeX in all three editors and preserve CUDA, TeX, and BibTeX when saving.
-- Recover from stalled editor downloads instead of leaving the editor loading indefinitely.
-- Keep undo from restoring a different file’s code after switching snippet files.
-- Restore unsaved code when refreshing an editing page.
-- Keep each tab’s draft separate so saving in another tab does not erase its recovery copy.
-- Make Ace’s manual completion shortcut available alongside its snippet and live-completion support.
-- Keep CodeMirror’s find and replace controls compact on smaller screens.
-- Keep the snippet title and code usable when browser zoom or side panels narrow the editor.
+
+- **VS Code extension:** Keep offline snippet, tag, and folder caches separate for each Snipo server.
+- **Browser extension:** Ignore surrounding spaces in pasted connection settings.
+- **Snippy:** Clear old errors after a successful retry.
+- **VS Code extension:** Keep the status indicator matched to the latest connection settings.
+- **Snippy:** Return to the same snippet and file after closing Help.
+- **Browser extension:** Save snippets from pages whose titles exceed 200 characters.
+- **VS Code extension:** Refresh sidebar lists after creating, updating, or deleting snippets.
+- **Snippy:** Keep programming-language suggestions out of the API-key field.
+- **Browser extension:** Show nested folders in the save dialog.
+- **VS Code extension:** Open the dashboard consistently for server URLs without a scheme or with surrounding spaces.
+- **Snippy:** Preserve tag capitalization when creating or editing snippets.
+- **Browser extension:** Keep the context-menu save dialog working on pages where Snipo is already loaded.
+- **VS Code extension:** Open the latest snippet contents from the sidebar and use cached results when native network requests fail.
+- **Snippy:** Allow new lines while editing snippets longer than 99 lines.
+- **Browser extension:** Preserve code indentation and trailing newlines when saving code blocks.
+- **Browser extension:** Prevent duplicate save dialogs and recover from stalled connection checks.
+- **VS Code extension:** Show snippets beyond the first 50 and open configured server URLs without a scheme.
+- **Snippy:** Copy and edit the selected snippet file, and allow question marks while filling out forms.
+- **Web app:** Prevent a late Monaco completion response from causing an error after switching files or editors.
+- **Web app:** Highlight TeX and BibTeX in all three editors and preserve CUDA, TeX, and BibTeX when saving.
+- **Web app:** Recover from stalled editor downloads instead of leaving the editor loading indefinitely.
+- **Web app:** Keep undo from restoring a different file’s code after switching snippet files.
+- **Web app:** Restore unsaved code when refreshing an editing page.
+- **Web app:** Keep each tab’s draft separate so saving in another tab does not erase its recovery copy.
+- **Web app:** Make Ace’s manual completion shortcut available alongside its snippet and live-completion support.
+- **Web app:** Keep CodeMirror’s find and replace controls compact on smaller screens.
+- **Web app:** Keep the snippet title and code usable when browser zoom or side panels narrow the editor.
 
 ## [2.1.1] - 2026-11-05
 
 ### Fixed
-- Prevent outdated cached styles and scripts from breaking the web interface after an update.
-- Fix styles, fonts, and editor assets when Snipo is hosted under a URL subpath.
-- Use Cards as the default view while remembering your last Cards, List, or Compact choice.
-- Hide tag labels in Cards view to keep dates and card controls aligned.
-- Make text sizes more consistent throughout the web app and keep the editor’s description field compact and aligned.
-- Cancel saving or updating a snippet in VS Code without making unwanted changes.
-- Keep descriptions blank when you clear them in the browser extension.
-- Preserve code indentation, trailing newlines, and existing public visibility when saving in Snippy.
-- Make VS Code’s “Save File to Snipo” save the entire file, even when text is selected.
-- Fix the VS Code settings shortcut so it shows Snipo’s settings.
-- Fix updating existing snippets in VS Code and preserve folders, expiration, archive status, and additional files when editing from VS Code or Snippy.
+
+- **Server and web app:** Prevent outdated cached styles and scripts from breaking the web interface after an update.
+- **Server and web app:** Fix styles, fonts, and editor assets when Snipo is hosted under a URL subpath.
+- **Web app:** Use Cards as the default view while remembering your last Cards, List, or Compact choice.
+- **Web app:** Hide tag labels in Cards view to keep dates and card controls aligned.
+- **Web app:** Make text sizes more consistent and keep the editor’s description field compact and aligned.
+- **VS Code extension:** Cancel saving or updating a snippet without making unwanted changes.
+- **Browser extension:** Keep descriptions blank when you clear them.
+- **Snippy:** Preserve code indentation, trailing newlines, and existing public visibility when saving.
+- **VS Code extension:** Make “Save File to Snipo” save the entire file, even when text is selected.
+- **VS Code extension:** Fix the settings shortcut so it shows Snipo’s settings.
+- **VS Code extension:** Fix updating existing snippets.
+- **VS Code extension and Snippy:** Preserve folders, expiration, archive status, and additional files when editing snippets.
 
 ## [2.1.0] - 2026-11-05
 
-### Web app
-- Choose Cards, List, or Compact views to browse your snippets.
-- Search tags, keep your filters while opening snippets, and hide the snippet list
+### Added
+
+- **Web app:** Choose Cards, List, or Compact views to browse your snippets.
+- **Web app:** Search tags, keep your filters while opening snippets, and hide the snippet list
   when you want more room for code.
-- Enjoy a more compact snippet toolbar and improved mobile layouts.
-- Keep snippets open after saving and recover unfinished edits from local drafts.
-- Find settings on a dedicated page with direct links to each section.
-- Browse large snippets with lighter previews while opening and copying the full code.
-- Fix outdated search results, briefly visible password prompts on refresh, and
+- **Web app:** Enjoy a more compact snippet toolbar and improved mobile layouts.
+- **Web app:** Keep snippets open after saving and recover unfinished edits from local drafts.
+- **Web app:** Find settings on a dedicated page with direct links to each section.
+- **Web app:** Browse large snippets with lighter previews while opening and copying the full code.
+
+### Fixed
+
+- **Web app:** Fix outdated search results, briefly visible password prompts on refresh, and
   display issues on login and shared snippet pages.
-- Fix shared links and themes when Snipo is hosted under a URL subpath.
-
-### Browser extension
-- Prevent repeated clicks from saving the same snippet while a save is in progress.
-- Make the save button available again after a failed save.
-- Stop waiting indefinitely when the server does not respond.
-
-### VS Code
-- Fix opening and saving snippets so their contents are returned correctly.
-- Keep search results matched to your latest query.
-- Stop waiting indefinitely for an unresponsive server and stop using credentials
+- **Web app:** Fix shared links and themes when Snipo is hosted under a URL subpath.
+- **Browser extension:** Prevent repeated clicks from saving the same snippet while a save is in progress.
+- **Browser extension:** Make the save button available again after a failed save.
+- **Browser extension:** Stop waiting indefinitely when the server does not respond.
+- **VS Code extension:** Fix opening and saving snippets so their contents are returned correctly.
+- **VS Code extension:** Keep search results matched to your latest query.
+- **VS Code extension:** Stop waiting indefinitely for an unresponsive server and stop using credentials
   after they are removed from settings.
-
-### Snippy
-- Fix navigation beyond the first page of snippets.
-- Apply all selected tags and folders when filtering.
-- Accept server URLs with trailing slashes.
+- **Snippy:** Fix navigation beyond the first page of snippets.
+- **Snippy:** Apply all selected tags and folders when filtering.
+- **Snippy:** Accept server URLs with trailing slashes.
 
 ## [2.0.2] - 2026-10-31
 
 ### Fixed
-- Restore the light theme's text, card surfaces, and borders after the v2.0.1
+
+- **Web app:** Restore the light theme's text, card surfaces, and borders after the v2.0.1
   CSS migration.
-- Keep theme colors inherited inside controls, links, and headings, and prevent
+- **Web app:** Keep theme colors inherited inside controls, links, and headings, and prevent
   native focus/hover styles from overriding component colors in either theme.
-- Keep public snippet controls readable on hover in the light theme.
-
-### Changed
-- Extend browser regression checks to verify theme palettes, hover/focus colors,
-  theme switching, and persistence after reload on desktop and mobile. Save
-  screenshots of login, settings, snippets, the editor, and public pages.
-- Align Snippy and both extension packages with the coordinated 2.0.2 release;
-  their behavior is unchanged.
-
-### Upgrade
-- Replace the server and reload open browser tabs to load the corrected styles.
-- No database migration or configuration change is required for this patch.
+- **Web app:** Keep public snippet controls readable on hover in the light theme.
 
 ## [2.0.1] - 2026-10-31
 
 ### Changed
-- Replace Pico CSS with local vanilla CSS while preserving the existing layout,
-  native controls, typography, and light/dark themes. Remove the package and
-  vendored stylesheet, and migrate theme references to Snipo CSS variables.
-- Update the customization guide and Settings help with current variables,
+
+- **Web app:** Replace Pico CSS with local styles while preserving the existing layout,
+  native controls, typography, and light/dark themes.
+- **Web app:** Update the customization guide and Settings help with current variables,
   working selectors, theme behavior, RTL examples, and recovery instructions.
-- Update the VS Code extension's nock development dependency to 15.0.5.
-
-### Added
-- Add `npm run test:web` browser regression checks for desktop and mobile views
-  in light and dark themes, and run them in PR release checks.
-
-### Upgrade
-- Saved custom CSS using `--pico-*` variables needs to be updated to the Snipo
-  variables in the [customization migration guide](customization.md#migrating-custom-css-from-pico).
-- No database migration or configuration change is required for this patch.
+- **Web app:** Use Snipo CSS variables in place of `--pico-*` variables for custom styles;
+  see the [customization guide](customization.md#migrating-custom-css-from-pico).
 
 ## [2.0.0] - 2026-10-25
 
 ### Changed
-- Release the server, Snippy, VS Code extension, and browser packages together
-  under one version tag.
-- Replace Axios with native fetch in the shared client and replace external
-  routing and clipboard dependencies with native implementations.
-- Include updated Go/npm dependencies and committed frontend assets.
+
+- **All components:** Release the server, web app, browser extension, VS Code extension,
+  and Snippy together under one version.
+- **Browser extension and VS Code extension:** Use shared HTTP connection handling
+  when communicating with your Snipo server.
+- **VS Code extension:** Activate when Snipo commands or views are used instead of
+  loading in every workspace.
+- **Snippy:** Use native system clipboard tools to copy code.
+- **All components:** Update dependencies, including the web app's bundled libraries.
 
 ### Security
-- Include the browser and VS Code hardening completed since their previous
-  published versions.
-- Block releases on tests, Go vulnerability checks, npm audits, and scans of
-  both container variants on amd64 and arm64.
-- Pin packaging tools and use the patched MSAL dependency for VS Code tooling.
+
+- **Browser extension (Firefox):** Limit page access to the active tab instead of
+  requesting access to all websites.
 
 ### Fixed
-- Synchronize browser package and lockfile versions with the release tag.
-- Include the shared client and workspace build inputs in Firefox source ZIPs.
-- Correct browser smoke testing and Firefox Android compatibility metadata.
-- Package Snippy for Linux, macOS, and Windows, including Linux deb/rpm files;
-  update Homebrew using unified release URLs and verified checksums.
-- Include the OpenAPI document in server archives and container images.
 
-### Upgrade
-- Back up the database and data volume, including encryption/session secrets,
-  before replacing the server. See [deployment](deployment.md).
-- Deploy server 2.0.0, then update clients. Browser and VS Code store uploads are
-  pending; the release includes packages for manual installation/submission.
-- Install Snippy through Homebrew or release binaries. Versioned `go install`
-  is not supported by the current module layout.
+- **Browser extension (Firefox):** Include the files needed to build the supplied
+  source package.
+- **Browser extension (Firefox):** Correct compatibility information for Firefox for Android.
+- **Snippy:** Provide Linux, macOS, and Windows downloads, Linux deb/rpm packages,
+  and Homebrew installation.
+- **Server:** Include the API reference in server archives and Docker images.
 
 ## [1.7.7] - 2026-09-26
 - **Go/JS:** Update the Go and NPM dependencies
