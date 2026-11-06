@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"path/filepath"
 	"strings"
@@ -25,9 +26,12 @@ import (
 
 const (
 	BackupVersion = "1.0"
+	// MaxBackupSize bounds uploaded and decoded backup data, including ZIP metadata.
+	MaxBackupSize = 50 << 20
 )
 
 var (
+	ErrBackupTooLarge      = errors.New("backup exceeds the 50 MiB size limit")
 	ErrInvalidBackupFormat = errors.New("invalid backup format")
 	ErrDecryptionFailed    = errors.New("decryption failed - wrong password?")
 )
@@ -71,30 +75,18 @@ func (b *BackupService) Export(ctx context.Context, opts models.ExportOptions) (
 		CreatedAt: time.Now().UTC(),
 	}
 
-	// Gather all snippets with their files
-	snippetList, err := b.snippetSvc.List(ctx, models.SnippetFilter{
-		Page:  1,
-		Limit: 10000, // Get all snippets
-	})
+	// Paginate explicitly; the ordinary list API caps each page at 100 items.
+	snippets, err := b.listBackupSnippets(ctx)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to get snippets: %w", err)
 	}
-
-	// Fetch full details for each snippet (including files, tags, folders)
-	for _, s := range snippetList.Data {
-		snippet, err := b.snippetSvc.GetByID(ctx, s.ID)
-		if err != nil {
-			b.logger.Warn("failed to get snippet details", "id", s.ID, "error", err)
-			continue
-		}
-		data.Snippets = append(data.Snippets, *snippet)
-	}
+	data.Snippets = snippets
 
 	// Gather all tags
 	if b.tagRepo != nil {
 		tags, err := b.tagRepo.List(ctx)
 		if err != nil {
-			b.logger.Warn("failed to get tags", "error", err)
+			return nil, "", fmt.Errorf("failed to get tags: %w", err)
 		} else {
 			data.Tags = tags
 		}
@@ -104,7 +96,7 @@ func (b *BackupService) Export(ctx context.Context, opts models.ExportOptions) (
 	if b.folderRepo != nil {
 		folders, err := b.folderRepo.List(ctx)
 		if err != nil {
-			b.logger.Warn("failed to get folders", "error", err)
+			return nil, "", fmt.Errorf("failed to get folders: %w", err)
 		} else {
 			data.Folders = folders
 		}
@@ -146,8 +138,78 @@ func (b *BackupService) Export(ctx context.Context, opts models.ExportOptions) (
 	return content, filename, nil
 }
 
+// listBackupSnippets includes archived items and every page, while preserving
+// the existing exclusion of Trash. List already loads files and relationships.
+func (b *BackupService) listBackupSnippets(ctx context.Context) ([]models.Snippet, error) {
+	var snippets []models.Snippet
+	for _, archived := range []bool{false, true} {
+		for page := 1; ; page++ {
+			response, err := b.snippetSvc.List(ctx, models.SnippetFilter{Page: page, Limit: 100,
+				SortBy: "id", SortOrder: "asc", IsArchived: &archived})
+			if err != nil {
+				return nil, err
+			}
+			snippets = append(snippets, response.Data...)
+			if page >= response.Pagination.TotalPages {
+				break
+			}
+		}
+	}
+	return snippets, nil
+}
+
+func backupSnippetInput(snippet models.Snippet) *models.SnippetInput {
+	input := &models.SnippetInput{Title: snippet.Title, Description: snippet.Description,
+		Content: snippet.Content, Language: snippet.Language, IsPublic: snippet.IsPublic,
+		IsArchived: snippet.IsArchived}
+	for _, tag := range snippet.Tags {
+		input.Tags = append(input.Tags, tag.Name)
+	}
+	for _, file := range snippet.Files {
+		input.Files = append(input.Files, models.SnippetFileInput{Filename: file.Filename, Content: file.Content, Language: file.Language})
+	}
+	return input
+}
+
+// Check a replacement before clearing anything. Merge/skip retain partial-import
+// behavior, where invalid individual records are reported without deleting data.
+func validateReplacementBackup(data models.BackupData) error {
+	for i, tag := range data.Tags {
+		if errs := validation.ValidateTagInput(tag.Name); errs.HasErrors() {
+			return fmt.Errorf("%w: tag %d: %s", ErrInvalidBackupFormat, i+1, errs)
+		}
+	}
+	for i, folder := range data.Folders {
+		if errs := validation.ValidateFolderInput(folder.Name); errs.HasErrors() {
+			return fmt.Errorf("%w: folder %d: %s", ErrInvalidBackupFormat, i+1, errs)
+		}
+	}
+	for i, snippet := range data.Snippets {
+		if errs := validation.ValidateSnippetInput(backupSnippetInput(snippet)); errs.HasErrors() {
+			return fmt.Errorf("%w: snippet %d: %s", ErrInvalidBackupFormat, i+1, errs)
+		}
+	}
+	return nil
+}
+
+// A matching version alone is not a backup: require its snippets collection.
+// An explicit null/empty collection remains valid for genuine empty exports.
+func decodeBackupMetadata(content []byte, data *models.BackupData) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(content, &fields); err != nil || fields["snippets"] == nil {
+		return ErrInvalidBackupFormat
+	}
+	if err := json.Unmarshal(content, data); err != nil || data.Version != BackupVersion {
+		return ErrInvalidBackupFormat
+	}
+	return nil
+}
+
 // Import restores data from a backup
 func (b *BackupService) Import(ctx context.Context, content []byte, opts models.ImportOptions) (*models.ImportResult, error) {
+	if len(content) > MaxBackupSize {
+		return nil, ErrBackupTooLarge
+	}
 	// Decrypt if password provided
 	var err error
 	if opts.Password != "" {
@@ -160,33 +222,48 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 	var data models.BackupData
 
 	// Try JSON first
-	if err := json.Unmarshal(content, &data); err != nil {
+	if err := decodeBackupMetadata(content, &data); err != nil {
 		// Try ZIP
 		zr, zipErr := zip.NewReader(bytes.NewReader(content), int64(len(content)))
 		if zipErr != nil {
 			return nil, ErrInvalidBackupFormat
 		}
 
+		metadataFound := false
 		for _, f := range zr.File {
 			if f.Name == "metadata.json" {
+				if f.UncompressedSize64 > MaxBackupSize {
+					return nil, ErrBackupTooLarge
+				}
 				rc, err := f.Open()
 				if err != nil {
 					return nil, fmt.Errorf("failed to open metadata: %w", err)
 				}
-				if err := json.NewDecoder(rc).Decode(&data); err != nil {
-					_ = rc.Close()
+				metadata, readErr := io.ReadAll(io.LimitReader(rc, MaxBackupSize+1))
+				_ = rc.Close()
+				if len(metadata) > MaxBackupSize {
+					return nil, ErrBackupTooLarge
+				}
+				if readErr != nil {
+					return nil, fmt.Errorf("failed to read metadata: %w", readErr)
+				}
+				if err := decodeBackupMetadata(metadata, &data); err != nil {
 					return nil, fmt.Errorf("failed to decode metadata: %w", err)
 				}
-				_ = rc.Close()
+				metadataFound = true
 				break
 			}
 		}
-
-		if data.Version == "" {
+		if !metadataFound {
 			return nil, ErrInvalidBackupFormat
 		}
 	}
 
+	if opts.Strategy == "replace" {
+		if err := validateReplacementBackup(data); err != nil {
+			return nil, err
+		}
+	}
 	result := &models.ImportResult{}
 
 	// Handle strategy
@@ -209,11 +286,14 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 		existingFoldersByName[existingFolders[i].Name] = &existingFolders[i]
 	}
 
-	existingSnippets, _ := b.snippetSvc.List(ctx, models.SnippetFilter{Limit: 10000})
+	existingSnippets, err := b.listBackupSnippets(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list existing snippets: %w", err)
+	}
 	existingSnippetsByTitle := make(map[string]*models.Snippet)
 	if existingSnippets != nil {
-		for i := range existingSnippets.Data {
-			existingSnippetsByTitle[existingSnippets.Data[i].Title] = &existingSnippets.Data[i]
+		for i := range existingSnippets {
+			existingSnippetsByTitle[existingSnippets[i].Title] = &existingSnippets[i]
 		}
 	}
 
@@ -291,35 +371,13 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 			}
 		}
 
-		// Prepare input
-		input := &models.SnippetInput{
-			Title:       snippet.Title,
-			Description: snippet.Description,
-			Content:     snippet.Content,
-			Language:    snippet.Language,
-			IsPublic:    snippet.IsPublic,
-			IsArchived:  snippet.IsArchived,
-		}
-
-		// Map tags
-		for _, tag := range snippet.Tags {
-			input.Tags = append(input.Tags, tag.Name)
-		}
+		input := backupSnippetInput(snippet)
 
 		// Map folder (use first folder if any)
 		if len(snippet.Folders) > 0 {
 			if newFolderID, ok := folderMap[snippet.Folders[0].ID]; ok {
 				input.FolderID = &newFolderID
 			}
-		}
-
-		// Map files
-		for _, file := range snippet.Files {
-			input.Files = append(input.Files, models.SnippetFileInput{
-				Filename: file.Filename,
-				Content:  file.Content,
-				Language: file.Language,
-			})
 		}
 
 		_, err := b.snippetSvc.Create(ctx, input)

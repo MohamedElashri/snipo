@@ -167,6 +167,10 @@ func (h *FolderHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	folder, err := h.repo.Update(r.Context(), id, &input)
 	if err != nil {
+		if errors.Is(err, repository.ErrFolderCycle) {
+			ValidationErrors(w, r, validation.ValidationErrors{{Field: "parent_id", Message: "Parent folder would create a circular reference"}})
+			return
+		}
 		if errors.Is(err, repository.ErrNotFound) {
 			NotFound(w, r, "Folder not found")
 			return
@@ -244,7 +248,7 @@ func (h *FolderHandler) Move(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Check for circular reference error
-		if err.Error() == "cannot move folder: would create circular reference" {
+		if errors.Is(err, repository.ErrFolderCycle) {
 			ValidationErrors(w, r, validation.ValidationErrors{validation.ValidationError{Field: "parent_id", Message: "Cannot move folder: would create circular reference"}})
 			return
 		}

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -74,13 +75,21 @@ func (h *BackupHandler) Export(w http.ResponseWriter, r *http.Request) {
 // Import handles POST /api/v1/backup/import
 // Form data: file (multipart), strategy (replace|merge|skip), password (optional)
 func (h *BackupHandler) Import(w http.ResponseWriter, r *http.Request) {
-	// Parse multipart form (max 50MB)
-	if err := r.ParseMultipartForm(50 << 20); err != nil {
+	// Bound the entire request, allowing a small multipart envelope around the file.
+	const maxRequestSize = services.MaxBackupSize + (1 << 20)
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestSize)
+	if err := r.ParseMultipartForm(1 << 20); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			Error(w, r, http.StatusRequestEntityTooLarge, "BACKUP_TOO_LARGE", services.ErrBackupTooLarge.Error())
+			return
+		}
 		Error(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Failed to parse form data")
 		return
 	}
 
-	file, _, err := r.FormFile("file")
+	defer r.MultipartForm.RemoveAll()
+	file, header, err := r.FormFile("file")
 	if err != nil {
 		Error(w, r, http.StatusBadRequest, "MISSING_FILE", "No backup file provided")
 		return
@@ -91,7 +100,11 @@ func (h *BackupHandler) Import(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	content, err := io.ReadAll(file)
+	if header.Size > services.MaxBackupSize {
+		Error(w, r, http.StatusRequestEntityTooLarge, "BACKUP_TOO_LARGE", services.ErrBackupTooLarge.Error())
+		return
+	}
+	content, err := io.ReadAll(io.LimitReader(file, services.MaxBackupSize+1))
 	if err != nil {
 		Error(w, r, http.StatusBadRequest, "READ_ERROR", "Failed to read backup file")
 		return
@@ -108,11 +121,15 @@ func (h *BackupHandler) Import(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.backupSvc.Import(r.Context(), content, opts)
 	if err != nil {
-		if err == services.ErrDecryptionFailed {
+		if errors.Is(err, services.ErrBackupTooLarge) {
+			Error(w, r, http.StatusRequestEntityTooLarge, "BACKUP_TOO_LARGE", err.Error())
+			return
+		}
+		if errors.Is(err, services.ErrDecryptionFailed) {
 			Error(w, r, http.StatusBadRequest, "DECRYPTION_FAILED", "Failed to decrypt backup - wrong password?")
 			return
 		}
-		if err == services.ErrInvalidBackupFormat {
+		if errors.Is(err, services.ErrInvalidBackupFormat) {
 			Error(w, r, http.StatusBadRequest, "INVALID_FORMAT", "Invalid backup file format")
 			return
 		}
@@ -197,6 +214,18 @@ func (h *BackupHandler) S3Restore(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.s3SyncSvc.RestoreFromS3(r.Context(), req.Key, opts)
 	if err != nil {
+		if errors.Is(err, services.ErrBackupTooLarge) {
+			Error(w, r, http.StatusRequestEntityTooLarge, "BACKUP_TOO_LARGE", err.Error())
+			return
+		}
+		if errors.Is(err, services.ErrInvalidBackupFormat) {
+			Error(w, r, http.StatusBadRequest, "INVALID_FORMAT", "Invalid backup file format")
+			return
+		}
+		if errors.Is(err, services.ErrDecryptionFailed) {
+			Error(w, r, http.StatusBadRequest, "DECRYPTION_FAILED", "Failed to decrypt backup - wrong password?")
+			return
+		}
 		Error(w, r, http.StatusInternalServerError, "RESTORE_FAILED", err.Error())
 		return
 	}

@@ -8,6 +8,7 @@ const path = require('node:path');
 const net = require('node:net');
 const { spawn, execFileSync } = require('node:child_process');
 const { chromium, firefox, webkit } = require('playwright');
+const { checkMarkdownSecurity, checkLoginRedirectSecurity, checkLogoutSecurity } = require('./web-security-checks.cjs');
 const browserName = process.env.SNIPO_TEST_BROWSER || 'chromium';
 const browserType = { chromium, firefox, webkit }[browserName];
 assert.ok(browserType, `Unsupported browser: ${browserName}`);
@@ -103,6 +104,8 @@ async function checkPage(page) {
     }
     assert.ok(ready, `Server did not start. See ${temp}/server.log`);
     browser = await browserType.launch({ headless: true });
+    await checkLoginRedirectSecurity(browser, origin, password);
+    await checkLogoutSecurity(browser, origin, password);
 
     for (const width of [1440, 390]) {
       for (const theme of ['light', 'dark']) {
@@ -189,6 +192,8 @@ async function checkPage(page) {
         await page.screenshot({ path: path.join(temp, `${width}-${theme}-settings.png`) });
         await page.evaluate(() => document.activeElement.blur());
         await appAction(page, 'closeSettings');
+
+        if (width === 1440 && theme === 'light') await checkMarkdownSecurity(page, origin, password);
 
         // Seed through the API, then exercise the actual editor and Markdown preview.
         const created = await page.request.post(origin + '/api/v1/snippets', { data: {

@@ -97,7 +97,9 @@ func RequireAdminWithPassword(authService *auth.Service) func(http.Handler) http
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token := GetTokenFromContext(r.Context())
-			if token != nil {
+			// Disable-login uses a synthetic write token, not an explicit API credential.
+			// Its owner must be able to prove the master password below.
+			if token != nil && !IsAnonymousAccess(r.Context()) {
 				if !hasPermission(token.Permissions, PermissionAdmin) {
 					http.Error(w, `{"error":{"code":"INSUFFICIENT_PERMISSIONS","message":"Admin permission required"}}`, http.StatusForbidden)
 					return

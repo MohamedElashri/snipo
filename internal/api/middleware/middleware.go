@@ -3,7 +3,9 @@ package middleware
 import (
 	"context"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/netip"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -61,6 +63,9 @@ func GetRequestID(ctx context.Context) string {
 // SecurityHeaders adds essential security headers to responses
 func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Private pages/API responses must not be retained by shared HTTP caches.
+		// StaticHandler overrides this for fingerprinted public assets.
+		w.Header().Set("Cache-Control", "no-store")
 		// API version header
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			w.Header().Set("X-API-Version", APIVersion)
@@ -314,33 +319,47 @@ func (rl *RateLimiter) cleanup() {
 // Set to true only when behind a trusted reverse proxy
 var TrustProxy = false
 
-// getClientIP extracts the client IP from the request
-// WARNING: X-Forwarded-For can be spoofed if not behind a trusted proxy
+// canonicalIP keeps equivalent address spellings in the same rate-limit bucket.
+func canonicalIP(value string) (string, bool) {
+	address, err := netip.ParseAddr(strings.TrimSpace(value))
+	if err != nil || address.Zone() != "" {
+		return "", false
+	}
+	return address.Unmap().String(), true
+}
+
+// getClientIP trusts only the last address appended by the immediate proxy.
+// SNIPO_TRUST_PROXY requires an isolated backend and a proxy that overwrites or
+// appends the address it observes. Earlier chain entries may come from clients.
 func getClientIP(r *http.Request) string {
-	// Only trust proxy headers if explicitly configured
-	if TrustProxy {
-		// Check X-Forwarded-For header (take rightmost untrusted IP for security)
-		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-			ips := strings.Split(xff, ",")
-			if len(ips) > 0 {
-				// Use the first IP (client IP) - in production, consider using
-				// the rightmost IP not in your trusted proxy list
-				return strings.TrimSpace(ips[0])
-			}
-		}
-
-		// Check X-Real-IP header
-		if xri := r.Header.Get("X-Real-IP"); xri != "" {
-			return xri
-		}
+	peer := r.RemoteAddr
+	if host, _, err := net.SplitHostPort(peer); err == nil {
+		peer = host
+	}
+	if normalized, ok := canonicalIP(peer); ok {
+		peer = normalized
+	}
+	if !TrustProxy {
+		return peer
 	}
 
-	// Fall back to RemoteAddr (direct connection IP)
-	ip := r.RemoteAddr
-	if idx := strings.LastIndex(ip, ":"); idx != -1 {
-		ip = ip[:idx]
+	if values := r.Header.Values("X-Forwarded-For"); len(values) > 0 {
+		last := values[len(values)-1]
+		if index := strings.LastIndex(last, ","); index >= 0 {
+			last = last[index+1:]
+		}
+		if address, ok := canonicalIP(last); ok {
+			return address
+		}
+		// Never fall back to an earlier attacker-selected chain entry.
+		return peer
 	}
-	return ip
+	if values := r.Header.Values("X-Real-IP"); len(values) == 1 {
+		if address, ok := canonicalIP(values[0]); ok {
+			return address
+		}
+	}
+	return peer
 }
 
 // ClientIP extracts the client IP using the configured proxy trust policy.

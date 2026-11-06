@@ -59,13 +59,16 @@ location / {
     proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header X-Forwarded-Proto $scheme;
 }
 ```
 
 Set `SNIPO_TRUST_PROXY=true` only if clients cannot bypass this proxy and the
-proxy replaces untrusted forwarding headers.
+proxy replaces untrusted forwarding headers. Snipo uses the last address supplied
+by the immediate proxy. With multiple proxy hops, configure the final proxy to
+replace this header with a client address obtained from its own trusted-proxy
+configuration; otherwise clients behind that hop may share one rate limit.
 
 For a subpath such as `https://example.com/snipo`, set:
 
@@ -80,7 +83,7 @@ location /snipo/ {
     proxy_pass http://127.0.0.1:8080/;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header X-Forwarded-Proto $scheme;
 }
 ```
@@ -119,6 +122,8 @@ See [Authentication modes](../SECURITY.md#authentication-modes) before enabling
 | `SNIPO_READ_TIMEOUT` | `30s` | HTTP read timeout |
 | `SNIPO_WRITE_TIMEOUT` | `30s` | HTTP write timeout |
 | `SNIPO_TRUST_PROXY` | `false` | Trust client-IP forwarding headers |
+| `SNIPO_RATE_LIMIT` | `100` | Maximum login requests per client in the rate window |
+| `SNIPO_RATE_WINDOW` | `1m` | Duration of the login rate window |
 | `SNIPO_BASE_PATH` | empty | External URL prefix |
 | `SNIPO_MAX_FILES_PER_SNIPPET` | `10` | Maximum files in one snippet |
 | `SNIPO_DB_PATH` | `/data/snipo.db` | SQLite file |

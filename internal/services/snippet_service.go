@@ -212,7 +212,7 @@ func (s *SnippetService) GetByIDPublic(ctx context.Context, id string) (*models.
 		return nil, err
 	}
 
-	if snippet == nil || !snippet.IsPublic {
+	if snippet == nil || !snippet.IsPublic || snippet.DeletedAt != nil {
 		return nil, ErrSnippetNotFound
 	}
 

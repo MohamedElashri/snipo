@@ -95,6 +95,12 @@ export function highlightAll() {
   }
 }
 
+export function escapeHTML(value) {
+  const div = document.createElement('div');
+  div.textContent = value || '';
+  return div.innerHTML;
+}
+
 // Highlight code manually for a specific language
 export function highlightCode(code, language) {
   if (!code) return '';
@@ -102,9 +108,7 @@ export function highlightCode(code, language) {
     return Prism.highlight(code, Prism.languages[language], language);
   }
   // Fallback: escape HTML entities manually
-  const div = document.createElement('div');
-  div.textContent = code;
-  return div.innerHTML;
+  return escapeHTML(code);
 }
 
 const markdownAllowedTags = new Set([
@@ -146,6 +150,8 @@ function sanitizeMarkdownNode(node) {
   }
 
   if (!markdownAllowedTags.has(node.tagName)) {
+    // Unwrapping an element must not promote uninspected descendants into HTML.
+    for (const child of Array.from(node.childNodes)) sanitizeMarkdownNode(child);
     node.replaceWith(...Array.from(node.childNodes));
     return;
   }
@@ -200,7 +206,7 @@ export function renderMarkdown(content) {
     });
     return sanitizeHTML(marked.parse(content));
   }
-  return content;
+  return escapeHTML(content);
 }
 
 // Detect Arabic/RTL text

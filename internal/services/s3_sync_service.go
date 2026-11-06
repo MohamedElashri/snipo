@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -94,10 +95,13 @@ func (s *S3SyncService) RestoreFromS3(ctx context.Context, key string, opts mode
 	}
 
 	// Download backup from S3
-	content, err := s.storage.Download(ctx, key)
+	content, err := s.storage.Download(ctx, key, MaxBackupSize)
 	if err != nil {
 		result.Errors = append(result.Errors, fmt.Sprintf("failed to download: %v", err))
 		result.FinishedAt = time.Now().UTC()
+		if errors.Is(err, storage.ErrObjectTooLarge) {
+			return result, ErrBackupTooLarge
+		}
 		return result, fmt.Errorf("failed to download backup: %w", err)
 	}
 

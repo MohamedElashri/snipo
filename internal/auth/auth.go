@@ -51,6 +51,7 @@ type Service struct {
 	failedAttempts     *FailedLoginTracker
 	authDisabled       bool // If true, authentication is completely bypassed
 	sessionHMACKey     []byte
+	passwordMu         sync.Mutex // Bound memory-heavy password checks across all callers.
 }
 
 // FailedLoginTracker tracks failed login attempts per IP for progressive delays
@@ -82,7 +83,10 @@ func (t *FailedLoginTracker) RecordFailure(ip string) {
 	if t.attempts[ip] == nil {
 		t.attempts[ip] = &loginAttempt{}
 	}
-	t.attempts[ip].count++
+	// Six failures already reach the maximum delay; never let the counter overflow.
+	if t.attempts[ip].count < 6 {
+		t.attempts[ip].count++
+	}
 	t.attempts[ip].lastFail = time.Now()
 }
 
@@ -105,9 +109,9 @@ func (t *FailedLoginTracker) GetDelay(ip string) time.Duration {
 	}
 
 	// Calculate delay: 2^(attempts-1) seconds, max 30 seconds
-	delaySeconds := 1 << (attempt.count - 1) // 1, 2, 4, 8, 16, 32...
-	if delaySeconds > 30 {
-		delaySeconds = 30
+	delaySeconds := 30
+	if attempt.count < 6 {
+		delaySeconds = 1 << (attempt.count - 1)
 	}
 
 	elapsed := time.Since(attempt.lastFail)
@@ -191,19 +195,29 @@ func (s *Service) VerifyPassword(password string) bool {
 	if s.authDisabled {
 		return true
 	}
+	s.passwordMu.Lock()
+	defer s.passwordMu.Unlock()
 	return VerifyPasswordHash(password, s.masterPasswordHash)
 }
 
 // VerifyPasswordWithDelay checks password and enforces progressive delays
 // Returns: valid bool, remainingDelay time.Duration
 func (s *Service) VerifyPasswordWithDelay(password, clientIP string) (bool, time.Duration) {
-	// Check if client needs to wait
+	if s.authDisabled {
+		return true, 0
+	}
+	// Do not queue public login attempts or allocate concurrent Argon2 workspaces.
+	if !s.passwordMu.TryLock() {
+		return false, time.Second
+	}
+	defer s.passwordMu.Unlock()
+	// Check the delay while holding the same gate as password verification.
 	delay := s.failedAttempts.GetDelay(clientIP)
 	if delay > 0 {
 		return false, delay
 	}
 
-	if s.VerifyPassword(password) {
+	if VerifyPasswordHash(password, s.masterPasswordHash) {
 		s.failedAttempts.RecordSuccess(clientIP)
 		return true, 0
 	}

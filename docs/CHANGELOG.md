@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- Protect Markdown previews and keep sign-in redirects on your Snipo instance.
+- Strengthen protection against unwanted browser requests and repeated password attempts.
+- Stop serving shared snippets and their files after they are moved to Trash.
+- Clear local drafts and cached settings on logout, and lock other open Snipo tabs. Save unfinished edits before logging out.
+- Keep private Gist edits from being sent to an existing public Gist.
+- Limit backup imports and S3 restores to 50 MiB, including decoded ZIP metadata.
+
+### Fixed
+- Include all active and archived snippets in backups, including collections larger than 100 snippets.
+- Reject invalid replacement backups before clearing existing data.
+- Prevent folder moves and edits from creating circular folder hierarchies.
+- Keep sign-in usable after an incorrect password and show a retry message if logout fails.
+- Allow instance owners to authorize administrative requests with their master password when the login page is disabled.
+- Apply the configured login rate-limit window and use trusted proxy addresses consistently.
+
 ## [2.2.0] - 2026-11-06
 
 ### Added
