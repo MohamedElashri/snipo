@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Browser extension and VS Code extension:** Save CUDA, TeX, and BibTeX snippets.
+- **Server, Browser extension, and VS Code extension:** Save CUDA, TeX, and BibTeX snippets.
 - **Browser extension:** Dismiss the save dialog with Escape and return focus to its save button.
 - **Web app:** Choose Ace, CodeMirror 6, or Monaco in Editor settings, with a remembered browser preference and safe switching between editors.
 - **Web app:** Use Monaco’s language assistance for JavaScript, TypeScript, JSON, HTML, and CSS without relying on external services.
@@ -66,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **VS Code extension:** Show snippets beyond the first 50 and open configured server URLs without a scheme.
 - **Snippy:** Copy and edit the selected snippet file, and allow question marks while filling out forms.
 - **Web app:** Prevent a late Monaco completion response from causing an error after switching files or editors.
-- **Web app:** Highlight TeX and BibTeX in all three editors and preserve CUDA, TeX, and BibTeX when saving.
+- **Server and web app:** Highlight TeX and BibTeX in all three editors and preserve CUDA, TeX, and BibTeX when saving.
 - **Web app:** Recover from stalled editor downloads instead of leaving the editor loading indefinitely.
 - **Web app:** Keep undo from restoring a different file’s code after switching snippet files.
 - **Web app:** Restore unsaved code when refreshing an editing page.
@@ -102,7 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Web app:** Enjoy a more compact snippet toolbar and improved mobile layouts.
 - **Web app:** Keep snippets open after saving and recover unfinished edits from local drafts.
 - **Web app:** Find settings on a dedicated page with direct links to each section.
-- **Web app:** Browse large snippets with lighter previews while opening and copying the full code.
+- **Server and web app:** Browse large snippets with lighter previews while opening and copying the full code.
 
 ### Fixed
 
