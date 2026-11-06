@@ -2,7 +2,7 @@
 
 All notable changes to the "snipo" extension will be documented in this file.
 
-## [2.2.0] - Unreleased
+## [2.2.0] - 2026-11-06
 
 - Keep each server’s offline cache separate when switching Snipo instances.
 
