@@ -35,6 +35,7 @@ async function verifyConnection(instanceUrl, apiKey) {
     try {
         const response = await fetch(`${normalizedUrl}/api/v1/snippets?limit=1`, {
             signal: controller.signal,
+            redirect: 'error',
             method: 'GET',
             headers: {
                 'X-API-Key': apiKey,

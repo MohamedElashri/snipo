@@ -102,7 +102,7 @@ suite('SnipoAPI Test Suite', () => {
 
     test('offline lists never use another server cache',async()=>{
         let url='https://first.test';
-        sinon.stub(vscode.workspace,'getConfiguration').returns({get:()=>url} as any);
+        sinon.stub(vscode.workspace,'getConfiguration').returns({inspect:()=>({globalValue:url})} as any);
         const cache=new Map<string,any>();const subscriptions:any[]=[];
         const client=new SnipoAPI();
         await client.init({secrets:{get:async()=> 'token',onDidChange:()=>({dispose(){}})},subscriptions,globalState:{get:(key:string)=>cache.get(key),update:async(key:string,value:any)=>{cache.set(key,value)}}} as any);

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { api, normalizeServerURL } from './api';
+import { api, configuredServerURL } from './api';
 
 export class SettingsViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'snipo-settings';
@@ -24,12 +24,8 @@ export class SettingsViewProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
-        const config = vscode.workspace.getConfiguration('snipo');
-        const currentUrl = config.get<string>('apiUrl') || '';
-        
         const sendInit = () => {
-            const config = vscode.workspace.getConfiguration('snipo');
-            const url = config.get<string>('apiUrl') || '';
+            const url = configuredServerURL();
             api.isConfigured().then(isConfigured => {
                 try {
                     webviewView.webview.postMessage({ type: 'init', value: { apiUrl: url, isConfigured } });
@@ -93,11 +89,10 @@ export class SettingsViewProvider implements vscode.WebviewViewProvider {
                     break;
                 }
                 case 'openDashboard': {
-                    const config = vscode.workspace.getConfiguration('snipo');
-                    const currentUrl = config.get<string>('apiUrl');
+                    const currentUrl = configuredServerURL();
                     if (currentUrl) {
                         try {
-                            const url = new URL(normalizeServerURL(currentUrl));
+                            const url = new URL(currentUrl);
                             if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('Invalid protocol');
                             await vscode.env.openExternal(vscode.Uri.parse(url.toString()));
                         } catch {

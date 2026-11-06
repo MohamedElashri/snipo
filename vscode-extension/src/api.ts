@@ -8,6 +8,12 @@ export function normalizeServerURL(value: string): string {
     return `${local ? 'http' : 'https'}://${url}`;
 }
 
+// Repository/workspace settings must never redirect a token from SecretStorage.
+export function configuredServerURL(): string {
+    const setting = vscode.workspace.getConfiguration('snipo').inspect<string>('apiUrl');
+    return normalizeServerURL(setting?.globalValue ?? setting?.defaultValue ?? '');
+}
+
 function isNetworkError(error: any): boolean {
     return !error.response && (error instanceof TypeError || error.code === 'ECONNREFUSED' ||
         /Network Error|Failed to fetch|fetch failed|NetworkError/i.test(error.message || ''));
@@ -61,23 +67,20 @@ export class SnipoAPI {
     }
 
     private async updateConfig() {
-        const config = vscode.workspace.getConfiguration('snipo');
-        let apiUrl = config.get<string>('apiUrl');
+        const apiUrl = configuredServerURL();
         let apiToken = undefined;
         
         if (this.context) {
             apiToken = await this.context.secrets.get('snipo.apiToken');
         }
 
-        apiUrl = normalizeServerURL(apiUrl || '');
         this.cacheScope = (apiUrl || '').replace(/\/+$/, '');
         this.client.updateBaseURL(apiUrl || '');
         this.client.updateToken(apiToken);
     }
 
     async isConfigured(): Promise<boolean> {
-        const config = vscode.workspace.getConfiguration('snipo');
-        const apiUrl = config.get<string>('apiUrl');
+        const apiUrl = configuredServerURL();
         let apiToken = undefined;
         if (this.context) {
             apiToken = await this.context.secrets.get('snipo.apiToken');

@@ -191,7 +191,7 @@ suite('Commands Test Suite', () => {
         assert.strictEqual(items[0].label,'tex');
     });
     test('open browser accepts the same schemeless URL as the API', async () => {
-        sinon.stub(vscode.workspace,'getConfiguration').returns({get:()=> 'localhost:9288/snipo/'} as any);
+        sinon.stub(vscode.workspace,'getConfiguration').returns({inspect:()=>({globalValue:'localhost:9288/snipo/'})} as any);
         const open=sinon.stub(vscode.env,'openExternal').resolves(true);
         await openInSnipo('example');
         assert.strictEqual(open.calledOnce,true);
