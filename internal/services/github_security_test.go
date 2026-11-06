@@ -68,13 +68,14 @@ func TestGistVisibilityChecksPreserveSafeUpdates(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var uploads atomic.Int32
 			client := fixtureGitHubClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.Method == http.MethodGet {
+				switch r.Method {
+				case http.MethodGet:
 					w.WriteHeader(tc.readStatus)
 					if tc.malformed {
 						_, _ = w.Write([]byte("invalid json"))
 						return
 					}
-				} else if r.Method == http.MethodPatch {
+				case http.MethodPatch:
 					uploads.Add(1)
 				}
 				_ = json.NewEncoder(w).Encode(models.GistResponse{ID: "fixture", Public: tc.remotePublic})

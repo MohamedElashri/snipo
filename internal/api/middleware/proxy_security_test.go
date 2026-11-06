@@ -28,7 +28,9 @@ func TestAppendedProxyAddressesCannotBypassLimits(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		resp.Body.Close()
+		if err := resp.Body.Close(); err != nil {
+			t.Fatal(err)
+		}
 		expected := http.StatusOK
 		if i == 1 {
 			expected = http.StatusTooManyRequests

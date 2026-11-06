@@ -291,10 +291,8 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 		return nil, fmt.Errorf("failed to list existing snippets: %w", err)
 	}
 	existingSnippetsByTitle := make(map[string]*models.Snippet)
-	if existingSnippets != nil {
-		for i := range existingSnippets {
-			existingSnippetsByTitle[existingSnippets[i].Title] = &existingSnippets[i]
-		}
+	for i := range existingSnippets {
+		existingSnippetsByTitle[existingSnippets[i].Title] = &existingSnippets[i]
 	}
 
 	// Import tags first (needed for relationships)

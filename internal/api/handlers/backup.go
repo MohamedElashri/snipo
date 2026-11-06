@@ -88,7 +88,11 @@ func (h *BackupHandler) Import(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer r.MultipartForm.RemoveAll()
+	defer func() {
+		if err := r.MultipartForm.RemoveAll(); err != nil {
+			slog.Error("failed to remove temporary backup upload", "error", err)
+		}
+	}()
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		Error(w, r, http.StatusBadRequest, "MISSING_FILE", "No backup file provided")
