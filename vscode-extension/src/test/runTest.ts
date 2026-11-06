@@ -1,7 +1,12 @@
 import * as path from 'path';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import { runTests } from '@vscode/test-electron';
 
 async function main() {
+    const fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'snipo-vscode-security-'));
+    const workspace = path.join(fixtureRoot, 'workspace');
+    await fs.mkdir(workspace);
     try {
         // The folder containing the Extension Manifest package.json
         // Passed to `--extensionDevelopmentPath`
@@ -16,6 +21,12 @@ async function main() {
             extensionDevelopmentPath, 
             extensionTestsPath,
             launchArgs: [
+                workspace,
+                '--user-data-dir=' + path.join(fixtureRoot, 'profile'),
+                '--extensions-dir=' + path.join(fixtureRoot, 'extensions'),
+                '--skip-welcome',
+                '--skip-release-notes',
+                '--disable-workspace-trust',
                 '--disable-gpu',
                 '--disable-software-rasterizer',
                 '--no-sandbox'
@@ -23,7 +34,9 @@ async function main() {
         });
     } catch (err) {
         console.error('Failed to run tests', err);
-        process.exit(1);
+        process.exitCode = 1;
+    } finally {
+        await fs.rm(fixtureRoot, { recursive: true, force: true });
     }
 }
 

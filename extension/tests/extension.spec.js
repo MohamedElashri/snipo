@@ -1,5 +1,15 @@
 const { test, expect } = require('./fixtures');
 
+async function openSaveWindow(page, context) {
+  const pending = context.waitForEvent('page');
+  await page.locator('.snipo-btn').click();
+  const dialog = await pending;
+  await dialog.waitForURL(/\/save\/save.html\?draft=/);
+  await expect(dialog.locator('#snipo-title')).toBeVisible();
+  return dialog;
+}
+
+
 test('extension background script is running and popup opens', async ({ page, extensionId }) => {
   // Wait for the background service worker or extension to be ready.
   // The fixture `extensionId` resolves after the service worker or background script is ready.
@@ -29,12 +39,12 @@ test('quick save prevents duplicate requests and recovers after failure', async 
   await page.goto('https://code.test/example');
   const button = page.locator('.snipo-btn');
   await expect(button).toHaveCount(1);
-  await button.evaluate(element => { element.click(); element.click(); });
+  await button.dblclick();
   await expect(button).toBeDisabled();
   await expect(page.locator('.snipo-toast')).toContainText('Temporary failure');
   expect(await background.evaluate(() => self.saveRequests)).toBe(1);
   await expect(button).toBeEnabled();
-  await button.evaluate(element => element.click());
+  await button.click();
   await expect.poll(() => background.evaluate(() => self.saveRequests)).toBe(2);
 });
 
@@ -73,8 +83,12 @@ test('repeated interactive clicks open only one save dialog',async({page,context
   const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
   await bg.evaluate(async()=>{await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'test',interactiveMode:true});self.fetch=async()=>{await new Promise(r=>setTimeout(r,300));return Response.json({data:[]})}});
   await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<pre><code>hello</code></pre>'}));
-  await page.goto('https://code.test/dialog');await page.locator('.snipo-btn').evaluate(b=>{b.click();setTimeout(()=>b.click(),50)});
-  await page.waitForTimeout(1000);await expect(page.locator('.snipo-modal-overlay')).toHaveCount(1);
+  await page.goto('https://code.test/dialog');
+  const dialog = await openSaveWindow(page, context);
+  await page.locator('.snipo-btn').click();
+  await page.waitForTimeout(500);
+  expect(context.pages().filter(p => p.url().includes('/save/save.html?draft='))).toHaveLength(1);
+  await expect(dialog.locator('.snipo-modal-overlay')).toHaveCount(1);
 });
 
 test('connection check times out and restores the test button',async({page,extensionId})=>{
@@ -94,10 +108,10 @@ test('interactive save offers editor languages with matching filenames',async({p
     self.fetch=async()=>Response.json({data:[]});
   });
   await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<pre><code>sample</code></pre>'}));
-  await page.goto('https://code.test/languages');await page.locator('.snipo-btn').click();
+  await page.goto('https://code.test/languages');const dialog = await openSaveWindow(page, context);
   for(const [language,extension] of [['cuda','cu'],['tex','tex'],['bibtex','bib']]){
-    await page.locator('#snipo-language').selectOption(language);
-    await expect(page.locator('#snipo-filename')).toHaveValue('snippet.'+extension);
+    await dialog.locator('#snipo-language').selectOption(language);
+    await expect(dialog.locator('#snipo-filename')).toHaveValue('snippet.'+extension);
   }
 });
 
@@ -108,9 +122,9 @@ test('interactive saves can select nested folders',async({page,context,extension
     self.fetch=async url=>Response.json({data:String(url).includes('/folders')?[{id:1,name:'Parent',children:[{id:2,name:'Child',children:[{id:3,name:'Grandchild'}]}]}]:[]});
   });
   await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<pre><code>sample</code></pre>'}));
-  await page.goto('https://code.test/folders');await page.locator('.snipo-btn').click();
-  await expect(page.locator('#snipo-folder option')).toHaveText(['No Folder','Parent','Parent / Child','Parent / Child / Grandchild']);
-  await page.locator('#snipo-folder').selectOption('3');
+  await page.goto('https://code.test/folders');const dialog = await openSaveWindow(page, context);
+  await expect(dialog.locator('#snipo-folder option')).toHaveText(['No Folder','Parent','Parent / Child','Parent / Child / Grandchild']);
+  await dialog.locator('#snipo-folder').selectOption('3');
 });
 
 test('long page titles produce valid automatic snippet titles',async({page,context,extensionId})=>{
@@ -129,9 +143,10 @@ test('Escape closes the save dialog and returns focus to its button',async({page
   const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
   await bg.evaluate(async()=>{await chrome.storage.sync.set({instanceUrl:'https://snipo.test',apiKey:'test',interactiveMode:true});self.fetch=async()=>Response.json({data:[]})});
   await page.route('https://code.test/**',r=>r.fulfill({contentType:'text/html',body:'<pre><code>sample</code></pre>'}));
-  await page.goto('https://code.test/escape');await page.locator('.snipo-btn').click();
-  await page.locator('#snipo-title').focus();await page.keyboard.press('Escape');
-  await expect(page.locator('.snipo-modal-overlay')).toHaveCount(0);
+  await page.goto('https://code.test/escape');const dialog = await openSaveWindow(page, context);
+  const closed = dialog.waitForEvent('close');
+  await dialog.locator('#snipo-title').focus();await dialog.keyboard.press('Escape').catch(error => { if (!dialog.isClosed()) throw error; });
+  await closed;
   await expect(page.locator('.snipo-btn')).toBeFocused();
 });
 
@@ -156,4 +171,15 @@ test('configuration saves normalized connection fields',async({page,context,exte
   await page.locator('#apiKey').fill('  pasted-token  ');
   await page.locator('#save-btn').click();
   await expect.poll(()=>bg.evaluate(async()=>chrome.storage.sync.get(['instanceUrl','apiKey']))).toEqual({instanceUrl:'https://snipo.test',apiKey:'pasted-token'});
+});
+
+test('connection checks never forward API keys through redirects',async({page,extensionId})=>{
+  let forwarded=0;
+  await page.route('https://snipo.test/**',r=>r.fulfill({status:307,headers:{location:'https://receiver.test/sink'}}));
+  await page.route('https://receiver.test/**',r=>{forwarded++;return r.fulfill({contentType:'application/json',headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:'{"data":[]}'})});
+  await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  await page.locator('[data-tab="tab-settings"]').click();await page.locator('#instanceUrl').fill('https://snipo.test');await page.locator('#apiKey').fill('test-only-token');await page.locator('#test-btn').click();
+  await expect(page.locator('#test-btn')).toBeEnabled();
+  expect(forwarded).toBe(0);
+  await expect(page.locator('#status')).not.toContainText('Connection successful');
 });

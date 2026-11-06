@@ -23,7 +23,8 @@ func NewClient(baseURL, apiKey string) *Client {
 		baseURL: strings.TrimRight(strings.TrimSpace(baseURL), "/"),
 		apiKey:  apiKey,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout:       30 * time.Second,
+			CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse },
 		},
 	}
 }
@@ -53,6 +54,9 @@ func (c *Client) doRequest(method, path string, body interface{}, result interfa
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+		return fmt.Errorf("API redirect refused (status %d); configure the final Snipo URL", resp.StatusCode)
+	}
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read response: %w", err)

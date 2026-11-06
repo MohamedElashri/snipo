@@ -145,7 +145,8 @@
         "snipo.apiUrl": {
           "type": "string",
           "default": "",
-          "description": "Base URL of the Snipo server"
+          "scope": "application",
+          "description": "Base URL of your Snipo server. Configure it in user settings; workspace overrides are ignored to protect your API token."
         }
       }
     },

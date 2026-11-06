@@ -36,3 +36,23 @@ func TestListPaginationAndFilters(t *testing.T) {
 		t.Fatalf("pagination = %+v", pagination)
 	}
 }
+
+func TestRedirectNeverForwardsCredentials(t *testing.T) {
+	hits := 0
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		_, _ = fmt.Fprint(w, `{"data":{"id":"unexpected"}}`)
+	}))
+	defer target.Close()
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, target.URL, http.StatusTemporaryRedirect)
+	}))
+	defer origin.Close()
+	_, err := NewClient(origin.URL, "test-only-token").GetSnippet("example")
+	if err == nil {
+		t.Error("API redirect accepted")
+	}
+	if hits != 0 {
+		t.Fatal("redirect target received an authenticated request")
+	}
+}

@@ -28,13 +28,109 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 });
             } catch (injectionError) {
                 console.warn("Could not open the save dialog.", injectionError);
-                await saveSnippet(info.selectionText, tab, "plaintext", tab.title);
+                const { interactiveMode } = await chrome.storage.sync.get(['interactiveMode']);
+                if (interactiveMode) {
+                    await openSaveDialog({ code: info.selectionText, language: 'plaintext', title: Array.from(tab.title || '').slice(0, 200).join('') }, tab);
+                } else {
+                    await saveSnippet(info.selectionText, tab, "plaintext", tab.title);
+                }
             }
         }
     }
 });
 
+// Pending drafts stay in trusted, browser-session storage, never website DOM or sync.
+const draftPrefix = 'snipoSaveDraft:';
+const savePage = () => chrome.runtime.getURL('save/save.html');
+const extensionPage = sender => sender.id === chrome.runtime.id && sender.url?.startsWith(chrome.runtime.getURL(''));
+let openingDialog = Promise.resolve();
+
+function openSaveDialog(data, tab) {
+    // Serialize opens so repeated user clicks cannot create duplicate windows.
+    const opened = openingDialog.then(async () => {
+        const records = await chrome.storage.session.get(null);
+        for (const [key, record] of Object.entries(records)) {
+            if (!key.startsWith(draftPrefix) || record.tab.id !== tab.id) continue;
+            try {
+                if (record.dialogTabId !== undefined) {
+                    await chrome.tabs.update(record.dialogTabId, { active: true });
+                } else {
+                    await chrome.windows.update(record.windowId, { focused: true });
+                }
+                return;
+            } catch (_) { await chrome.storage.session.remove(key); }
+        }
+        const id = crypto.randomUUID();
+        const key = draftPrefix + id;
+        const url = savePage() + '?draft=' + id;
+        const record = { url, tab, data: { ...data, sourceURL: tab.url || 'unknown' } };
+        await chrome.storage.session.set({ [key]: record });
+        try {
+            try {
+                if (!chrome.windows?.create) throw new Error('Popup windows unavailable');
+                const popup = await chrome.windows.create({ url, type: 'popup', width: 560, height: 720 });
+                record.windowId = popup.id;
+            } catch (_) {
+                // Mobile browsers may only support tabs. Keep the same origin boundary.
+                const dialogTab = await chrome.tabs.create({ url });
+                record.dialogTabId = dialogTab.id;
+            }
+            await chrome.storage.session.set({ [key]: record });
+        } catch (error) {
+            await chrome.storage.session.remove(key);
+            throw error;
+        }
+    });
+    openingDialog = opened.catch(() => {});
+    return opened;
+}
+
+async function getSaveDraft(request, sender) {
+    if (!extensionPage(sender) || typeof request.draftId !== 'string') throw new Error('Save window required');
+    const key = draftPrefix + request.draftId;
+    const { [key]: record } = await chrome.storage.session.get(key);
+    if (!record || sender.url !== record.url) throw new Error('Save window expired');
+    return record;
+}
+
+async function removeSaveDrafts(matches) {
+    // A close event can arrive before create() returns the new window/tab ID.
+    // Wait for that ID to be persisted so cleanup cannot leave an orphan draft.
+    await openingDialog;
+    const records = await chrome.storage.session.get(null);
+    for (const [key, record] of Object.entries(records)) {
+        if (key.startsWith(draftPrefix) && matches(record)) {
+            await chrome.storage.session.remove(key);
+            chrome.tabs.sendMessage(record.tab.id, { action: 'saveDialogClosed' }).catch(() => {});
+        }
+    }
+}
+chrome.windows?.onRemoved.addListener(windowId => removeSaveDrafts(record => record.windowId === windowId));
+chrome.tabs.onRemoved?.addListener(tabId => removeSaveDrafts(record => record.dialogTabId === tabId));
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'openSaveDialog') {
+        if (sender.id !== chrome.runtime.id || !sender.tab) return;
+        openSaveDialog({ code: request.code, language: request.language, title: request.title }, sender.tab)
+            .then(() => sendResponse({ success: true }))
+            .catch(() => sendResponse({ success: false, error: 'Unable to open save window' }));
+        return true;
+    }
+    if (request.action === 'getSaveDraft' || request.action === 'saveDraftSnippet') {
+        getSaveDraft(request, sender).then(async record => {
+            if (request.action === 'getSaveDraft') {
+                sendResponse({ success: true, data: record.data });
+            } else {
+                await saveSnippet(record.data.code, record.tab, request.language, request.title,
+                    request.folder_id, request.tags, request.description, request.filename, sendResponse);
+            }
+        }).catch(() => sendResponse({ success: false, error: 'Save window expired' }));
+        return true;
+    }
+    if (['fetchTags', 'fetchFolders', 'createTag', 'createFolder'].includes(request.action) && !extensionPage(sender)) {
+        sendResponse({ success: false, error: 'Extension page required' });
+        return;
+    }
     if (request.action === "saveSnippet") {
         saveSnippet(request.code, sender.tab, request.language, request.title, request.folder_id, request.tags, request.description, request.filename, sendResponse);
         return true;

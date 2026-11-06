@@ -66,6 +66,11 @@ export class SnipoClient {
     }
 
     let url = endpoint.startsWith('http') ? endpoint : `${this.baseURL}${endpoint}`;
+    const base = new URL(this.baseURL);
+    const destination = new URL(url);
+    if (!['http:', 'https:'].includes(base.protocol) || destination.origin !== base.origin) {
+      throw new Error('API requests must stay on the configured Snipo origin');
+    }
     if (options.params) {
       const urlObj = new URL(url);
       for (const [k, v] of Object.entries(options.params)) {
@@ -82,7 +87,7 @@ export class SnipoClient {
     else signal?.addEventListener('abort', abort, { once: true });
     const timer = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), timeout);
     try {
-      const response = await fetch(url, { ...init, headers, signal: controller.signal });
+      const response = await fetch(url, { ...init, headers, signal: controller.signal, redirect: 'error' });
       if (!response.ok) {
         let errData = {};
         try { errData = await response.json(); } catch(e) {}

@@ -51,6 +51,7 @@ FILES=(
     "styles.css"
     "icons"
     "options"
+    "save"
     "PRIVACY.md"
 )
 

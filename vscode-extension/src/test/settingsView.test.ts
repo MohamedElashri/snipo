@@ -35,7 +35,7 @@ suite('SettingsView Test Suite', () => {
         let receive: (message: any) => Promise<void> = async () => {};
         const provider=new SettingsViewProvider(vscode.Uri.file('/tmp'),{} as any);
         const view:any={webview:{cspSource:'test',onDidReceiveMessage:(fn:any)=>{receive=fn},postMessage:async()=>true},onDidChangeVisibility(){}};
-        const get=sinon.stub(vscode.workspace,'getConfiguration').returns({get:()=> ' localhost:9288/snipo/ '} as any);
+        const get=sinon.stub(vscode.workspace,'getConfiguration').returns({inspect:()=>({globalValue:' localhost:9288/snipo/ '})} as any);
         const open=sinon.stub(vscode.env,'openExternal').resolves(true);
         try {
             provider.resolveWebviewView(view,{} as any,{} as any);

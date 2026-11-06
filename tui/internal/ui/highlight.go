@@ -72,6 +72,7 @@ func IsDarkMode() bool {
 
 // HighlightCode applies syntax highlighting to code based on the language
 func HighlightCode(code, language string) string {
+	code = terminalText(code)
 	// Get the lexer for the specified language
 	var lexer chroma.Lexer
 	if language != "" {
@@ -129,7 +130,7 @@ func HighlightCode(code, language string) string {
 		return code
 	}
 
-	return buf.String()
+	return terminalOutput(buf.String(), true)
 }
 
 // GetLanguageFromFilename extracts language from filename extension
@@ -249,6 +250,7 @@ func pointer[T any](v T) *T {
 
 // RenderMarkdown renders markdown content with proper formatting
 func RenderMarkdown(content string, width int) string {
+	content = terminalText(content)
 	// Use universal ANSI style
 	styleConfig := getUniversalANSIStyle()
 
@@ -276,7 +278,7 @@ func RenderMarkdown(content string, width int) string {
 		return content
 	}
 
-	return strings.TrimSpace(rendered)
+	return terminalOutput(strings.TrimSpace(rendered), true)
 }
 
 // RenderContent renders content based on type (markdown or code with syntax highlighting)

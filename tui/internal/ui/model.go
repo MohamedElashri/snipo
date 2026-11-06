@@ -1149,18 +1149,18 @@ func (m Model) View() string {
 	if m.mode == ViewList || m.mode == ViewSearch || m.mode == ViewSettings || m.mode == ViewHelp {
 		s.WriteString(titleStyle.Render("Snippy"))
 		s.WriteString("\n")
-		s.WriteString(subtitleStyle.Render(fmt.Sprintf("Connected to: %s", m.config.ServerURL)))
+		s.WriteString(subtitleStyle.Render(fmt.Sprintf("Connected to: %s", terminalText(m.config.ServerURL))))
 		s.WriteString("\n\n")
 	}
 
 	// Only show global error if not in form modes (forms render their own inline errors)
 	if m.err != nil && m.mode != ViewCreate && m.mode != ViewEdit {
-		s.WriteString(errorStyle.Render(fmt.Sprintf("Error: %s", m.err)))
+		s.WriteString(errorStyle.Render(terminalText(fmt.Sprintf("Error: %s", m.err))))
 		s.WriteString("\n\n")
 	}
 
 	if m.message != "" {
-		s.WriteString(successStyle.Render(m.message))
+		s.WriteString(successStyle.Render(terminalText(m.message)))
 		s.WriteString("\n\n")
 	}
 
@@ -1181,7 +1181,7 @@ func (m Model) View() string {
 		s.WriteString(m.viewSettings())
 	}
 
-	return s.String()
+	return terminalOutput(s.String(), true)
 }
 
 func (m Model) viewList() string {
@@ -1216,17 +1216,17 @@ func (m Model) viewList() string {
 		if len(snippet.Tags) > 0 {
 			var tagStrs []string
 			for _, tag := range snippet.Tags {
-				tagStrs = append(tagStrs, tagStyle.Render(tag.Name))
+				tagStrs = append(tagStrs, tagStyle.Render(terminalText(tag.Name)))
 			}
 			tags = " " + strings.Join(tagStrs, "")
 		}
 
 		lang := ""
 		if snippet.Language != "" {
-			lang = " " + languageStyle.Render("["+snippet.Language+"]")
+			lang = " " + languageStyle.Render("["+terminalText(snippet.Language)+"]")
 		}
 
-		line := fmt.Sprintf("%s%s%s%s%s", cursor, favorite, snippet.Title, lang, tags)
+		line := fmt.Sprintf("%s%s%s%s%s", cursor, favorite, terminalText(snippet.Title), lang, tags)
 		s.WriteString(style.Render(line))
 		s.WriteString("\n")
 	}
@@ -1250,20 +1250,20 @@ func (m Model) viewDetail() string {
 		favorite = favoriteStyle.Render(" ★")
 	}
 
-	s.WriteString(titleStyle.Render("Snippy " + m.detailSnippet.Title + favorite))
+	s.WriteString(titleStyle.Render("Snippy " + terminalText(m.detailSnippet.Title) + favorite))
 	s.WriteString("\n")
 
 	// Show metadata in a compact format
 	var metadata []string
 
 	if m.detailSnippet.Language != "" {
-		metadata = append(metadata, languageStyle.Render("Language: "+m.detailSnippet.Language))
+		metadata = append(metadata, languageStyle.Render("Language: "+terminalText(m.detailSnippet.Language)))
 	}
 
 	if len(m.detailSnippet.Tags) > 0 {
 		var tagStrs []string
 		for _, tag := range m.detailSnippet.Tags {
-			tagStrs = append(tagStrs, tagStyle.Render(tag.Name))
+			tagStrs = append(tagStrs, tagStyle.Render(terminalText(tag.Name)))
 		}
 		metadata = append(metadata, "Tags: "+strings.Join(tagStrs, " "))
 	}
@@ -1279,7 +1279,7 @@ func (m Model) viewDetail() string {
 
 	if m.detailSnippet.Description != "" {
 		s.WriteString("\n")
-		s.WriteString(dimmedStyle.Render(m.detailSnippet.Description))
+		s.WriteString(dimmedStyle.Render(terminalText(m.detailSnippet.Description)))
 		s.WriteString("\n")
 	}
 
@@ -1296,7 +1296,7 @@ func (m Model) viewDetail() string {
 			if i == m.selectedFileIdx {
 				fileStyle = selectedItemStyle.Underline(true)
 			}
-			s.WriteString(fileStyle.Render(fmt.Sprintf(" %s ", file.Filename)))
+			s.WriteString(fileStyle.Render(fmt.Sprintf(" %s ", terminalText(file.Filename))))
 			s.WriteString(" ")
 		}
 		s.WriteString("\n")
@@ -1383,7 +1383,7 @@ func (m Model) viewDetail() string {
 	if len(contentLines) > availableHeight {
 		scrollInfo := fmt.Sprintf(" [%d-%d/%d lines]", startLine+1, endLine, len(contentLines))
 		if currentFilename != "" {
-			scrollInfo = fmt.Sprintf(" %s %s", currentFilename, scrollInfo)
+			scrollInfo = fmt.Sprintf(" %s %s", terminalText(currentFilename), scrollInfo)
 		}
 		s.WriteString("\n")
 		s.WriteString(dimmedStyle.Render(scrollInfo))
@@ -1444,7 +1444,7 @@ func (m Model) viewCreateForm() string {
 	}
 
 	if m.err != nil {
-		formContent.WriteString(errorStyle.Width(m.width - 10).Render(fmt.Sprintf("Error: %s", m.err)))
+		formContent.WriteString(errorStyle.Width(m.width - 10).Render(terminalText(fmt.Sprintf("Error: %s", m.err))))
 		formContent.WriteString("\n")
 	}
 
@@ -1500,7 +1500,7 @@ func (m Model) viewEditForm() string {
 	}
 
 	if m.err != nil {
-		formContent.WriteString(errorStyle.Width(m.width - 10).Render(fmt.Sprintf("Error: %s", m.err)))
+		formContent.WriteString(errorStyle.Width(m.width - 10).Render(terminalText(fmt.Sprintf("Error: %s", m.err))))
 		formContent.WriteString("\n")
 	}
 
@@ -1555,7 +1555,7 @@ func (m Model) viewSettings() string {
 	s.WriteString(dimmedStyle.Render("─────────────────────────────────────────────────────────"))
 	s.WriteString("\n")
 	s.WriteString(dimmedStyle.Render("Current connection: "))
-	s.WriteString(successStyle.Render(m.config.ServerURL))
+	s.WriteString(successStyle.Render(terminalText(m.config.ServerURL)))
 	s.WriteString("\n")
 	s.WriteString(dimmedStyle.Render("API Key: "))
 	if m.config.APIKey != "" {

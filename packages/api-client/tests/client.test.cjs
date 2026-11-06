@@ -55,3 +55,21 @@ test('retains structured API errors for client feedback', async () => {
     return true;
   });
 });
+
+test('redirects never forward private snippet bodies',async()=>{
+ const http=require('node:http');let hits=0;
+ const target=http.createServer((req,res)=>{hits++;req.resume();res.setHeader('Content-Type','application/json');res.end(JSON.stringify({data:snippet}))});
+ await new Promise(r=>target.listen(0,'127.0.0.1',r));
+ const origin=http.createServer((req,res)=>{req.resume();res.writeHead(307,{Location:`http://127.0.0.1:${target.address().port}/sink`});res.end()});
+ await new Promise(r=>origin.listen(0,'127.0.0.1',r));
+ global.fetch=originalFetch;
+ try{await assert.rejects(new SnipoClient({baseURL:`http://127.0.0.1:${origin.address().port}`,token:'test-only-token'}).createSnippet({...snippet,content:'private test marker'}));assert.equal(hits,0)}
+ finally{for(const server of [origin,target]){server.closeAllConnections();await new Promise(r=>server.close(r))}}
+});
+
+test('absolute wrapper endpoints cannot send a token outside the configured origin',async()=>{
+ let requests=0;global.fetch=async()=>{requests++;return Response.json({data:[]})};
+ const client=new SnipoClient({baseURL:'https://snipo.test/base',token:'test-only-token'});
+ await assert.rejects(client.client.get('https://other.test/api/v1/snippets'),/configured Snipo origin/);
+ assert.equal(requests,0);
+});
