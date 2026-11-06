@@ -348,12 +348,13 @@ jobs:
           sed -n "/^## \\[$VERSION\\]/,/^## \\[/p" docs/CHANGELOG.md | sed '$d' > release-notes.md
           cat >> release-notes.md <<'NOTES'
 
-          Download the server, Snippy, VSIX, and Chrome/Firefox packages below.
+          Download server packages (including the web app), Snippy, the VS Code extension
+          (VSIX), and the browser extension (Chrome/Firefox ZIPs) below.
           Extension store submissions are pending.
           Firefox ZIPs are for temporary loading or store submission, not signed installation.
           NOTES
           IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
-          printf '\nDocker: `%s:%s` and `%s:%s-hardened`.\n' "$IMAGE" "$VERSION" "$IMAGE" "$VERSION" >> release-notes.md
+          printf '\n**Server Docker images:** `%s:%s` and `%s:%s-hardened`.\n' "$IMAGE" "$VERSION" "$IMAGE" "$VERSION" >> release-notes.md
           if gh release view "v$VERSION" >/dev/null 2>&1; then
             if [ "$(gh release view "v$VERSION" --json isDraft --jq .isDraft)" = true ]; then
               gh release upload "v$VERSION" dist/release/* --clobber
