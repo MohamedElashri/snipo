@@ -348,8 +348,8 @@ jobs:
           sed -n "/^## \\[$VERSION\\]/,/^## \\[/p" docs/CHANGELOG.md | sed '$d' > release-notes.md
           cat >> release-notes.md <<'NOTES'
 
-          All components are packaged from the tagged commit. Download the VSIX and
-          Chrome/Firefox ZIPs below. Extension store submissions are pending.
+          Download the server, Snippy, VSIX, and Chrome/Firefox packages below.
+          Extension store submissions are pending.
           Firefox ZIPs are for temporary loading or store submission, not signed installation.
           NOTES
           IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"

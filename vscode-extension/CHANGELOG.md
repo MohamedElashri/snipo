@@ -2,7 +2,7 @@
 
 All notable changes to the "snipo" extension will be documented in this file.
 
-## [Unreleased]
+## [2.2.1] - 2026-11-06
 
 - Keep the server used with your saved API token controlled by user settings; workspace overrides are ignored.
 - Stop authenticated requests from following redirects to another destination.
