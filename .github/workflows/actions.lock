@@ -26,7 +26,7 @@ workflows:
         - 'golangci/golangci-lint-action@v9.3.0'
     '.github/workflows/sanad-check.yml':
         - 'actions/checkout@v7.0.1'
-        - 'mohamedelashri/sanad@v1.0.1'
+        - 'mohamedelashri/sanad@v1.0.2'
     '.github/workflows/snipo-ci.yml':
         - 'actions/checkout@v7.0.1'
         - 'actions/setup-go@v7.0.0'
@@ -142,8 +142,8 @@ dependencies:
         commit: 'sha1-a4f02ab5355a589de60d917a659ce617ed19b3de'
         owner_id: 24697112
         repo_id: 209873006
-    'mohamedelashri/sanad@v1.0.1':
-        ref: 'v1.0.1'
-        commit: 'sha1-a73376eda34400ec92e51fcefec6ee287871da38'
+    'mohamedelashri/sanad@v1.0.2':
+        ref: 'v1.0.2'
+        commit: 'sha1-8c3467535793d9b31edbb7e7f49d35ef88e2a2d5'
         owner_id: 25898984
         repo_id: 1242434851
