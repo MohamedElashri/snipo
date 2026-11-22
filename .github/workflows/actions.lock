@@ -5,13 +5,13 @@ version: 'v0.0.3'
 workflows:
     '.github/workflows/codeql.yml':
         - 'actions/checkout@v7.0.1'
-        - 'actions/setup-go@v7.0.0'
-        - 'github/codeql-action@v4.39.1'
+        - 'actions/setup-go@v7.1.0'
+        - 'github/codeql-action@v4.39.4'
     '.github/workflows/dev-docker.yml':
         - 'actions/checkout@v7.0.1'
-        - 'actions/setup-go@v7.0.0'
+        - 'actions/setup-go@v7.1.0'
         - 'docker/build-push-action@v7.4.0'
-        - 'docker/login-action@v4.7.0'
+        - 'docker/login-action@v4.8.0'
         - 'docker/setup-buildx-action@v4.4.1'
         - 'docker/setup-qemu-action@v4.4.0'
     '.github/workflows/extension-ci.yml':
@@ -20,31 +20,31 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
     '.github/workflows/release-checks.yml':
         - 'actions/checkout@v7.0.1'
-        - 'actions/setup-go@v7.0.0'
+        - 'actions/setup-go@v7.1.0'
         - 'actions/setup-node@v7.1.0'
         - 'golang/govulncheck-action@v1.1.0'
         - 'golangci/golangci-lint-action@v9.3.0'
     '.github/workflows/sanad-check.yml':
         - 'actions/checkout@v7.0.1'
-        - 'mohamedelashri/sanad@v1.0.1'
+        - 'mohamedelashri/sanad@v1.1.0'
     '.github/workflows/snipo-ci.yml':
         - 'actions/checkout@v7.0.1'
-        - 'actions/setup-go@v7.0.0'
+        - 'actions/setup-go@v7.1.0'
         - 'codecov/codecov-action@v7.1.1'
         - 'golang/govulncheck-action@v1.1.0'
     '.github/workflows/snippy-ci.yml':
         - 'actions/checkout@v7.0.1'
-        - 'actions/setup-go@v7.0.0'
+        - 'actions/setup-go@v7.1.0'
         - 'golang/govulncheck-action@v1.1.0'
         - 'golangci/golangci-lint-action@v9.3.0'
     '.github/workflows/unified-release.yml':
         - 'actions/checkout@v7.0.1'
         - 'actions/download-artifact@v8.0.2'
-        - 'actions/setup-go@v7.0.0'
+        - 'actions/setup-go@v7.1.0'
         - 'actions/setup-node@v7.1.0'
         - 'actions/upload-artifact@v7.0.2'
         - 'docker/build-push-action@v7.4.0'
-        - 'docker/login-action@v4.7.0'
+        - 'docker/login-action@v4.8.0'
         - 'docker/setup-buildx-action@v4.4.1'
         - 'docker/setup-qemu-action@v4.4.0'
         - 'goreleaser/goreleaser-action@v7.3.0'
@@ -77,9 +77,9 @@ dependencies:
         commit: 'sha1-7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5'
         owner_id: 44036562
         repo_id: 192624594
-    'actions/setup-go@v7.0.0':
-        ref: 'v7.0.0'
-        commit: 'sha1-b7ad1dad31e06c5925ef5d2fc7ad053ef454303e'
+    'actions/setup-go@v7.1.0':
+        ref: 'v7.1.0'
+        commit: 'sha1-d8cbb8045d7f43706b9177cceb36c1f91a6644d5'
         owner_id: 44036562
         repo_id: 192624594
     'actions/setup-node@v7.1.0':
@@ -104,9 +104,9 @@ dependencies:
         commit: 'sha1-c3c9e263c25d99ce0380d002d59b67737d91b0dc'
         owner_id: 5429470
         repo_id: 241092383
-    'docker/login-action@v4.7.0':
-        ref: 'v4.7.0'
-        commit: 'sha1-81c6f93d4bc991e510b342a00b419b3bb4efc5c6'
+    'docker/login-action@v4.8.0':
+        ref: 'v4.8.0'
+        commit: 'sha1-8aa5831fb8d48d8f76594c7ddde61ae58019f550'
         owner_id: 5429470
         repo_id: 287743349
     'docker/setup-buildx-action@v4.4.1':
@@ -119,9 +119,9 @@ dependencies:
         commit: 'sha1-99012661954931238ded8c8b007157a8430204e1'
         owner_id: 5429470
         repo_id: 288487894
-    'github/codeql-action@v4.39.1':
-        ref: 'v4.39.1'
-        commit: 'sha1-9b3254085494b55a0f7c4c2b3d2d52cc712ce370'
+    'github/codeql-action@v4.39.4':
+        ref: 'v4.39.4'
+        commit: 'sha1-1bd86f2fdb4b86187fa4059f16f31a3202acc9ea'
         owner_id: 9919
         repo_id: 259445878
     'golang/govulncheck-action@v1.1.0':
@@ -142,8 +142,8 @@ dependencies:
         commit: 'sha1-a4f02ab5355a589de60d917a659ce617ed19b3de'
         owner_id: 24697112
         repo_id: 209873006
-    'mohamedelashri/sanad@v1.0.1':
-        ref: 'v1.0.1'
-        commit: 'sha1-a73376eda34400ec92e51fcefec6ee287871da38'
+    'mohamedelashri/sanad@v1.1.0':
+        ref: 'v1.1.0'
+        commit: 'sha1-f7fa1a6dc17e14f7d15354402dd8d24939e80fa1'
         owner_id: 25898984
         repo_id: 1242434851

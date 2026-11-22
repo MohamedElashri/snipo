@@ -3,7 +3,7 @@
 # ============================================================================
 # Build stage
 # ============================================================================
-FROM --platform=$BUILDPLATFORM dhi.io/golang:1-alpine3.23-dev AS builder
+FROM --platform=$BUILDPLATFORM dhi.io/golang:1.26.11-alpine3.24-dev AS builder
 
 # Build arguments for target platform (automatically set by Docker Buildx)
 ARG TARGETOS
@@ -48,7 +48,7 @@ RUN mkdir -p /data /tmp && \
 # ============================================================================
 # Production stage - hardened runtime image
 # ============================================================================
-FROM dhi.io/golang:1-alpine3.23
+FROM dhi.io/golang:1.26.11-alpine3.24
 
 # DHI runtime images:
 # - Run as nonroot by default

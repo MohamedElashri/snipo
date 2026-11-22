@@ -11,13 +11,13 @@
     "extension"
   ],
   "devDependencies": {
-    "@vscode/vsce": "4.1.0",
-    "addons-linter": "10.15.0"
+    "@vscode/vsce": "4.1.1",
+    "addons-linter": "10.16.0"
   },
   "overrides": {
-    "@azure/msal-node": "7.1.1",
+    "@azure/msal-node": "7.2.3",
     "monaco-editor": {
-      "dompurify": "3.4.17"
+      "dompurify": "3.5.0"
     }
   }
 }

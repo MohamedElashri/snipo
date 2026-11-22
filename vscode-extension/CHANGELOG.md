@@ -2,6 +2,10 @@
 
 Changes below apply to Snipo's VS Code extension.
 
+## [2.2.2] - Unreleased
+
+- **VS Code extension:** Update build, packaging, and test dependencies.
+
 ## [2.2.1] - 2026-11-06
 
 - **VS Code extension:** Keep the server used with your saved API token controlled by user settings; workspace overrides are ignored.
