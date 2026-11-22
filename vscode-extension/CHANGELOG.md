@@ -2,7 +2,7 @@
 
 Changes below apply to Snipo's VS Code extension.
 
-## [2.2.2] - Unreleased
+## [2.2.2] - 2026-11-22
 
 - **VS Code extension:** Update build, packaging, and test dependencies.
 
