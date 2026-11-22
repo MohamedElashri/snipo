@@ -5,11 +5,11 @@ version: 'v0.0.3'
 workflows:
     '.github/workflows/codeql.yml':
         - 'actions/checkout@v7.0.1'
-        - 'actions/setup-go@v7.0.0'
+        - 'actions/setup-go@v7.1.0'
         - 'github/codeql-action@v4.39.1'
     '.github/workflows/dev-docker.yml':
         - 'actions/checkout@v7.0.1'
-        - 'actions/setup-go@v7.0.0'
+        - 'actions/setup-go@v7.1.0'
         - 'docker/build-push-action@v7.4.0'
         - 'docker/login-action@v4.7.0'
         - 'docker/setup-buildx-action@v4.4.1'
@@ -20,7 +20,7 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
     '.github/workflows/release-checks.yml':
         - 'actions/checkout@v7.0.1'
-        - 'actions/setup-go@v7.0.0'
+        - 'actions/setup-go@v7.1.0'
         - 'actions/setup-node@v7.1.0'
         - 'golang/govulncheck-action@v1.1.0'
         - 'golangci/golangci-lint-action@v9.3.0'
@@ -29,18 +29,18 @@ workflows:
         - 'mohamedelashri/sanad@v1.0.1'
     '.github/workflows/snipo-ci.yml':
         - 'actions/checkout@v7.0.1'
-        - 'actions/setup-go@v7.0.0'
+        - 'actions/setup-go@v7.1.0'
         - 'codecov/codecov-action@v7.1.1'
         - 'golang/govulncheck-action@v1.1.0'
     '.github/workflows/snippy-ci.yml':
         - 'actions/checkout@v7.0.1'
-        - 'actions/setup-go@v7.0.0'
+        - 'actions/setup-go@v7.1.0'
         - 'golang/govulncheck-action@v1.1.0'
         - 'golangci/golangci-lint-action@v9.3.0'
     '.github/workflows/unified-release.yml':
         - 'actions/checkout@v7.0.1'
         - 'actions/download-artifact@v8.0.2'
-        - 'actions/setup-go@v7.0.0'
+        - 'actions/setup-go@v7.1.0'
         - 'actions/setup-node@v7.1.0'
         - 'actions/upload-artifact@v7.0.2'
         - 'docker/build-push-action@v7.4.0'
@@ -77,9 +77,9 @@ dependencies:
         commit: 'sha1-7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5'
         owner_id: 44036562
         repo_id: 192624594
-    'actions/setup-go@v7.0.0':
-        ref: 'v7.0.0'
-        commit: 'sha1-b7ad1dad31e06c5925ef5d2fc7ad053ef454303e'
+    'actions/setup-go@v7.1.0':
+        ref: 'v7.1.0'
+        commit: 'sha1-d8cbb8045d7f43706b9177cceb36c1f91a6644d5'
         owner_id: 44036562
         repo_id: 192624594
     'actions/setup-node@v7.1.0':
