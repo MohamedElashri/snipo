@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.2] - Unreleased
+
+### Security
+
+- **Server and Snippy:** Build with Go 1.26.11, which includes a standard-library HTTP security fix.
+
+### Changed
+
+- **Server:** Update SQLite and the AWS SDK used for S3 backups.
+- **Web app:** Update the Markdown renderer and rebuild the bundled editor assets.
+- **Snippy:** Update terminal, text processing, and networking dependencies.
+- **Browser extension and VS Code extension:** Update build, packaging, and test dependencies.
+
 ## [2.2.1] - 2026-11-06
 
 ### Security

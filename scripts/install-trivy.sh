@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-version=0.76.1
+version=0.76.2
 directory=$(mktemp -d)
 trap 'rm -rf "$directory"' EXIT
 base="https://github.com/aquasecurity/trivy/releases/download/v$version"

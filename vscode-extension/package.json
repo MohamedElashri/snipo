@@ -2,7 +2,7 @@
   "name": "snipo",
   "displayName": "Snipo",
   "description": "Snipo snippets manager for VS Code",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "publisher": "muhammadelashri",
   "icon": "resources/icon.png",
   "repository": {
@@ -194,15 +194,14 @@
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
-    "@types/nock": "^11.1.0",
     "@types/node": "^26.6.6",
     "@types/sinon": "^22.0.0",
-    "@types/vscode": "^1.80.0",
+    "@types/vscode": "1.80.0",
     "@vscode/test-electron": "^3.0.0",
-    "esbuild": "^0.28.1",
-    "glob": "^14.0.3",
+    "esbuild": "^0.28.2",
+    "glob": "^14.0.6",
     "mocha": "^12.0.3",
-    "nock": "^15.0.5",
+    "nock": "^15.0.6",
     "sinon": "^22.0.0",
     "typescript": "^7.0.2"
   },
