@@ -20,6 +20,9 @@ test('extension background script is running and popup opens', async ({ page, ex
 
   // Verify the page title or a specific element to ensure it loaded correctly
   await expect(page).toHaveTitle(/Snipo/i);
+  const tip = page.getByRole('link', { name: 'Leave a tip on Ko-fi' });
+  await expect(tip).toBeVisible();
+  await expect(tip).toHaveAttribute('href', 'https://ko-fi.com/melashri');
 });
 
 test('quick save prevents duplicate requests and recovers after failure', async ({ page, context, extensionId }) => {

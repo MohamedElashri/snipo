@@ -1,5 +1,7 @@
 # Snipo browser extension
 
+[![Leave a tip on Ko-fi](https://img.shields.io/badge/Ko--fi-Leave%20a%20tip-913F51?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/melashri)
+
 The Chrome and Firefox extension saves selected text to a self-hosted Snipo
 instance.
 
@@ -64,6 +66,12 @@ client and workspace lockfile needed to reproduce the Firefox bundle.
   and confirm the domain is not ignored.
 - **Save rejected:** verify that selected content is below Snipo's request and
   file-size limits.
+
+## Support
+
+Tips are optional and help maintain the project.
+
+**[Leave a tip on Ko-fi](https://ko-fi.com/melashri)**
 
 ## License
 

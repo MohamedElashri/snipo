@@ -1,5 +1,7 @@
 # Snippy
 
+[![Leave a tip on Ko-fi](https://img.shields.io/badge/Ko--fi-Leave%20a%20tip-913F51?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/melashri)
+
 Snippy is the terminal client for a running Snipo instance.
 
 ## Install
@@ -86,6 +88,12 @@ build from a repository checkout using the commands above.
   your desktop/session.
 
 Snippy uses a 30-second HTTP timeout and sends the token as a Bearer credential.
+
+## Support
+
+Tips are optional and help maintain the project.
+
+**[Leave a tip on Ko-fi](https://ko-fi.com/melashri)**
 
 ## License
 
