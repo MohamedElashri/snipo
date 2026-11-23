@@ -319,6 +319,17 @@ export class SettingsViewProvider implements vscode.WebviewViewProvider {
                     }
                     .error { color: var(--brand-danger); }
                     .success { color: var(--brand-primary); }
+                    .about-tip {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 5px;
+                        color: var(--vscode-textLink-foreground);
+                        border: 1px solid currentColor;
+                        border-radius: 4px;
+                        padding: 4px 8px;
+                        font-weight: 600;
+                        text-decoration: none;
+                    }
                 </style>
             </head>
             <body>
@@ -331,6 +342,7 @@ export class SettingsViewProvider implements vscode.WebviewViewProvider {
                         </svg>
                     </div>
                     <h2 class="brand-title">Snipo</h2>
+                    <a class="about-tip" href="https://ko-fi.com/melashri" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">♥</span> Leave a tip on Ko-fi</a>
                 </div>
 
                 <div id="connectedState">

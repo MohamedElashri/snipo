@@ -1,5 +1,7 @@
 # Snipo
 
+[![Leave a tip on Ko-fi](https://img.shields.io/badge/Ko--fi-Leave%20a%20tip-913F51?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/melashri)
+
 <p align="center">
   <strong>A lightweight, self-hosted snippet manager for single users.</strong><br>
   <em>Secure your code snippets, organize them seamlessly, and access them from anywhere.</em>
@@ -95,6 +97,12 @@ Dive deeper into configuring, securing, and developing Snipo:
 - 🛠️ [Development & Contribution Guide](docs/Development.md)
 - 📜 [OpenAPI Specification](docs/openapi.yaml)
 - 📝 [Changelog](docs/CHANGELOG.md)
+
+## Support
+
+Tips are optional and help maintain the project.
+
+**[Leave a tip on Ko-fi](https://ko-fi.com/melashri)**
 
 ## ⚖️ License
 

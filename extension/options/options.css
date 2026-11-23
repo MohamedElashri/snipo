@@ -4,6 +4,21 @@
     box-sizing: border-box;
 }
 
+.about-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.about-actions .about-tip {
+    display: inline-flex;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: var(--text-primary);
+    border-color: color-mix(in srgb, var(--primary-color) 45%, var(--border-color));
+    background: color-mix(in srgb, var(--primary-color) 12%, var(--card-bg));
+    font-weight: 600;
+    text-decoration: none;
+}
+.about-actions .about-tip:hover { border-color: var(--primary-color); }
+
 :root {
     --bg-color: #0f172a;
     --card-bg: #1e293b;

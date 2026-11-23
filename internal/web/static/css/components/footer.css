@@ -37,6 +37,15 @@
   font-weight: 500;
 }
 
+.footer-link.footer-tip {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--snipo-border-muted);
+  border-radius: 0.375rem;
+  color: var(--snipo-link-color);
+  font-weight: 600;
+}
+.footer-tip:hover { text-decoration: underline; }
+
 .footer-link:hover {
   color: var(--snipo-link-color);
 }
