@@ -26,30 +26,6 @@ Whether you're in the terminal, IDE, or browser, Snipo ensures your code fragmen
 
 > **Note**: Snipo is designed for a single user. One master password protects the entire instance. No user management overhead!
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/demo-dark.png">
-    <img src="docs/demo.png" alt="Snipo demo showing 11 sample snippets, language labels, and tags" width="1000">
-  </picture>
-  <br>
-  <sub>Captured from Snipo's demo mode with its built-in sample snippets.</sub>
-</p>
-
-<details>
-  <summary>See the multi-file code preview</summary>
-
-  <p align="center">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/demo-editor-dark.png">
-      <img src="docs/demo-editor.png" alt="Snipo demo REST API Client with three Python files, syntax highlighting, and tags" width="1000" loading="lazy">
-    </picture>
-  </p>
-
-  The demo's REST API Client includes `api_client.py`, `config.py`, and `main.py`.
-  Run `make demo` locally and sign in with the password `demo` to explore it.
-</details>
-
-
 ## Quick Start
 
 Getting started with Snipo via Docker is incredibly easy.
@@ -85,6 +61,26 @@ Snipo extends far beyond a web interface. Check out the dedicated clients:
 | **Snippy** | Fast TUI (Terminal User Interface) client | [View TUI](tui/README.md) |
 | **VS Code** | Editor extension for seamless workflow | [View Extension](vscode-extension/README.md) |
 | **Browser** | Chrome & Firefox companion extension | [View Browser Ext](extension/README.md) |
+
+## Screenshots
+
+All four screenshots show the same freshly created **Service Toolkit** collection in v2.2.3.
+
+### Dashboard
+
+![Snipo dashboard showing nine snippets in the Service Toolkit folder, with favorites, tags, and language labels](docs/screenshots/dashboard.png)
+
+### Multi-file editing
+
+![Snipo editing the HTTP health probe in CodeMirror 6, with probe.py, tests.py, and README.md open as tabs](docs/screenshots/multi-file-editor.png)
+
+### Snippy terminal client
+
+![Snippy showing the HTTP health probe’s tests.py file with syntax highlighting and keyboard shortcuts for switching files, editing, and copying](docs/screenshots/snippy.png)
+
+### VS Code integration
+
+![VS Code with the Snipo sidebar expanded to Service Toolkit and the JSON log formatter snippet open in the editor](docs/screenshots/vscode.png)
 
 ## Documentation
 
