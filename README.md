@@ -16,6 +16,10 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPLv3-blue.svg" alt="License: AGPL v3"></a>
 </p>
 
+<p align="center">
+  <a href="docs/screenshots/dashboard.png"><img src="docs/screenshots/dashboard.png" width="1000" alt="Snipo dashboard showing nine snippets in the Service Toolkit folder, with favorites, tags, and language labels"></a>
+</p>
+
 ---
 
 ## What is Snipo?
@@ -25,30 +29,6 @@
 Whether you're in the terminal, IDE, or browser, Snipo ensures your code fragments, commands, and notes are always at your fingertips.
 
 > **Note**: Snipo is designed for a single user. One master password protects the entire instance. No user management overhead!
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/demo-dark.png">
-    <img src="docs/demo.png" alt="Snipo demo showing 11 sample snippets, language labels, and tags" width="1000">
-  </picture>
-  <br>
-  <sub>Captured from Snipo's demo mode with its built-in sample snippets.</sub>
-</p>
-
-<details>
-  <summary>See the multi-file code preview</summary>
-
-  <p align="center">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/demo-editor-dark.png">
-      <img src="docs/demo-editor.png" alt="Snipo demo REST API Client with three Python files, syntax highlighting, and tags" width="1000" loading="lazy">
-    </picture>
-  </p>
-
-  The demo's REST API Client includes `api_client.py`, `config.py`, and `main.py`.
-  Run `make demo` locally and sign in with the password `demo` to explore it.
-</details>
-
 
 ## Quick Start
 
@@ -85,6 +65,18 @@ Snipo extends far beyond a web interface. Check out the dedicated clients:
 | **Snippy** | Fast TUI (Terminal User Interface) client | [View TUI](tui/README.md) |
 | **VS Code** | Editor extension for seamless workflow | [View Extension](vscode-extension/README.md) |
 | **Browser** | Chrome & Firefox companion extension | [View Browser Ext](extension/README.md) |
+
+## Screenshots
+
+All four screenshots show the freshly created **Service Toolkit** collection in v2.2.3. Click a screenshot to open it full size.
+
+| Dashboard | Multi-file editing |
+| :---: | :---: |
+| <a href="docs/screenshots/dashboard.png"><img src="docs/screenshots/dashboard.png" width="420" alt="Snipo dashboard showing nine snippets with favorites, tags, and language labels"></a> | <a href="docs/screenshots/multi-file-editor.png"><img src="docs/screenshots/multi-file-editor.png" width="420" alt="Snipo editing the HTTP health probe in CodeMirror 6, with probe.py, tests.py, and README.md open as tabs"></a> |
+
+| Snippy terminal client | VS Code integration |
+| :---: | :---: |
+| <a href="docs/screenshots/snippy.png"><img src="docs/screenshots/snippy.png" width="420" alt="Snippy showing the HTTP health probe’s tests.py file with syntax highlighting and keyboard shortcuts"></a> | <a href="docs/screenshots/vscode.png"><img src="docs/screenshots/vscode.png" width="420" alt="VS Code with the Snipo sidebar expanded to Service Toolkit and the JSON log formatter open in the editor"></a> |
 
 ## Documentation
 
