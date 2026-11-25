@@ -16,6 +16,10 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPLv3-blue.svg" alt="License: AGPL v3"></a>
 </p>
 
+<p align="center">
+  <a href="docs/screenshots/dashboard.png"><img src="docs/screenshots/dashboard.png" width="1000" alt="Snipo dashboard showing nine snippets in the Service Toolkit folder, with favorites, tags, and language labels"></a>
+</p>
+
 ---
 
 ## What is Snipo?
@@ -64,23 +68,15 @@ Snipo extends far beyond a web interface. Check out the dedicated clients:
 
 ## Screenshots
 
-All four screenshots show the same freshly created **Service Toolkit** collection in v2.2.3.
+All four screenshots show the freshly created **Service Toolkit** collection in v2.2.3. Click a screenshot to open it full size.
 
-### Dashboard
+| Dashboard | Multi-file editing |
+| :---: | :---: |
+| <a href="docs/screenshots/dashboard.png"><img src="docs/screenshots/dashboard.png" width="420" alt="Snipo dashboard showing nine snippets with favorites, tags, and language labels"></a> | <a href="docs/screenshots/multi-file-editor.png"><img src="docs/screenshots/multi-file-editor.png" width="420" alt="Snipo editing the HTTP health probe in CodeMirror 6, with probe.py, tests.py, and README.md open as tabs"></a> |
 
-![Snipo dashboard showing nine snippets in the Service Toolkit folder, with favorites, tags, and language labels](docs/screenshots/dashboard.png)
-
-### Multi-file editing
-
-![Snipo editing the HTTP health probe in CodeMirror 6, with probe.py, tests.py, and README.md open as tabs](docs/screenshots/multi-file-editor.png)
-
-### Snippy terminal client
-
-![Snippy showing the HTTP health probe’s tests.py file with syntax highlighting and keyboard shortcuts for switching files, editing, and copying](docs/screenshots/snippy.png)
-
-### VS Code integration
-
-![VS Code with the Snipo sidebar expanded to Service Toolkit and the JSON log formatter snippet open in the editor](docs/screenshots/vscode.png)
+| Snippy terminal client | VS Code integration |
+| :---: | :---: |
+| <a href="docs/screenshots/snippy.png"><img src="docs/screenshots/snippy.png" width="420" alt="Snippy showing the HTTP health probe’s tests.py file with syntax highlighting and keyboard shortcuts"></a> | <a href="docs/screenshots/vscode.png"><img src="docs/screenshots/vscode.png" width="420" alt="VS Code with the Snipo sidebar expanded to Service Toolkit and the JSON log formatter open in the editor"></a> |
 
 ## Documentation
 
