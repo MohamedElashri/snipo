@@ -212,6 +212,7 @@ export function initSnippetsApp(Alpine) {
       if (this.filter.isArchived !== null) params.set('is_archived', this.filter.isArchived);
       if (this.filter.isDeleted !== null) params.set('is_deleted', this.filter.isDeleted);
 
+      void this.loadFolderOverview(this.filter.folderId);
       const request = ++this.listRequest;
       this.loading = true;
       this.loadError = '';

@@ -10,6 +10,18 @@
             </select>
         </label>
     </div>
+    <template x-if="folderOverview">
+        <details class="folder-overview" open>
+            <summary>Folder overview</summary>
+            <div class="folder-overview-actions">
+                <button class="btn-action" @click="viewSnippet(folderOverview, { markdown: true })"
+                    :aria-label="'Open overview note: ' + folderOverview.title" x-text="folderOverview.title"></button>
+                <button class="btn-action" :disabled="savingFolderOverview"
+                    @click="setFolderOverview(folderOverview.folderId, null)">Remove overview</button>
+            </div>
+            <div class="preview-markdown-scroll folder-overview-preview" x-html="renderFolderOverview(folderOverview.content)"></div>
+        </details>
+    </template>
     <nav class="library-pagination" aria-label="Library pages" x-show="pagination.totalPages > 1">
         <span x-text="((pagination.page - 1) * pagination.limit + 1) + '–' + Math.min(pagination.page * pagination.limit, pagination.total) + ' of ' + pagination.total"></span>
         <div class="library-page-controls">

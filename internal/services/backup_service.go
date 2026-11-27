@@ -360,11 +360,13 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 	}
 
 	// Import snippets
+	snippetMap := make(map[string]string)
 	for _, snippet := range data.Snippets {
 		// Check if snippet with same title already exists
-		if _, exists := existingSnippetsByTitle[snippet.Title]; exists {
+		if existing, exists := existingSnippetsByTitle[snippet.Title]; exists {
 			// Skip if strategy is "skip" or "merge" (merge doesn't overwrite existing)
 			if opts.Strategy == "skip" || opts.Strategy == "merge" {
+				snippetMap[snippet.ID] = existing.ID
 				continue
 			}
 		}
@@ -378,13 +380,32 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 			}
 		}
 
-		_, err := b.snippetSvc.Create(ctx, input)
+		created, err := b.snippetSvc.Create(ctx, input)
 		if err == nil {
+			snippetMap[snippet.ID] = created.ID
 			result.SnippetsImported++
 			// Add to map to prevent duplicates within same import
-			existingSnippetsByTitle[snippet.Title] = &snippet
+			existingSnippetsByTitle[snippet.Title] = created
 		} else {
 			result.Errors = append(result.Errors, fmt.Sprintf("snippet %s: %v", validation.TruncateForLog(snippet.Title, 100), err))
+		}
+	}
+
+	for _, folder := range data.Folders {
+		if folder.OverviewSnippetID == nil {
+			continue
+		}
+		folderID, hasFolder := folderMap[folder.ID]
+		snippetID, hasSnippet := snippetMap[*folder.OverviewSnippetID]
+		if !hasFolder || !hasSnippet {
+			continue
+		}
+		restored, err := b.folderRepo.GetByID(ctx, folderID)
+		if err == nil && restored.OverviewSnippetID == nil {
+			err = b.folderRepo.SetOverview(ctx, folderID, &snippetID)
+		}
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("folder overview %s: %v", validation.TruncateForLog(folder.Name, 100), err))
 		}
 	}
 

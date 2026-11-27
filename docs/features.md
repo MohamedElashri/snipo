@@ -14,6 +14,10 @@ History records pre-update snapshots when history is enabled in Settings.
 Restoring an entry creates a new update; permanently deleting a snippet also
 deletes its history.
 
+Open a Markdown snippet in a folder and choose **More → Set as folder
+overview**. Snipo previews the first Markdown file at the top of that folder.
+Use **Remove overview** to clear the assignment. The note stays in the folder.
+
 ## Search and filtering
 
 The snippet list accepts a text query and filters:
