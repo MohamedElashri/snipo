@@ -28,7 +28,7 @@ func (r *SnippetRepository) ListNoteTargets(ctx context.Context, query string, p
 	if err != nil {
 		return result, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		if len(result.Targets) == limit {
 			result.HasMore = true
@@ -49,7 +49,7 @@ func (r *SnippetRepository) AppendNote(ctx context.Context, id string, input mod
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	// Acquire the write lock before taking a read snapshot. This lets SQLite
 	// wait for a concurrent writer instead of failing to upgrade a stale read.
