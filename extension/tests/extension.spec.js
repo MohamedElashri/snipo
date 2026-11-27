@@ -94,9 +94,12 @@ test('repeated interactive clicks open only one save dialog',async({page,context
   await expect(dialog.locator('.snipo-modal-overlay')).toHaveCount(1);
 });
 
-test('connection check times out and restores the test button',async({page,extensionId})=>{
-  await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+test('connection check times out and restores the test button',async({page,context,extensionId})=>{
   test.setTimeout(45000);
+  const background = context.serviceWorkers().find(worker => worker.url().includes(extensionId));
+  await background.evaluate(() => chrome.storage.sync.set({ instanceUrl: 'https://initial.test' }));
+  await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  await expect(page.locator('#instanceUrl')).toHaveValue('https://initial.test');
   await page.locator('[data-tab="tab-settings"]').click();
   await page.route('https://stalled.test/**',()=>{});
   await page.locator('#instanceUrl').fill('https://stalled.test');await page.locator('#apiKey').fill('test');
@@ -167,12 +170,19 @@ test('pasted API-key whitespace is removed before saving',async({page,context,ex
 
 test('configuration saves normalized connection fields',async({page,context,extensionId})=>{
   const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
-  await page.route('https://snipo.test/**',r=>r.fulfill({contentType:'application/json',body:'{"data":[]}'}));
+  await bg.evaluate(() => chrome.storage.sync.set({ instanceUrl: 'https://initial.test' }));
+  await page.route('https://snipo.test/**', route => route.fulfill({
+    contentType: 'application/json',
+    headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' },
+    body: '{"data":[]}'
+  }));
   await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  await expect(page.locator('#instanceUrl')).toHaveValue('https://initial.test');
   await page.locator('[data-tab="tab-settings"]').click();
   await page.locator('#instanceUrl').fill('https://snipo.test/');
   await page.locator('#apiKey').fill('  pasted-token  ');
   await page.locator('#save-btn').click();
+  await expect(page.locator('#status')).toContainText('Settings saved');
   await expect.poll(()=>bg.evaluate(async()=>chrome.storage.sync.get(['instanceUrl','apiKey']))).toEqual({instanceUrl:'https://snipo.test',apiKey:'pasted-token'});
 });
 
@@ -185,4 +195,70 @@ test('connection checks never forward API keys through redirects',async({page,ex
   await expect(page.locator('#test-btn')).toBeEnabled();
   expect(forwarded).toBe(0);
   await expect(page.locator('#status')).not.toContainText('Connection successful');
+});
+
+test('interactive templates fill capture fields and preserve every edited file', async ({ page, context, extensionId }) => {
+  const background = context.serviceWorkers().find(worker => worker.url().includes(extensionId));
+  await background.evaluate(async () => {
+    await chrome.storage.sync.set({ instanceUrl: 'https://snipo.test', apiKey: 'test', interactiveMode: true });
+    self.fetch = async (url, options) => {
+      const pathname = new URL(url).pathname;
+      const origin = { id: 'capture', revision: 2, name: 'Research note' };
+      if (pathname.endsWith('/templates')) {
+        return Response.json({ data: [ { ...origin, purpose: 'Capture research', filenames: ['note.md', 'source.txt', 'README.md'] } ], pagination: { totalPages: 1 } });
+      }
+      if (pathname.endsWith('/templates/capture')) {
+        return Response.json({ data: { ...origin, definition: { name: origin.name, fields: [
+          { key: 'selection', label: 'Excerpt', type: 'multiline', source: 'selection' },
+          { key: 'url', label: 'Source URL', type: 'text', source: 'url' },
+          { key: 'title', label: 'Source title', type: 'text', source: 'page_title' }
+        ] } } });
+      }
+      if (pathname.endsWith('/render')) {
+        self.renderTemplatePayload = JSON.parse(options.body);
+        const { values } = self.renderTemplatePayload;
+        const content = '# ' + values.title + '\n' + values.selection;
+        return Response.json({ data: {
+          title: values.title, description: '', content, language: 'markdown', is_public: false, template_origin: origin,
+          files: [
+            { filename: 'note.md', content, language: 'markdown' },
+            { filename: 'source.txt', content: values.url, language: 'plaintext' },
+            { filename: 'README.md', content: '# Capture bundle', language: 'markdown' }
+          ]
+        } });
+      }
+      if (pathname.endsWith('/snippets') && options.method === 'POST') {
+        self.savedTemplatePayload = JSON.parse(options.body);
+        return Response.json({ data: { id: 'saved' } });
+      }
+      return Response.json({ data: [] });
+    };
+  });
+  await page.route('https://code.test/**', route => route.fulfill({
+    contentType: 'text/html', body: '<title>A captured page</title><pre><code>    first line\nsecond line</code></pre>'
+  }));
+  await page.goto('https://code.test/research');
+  const dialog = await openSaveWindow(page, context);
+  await expect(dialog.locator('#snipo-template-picker option')).toHaveText(['Save selection', 'Research note']);
+  await dialog.getByRole('combobox', { name: 'Template', exact: true }).selectOption('capture');
+  await expect(dialog.getByLabel('Source URL')).toHaveValue('https://code.test/research');
+  await expect(dialog.getByLabel('Source title')).toHaveValue('A captured page');
+  await expect(dialog.getByLabel('Excerpt')).toHaveValue('    first line\nsecond line');
+  await dialog.getByRole('button', { name: 'Preview draft' }).click();
+  await dialog.getByText('source.txt', { exact: true }).click();
+  await dialog.getByLabel('Content (plaintext)', { exact: true }).fill('Edited source URL');
+  await dialog.getByRole('button', { name: 'Change template values…', exact: true }).click();
+  dialog.once('dialog', prompt => prompt.dismiss());
+  await dialog.getByRole('button', { name: 'Regenerate draft', exact: true }).click();
+  await expect(dialog.getByLabel('Content (plaintext)', { exact: true })).toHaveValue('Edited source URL');
+  dialog.once('dialog', prompt => prompt.dismiss());
+  await dialog.getByRole('combobox', { name: 'Template', exact: true }).selectOption('');
+  await expect(dialog.getByRole('combobox', { name: 'Template', exact: true })).toHaveValue('capture');
+
+  await dialog.locator('#snipo-save').click();
+  await expect.poll(() => background.evaluate(() => self.savedTemplatePayload?.files[1].content)).toBe('Edited source URL');
+  const payload = await background.evaluate(() => self.savedTemplatePayload);
+  expect(payload.files.map(file => file.filename)).toEqual(['note.md', 'source.txt', 'README.md']);
+  expect(payload.template_origin.revision).toBe(2);
+  expect(payload.is_public).toBe(false);
 });

@@ -197,3 +197,29 @@ html, body { margin: 0; min-width: 280px; background: #1e293b; color: #f8fafc; }
 #save-status { margin: 0; padding: 0 24px; font: 14px system-ui, sans-serif; color: #fca5a5; }
 #save-status:not(:empty) { padding-top: 16px; }
 .snipo-input, .snipo-select, .snipo-textarea { width: 100%; }
+
+.snipo-template-purpose:empty {
+    display: none;
+}
+
+.snipo-template-purpose {
+    font-size: 13px;
+    margin: 0 0 12px;
+}
+
+.snipo-modal .snipo-form-group[hidden] {
+    display: none;
+}
+
+.snipo-modal details {
+    padding: 8px 0;
+}
+
+.snipo-modal details summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.snipo-modal .snipo-template-content {
+    font-family: monospace;
+}

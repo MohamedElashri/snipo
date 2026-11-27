@@ -368,8 +368,19 @@ func (r *FolderRepository) SetSnippetFolder(ctx context.Context, snippetID strin
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	if err := setSnippetFolder(ctx, tx, snippetID, folderID); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+func setSnippetFolder(ctx context.Context, tx *sql.Tx, snippetID string, folderID *int64) error {
 	// Remove existing folder associations
-	_, err = tx.ExecContext(ctx, `DELETE FROM snippet_folders WHERE snippet_id = ?`, snippetID)
+	_, err := tx.ExecContext(ctx, `DELETE FROM snippet_folders WHERE snippet_id = ?`, snippetID)
 	if err != nil {
 		return fmt.Errorf("failed to remove existing folders: %w", err)
 	}
@@ -383,10 +394,6 @@ func (r *FolderRepository) SetSnippetFolder(ctx context.Context, snippetID strin
 		if err != nil {
 			return fmt.Errorf("failed to set snippet folder: %w", err)
 		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SnipoClient, Snippet, Tag, Folder } from '@snipo/api-client';
+import { SnipoClient, Snippet, Tag, Folder, TemplateDraft } from '@snipo/api-client';
 
 export function normalizeServerURL(value: string): string {
     const url = value.trim();
@@ -209,7 +209,19 @@ export class SnipoAPI {
         }
     }
 
-    async createSnippet(data: Partial<Snippet>): Promise<Snippet | null> {
+    listTemplates() {
+        return this.client.listTemplates();
+    }
+
+    getTemplate(id: string, revision: number) {
+        return this.client.getTemplate(id, revision);
+    }
+
+    renderTemplate(id: string, revision: number, values: Record<string, string>) {
+        return this.client.renderTemplate(id, revision, values);
+    }
+
+    async createSnippet(data: Partial<Snippet> | TemplateDraft): Promise<Snippet | null> {
         try {
             const snippet = await this.client.createSnippet(data);
             refreshSidebar();

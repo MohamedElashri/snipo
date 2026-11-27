@@ -30,6 +30,7 @@ import { backupMixin } from './snippets/backup-mixin.js';
 import { historyMixin } from './snippets/history-mixin.js';
 import { draftMixin } from './snippets/draft-mixin.js';
 import { settingsMixin } from './snippets/settings-mixin.js';
+import { templatesMixin } from './snippets/templates-mixin.js';
 import { gistSyncMixin } from './snippets/gist-sync-mixin.js';
 
 export function initSnippetsApp(Alpine) {
@@ -523,6 +524,7 @@ export function initSnippetsApp(Alpine) {
     ...historyMixin,
     ...draftMixin,
     ...settingsMixin,
+    ...templatesMixin,
     ...gistSyncMixin
   }));
 }

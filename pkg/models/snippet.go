@@ -34,6 +34,8 @@ type Snippet struct {
 	UpdatedAt   time.Time  `json:"updated_at"`
 	DeletedAt   *time.Time `json:"deleted_at,omitempty"`
 
+	TemplateOrigin *TemplateOrigin `json:"template_origin,omitempty"`
+
 	// Relationships (populated when needed)
 	Tags    []Tag         `json:"tags,omitempty"`
 	Folders []Folder      `json:"folders,omitempty"`
@@ -58,16 +60,17 @@ type SnippetFileInput struct {
 
 // SnippetInput represents input for creating/updating a snippet
 type SnippetInput struct {
-	Title       string             `json:"title"`
-	Description string             `json:"description"`
-	Content     string             `json:"content"`  // Legacy single-file content
-	Language    string             `json:"language"` // Legacy single-file language
-	Tags        []string           `json:"tags,omitempty"`
-	FolderID    *int64             `json:"folder_id,omitempty"`
-	IsPublic    bool               `json:"is_public"`
-	IsArchived  bool               `json:"is_archived,omitempty"`
-	ExpiresAt   *time.Time         `json:"expires_at,omitempty"`
-	Files       []SnippetFileInput `json:"files,omitempty"` // Multi-file support
+	TemplateOrigin *TemplateOrigin    `json:"template_origin,omitempty"`
+	Title          string             `json:"title"`
+	Description    string             `json:"description"`
+	Content        string             `json:"content"`  // Legacy single-file content
+	Language       string             `json:"language"` // Legacy single-file language
+	Tags           []string           `json:"tags,omitempty"`
+	FolderID       *int64             `json:"folder_id,omitempty"`
+	IsPublic       bool               `json:"is_public"`
+	IsArchived     bool               `json:"is_archived,omitempty"`
+	ExpiresAt      *time.Time         `json:"expires_at,omitempty"`
+	Files          []SnippetFileInput `json:"files,omitempty"` // Multi-file support
 }
 
 // SnippetFilter represents filter options for listing snippets
@@ -167,11 +170,12 @@ type SnippetListResponse struct {
 
 // BackupData represents a complete backup of all data
 type BackupData struct {
-	Version   string    `json:"version"`
-	CreatedAt time.Time `json:"created_at"`
-	Snippets  []Snippet `json:"snippets"`
-	Tags      []Tag     `json:"tags"`
-	Folders   []Folder  `json:"folders"`
+	Templates *[]TemplateSnapshot `json:"templates,omitempty"`
+	Version   string              `json:"version"`
+	CreatedAt time.Time           `json:"created_at"`
+	Snippets  []Snippet           `json:"snippets"`
+	Tags      []Tag               `json:"tags"`
+	Folders   []Folder            `json:"folders"`
 }
 
 // ExportOptions configures backup export behavior
@@ -188,10 +192,11 @@ type ImportOptions struct {
 
 // ImportResult contains the results of an import operation
 type ImportResult struct {
-	SnippetsImported int      `json:"snippets_imported"`
-	TagsImported     int      `json:"tags_imported"`
-	FoldersImported  int      `json:"folders_imported"`
-	Errors           []string `json:"errors,omitempty"`
+	TemplatesImported int      `json:"templates_imported,omitempty"`
+	SnippetsImported  int      `json:"snippets_imported"`
+	TagsImported      int      `json:"tags_imported"`
+	FoldersImported   int      `json:"folders_imported"`
+	Errors            []string `json:"errors,omitempty"`
 }
 
 // S3BackupInfo represents info about a backup stored in S3

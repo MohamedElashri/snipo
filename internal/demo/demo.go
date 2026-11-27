@@ -80,6 +80,9 @@ func (s *Service) ResetDatabase(ctx context.Context) error {
 
 	// Clear all data (preserve schema)
 	tables := []string{
+		"snippet_template_origins",
+		"template_revisions",
+		"templates",
 		"snippet_history",
 		"snippet_files",
 		"snippet_tags",

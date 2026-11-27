@@ -1,6 +1,6 @@
 # Snipo browser extension privacy policy
 
-Last updated: July 1, 2026
+Last updated: November 27, 2026
 
 ## Data handled
 
@@ -11,7 +11,8 @@ The extension handles:
 - the Snipo server URL and API token you configure;
 - interactive-mode and ignored-site preferences;
 - titles, descriptions, filenames, languages, folders, and tags entered in the
-  save dialog.
+  save dialog;
+- template field values and edits to generated files in interactive mode.
 
 ## Storage and transmission
 
@@ -21,8 +22,10 @@ that data, including the API token, under the vendor's own privacy and security
 terms.
 
 When you save a snippet, its content and metadata are sent directly to the
-Snipo URL you configured. Connection tests and folder/tag lookups also contact
-that instance.
+Snipo URL you configured. When you preview a template, its field values are
+sent to the same instance for rendering. Values can include the selected text,
+page title, or URL when a template requests them. Connection tests and lookups
+for templates, folders, and tags also contact that instance.
 
 The extension contains no advertising, analytics, telemetry, or developer-run
 backend. It does not intentionally send data to the extension developer or
@@ -31,11 +34,11 @@ Snipo instance can handle traffic according to their own policies.
 
 ## Permissions
 
-The extension requests `activeTab`, `contextMenus`, `storage`, and host access
-to HTTP and HTTPS pages. Broad host access is required because the extension
-can run on pages where text is selected and must connect to an arbitrary
-self-hosted Snipo URL. The extension does not request the `scripting`
-permission.
+The extension requests `activeTab`, `contextMenus`, and `storage`. Chrome
+requests host access to HTTP and HTTPS pages to display its capture controls.
+Firefox uses `scripting` with the active tab when you choose **Save to Snipo**.
+It prompts for optional host access to the configured Snipo server when you
+test or save your connection settings.
 
 ## Security choices
 

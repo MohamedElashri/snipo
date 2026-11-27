@@ -74,6 +74,93 @@ async function checkPage(page) {
   assert.equal(await page.locator('link[href*="pico"]').count(), 0, 'No framework stylesheet');
 }
 
+async function checkTemplateWorkflow(browser, origin, password) {
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    await page.goto(origin + '/login');
+    await page.locator('#password').fill(password);
+    await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+    await page.waitForURL(origin + '/');
+    await appReady(page);
+
+    await page.getByRole('button', { name: 'Templates', exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByRole('button', { name: 'Starter templates' }).click();
+    await dialog.getByRole('button', { name: /Compose service/ }).click();
+    await dialog.getByRole('heading', { name: 'New template', exact: true }).waitFor();
+    await dialog.getByRole('button', { name: 'Add field', exact: true }).click();
+    const field = dialog.locator('fieldset .template-card').last();
+    await field.getByLabel('Key', { exact: true }).fill('notes');
+    await field.getByLabel('Label', { exact: true }).fill('Notes');
+    await field.getByRole('combobox', { name: 'Type', exact: true }).selectOption('multiline');
+    const templatesURL = origin + '/api/v1/templates';
+    const pendingTemplate = page.waitForResponse(response =>
+      response.request().method() === 'POST' && response.url() === templatesURL);
+    await dialog.getByRole('button', { name: 'Save template', exact: true }).click();
+    const templateResponse = await pendingTemplate;
+    assert.equal(templateResponse.status(), 201);
+    const { data: initialTemplate } = await templateResponse.json();
+    await dialog.getByRole('button', { name: 'Use saved template' }).waitFor();
+
+    const templateURL = templatesURL + '/' + initialTemplate.id;
+    const editElsewhere = await page.request.put(templateURL, {
+      data: { revision: 1, definition: { ...initialTemplate.definition, purpose: 'Updated from another editor' } }
+    });
+    assert.equal(editElsewhere.status(), 200);
+    await dialog.getByLabel('Purpose', { exact: true }).fill('Unsaved local edit');
+    await dialog.getByRole('button', { name: 'Favorite', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Remove favorite', exact: true }).waitFor();
+    const pendingConflict = page.waitForResponse(response =>
+      response.request().method() === 'PUT' && response.url() === templateURL);
+    await dialog.getByRole('button', { name: 'Save template', exact: true }).click();
+    assert.equal((await pendingConflict).status(), 409);
+    assert.equal(await dialog.getByLabel('Purpose', { exact: true }).inputValue(), 'Unsaved local edit');
+    const { data: currentTemplate } = await (await page.request.get(templateURL)).json();
+    assert.equal(currentTemplate.definition.purpose, 'Updated from another editor');
+    assert.equal(currentTemplate.favorite, true);
+
+    page.once('dialog', prompt => prompt.dismiss());
+    await dialog.getByRole('button', { name: 'Close templates', exact: true }).click();
+    assert.equal(await dialog.getByLabel('Purpose', { exact: true }).inputValue(), 'Unsaved local edit');
+    page.once('dialog', prompt => prompt.accept());
+    await dialog.getByRole('button', { name: 'Close templates', exact: true }).click();
+
+    await page.getByRole('button', { name: 'From template…', exact: true }).click();
+    await dialog.getByRole('searchbox', { name: 'Search templates' }).fill('env.example');
+    await dialog.getByRole('button', { name: /Compose service/ }).click();
+    await dialog.getByLabel('Service name *', { exact: true }).fill('redis');
+    assert.equal(await dialog.getByRole('textbox', { name: 'Notes', exact: true }).getAttribute('required'), null);
+    await dialog.getByRole('button', { name: 'Open draft' }).click();
+    await page.waitForFunction(() => Alpine.$data(document.querySelector('.app-container')).codeEditor);
+    const edited = await page.evaluate(async () => {
+      const app = Alpine.$data(document.querySelector('.app-container'));
+      const state = { title: app.editingSnippet.title, files: app.editingSnippet.files.map(file => file.filename) };
+      app.selectFile(1);
+      await app.$nextTick();
+      app.codeEditor.setValue('SERVICE_IMAGE=redis:alpine');
+      return state;
+    });
+    assert.deepEqual(edited, { title: 'redis Compose service', files: ['compose.yaml', '.env.example', 'README.md'] });
+    const pending = page.waitForResponse(response =>
+      response.request().method() === 'POST' && response.url().endsWith('/api/v1/snippets'));
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    const created = await pending;
+    assert.equal(created.status(), 201, await created.text());
+    const { data } = await created.json();
+    assert.equal(data.files.length, 3);
+    assert.equal(data.files[1].content, 'SERVICE_IMAGE=redis:alpine');
+    assert.equal(data.template_origin.revision, 2);
+    assert.equal(data.is_public, false);
+    assert.deepEqual(errors, []);
+    console.log('PASS: web template revision conflict, discard prompt, render, and multi-file save');
+  } finally {
+    await context.close();
+  }
+}
+
 (async () => {
   let server;
   let browser;
@@ -89,6 +176,7 @@ async function checkPage(page) {
       env: { ...process.env, SNIPO_HOST: '127.0.0.1', SNIPO_PORT: String(port),
         SNIPO_DB_PATH: path.join(temp, 'test.db'), SNIPO_MASTER_PASSWORD: password,
         SNIPO_DISABLE_AUTH: 'false', SNIPO_DEMO_MODE: 'false', SNIPO_BASE_PATH: basePath,
+        SNIPO_RATE_LIMIT_ADMIN: '1000', SNIPO_RATE_LIMIT_WRITE: '1000',
         SNIPO_SESSION_SECRET: 'web-styles-test-session-secret',
         SNIPO_ENCRYPTION_SALT: 'web-styles-test-encryption-salt' },
       stdio: ['ignore', log, log]
@@ -106,6 +194,7 @@ async function checkPage(page) {
     browser = await browserType.launch({ headless: true });
     await checkLoginRedirectSecurity(browser, origin, password);
     await checkLogoutSecurity(browser, origin, password);
+    await checkTemplateWorkflow(browser, origin, password);
 
     for (const width of [1440, 390]) {
       for (const theme of ['light', 'dark']) {

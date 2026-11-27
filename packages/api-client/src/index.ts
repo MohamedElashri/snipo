@@ -12,6 +12,7 @@ export interface Snippet {
   expires_at?: string | null;
   tags?: Tag[];
   files?: SnippetFile[];
+  template_origin?: TemplateOrigin;
 }
 
 export interface SnippetFile {
@@ -32,6 +33,55 @@ export interface Folder {
   name: string;
   parent_id?: number;
   children?: Folder[];
+}
+
+export interface TemplateOrigin {
+  id: string;
+  revision: number;
+  name: string;
+}
+
+export interface TemplateSummary {
+  id: string;
+  revision: number;
+  name: string;
+  purpose: string;
+  filenames: string[];
+  favorite: boolean;
+}
+
+export interface TemplateField {
+  key: string;
+  label: string;
+  help?: string;
+  type: 'text' | 'multiline' | 'number' | 'choice' | 'toggle' | 'date';
+  required?: boolean;
+  default?: string;
+  choices?: string[];
+  source?: 'selection' | 'page_title' | 'url';
+}
+
+export interface Template {
+  id: string;
+  revision: number;
+  definition: {
+    name: string;
+    purpose: string;
+    fields: TemplateField[] | null;
+    presets?: { name: string; values: Record<string, string> }[];
+  };
+}
+
+export interface TemplateDraft {
+  title: string;
+  description: string;
+  content: string;
+  language: string;
+  files: Omit<SnippetFile, 'id'>[];
+  tags?: string[];
+  folder_id?: number;
+  is_public: boolean;
+  template_origin: TemplateOrigin;
 }
 
 export interface SnipoApiOptions {
@@ -129,7 +179,7 @@ export class SnipoClient {
     return this.unwrapSnippet(await this.request<Snippet | { data: Snippet }>(`/api/v1/snippets/${encodeURIComponent(id)}`));
   }
 
-  async createSnippet(data: Partial<Snippet>): Promise<Snippet> {
+  async createSnippet(data: Partial<Snippet> | TemplateDraft): Promise<Snippet> {
     return this.unwrapSnippet(await this.request<Snippet | { data: Snippet }>('/api/v1/snippets', { method: 'POST', body: JSON.stringify(data) }));
   }
 
@@ -141,14 +191,48 @@ export class SnipoClient {
     await this.request<void>(`/api/v1/snippets/${encodeURIComponent(id)}`, { method: 'DELETE' });
   }
 
+  async listTemplates(): Promise<TemplateSummary[] | null> {
+    const items: TemplateSummary[] = [];
+    for (let page = 1; ; page++) {
+      try {
+        const response = await this.request<{ data: TemplateSummary[]; pagination: { totalPages: number } }>(
+          '/api/v1/templates', { params: { page, limit: 100 } }
+        );
+        items.push(...response.data);
+        if (page >= response.pagination.totalPages) return items;
+      } catch (error: any) {
+        if (page === 1 && error.response?.status === 404) return null;
+        throw error;
+      }
+    }
+  }
+
+  async getTemplate(id: string, revision: number): Promise<Template> {
+    const response = await this.request<{ data: Template }>(
+      `/api/v1/templates/${encodeURIComponent(id)}`, { params: { revision } }
+    );
+    return response.data;
+  }
+
+  async renderTemplate(id: string, revision: number, values: Record<string, string>): Promise<TemplateDraft> {
+    const response = await this.request<{ data: TemplateDraft }>(
+      `/api/v1/templates/${encodeURIComponent(id)}/render`,
+      { method: 'POST', body: JSON.stringify({ revision, values }) }
+    );
+    return response.data;
+  }
+
+  private async getCollection<T>(path: string, params?: Record<string, string | boolean>): Promise<T[]> {
+    const response = await this.request<T[] | { data: T[] | null }>(path, { params });
+    return Array.isArray(response) ? response : response?.data ?? [];
+  }
+
   async getTags(): Promise<Tag[]> {
-    const response = await this.request<any>('/api/v1/tags');
-    return response.data || response || [];
+    return this.getCollection<Tag>('/api/v1/tags');
   }
 
   async getFolders(): Promise<Folder[]> {
-    const response = await this.request<any>('/api/v1/folders', { params: { tree: true } });
-    return response.data || response || [];
+    return this.getCollection<Folder>('/api/v1/folders', { tree: true });
   }
 
   // Fetch-like client wrapper for backward compatibility with existing extensions

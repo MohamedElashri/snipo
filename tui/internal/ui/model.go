@@ -26,6 +26,9 @@ const (
 	ViewSearch
 	ViewSettings
 	ViewHelp
+	ViewTemplatePicker
+	ViewTemplatePreset
+	ViewTemplateFields
 )
 
 type Model struct {
@@ -60,6 +63,8 @@ type Model struct {
 	// Allowed snippet languages fetched dynamically from backend
 	allowedLanguages []string
 	autoEdit         bool
+
+	templates templateWorkflow
 
 	quitting bool
 }
@@ -195,6 +200,9 @@ func toggleFavorite(client *api.Client, id string) tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if next, cmd, handled := m.updateTemplateMessage(msg); handled {
+		return next, cmd
+	}
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -209,7 +217,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if textAreaHeight < 10 {
 				textAreaHeight = 10
 			}
+			if m.mode == ViewCreate && m.templates.draft != nil {
+				textAreaHeight = max(3, m.height-templateDraftFormRows)
+			}
 			m.textarea.SetHeight(textAreaHeight)
+		}
+		if m.mode == ViewTemplateFields {
+			m.templates.value.SetWidth(max(18, m.width-10))
 		}
 
 	case tea.MouseMsg:
@@ -257,7 +271,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case ViewDetail:
 			return m.updateDetail(msg)
 		case ViewCreate, ViewEdit:
+			if next, cmd, handled := m.updateTemplateDraftKey(msg); handled {
+				return next, cmd
+			}
 			return m.updateForm(msg)
+		case ViewTemplatePicker, ViewTemplatePreset, ViewTemplateFields:
+			return m.updateTemplateKey(msg)
 		case ViewSearch:
 			return m.updateSearch(msg)
 		case ViewSettings:
@@ -319,6 +338,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case foldersLoadedMsg:
 		m.folders = msg.folders
+		if m.templates.draft != nil {
+			m.showTemplateFolder()
+		}
 
 	case successMsg:
 		m.err = nil
@@ -392,6 +414,8 @@ func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, loadSnippets(m.client, m.currentPage, 20, m.searchQuery, m.filterTags, nil, "", nil, nil)
 		}
 
+	case "t":
+		return m.openTemplatePicker()
 	case "n":
 		m.mode = ViewCreate
 		m.initCreateForm()
@@ -1014,6 +1038,9 @@ func (m Model) submitForm() (tea.Model, tea.Cmd) {
 	}
 
 	if m.mode == ViewCreate {
+		if m.templates.draft != nil {
+			return m.submitTemplateDraft(input)
+		}
 		return m, createSnippet(m.client, input)
 	} else if m.mode == ViewEdit && m.detailSnippet != nil {
 		input.IsPublic = m.detailSnippet.IsPublic
@@ -1122,6 +1149,7 @@ func (m Model) saveSettings() (tea.Model, tea.Cmd) {
 
 	// Recreate client with new settings
 	m.client = api.NewClient(m.config.ServerURL, m.config.APIKey)
+	m.templates = templateWorkflow{}
 	m.message = "Settings saved successfully"
 	m.mode = ViewList
 
@@ -1171,6 +1199,8 @@ func (m Model) View() string {
 		s.WriteString(m.viewDetail())
 	case ViewCreate:
 		s.WriteString(m.viewCreateForm())
+	case ViewTemplatePicker, ViewTemplatePreset, ViewTemplateFields:
+		s.WriteString(m.viewTemplates())
 	case ViewEdit:
 		s.WriteString(m.viewEditForm())
 	case ViewSearch:
@@ -1232,7 +1262,7 @@ func (m Model) viewList() string {
 	}
 
 	s.WriteString("\n")
-	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText("↑/k up • ↓/j down • ←/h prev page • →/l next page • enter view • e edit • n new • / search • s settings • r refresh • q quit • ? help")))
+	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText("↑/k up • ↓/j down • ←/h prev page • →/l next page • enter view • e edit • n new • t template • / search • s settings • r refresh • q quit • ? help")))
 
 	return s.String()
 }
@@ -1403,8 +1433,12 @@ func (m Model) viewDetail() string {
 func (m Model) viewCreateForm() string {
 	var s strings.Builder
 
-	s.WriteString(headerStyle.Render("Create New Snippet"))
-	s.WriteString("\n\n")
+	if m.templates.draft != nil {
+		s.WriteString(m.viewTemplateDraftHeader())
+	} else {
+		s.WriteString(headerStyle.Render("Create New Snippet"))
+		s.WriteString("\n\n")
+	}
 
 	formContent := strings.Builder{}
 	for i, input := range m.inputs {

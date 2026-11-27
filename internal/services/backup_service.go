@@ -43,6 +43,7 @@ type BackupService struct {
 	tagRepo        *repository.TagRepository
 	folderRepo     *repository.FolderRepository
 	fileRepo       *repository.SnippetFileRepository
+	templateRepo   *repository.TemplateRepository
 	logger         *slog.Logger
 	encryptionSalt string
 }
@@ -68,6 +69,11 @@ func NewBackupService(
 	}
 }
 
+func (b *BackupService) WithTemplateRepo(repo *repository.TemplateRepository) *BackupService {
+	b.templateRepo = repo
+	return b
+}
+
 // Export creates a complete backup of all data
 func (b *BackupService) Export(ctx context.Context, opts models.ExportOptions) ([]byte, string, error) {
 	data := models.BackupData{
@@ -81,6 +87,23 @@ func (b *BackupService) Export(ctx context.Context, opts models.ExportOptions) (
 		return nil, "", fmt.Errorf("failed to get snippets: %w", err)
 	}
 	data.Snippets = snippets
+
+	if b.templateRepo != nil {
+		templates, err := b.templateRepo.Snapshots(ctx)
+		if err != nil {
+			return nil, "", fmt.Errorf("export templates: %w", err)
+		}
+		data.Templates = &templates
+		origins, err := b.templateRepo.SnippetOrigins(ctx)
+		if err != nil {
+			return nil, "", fmt.Errorf("export snippet origins: %w", err)
+		}
+		for i := range data.Snippets {
+			if origin, ok := origins[data.Snippets[i].ID]; ok {
+				data.Snippets[i].TemplateOrigin = &origin
+			}
+		}
+	}
 
 	// Gather all tags
 	if b.tagRepo != nil {
@@ -161,7 +184,7 @@ func (b *BackupService) listBackupSnippets(ctx context.Context) ([]models.Snippe
 func backupSnippetInput(snippet models.Snippet) *models.SnippetInput {
 	input := &models.SnippetInput{Title: snippet.Title, Description: snippet.Description,
 		Content: snippet.Content, Language: snippet.Language, IsPublic: snippet.IsPublic,
-		IsArchived: snippet.IsArchived}
+		IsArchived: snippet.IsArchived, ExpiresAt: snippet.ExpiresAt, TemplateOrigin: snippet.TemplateOrigin}
 	for _, tag := range snippet.Tags {
 		input.Tags = append(input.Tags, tag.Name)
 	}
@@ -185,6 +208,9 @@ func validateReplacementBackup(data models.BackupData) error {
 		}
 	}
 	for i, snippet := range data.Snippets {
+		if err := validateTemplateOrigin(snippet.TemplateOrigin); err != nil {
+			return fmt.Errorf("%w: snippet %d: %v", ErrInvalidBackupFormat, i+1, err)
+		}
 		if errs := validation.ValidateSnippetInput(backupSnippetInput(snippet)); errs.HasErrors() {
 			return fmt.Errorf("%w: snippet %d: %s", ErrInvalidBackupFormat, i+1, errs)
 		}
@@ -259,12 +285,27 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 		}
 	}
 
+	if data.Templates != nil {
+		if err := validateTemplateSnapshots(*data.Templates); err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrInvalidBackupFormat, err)
+		}
+	}
+
 	if opts.Strategy == "replace" {
 		if err := validateReplacementBackup(data); err != nil {
 			return nil, err
 		}
 	}
 	result := &models.ImportResult{}
+
+	var previousFolders []models.Folder
+	if opts.Strategy == "replace" && data.Templates == nil && b.templateRepo != nil {
+		var err error
+		previousFolders, err = b.folderRepo.List(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("read existing template destinations: %w", err)
+		}
+	}
 
 	// Handle strategy
 	if opts.Strategy == "replace" {
@@ -281,10 +322,6 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 	}
 
 	existingFolders, _ := b.folderRepo.List(ctx)
-	existingFoldersByName := make(map[string]*models.Folder)
-	for i := range existingFolders {
-		existingFoldersByName[existingFolders[i].Name] = &existingFolders[i]
-	}
 
 	existingSnippets, err := b.listBackupSnippets(ctx)
 	if err != nil {
@@ -319,43 +356,36 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 		}
 	}
 
-	// Import folders
-	folderMap := make(map[int64]int64) // old ID -> new ID
-	// First pass: create folders without parent relationships (only if they don't exist)
-	for _, folder := range data.Folders {
-		oldID := folder.ID
-		// Check if folder already exists by name
-		if existingFolder, exists := existingFoldersByName[folder.Name]; exists {
-			folderMap[oldID] = existingFolder.ID
-			// Don't count as imported since it already existed
-		} else {
-			input := &models.FolderInput{
-				Name:      folder.Name,
-				Icon:      folder.Icon,
-				SortOrder: folder.SortOrder,
-			}
-			newFolder, err := b.folderRepo.Create(ctx, input)
-			if err == nil {
-				folderMap[oldID] = newFolder.ID
-				existingFoldersByName[folder.Name] = newFolder // Add to map to prevent duplicates
-				result.FoldersImported++
-			} else {
-				result.Errors = append(result.Errors, fmt.Sprintf("folder %s: %v", validation.TruncateForLog(folder.Name, 100), err))
-			}
-		}
-	}
+	folderMap := b.restoreFolders(ctx, data.Folders, existingFolders, result)
 
-	// Second pass: update parent relationships for newly created folders
-	for _, folder := range data.Folders {
-		if folder.ParentID != nil {
-			// Only update if this folder was newly created
-			if _, existed := existingFoldersByName[folder.Name]; !existed {
-				if newID, ok := folderMap[folder.ID]; ok {
-					if newParentID, ok := folderMap[*folder.ParentID]; ok {
-						_, _ = b.folderRepo.Move(ctx, newID, &newParentID)
+	if data.Templates != nil && b.templateRepo != nil {
+		for i := range *data.Templates {
+			item := &(*data.Templates)[i]
+			for j := range item.Revisions {
+				def := &item.Revisions[j].Definition
+				if def.FolderID != nil {
+					id, mapped := folderMap[*def.FolderID]
+					def.FolderID = nil
+					if mapped {
+						def.FolderID = &id
 					}
 				}
 			}
+		}
+		count, err := b.templateRepo.RestoreSnapshots(ctx, *data.Templates, opts.Strategy == "replace")
+		if err != nil {
+			return nil, fmt.Errorf("restore templates: %w", err)
+		}
+		result.TemplatesImported = count
+	}
+
+	if len(previousFolders) != 0 {
+		restoredFolders, err := b.folderRepo.List(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("read restored template destinations: %w", err)
+		}
+		if err := b.templateRepo.RemapFolders(ctx, matchFolderDestinations(previousFolders, restoredFolders)); err != nil {
+			return nil, fmt.Errorf("restore existing template destinations: %w", err)
 		}
 	}
 
@@ -378,7 +408,12 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 			}
 		}
 
-		_, err := b.snippetSvc.Create(ctx, input)
+		var err error
+		if input.TemplateOrigin != nil {
+			_, err = b.snippetSvc.createFromTemplate(ctx, input, false)
+		} else {
+			_, err = b.snippetSvc.Create(ctx, input)
+		}
 		if err == nil {
 			result.SnippetsImported++
 			// Add to map to prevent duplicates within same import
@@ -396,6 +431,117 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 	)
 
 	return result, nil
+}
+
+func (b *BackupService) restoreFolders(ctx context.Context, source, existing []models.Folder, result *models.ImportResult) map[int64]int64 {
+	type folderKey struct {
+		parent int64
+		name   string
+	}
+	key := func(folder models.Folder) folderKey {
+		value := folderKey{name: folder.Name}
+		if folder.ParentID != nil {
+			value.parent = *folder.ParentID
+		}
+		return value
+	}
+	current := make(map[folderKey]int64, len(existing))
+	for _, folder := range existing {
+		current[key(folder)] = folder.ID
+	}
+	sourceByID := make(map[int64]models.Folder, len(source))
+	for _, folder := range source {
+		sourceByID[folder.ID] = folder
+	}
+
+	mapped := make(map[int64]int64, len(source))
+	visited := make(map[int64]bool, len(source))
+	var restore func(int64) int64
+	restore = func(id int64) int64 {
+		if visited[id] {
+			return mapped[id]
+		}
+		folder, exists := sourceByID[id]
+		if !exists {
+			return 0
+		}
+		visited[id] = true
+		if folder.ParentID != nil {
+			parent := restore(*folder.ParentID)
+			if parent == 0 {
+				result.Errors = append(result.Errors, "folder "+folder.Name+": parent unavailable")
+				return 0
+			}
+			folder.ParentID = &parent
+		}
+		k := key(folder)
+		dst := current[k]
+		if dst == 0 {
+			created, err := b.folderRepo.Create(ctx, &models.FolderInput{
+				Name: folder.Name, ParentID: folder.ParentID, Icon: folder.Icon, SortOrder: folder.SortOrder,
+			})
+			if err != nil {
+				result.Errors = append(result.Errors, fmt.Sprintf("folder %s: %v", folder.Name, err))
+				return 0
+			}
+			dst = created.ID
+			current[k] = dst
+			result.FoldersImported++
+		}
+		mapped[id] = dst
+		return dst
+	}
+	for _, folder := range source {
+		restore(folder.ID)
+	}
+	return mapped
+}
+
+// A pre-template backup replaces the folder tree but preserves the current
+// templates. Match their previous destinations by the full folder path.
+func matchFolderDestinations(previous, restored []models.Folder) map[int64]int64 {
+	type location struct {
+		parent int64
+		name   string
+	}
+	destination := make(map[location]int64, len(restored))
+	for _, folder := range restored {
+		parent := int64(0)
+		if folder.ParentID != nil {
+			parent = *folder.ParentID
+		}
+		destination[location{parent, folder.Name}] = folder.ID
+	}
+	original := make(map[int64]models.Folder, len(previous))
+	for _, folder := range previous {
+		original[folder.ID] = folder
+	}
+
+	mapped := make(map[int64]int64, len(previous))
+	var resolve func(int64) int64
+	resolve = func(id int64) int64 {
+		if result, known := mapped[id]; known {
+			return result
+		}
+		folder, found := original[id]
+		if !found {
+			return 0
+		}
+		mapped[id] = 0
+		parent := int64(0)
+		if folder.ParentID != nil {
+			parent = resolve(*folder.ParentID)
+			if parent == 0 {
+				return 0
+			}
+		}
+		mapped[id] = destination[location{parent, folder.Name}]
+		return mapped[id]
+	}
+	for _, folder := range previous {
+		resolve(folder.ID)
+	}
+	return mapped
 }
 
 // createZipBackup creates a ZIP archive with snippets as individual files
@@ -450,6 +596,7 @@ func (b *BackupService) createZipBackup(data models.BackupData) ([]byte, error) 
 // clearAllData removes all snippets, tags, and folders
 func (b *BackupService) clearAllData(ctx context.Context) error {
 	queries := []string{
+		"DELETE FROM snippet_template_origins",
 		"DELETE FROM snippet_tags",
 		"DELETE FROM snippet_folders",
 		"DELETE FROM snippet_files",

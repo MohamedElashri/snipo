@@ -60,6 +60,8 @@
             <details class="editor-more" x-show="editingSnippet?.id">
                 <summary>More<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary><div class="editor-more-menu">
                     <button class="btn-action" @click="copyAsRichText(editingSnippet)">Copy as rich text</button>
+                    <button class="btn-action" x-show="!editingSnippet?.deleted_at" @click="$el.closest('details').open = false; saveSnippetAsTemplate()">Save as template</button>
+                    <button class="btn-action" x-show="editingSnippet?.template_origin" @click="$el.closest('details').open = false; useTemplateAgain(editingSnippet.template_origin.id)">Use template again</button>
             <!-- Archive button -->
             <button class="btn-action" @click="toggleArchive(editingSnippet)"
                 x-show="editingSnippet?.id && settings.archive_enabled"
@@ -145,6 +147,10 @@
                 <span>Close</span>
             </button>
         </div>
+    </div>
+
+    <div class="editor-status" x-show="!isEditing && editingSnippet?.template_origin">
+        <span x-text="'Created from ' + (editingSnippet?.template_origin?.name || '')"></span>
     </div>
 
     <div class="editor-status" x-show="isEditing">
@@ -425,7 +431,7 @@
                         </div>
                     </section>
 
-                    <section class="editor-details-section">
+                    <section class="editor-details-section" x-show="editingSnippet.id || !editingSnippet.template_origin">
                         <div class="editor-details-section-title">Sharing</div>
                         <div class="editor-field-inline compact editor-toggle-row">
                             <span class="editor-label">Public</span>

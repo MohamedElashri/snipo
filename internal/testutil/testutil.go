@@ -191,6 +191,13 @@ func runTestMigrations(db *sql.DB) error {
 			FOREIGN KEY (snippet_id) REFERENCES snippets(id) ON DELETE CASCADE
 		);
 
+		CREATE TABLE IF NOT EXISTS snippet_template_origins (
+			snippet_id TEXT PRIMARY KEY REFERENCES snippets(id) ON DELETE CASCADE,
+			template_id TEXT NOT NULL,
+			revision INTEGER NOT NULL,
+			name TEXT NOT NULL
+		);
+
 		-- Indexes
 		CREATE INDEX IF NOT EXISTS idx_snippets_language ON snippets(language);
 		CREATE INDEX IF NOT EXISTS idx_snippets_favorite ON snippets(is_favorite);

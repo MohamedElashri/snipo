@@ -32,11 +32,13 @@ func NewClient(baseURL, apiKey string) *Client {
 func (c *Client) doRequest(method, path string, body interface{}, result interface{}) error {
 	var reqBody io.Reader
 	if body != nil {
-		jsonData, err := json.Marshal(body)
-		if err != nil {
+		var buffer bytes.Buffer
+		encoder := json.NewEncoder(&buffer)
+		encoder.SetEscapeHTML(false)
+		if err := encoder.Encode(body); err != nil {
 			return fmt.Errorf("failed to marshal request: %w", err)
 		}
-		reqBody = bytes.NewBuffer(jsonData)
+		reqBody = &buffer
 	}
 
 	req, err := http.NewRequest(method, c.baseURL+path, reqBody)
@@ -62,6 +64,9 @@ func (c *Client) doRequest(method, path string, body interface{}, result interfa
 		return fmt.Errorf("failed to read response: %w", err)
 	}
 
+	if resp.StatusCode == http.StatusNotFound && strings.HasPrefix(path, "/api/v1/templates?") {
+		return ErrTemplatesUnavailable
+	}
 	if resp.StatusCode >= 400 {
 		var errResp ErrorResponse
 		if err := json.Unmarshal(respBody, &errResp); err != nil {

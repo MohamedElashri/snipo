@@ -3,7 +3,7 @@ export function initKeyboardShortcuts() {
   document.addEventListener('keydown', (event) => {
     if (event.defaultPrevented) return;
     const root = document.querySelector('[x-data="snippetsApp()"]');
-    if (!root) return;
+    if (!root || root.querySelector('.template-dialog[open]')) return;
     const app = window.Alpine.$data(root);
     const typing = event.target.closest('input, textarea, [contenteditable="true"], .ace_editor');
     const command = event.ctrlKey || event.metaKey;

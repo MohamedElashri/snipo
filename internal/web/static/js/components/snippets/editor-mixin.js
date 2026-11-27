@@ -58,7 +58,7 @@ export const editorMixin = {
     }
   },
 
-  newSnippet() {
+  newSnippet(draft = null) {
     if (this.saving) return;
     this.preserveDraft();
     ++this.viewRequest;
@@ -92,6 +92,15 @@ export const editorMixin = {
         language: 'plaintext'
       }]
     };
+    if (draft) {
+      this.editingSnippet = {
+        ...this.editingSnippet, ...draft,
+        folder_id: draft.folder_id ?? this.filter?.folderId ?? null,
+        tags: draft.tags || [],
+        expires_at: '',
+        sync_to_gist: false
+      };
+    }
     this.activeFileIndex = 0;
     this._resetFileManagerState();
     this.showEditor = true;
@@ -221,6 +230,10 @@ export const editorMixin = {
       if (this.editingSnippet.id) {
         result = await api.put(`/api/v1/snippets/${this.editingSnippet.id}`, data);
       } else {
+        if (this.editingSnippet.template_origin) {
+          data.template_origin = this.editingSnippet.template_origin;
+          data.content = '';
+        }
         result = await api.post('/api/v1/snippets', data);
       }
 
@@ -253,7 +266,9 @@ export const editorMixin = {
           }
         }
       } else {
-        throw new Error(result?.error?.message || 'Could not save. Check your connection and try again.');
+        const details = result?.error?.details;
+        const message = details?.length ? details.map(detail => detail.message).join(' · ') : result?.error?.message;
+        throw new Error(message || 'Could not save. Check your connection and try again.');
       }
     } catch (error) {
       this.saveDraft();

@@ -39,6 +39,13 @@ Once installed, Snipo needs to connect to your backend:
 
 You're all set!
 
+## Templates
+
+Run **Snipo: Use Template** in the Command Palette. Pick a template and fill in
+its fields. Review the generated files, open them as untitled tabs, insert a
+file into the active editor, or save the whole draft to Snipo. Manage templates
+in the Snipo web library.
+
 ## Support
 
 Tips are optional and help maintain the project.

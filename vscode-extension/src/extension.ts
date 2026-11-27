@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { useTemplate } from './templates';
 import { searchAndInsertSnippet, saveSelectedSnippet, replaceWithTemplate, openInSnipo, openInVSCode, updateSnippet, deleteSnippetCommand } from './commands';
 import { SnippetTreeProvider, TagsTreeProvider } from './treeView';
 import { SnipoHoverProvider, SnipoCodeLensProvider } from './providers';
@@ -19,6 +20,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // Register commands
     context.subscriptions.push(
         vscode.commands.registerCommand('snipo.searchAndInsert', searchAndInsertSnippet),
+        vscode.commands.registerCommand('snipo.useTemplate', useTemplate),
         vscode.commands.registerCommand('snipo.saveSelected', saveSelectedSnippet),
         vscode.commands.registerCommand('snipo.replaceWithTemplate', replaceWithTemplate),
         vscode.commands.registerCommand('snipo.openInSnipo', openInSnipo),

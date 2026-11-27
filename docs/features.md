@@ -110,3 +110,39 @@ code layout. Text is saved as entered, including Arabic and mixed-language text.
 | `Ctrl/Cmd+N` | New snippet |
 | `Ctrl/Cmd+S` | Save while editing |
 | `Escape` | Close the active editor, modal, or search help |
+
+## Templates
+
+Choose **From template…** to create a Markdown note, a script, or a multi-file
+snippet. Search by name, purpose, or filename. Favorites appear first, followed
+by recently saved templates. Fill the requested fields, pick a preset if one
+is available, and review the rendered draft before saving. Saving creates a
+private snippet with its own files, tags, and folder. Changes to the template
+apply to future drafts.
+
+Open **Templates** in the web sidebar to author templates, copy a starter, or
+import a template file. From a snippet's **More** menu, choose **Save as
+template** to start with all of its files. The library supports favorites,
+archiving, Trash, revision history, and restoring an earlier revision. **Test
+template** previews the current definition. **Export** downloads a portable
+definition. Replacing a template from an import keeps its folder and any
+preset values that still match the imported fields. Instance backups also
+include presets, revision history, folder defaults, and the origin of generated
+snippets. Restoring a pre-template
+backup keeps existing templates and reconnects their defaults to matching
+folder paths in the restored library.
+
+Insert `{{snipo.service}}` to use a field named `service` in an output title,
+description, filename, or file body. Use `{{!snipo.service}}` to write that
+placeholder literally. Snipo substitutes text once and preserves ordinary
+shell, Compose, and Helm expressions. Fields can be text, multiline text,
+numbers, choices, toggles, or dates. Define fields and presets in the library
+so the same form works across clients.
+
+- **Snippy** — press `t` in the snippet list. Use F2/F3 to switch files, F4 to
+  copy, and Ctrl+S to save the draft.
+- **VS Code** — run **Snipo: Use Template**. Review files, open them as untitled
+  editors, insert a file, or save the bundle to Snipo.
+- **Chrome and Firefox** — use the template picker in interactive **Save to
+  Snipo**. A template can prefill fields from selected text, the page title,
+  or the source URL.

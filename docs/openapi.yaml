@@ -56,6 +56,8 @@ tags:
     description: Login, logout, and session management
   - name: Snippets
     description: Code snippet CRUD operations
+  - name: Templates
+    description: Reusable snippet definitions, history, and rendering
   - name: Tags
     description: Tag management
   - name: Folders
@@ -349,6 +351,514 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
+  /api/v1/templates:
+    get:
+      tags: [Templates]
+      summary: Search the template library
+      operationId: listTemplates
+      description: Requires read access.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+          description: Search name, purpose, and filename.
+        - in: query
+          name: state
+          schema: { type: string }
+          description: active (default), archived, or trash.
+        - in: query
+          name: page
+          schema: { type: integer }
+        - in: query
+          name: limit
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Matching templates ordered by favorite and recency
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TemplateSummary'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permission
+        '400':
+          description: Invalid template definition or values
+    post:
+      tags: [Templates]
+      summary: Create a template
+      operationId: createTemplate
+      description: Requires write access.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TemplateDefinition'
+      responses:
+        '201':
+          description: Template created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Template'
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permission
+        '400':
+          description: Invalid template definition or values
+
+  /api/v1/templates/starters:
+    get:
+      tags: [Templates]
+      summary: List starter definitions
+      operationId: listTemplateStarters
+      description: Requires read access.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      responses:
+        '200':
+          description: Starter templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TemplateDefinition'
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permission
+
+  /api/v1/templates/test:
+    post:
+      tags: [Templates]
+      summary: Render a proposed definition without saving
+      operationId: testTemplate
+      description: Requires read access.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [definition]
+              properties:
+                definition:
+                  $ref: '#/components/schemas/TemplateDefinition'
+                values:
+                  $ref: '#/components/schemas/TemplateValues'
+      responses:
+        '200':
+          description: Editable draft
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SnippetInput'
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permission
+        '400':
+          description: Invalid template definition or values
+
+  /api/v1/templates/import:
+    post:
+      tags: [Templates]
+      summary: Preview or import a portable template
+      operationId: importTemplate
+      description: Requires write access.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [template, mode]
+              properties:
+                template:
+                  $ref: '#/components/schemas/TemplateExport'
+                mode:
+                  enum: [preview, copy, replace]
+                revision:
+                  type: integer
+      responses:
+        '200':
+          description: Import preview or updated template
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    oneOf:
+                      - $ref: '#/components/schemas/Template'
+                      - type: object
+                        properties:
+                          definition:
+                            $ref: '#/components/schemas/TemplateDefinition'
+                          conflict:
+                            $ref: '#/components/schemas/Template'
+        '201':
+          description: Imported template copy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Template'
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permission
+        '400':
+          description: Invalid template definition or values
+        '409':
+          description: Template changed since it was opened
+
+  /api/v1/templates/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          pattern: '^[a-f0-9]{32}$'
+    get:
+      tags: [Templates]
+      summary: Get the current or a historical definition
+      operationId: getTemplate
+      description: Requires read access.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - in: query
+          name: revision
+          schema: { type: integer }
+          description: Omit for the current revision.
+      responses:
+        '200':
+          description: Template definition
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Template'
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permission
+        '404':
+          description: Template or revision unavailable
+    put:
+      tags: [Templates]
+      summary: Save a new revision
+      operationId: updateTemplate
+      description: Requires write access.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [revision, definition]
+              properties:
+                revision:
+                  type: integer
+                definition:
+                  $ref: '#/components/schemas/TemplateDefinition'
+      responses:
+        '200':
+          description: New revision
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Template'
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permission
+        '400':
+          description: Invalid template definition or values
+        '404':
+          description: Template or revision unavailable
+        '409':
+          description: Template changed since it was opened
+    delete:
+      tags: [Templates]
+      summary: Permanently delete a trashed template
+      operationId: purgeTemplate
+      description: Requires write access.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      responses:
+        '204':
+          description: Template and revision history removed
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permission
+        '404':
+          description: Template or revision unavailable
+
+  /api/v1/templates/{id}/render:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          pattern: '^[a-f0-9]{32}$'
+    post:
+      tags: [Templates]
+      summary: Render an editable snippet draft without saving
+      operationId: renderTemplate
+      description: Requires read access.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                revision:
+                  type: integer
+                values:
+                  $ref: '#/components/schemas/TemplateValues'
+      responses:
+        '200':
+          description: Private draft ready to edit and save
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SnippetInput'
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permission
+        '400':
+          description: Invalid template definition or values
+        '404':
+          description: Template or revision unavailable
+
+  /api/v1/templates/{id}/status:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          pattern: '^[a-f0-9]{32}$'
+    put:
+      tags: [Templates]
+      summary: Change the template state or favorite setting
+      operationId: setTemplateStatus
+      description: Requires write access.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                state:
+                  enum: [active, archived, trash]
+                favorite:
+                  type: boolean
+      responses:
+        '204':
+          description: Template status updated
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permission
+        '400':
+          description: Invalid template definition or values
+        '404':
+          description: Template or revision unavailable
+
+  /api/v1/templates/{id}/history:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          pattern: '^[a-f0-9]{32}$'
+    get:
+      tags: [Templates]
+      summary: List template revisions
+      operationId: listTemplateRevisions
+      description: Requires read access.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      responses:
+        '200':
+          description: Revisions with their creation times
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TemplateRevision'
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permission
+        '404':
+          description: Template or revision unavailable
+
+  /api/v1/templates/{id}/restore-revision:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          pattern: '^[a-f0-9]{32}$'
+    post:
+      tags: [Templates]
+      summary: Restore a historical definition as a new revision
+      operationId: restoreTemplateRevision
+      description: Requires write access.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [revision, current_revision]
+              properties:
+                revision:
+                  type: integer
+                current_revision:
+                  type: integer
+      responses:
+        '200':
+          description: Restored definition
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Template'
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permission
+        '400':
+          description: Invalid template definition or values
+        '404':
+          description: Template or revision unavailable
+        '409':
+          description: Template changed since it was opened
+
+  /api/v1/templates/{id}/export:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+          pattern: '^[a-f0-9]{32}$'
+    get:
+      tags: [Templates]
+      summary: Export a portable template definition
+      operationId: exportTemplate
+      description: Requires read access.
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      responses:
+        '200':
+          description: Versioned template export
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TemplateExport'
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permission
+        '404':
+          description: Template or revision unavailable
+
 
   /api/v1/snippets:
     get:
@@ -6138,6 +6648,8 @@ components:
     Snippet:
       type: object
       properties:
+        template_origin:
+          $ref: '#/components/schemas/TemplateOrigin'
         id:
           type: string
           examples:
@@ -6204,6 +6716,8 @@ components:
       type: object
       required: [title]
       properties:
+        template_origin:
+          $ref: '#/components/schemas/TemplateOrigin'
         title:
           type: string
           maxLength: 200
@@ -6231,6 +6745,149 @@ components:
           items:
             $ref: '#/components/schemas/SnippetFileInput'
           description: Multi-file content
+
+    TemplateOrigin:
+      type: object
+      required: [id, revision, name]
+      properties:
+        id:
+          type: string
+          pattern: '^[a-f0-9]{32}$'
+        revision:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+    TemplateField:
+      type: object
+      required: [key, label, type]
+      properties:
+        key:
+          type: string
+          pattern: '^[a-z][a-z0-9_]{0,47}$'
+        label:
+          type: string
+        help:
+          type: string
+        type:
+          enum: [text, multiline, number, choice, toggle, date]
+        required:
+          type: boolean
+        default:
+          type: [string, "null"]
+        choices:
+          type: array
+          items:
+            type: string
+        source:
+          enum: ['', selection, page_title, url]
+    TemplateValues:
+      type: object
+      additionalProperties:
+        type: string
+      description: Values keyed by field name. Toggle values use true or false, and dates use YYYY-MM-DD.
+    TemplatePreset:
+      type: object
+      required: [name, values]
+      properties:
+        name:
+          type: string
+        values:
+          $ref: '#/components/schemas/TemplateValues'
+    TemplateDefinition:
+      type: object
+      required: [name, title, files]
+      properties:
+        name:
+          type: string
+        purpose:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        files:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/SnippetFileInput'
+        fields:
+          type: [array, "null"]
+          items:
+            $ref: '#/components/schemas/TemplateField'
+        presets:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplatePreset'
+        tags:
+          type: array
+          items:
+            type: string
+        folder_id:
+          type: [integer, "null"]
+    TemplateSummary:
+      type: object
+      required: [id, revision, state, favorite, name, purpose, filenames]
+      properties:
+        id:
+          type: string
+        revision:
+          type: integer
+        state:
+          enum: [active, archived, trash]
+        favorite:
+          type: boolean
+        name:
+          type: string
+        purpose:
+          type: string
+        filenames:
+          type: array
+          items:
+            type: string
+        last_used_at:
+          type: string
+          format: date-time
+    Template:
+      type: object
+      required: [id, revision, state, favorite, updated_at, definition]
+      properties:
+        id:
+          type: string
+        revision:
+          type: integer
+        state:
+          enum: [active, archived, trash]
+        favorite:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+        last_used_at:
+          type: string
+          format: date-time
+        definition:
+          $ref: '#/components/schemas/TemplateDefinition'
+    TemplateRevision:
+      type: object
+      properties:
+        revision:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        definition:
+          $ref: '#/components/schemas/TemplateDefinition'
+    TemplateExport:
+      type: object
+      required: [version, definition]
+      properties:
+        version:
+          const: 1
+        id:
+          type: string
+        definition:
+          $ref: '#/components/schemas/TemplateDefinition'
 
     SnippetFileInput:
       type: object
@@ -6408,6 +7065,8 @@ components:
         tags_imported:
           type: integer
         folders_imported:
+          type: integer
+        templates_imported:
           type: integer
         errors:
           type: array

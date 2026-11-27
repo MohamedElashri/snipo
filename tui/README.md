@@ -47,6 +47,8 @@ HTTPS for remote servers.
 | List | `h`/`←`, `l`/`→` | Previous/next page |
 | List | `Enter` | Open snippet |
 | List | `n`, `e` | Create/edit snippet |
+| List | `t` | New from template |
+| Template draft | `F2`, `F3`, `F4` | Previous file, next file, copy |
 | List | `f` | Toggle favorite |
 | List | `d` or `x` | Delete selected snippet |
 | List | `/`, `r`, `s` | Search, refresh, settings |

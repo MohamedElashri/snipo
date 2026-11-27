@@ -63,7 +63,7 @@ function openSaveDialog(data, tab) {
         const id = crypto.randomUUID();
         const key = draftPrefix + id;
         const url = savePage() + '?draft=' + id;
-        const record = { url, tab, data: { ...data, sourceURL: tab.url || 'unknown' } };
+        const record = { url, tab, data: { ...data, sourceURL: tab.url || 'unknown', pageTitle: tab.title || '' } };
         await chrome.storage.session.set({ [key]: record });
         try {
             try {
@@ -116,15 +116,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             .catch(() => sendResponse({ success: false, error: 'Unable to open save window' }));
         return true;
     }
-    if (request.action === 'getSaveDraft' || request.action === 'saveDraftSnippet') {
+    const draftActions = ['getSaveDraft', 'saveDraftSnippet', 'listCaptureTemplates', 'getCaptureTemplate',
+        'renderCaptureTemplate', 'saveCaptureTemplate'];
+    if (draftActions.includes(request.action)) {
         getSaveDraft(request, sender).then(async record => {
-            if (request.action === 'getSaveDraft') {
-                sendResponse({ success: true, data: record.data });
-            } else {
+            switch (request.action) {
+            case 'getSaveDraft':
+                return record.data;
+            case 'saveDraftSnippet':
                 await saveSnippet(record.data.code, record.tab, request.language, request.title,
                     request.folder_id, request.tags, request.description, request.filename, sendResponse);
+                return;
+            case 'listCaptureTemplates':
+                return withClient(client => client.listTemplates());
+            case 'getCaptureTemplate':
+                return withClient(client => client.getTemplate(request.id, request.revision));
+            case 'renderCaptureTemplate':
+                return withClient(client => client.renderTemplate(request.id, request.revision, request.values));
+            case 'saveCaptureTemplate': {
+                const data = await withClient(client => client.createSnippet({ ...request.snippet, is_public: false }));
+                notifyTab(record.tab.id, { success: true });
+                return data;
             }
-        }).catch(() => sendResponse({ success: false, error: 'Save window expired' }));
+            }
+        }).then(data => {
+            if (request.action !== 'saveDraftSnippet') sendResponse({ success: true, data });
+        }).catch(error => {
+            const detail = error.response?.data?.error;
+            const message = detail?.details?.map(field => field.message).join(' · ') || detail?.message || error.message;
+            sendResponse({ success: false, error: message });
+        });
         return true;
     }
     if (['fetchTags', 'fetchFolders', 'createTag', 'createFolder'].includes(request.action) && !extensionPage(sender)) {

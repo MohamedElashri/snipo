@@ -20,6 +20,10 @@
   "contributes": {
     "commands": [
       {
+        "command": "snipo.useTemplate",
+        "title": "Snipo: Use Template"
+      },
+      {
         "command": "snipo.searchAndInsert",
         "title": "Snipo: Search and Insert Snippet"
       },
