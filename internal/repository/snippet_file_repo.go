@@ -20,6 +20,12 @@ func NewSnippetFileRepository(db *sql.DB) *SnippetFileRepository {
 
 // GetBySnippetID retrieves all files for a snippet
 func (r *SnippetFileRepository) GetBySnippetID(ctx context.Context, snippetID string) ([]models.SnippetFile, error) {
+	return filesBySnippetID(ctx, r.db, snippetID)
+}
+
+func filesBySnippetID(ctx context.Context, db interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}, snippetID string) ([]models.SnippetFile, error) {
 	query := `
 		SELECT id, snippet_id, filename, content, language, sort_order, created_at, updated_at
 		FROM snippet_files
@@ -27,7 +33,7 @@ func (r *SnippetFileRepository) GetBySnippetID(ctx context.Context, snippetID st
 		ORDER BY sort_order, id
 	`
 
-	rows, err := r.db.QueryContext(ctx, query, snippetID)
+	rows, err := db.QueryContext(ctx, query, snippetID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get snippet files: %w", err)
 	}

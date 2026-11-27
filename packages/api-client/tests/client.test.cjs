@@ -73,3 +73,10 @@ test('absolute wrapper endpoints cannot send a token outside the configured orig
  await assert.rejects(client.client.get('https://other.test/api/v1/snippets'),/configured Snipo origin/);
  assert.equal(requests,0);
 });
+
+test('empty folder and tag envelopes work in the capture dialog', async () => {
+  global.fetch = async () => Response.json({ data: null, meta: { version: '1.0' } });
+  const client = new SnipoClient({ baseURL: 'https://example.test/snipo' });
+  assert.deepEqual(await client.getFolders(), []);
+  assert.deepEqual(await client.getTags(), []);
+});
