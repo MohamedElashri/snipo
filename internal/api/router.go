@@ -206,10 +206,12 @@ func NewRouter(cfg RouterConfig) http.Handler {
 			r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead).Get("/", snippetHandler.List)
 			r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/", snippetHandler.Create)
 			r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead).Get("/search", snippetHandler.Search)
+			r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead).Get("/note-targets", snippetHandler.ListNoteTargets)
 
 			r.Route("/{id}", func(r *Router) {
 				r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead).Get("/", snippetHandler.Get)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Put("/", snippetHandler.Update)
+				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/append", snippetHandler.AppendNote)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Delete("/", snippetHandler.Delete)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/favorite", snippetHandler.ToggleFavorite)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/archive", snippetHandler.ToggleArchive)

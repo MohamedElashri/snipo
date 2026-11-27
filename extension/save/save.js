@@ -253,6 +253,7 @@ async function showModal(snippetData) {
             close();
         }
     };
+    addAppendNotePane(modal, actionsDiv, close);
     document.addEventListener('keydown', onDialogKeyDown, true);
     titleInput.focus();
 

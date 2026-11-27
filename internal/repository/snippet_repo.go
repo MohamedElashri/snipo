@@ -66,6 +66,12 @@ func (r *SnippetRepository) Create(ctx context.Context, input *models.SnippetInp
 
 // GetByID retrieves a snippet by ID
 func (r *SnippetRepository) GetByID(ctx context.Context, id string) (*models.Snippet, error) {
+	return snippetByID(ctx, r.db, id)
+}
+
+func snippetByID(ctx context.Context, db interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}, id string) (*models.Snippet, error) {
 	query := `
 		SELECT id, title, description, content, language, is_favorite, is_public,
 		       view_count, s3_key, checksum, is_archived, expires_at, created_at, updated_at, deleted_at
@@ -74,7 +80,7 @@ func (r *SnippetRepository) GetByID(ctx context.Context, id string) (*models.Sni
 	`
 
 	snippet := &models.Snippet{}
-	err := r.db.QueryRowContext(ctx, query, id).Scan(
+	err := db.QueryRowContext(ctx, query, id).Scan(
 		&snippet.ID,
 		&snippet.Title,
 		&snippet.Description,

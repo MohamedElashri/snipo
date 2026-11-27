@@ -96,6 +96,7 @@ test('repeated interactive clicks open only one save dialog',async({page,context
 
 test('connection check times out and restores the test button',async({page,extensionId})=>{
   await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  await expect(page.locator('#connection-text')).toHaveText('Not Configured');
   test.setTimeout(45000);
   await page.locator('[data-tab="tab-settings"]').click();
   await page.route('https://stalled.test/**',()=>{});
@@ -169,6 +170,7 @@ test('configuration saves normalized connection fields',async({page,context,exte
   const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
   await page.route('https://snipo.test/**',r=>r.fulfill({contentType:'application/json',body:'{"data":[]}'}));
   await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  await expect(page.locator('#connection-text')).toHaveText('Not Configured');
   await page.locator('[data-tab="tab-settings"]').click();
   await page.locator('#instanceUrl').fill('https://snipo.test/');
   await page.locator('#apiKey').fill('  pasted-token  ');
@@ -181,6 +183,7 @@ test('connection checks never forward API keys through redirects',async({page,ex
   await page.route('https://snipo.test/**',r=>r.fulfill({status:307,headers:{location:'https://receiver.test/sink'}}));
   await page.route('https://receiver.test/**',r=>{forwarded++;return r.fulfill({contentType:'application/json',headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:'{"data":[]}'})});
   await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  await expect(page.locator('#connection-text')).toHaveText('Not Configured');
   await page.locator('[data-tab="tab-settings"]').click();await page.locator('#instanceUrl').fill('https://snipo.test');await page.locator('#apiKey').fill('test-only-token');await page.locator('#test-btn').click();
   await expect(page.locator('#test-btn')).toBeEnabled();
   expect(forwarded).toBe(0);
