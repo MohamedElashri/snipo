@@ -2,8 +2,10 @@ package api
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -54,5 +56,24 @@ func TestRedirectNeverForwardsCredentials(t *testing.T) {
 	}
 	if hits != 0 {
 		t.Fatal("redirect target received an authenticated request")
+	}
+}
+
+func TestCreateSendsHTMLContentWithoutHTMLEscaping(t *testing.T) {
+	const content = "<p>Notes & examples</p>"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Error(err)
+		}
+		if !strings.Contains(string(body), content) {
+			t.Errorf("request did not contain the original HTML: %s", body)
+		}
+		_, _ = fmt.Fprint(w, `{"data":{"id":"snippet-1","title":"Notes"}}`)
+	}))
+	defer server.Close()
+	client := NewClient(server.URL, "test-token")
+	if _, err := client.CreateSnippet(SnippetInput{Title: "Notes", Content: content, Language: "html"}); err != nil {
+		t.Fatal(err)
 	}
 }
