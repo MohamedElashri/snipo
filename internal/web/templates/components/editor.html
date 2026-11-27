@@ -16,7 +16,7 @@
             x-show="!isEditing" x-text="editingSnippet.title || 'Untitled'"></h2>
 
         <!-- Edit mode: show title input (as textarea for dynamic resize) -->
-        <div class="editor-title-wrapper" x-show="isEditing">
+        <div class="editor-title-wrapper" x-show.immediate="isEditing">
             <textarea class="editor-title-input"
                 :class="{ 'rtl': isArabicText(editingSnippet.title) }"
                 aria-label="Snippet title" x-model="editingSnippet.title" placeholder="Snippet title..." rows="1"

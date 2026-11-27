@@ -88,7 +88,10 @@ export const draftMixin = {
       this.isEditing = true;
       this.hasDraft = false;
       this.saveState = 'local';
-      this.updateUrl({ snippet: this.editingSnippet.id, edit: true });
+      this.updateUrl({
+        snippet: this.editingSnippet.id, edit: true,
+        note: !this.editingSnippet.id && this.editingSnippet.newNote
+      });
       showToast('Draft restored');
       this.$nextTick(() => {
         this.updateCodeEditor();

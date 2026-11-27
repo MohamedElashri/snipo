@@ -102,6 +102,10 @@ Custom CSS examples are in the [customization guide](customization.md).
 Ace and CodeMirror adapt text direction to the content. Monaco keeps its standard
 code layout. Text is saved as entered, including Arabic and mixed-language text.
 
+Choose **New note** to open a blank Markdown file named `note.md`. The editor
+focuses the body and selects the folder you are browsing. Give your note a title
+and save it alongside your other snippets.
+
 ## Keyboard shortcuts
 
 | Shortcut | Action |

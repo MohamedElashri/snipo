@@ -58,7 +58,7 @@ export const editorMixin = {
     }
   },
 
-  newSnippet() {
+  newSnippet({ note = false } = {}) {
     if (this.saving) return;
     this.preserveDraft();
     ++this.viewRequest;
@@ -73,35 +73,45 @@ export const editorMixin = {
       defaultExpires = d.toISOString().split('T')[0];
     }
 
+    const language = note ? 'markdown' : 'plaintext';
+    const request = this.viewRequest;
     this.editingSnippet = {
       id: null,
+      newNote: note,
       title: '',
       description: '',
       content: '',
-      language: 'plaintext',
+      language,
       tags: [],
-      folder_id: null,
+      folder_id: note ? this.filter.folderId : null,
       is_public: false,
       is_favorite: false,
       expires_at: defaultExpires,
       sync_to_gist: this.gistConfig?.auto_sync_enabled || false,
       files: [{
         id: 0,
-        filename: 'snippet.txt',
+        filename: note ? 'note.md' : 'snippet.txt',
         content: '',
-        language: 'plaintext'
+        language
       }]
     };
     this.activeFileIndex = 0;
     this._resetFileManagerState();
     this.showEditor = true;
     this.isEditing = true;
-    this.updateUrl({ edit: true });
+    this.updateUrl({ edit: true, note });
 
-    this.$nextTick(() => {
-      this.updateCodeEditor();
+    this.$nextTick(async () => {
+      if (request !== this.viewRequest || !this.isEditing) return;
+      const previousFocus = document.activeElement;
+      const ready = this.updateCodeEditor();
       const titleInput = document.querySelector('.editor-title-input');
-      if (titleInput) {
+      if (note) {
+        await ready;
+        if (request !== this.viewRequest || !this.isEditing || document.activeElement !== previousFocus) return;
+        if (this.codeEditor) this.codeEditor.focus();
+        else titleInput?.focus();
+      } else if (titleInput) {
         titleInput.focus();
         titleInput.select();
       }

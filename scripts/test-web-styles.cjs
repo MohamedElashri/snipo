@@ -89,6 +89,7 @@ async function checkPage(page) {
       env: { ...process.env, SNIPO_HOST: '127.0.0.1', SNIPO_PORT: String(port),
         SNIPO_DB_PATH: path.join(temp, 'test.db'), SNIPO_MASTER_PASSWORD: password,
         SNIPO_DISABLE_AUTH: 'false', SNIPO_DEMO_MODE: 'false', SNIPO_BASE_PATH: basePath,
+        SNIPO_RATE_LIMIT_ADMIN: '2500', SNIPO_RATE_LIMIT_WRITE: '2500', SNIPO_RATE_LIMIT_READ: '2500',
         SNIPO_SESSION_SECRET: 'web-styles-test-session-secret',
         SNIPO_ENCRYPTION_SALT: 'web-styles-test-encryption-salt' },
       stdio: ['ignore', log, log]
@@ -151,6 +152,39 @@ async function checkPage(page) {
         await appReady(page);
         await checkPage(page);
         assert.equal(await style(page.locator('.sidebar-nav'), 'display'), 'block');
+
+        // Start a note in a folder and type immediately into its Markdown body.
+        const folderResponse = await page.request.post(origin + '/api/v1/folders', { data: { name: 'Notes ' + width + ' ' + theme } });
+        assert.ok(folderResponse.ok(), await folderResponse.text());
+        const { data: noteFolder } = await folderResponse.json();
+        await page.goto(origin + '/?folder=' + noteFolder.id);
+        await appReady(page);
+        const newNote = page.getByRole('button', { name: 'New note', exact: true });
+        await newNote.click();
+        await page.waitForFunction(() => document.activeElement?.closest('#code-editor'));
+        await page.waitForFunction(() => new URL(location.href).searchParams.get('note') === 'true');
+        await page.reload();
+        await appReady(page);
+        await page.waitForFunction(() => Alpine.$data(document.querySelector('.app-container')).codeEditor);
+        await page.locator('#code-editor .ace_content').click();
+        assert.equal(await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).activeFile.filename), 'note.md');
+        await page.keyboard.insertText('# Deployment notes');
+        await page.getByRole('textbox', { name: 'Snippet title' }).fill('Deployment ' + width + ' ' + theme);
+        await page.getByRole('button', { name: 'Save', exact: true }).click();
+        await page.waitForFunction(() => !!new URL(location.href).searchParams.get('snippet'));
+        const noteID = new URL(page.url()).searchParams.get('snippet');
+        const { data: note } = await (await page.request.get(origin + '/api/v1/snippets/' + noteID)).json();
+        assert.equal(note.files[0].filename, 'note.md');
+        assert.equal(note.files[0].language, 'markdown');
+        assert.equal(note.files[0].content, '# Deployment notes');
+        assert.equal(note.folders[0].id, noteFolder.id);
+        assert.equal(note.is_public, false);
+        await page.getByRole('heading', { name: 'Deployment notes', exact: true }).waitFor();
+        await page.locator('.new-snippet-button').click();
+        await page.waitForFunction(() => document.activeElement?.matches('.editor-title-input'));
+        assert.equal(await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).activeFile.filename), 'snippet.txt');
+        await page.goto(origin + '/');
+        await appReady(page);
 
         // Switch in both directions without reloading; saved colors must survive reload.
         for (const activeTheme of [theme === 'light' ? 'dark' : 'light', theme]) {
