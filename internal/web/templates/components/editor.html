@@ -60,6 +60,10 @@
             <details class="editor-more" x-show="editingSnippet?.id">
                 <summary>More<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary><div class="editor-more-menu">
                     <button class="btn-action" @click="copyAsRichText(editingSnippet)">Copy as rich text</button>
+                    <button class="btn-action" x-show="canSetFolderOverview()" :disabled="savingFolderOverview"
+                        @click="$el.closest('details').open = false; setFolderOverview(editingSnippet.folder_id, editingSnippet.id)">
+                        Set as folder overview
+                    </button>
             <!-- Archive button -->
             <button class="btn-action" @click="toggleArchive(editingSnippet)"
                 x-show="editingSnippet?.id && settings.archive_enabled"

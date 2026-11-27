@@ -365,5 +365,8 @@ func getMigrations() []Migration {
 		{Version: 9, Name: "add_gist_sync", SQL: addGistSyncSQL},
 		{Version: 10, Name: "add_soft_delete", SQL: addSoftDeleteSQL},
 		{Version: 11, Name: "add_snippet_expiration", SQL: addExpirationSQL},
+		{Version: 13, Name: "add_folder_overview", SQL: `
+			ALTER TABLE folders ADD COLUMN overview_snippet_id TEXT REFERENCES snippets(id) ON DELETE SET NULL;
+		`},
 	}
 }

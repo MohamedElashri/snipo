@@ -244,6 +244,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Put("/", folderHandler.Update)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Delete("/", folderHandler.Delete)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Put("/move", folderHandler.Move)
+				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Put("/overview", folderHandler.SetOverview)
 			})
 		})
 

@@ -2931,6 +2931,44 @@ paths:
                       code: "INTERNAL_ERROR"
                       message: "An internal server error occurred"
 
+  /api/v1/folders/{id}/overview:
+    put:
+      tags: [Folders]
+      summary: Set or clear the folder's Markdown overview
+      operationId: setFolderOverview
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [snippet_id]
+              properties:
+                snippet_id:
+                  type: [string, "null"]
+                  description: ID of an active Markdown snippet in the folder, or null to clear.
+      responses:
+        '200':
+          description: Folder overview updated
+        '400':
+          description: Invalid folder ID, request body, or overview snippet
+        '401':
+          description: Authentication required
+        '403':
+          description: Write permission required
+        '404':
+          description: Folder unavailable
+
   /api/v1/folders/{id}/move:
     put:
       tags: [Folders]
@@ -6306,6 +6344,9 @@ components:
         created_at:
           type: string
           format: date-time
+        overview_snippet_id:
+          type: string
+          description: ID of the active Markdown snippet assigned as the overview.
         snippet_count:
           type: integer
         children:

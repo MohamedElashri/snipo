@@ -29,7 +29,7 @@ export const editorMixin = {
     }
   },
 
-  async viewSnippet(snippet) {
+  async viewSnippet(snippet, { markdown = false } = {}) {
     if (this.saving) return;
     this.preserveDraft();
     this.showSettings = false;
@@ -47,7 +47,9 @@ export const editorMixin = {
         folder_id: result.folders?.[0]?.id || null,
         files: result.files || []
       };
-      this.activeFileIndex = 0;
+      this.activeFileIndex = markdown
+        ? Math.max(0, this.editingSnippet.files.findIndex(file => file.language === 'markdown'))
+        : 0;
       this.showEditor = true;
       this.isEditing = false;
       this.updateUrl({ snippet: snippet.id });

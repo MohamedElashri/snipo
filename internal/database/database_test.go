@@ -10,7 +10,7 @@ import (
 )
 
 func TestMigrateFromEverySchemaVersion(t *testing.T) {
-	for version := 0; version <= 11; version++ {
+	for version := 0; version <= 13; version++ {
 		t.Run(fmt.Sprintf("version_%d", version), func(t *testing.T) {
 			db := newMigrationTestDB(t)
 			prepareSchemaVersion(t, db.DB, version)
@@ -147,8 +147,8 @@ func assertCurrentSchema(t *testing.T, db *sql.DB) {
 	if err := db.QueryRow("SELECT MAX(version) FROM schema_migrations").Scan(&version); err != nil {
 		t.Fatalf("read current version: %v", err)
 	}
-	if version != 11 {
-		t.Fatalf("expected schema version 11, got %d", version)
+	if version != 13 {
+		t.Fatalf("expected schema version 13, got %d", version)
 	}
 
 	for table, column := range map[string]string{
@@ -182,4 +182,23 @@ func assertCurrentSchema(t *testing.T, db *sql.DB) {
 			t.Fatalf("expected table %s", table)
 		}
 	}
+}
+
+func TestMigrateFillsGapBeforeNewerMigration(t *testing.T) {
+	db := newMigrationTestDB(t)
+	prepareSchemaVersion(t, db.DB, 10)
+	for _, migration := range getMigrations() {
+		if migration.Name == "add_folder_overview" {
+			if _, err := db.Exec(migration.SQL); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := db.Exec("INSERT INTO schema_migrations (version, name) VALUES (?, ?)", migration.Version, migration.Name); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if err := db.Migrate(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	assertCurrentSchema(t, db.DB)
 }
