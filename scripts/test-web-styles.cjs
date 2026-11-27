@@ -229,6 +229,46 @@ async function checkPage(page) {
 
         if (width === 1440 && theme === 'light') await checkMarkdownSecurity(page, origin, password);
 
+        // Drive real Markdown controls and intercept writes to verify the clipboard payload.
+        await page.evaluate(() => {
+          window.copiedBlocks = [];
+          Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: { writeText: text => {
+              if (window.rejectCopy) return Promise.reject(new Error('Clipboard denied'));
+              window.copiedBlocks.push(text);
+              return Promise.resolve();
+            } }
+          });
+        });
+        const markdown = '# Copy examples\n\nInline `not a block`\n\n```html\n  <tag>&</tag>\n\n```\n\n```\nsecond  \n```';
+        const copyFixture = await page.request.post(origin + '/api/v1/snippets', { data: {
+          title: 'Block copy ' + width + ' ' + theme, language: 'markdown', content: markdown,
+          files: [{ filename: 'blocks.md', language: 'markdown', content: markdown },
+            { filename: 'empty.md', language: 'markdown', content: '' }]
+        } });
+        assert.ok(copyFixture.ok(), await copyFixture.text());
+        const { data: copyNote } = await copyFixture.json();
+        await page.evaluate(async id => {
+          const app = Alpine.$data(document.querySelector('.app-container'));
+          await app.viewSnippet({ id });
+        }, copyNote.id);
+        const blockButtons = page.getByRole('button', { name: 'Copy code block', exact: true });
+        await blockButtons.first().waitFor();
+        assert.equal(await blockButtons.count(), 2);
+        await blockButtons.first().press('Enter');
+        await blockButtons.last().click();
+        assert.deepEqual(await page.evaluate(() => window.copiedBlocks), ['  <tag>&</tag>\n\n', 'second  \n']);
+        await page.evaluate(() => { window.rejectCopy = true; });
+        await blockButtons.last().click();
+        await page.getByText('Could not copy code block', { exact: true }).waitFor();
+        await page.evaluate(() => {
+          Alpine.$data(document.querySelector('.app-container')).activeFileIndex = 1;
+        });
+        await blockButtons.first().waitFor({ state: 'detached' });
+        await page.goto(origin + '/');
+        await appReady(page);
+
         // Seed through the API, then exercise the actual editor and Markdown preview.
         const created = await page.request.post(origin + '/api/v1/snippets', { data: {
           title: 'Styles regression', description: 'Theme color regression fixture', language: 'markdown', is_public: true,
