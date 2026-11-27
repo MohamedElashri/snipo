@@ -19,7 +19,8 @@ For local development, follow [Build](#build), then load
 1. In Snipo, create a dedicated API token with `write` permission.
 2. Open the extension options.
 3. Enter the complete Snipo base URL, including any configured subpath.
-4. Enter the API token and test the connection.
+4. Enter the API token and test the connection. In Firefox, allow access to
+   your Snipo server when prompted.
 5. Save.
 
 Use HTTPS when the browser and Snipo communicate over a network. The token is a

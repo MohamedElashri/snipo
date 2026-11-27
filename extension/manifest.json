@@ -9,6 +9,10 @@
         "contextMenus",
         "storage"
     ],
+    "optional_host_permissions": [
+        "http://*/*",
+        "https://*/*"
+    ],
     "browser_specific_settings": {
         "gecko": {
             "id": "snipo-snippet-manager@extensions.snipo",
