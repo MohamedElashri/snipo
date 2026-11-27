@@ -2,6 +2,10 @@
 
 Changes below apply to Snipo's VS Code extension.
 
+## [2.2.4] - Unreleased
+
+- Handle empty tag and folder lists returned by the server.
+
 ## [2.2.2] - 2026-11-22
 
 - **VS Code extension:** Update build, packaging, and test dependencies.
