@@ -96,6 +96,9 @@ Editor assets and language workers are served by your own Snipo instance.
 CodeMirror and Monaco load only when selected. If a selected editor cannot load,
 Snipo uses Ace and keeps your code.
 
+In the Markdown preview, use **Copy** above a code block to copy that block on
+its own, including its indentation.
+
 Snipo also supports Markdown preview, custom CSS, and right-to-left text.
 Custom CSS examples are in the [customization guide](customization.md).
 
