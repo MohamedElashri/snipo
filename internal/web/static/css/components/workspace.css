@@ -10,7 +10,11 @@ body:has(.app-container) { height: 100dvh; min-height: 0; overflow: hidden; }
 .main-header { min-height: 66px; gap: .65rem; padding: .65rem 1.2rem; }
 .search-container { max-width: 600px; }
 .search-help-btn { color: var(--snipo-text-secondary); }
-.new-snippet-button { white-space: nowrap; }
+.new-snippet-button, .new-note-button { white-space: nowrap; }
+@media (max-width: 480px) {
+  .new-note-button span { display: none; }
+  .new-note-button { min-width: 44px; min-height: 44px; justify-content: center; }
+}
 .workspace { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 .workspace > .snippet-list { flex: 1; min-width: 0; overflow: auto; padding: 1.25rem; }
 .workspace.has-selection > .snippet-list { flex: 0 0 var(--workspace-list-width); border-right: 1px solid var(--snipo-border); padding: 1rem .65rem; resize: horizontal; min-width: 260px; max-width: 45%; }
