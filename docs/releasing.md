@@ -42,16 +42,16 @@ Create the `vscode-marketplace`, `chrome-web-store`, and `firefox-add-ons`
 GitHub Actions environments before the first automated release. Allow `v*`
 tags as deployment sources.
 
-- **VS Code** — In the `muhammadelashri` publisher's Trusted Publishing
+- For **VS Code**, in the `muhammadelashri` publisher's Trusted Publishing
   settings, register owner `MohamedElashri`, repository `snipo`, workflow
   `unified-release.yml`, and environment `vscode-marketplace`. The job uses
   GitHub OIDC. [Marketplace setup](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#publish-with-github-actions-and-trusted-publishing)
-- **Chrome** — Enable the Chrome Web Store API and link a Google Cloud service
+- For **Chrome**, enable the Chrome Web Store API and link a Google Cloud service
   account to the existing Snipo publisher. Add `CHROME_SERVICE_ACCOUNT_JSON` as
   an environment secret and `CHROME_PUBLISHER_ID` as an environment variable in
   `chrome-web-store`. The item ID is already configured in the publishing script.
   [Service account setup](https://developer.chrome.com/docs/webstore/service-accounts)
-- **Firefox** — Create AMO API credentials for an author of the existing Snipo
+- For **Firefox**, create AMO API credentials for an author of the existing Snipo
   listing and set `AMO_JWT_ISSUER` and `AMO_JWT_SECRET` as environment secrets in
   `firefox-add-ons`. The job includes the matching source ZIP for review.
   [AMO API credentials](https://addons.mozilla.org/en-US/developers/addon/api/key/)
