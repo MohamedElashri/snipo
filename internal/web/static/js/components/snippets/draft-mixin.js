@@ -77,11 +77,22 @@ export const draftMixin = {
     this.showSettings = false;
     if (this.draftSnippet) {
       this.editingSnippet = { ...this.draftSnippet };
+      if (this.editingSnippet.newNote && !this.editingSnippet.id) {
+        this.editingSnippet.kind = 'note';
+        this.editingSnippet.content = this.editingSnippet.files?.[0]?.content ?? this.editingSnippet.content;
+        this.editingSnippet.language = this.editingSnippet.files?.[0]?.language === 'plaintext' ? 'plaintext' : 'markdown';
+        this.editingSnippet.files = [];
+        this.editingSnippet.sync_to_gist = false;
+        this.editingSnippet.expires_at = '';
+      }
+      this.noteMode = 'write';
+      this.noteConflict = null;
+      this.noteOverviewError = false;
       this.activeFileIndex = 0;
       if (this._resetFileManagerState) {
         this._resetFileManagerState();
       }
-      if (this._ensureEditableFiles) {
+      if (!this.isNote && this._ensureEditableFiles) {
         this._ensureEditableFiles();
       }
       this.showEditor = true;
@@ -90,9 +101,10 @@ export const draftMixin = {
       this.saveState = 'local';
       this.updateUrl({
         snippet: this.editingSnippet.id, edit: true,
-        note: !this.editingSnippet.id && this.editingSnippet.newNote
+        note: !this.editingSnippet.id && this.isNote
       });
       showToast('Draft restored');
+      if (this.isNote) this.focusNote();
       this.$nextTick(() => {
         this.updateCodeEditor();
         this.highlightAll();

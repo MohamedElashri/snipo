@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -84,4 +85,33 @@ func TestNoteCaptureHTTPPermissionsAndHistory(t *testing.T) {
 	if !strings.Contains(history.Body.String(), `"content":"# Notes"`) {
 		t.Fatalf("missing original history: %s", history.Body)
 	}
+
+	// A legacy Markdown snippet appears in the old list until explicitly converted.
+	call(http.MethodGet, "?kind=snippet&q=Runbook", readToken, "", http.StatusOK)
+	if result := call(http.MethodGet, "?kind=note&q=Runbook", readToken, "", http.StatusOK); strings.Contains(result.Body.String(), snippet.Data.ID) {
+		t.Fatalf("legacy item appeared in Notes: %s", result.Body)
+	}
+	call(http.MethodPost, id+"/convert", readToken, `{"kind":"note"}`, http.StatusForbidden)
+	converted := call(http.MethodPost, id+"/convert", writeToken, `{"kind":"note"}`, http.StatusOK)
+	if err := json.Unmarshal(converted.Body.Bytes(), &snippet); err != nil || snippet.Data.Kind != models.KindNote || "/"+snippet.Data.ID != id {
+		t.Fatalf("conversion changed identity: %+v, %v", snippet, err)
+	}
+	call(http.MethodPut, id, writeToken, `{"kind":"snippet","title":"Runbook","language":"markdown"}`, http.StatusBadRequest)
+	call(http.MethodPut, id, writeToken, `{"title":"Runbook","language":"python","content":"body"}`, http.StatusBadRequest)
+	call(http.MethodPut, id, writeToken, `{"title":"Runbook","files":[{"filename":"a.md","language":"markdown"},{"filename":"b.txt","language":"plaintext"}]}`, http.StatusBadRequest)
+	call(http.MethodPut, id, writeToken, `{"title":"Runbook","language":"plaintext","content":"Keep  spaces"}`, http.StatusOK)
+	if result := call(http.MethodGet, "?q=Runbook", readToken, "", http.StatusOK); strings.Contains(result.Body.String(), snippet.Data.ID) {
+		t.Fatalf("old client list returned notes: %s", result.Body)
+	}
+	if result := call(http.MethodGet, "/note-targets?kind=note&q=Runbook", readToken, "", http.StatusOK); !strings.Contains(result.Body.String(), `"language":"plaintext"`) {
+		t.Fatalf("plain text note missing from capture picker: %s", result.Body)
+	}
+	call(http.MethodPost, id+"/append", writeToken, `{"language":"plaintext","content":"captured"}`, http.StatusNoContent)
+	stale := fmt.Sprintf(`{"title":"Runbook","revision":%d,"language":"plaintext","content":"my draft"}`, snippet.Data.Revision)
+	call(http.MethodPut, id, writeToken, stale, http.StatusConflict)
+	detail = call(http.MethodGet, id, readToken, "", http.StatusOK)
+	if err := json.Unmarshal(detail.Body.Bytes(), &snippet); err != nil || snippet.Data.Content != "Keep  spaces\n\ncaptured" {
+		t.Fatalf("capture was not retained: %+v, %v", snippet, err)
+	}
+	call(http.MethodPost, id+"/convert", writeToken, `{"kind":"snippet"}`, http.StatusOK)
 }

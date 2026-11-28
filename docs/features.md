@@ -109,9 +109,26 @@ Custom CSS examples are in the [customization guide](customization.md).
 Ace and CodeMirror adapt text direction to the content. Monaco keeps its standard
 code layout. Text is saved as entered, including Arabic and mixed-language text.
 
-Choose **New note** to open a blank Markdown file named `note.md`. The editor
-focuses the body and selects the folder you are browsing. Give your note a title
-and save it alongside your other snippets.
+## Notes
+
+Choose **New note** and start writing. Markdown is the default format, and
+**Plain text** preserves spacing and line breaks. Use **Preview** while writing
+Markdown. If you leave the title blank, Snipo uses the first line of the body.
+Notes start private, with no expiry or automatic Gist sync.
+
+Use **Notes** in the sidebar to browse all notes. A note created from a folder
+inherits that folder. Notes and snippets share folders and tags, and you can
+filter a folder or tag by type. A Markdown note can also be a folder overview.
+
+To bring an existing single-body Markdown or plain text snippet into Notes,
+open **More → Convert to note**. The item keeps its link, history, folder, and
+tags. **Convert to snippet** changes it back. Download a note as Markdown or
+plain text from the same menu.
+
+The browser save dialog can create a note or append a selection and its source
+link to an existing private note. In VS Code, use the **Notes** view and
+**Snipo: Save Note**. In the terminal, use **Tab** to switch to Notes and **n**
+to create a note.
 
 ## Keyboard shortcuts
 

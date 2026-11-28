@@ -24,14 +24,15 @@ func NewSnippetRepository(db *sql.DB) *SnippetRepository {
 // Create inserts a new snippet
 func (r *SnippetRepository) Create(ctx context.Context, input *models.SnippetInput) (*models.Snippet, error) {
 	query := `
-		INSERT INTO snippets (title, description, content, language, is_public, is_archived, expires_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-		RETURNING id, title, description, content, language, is_favorite, is_public,
+		INSERT INTO snippets (kind, title, description, content, language, is_public, is_archived, expires_at)
+		VALUES (COALESCE(NULLIF(?, ''), 'snippet'), ?, ?, ?, ?, ?, ?, ?)
+		RETURNING id, kind, revision, title, description, content, language, is_favorite, is_public,
 		          view_count, s3_key, checksum, is_archived, expires_at, created_at, updated_at, deleted_at
 	`
 
 	snippet := &models.Snippet{}
 	err := r.db.QueryRowContext(ctx, query,
+		input.Kind,
 		input.Title,
 		input.Description,
 		input.Content,
@@ -41,6 +42,8 @@ func (r *SnippetRepository) Create(ctx context.Context, input *models.SnippetInp
 		input.ExpiresAt,
 	).Scan(
 		&snippet.ID,
+		&snippet.Kind,
+		&snippet.Revision,
 		&snippet.Title,
 		&snippet.Description,
 		&snippet.Content,
@@ -73,7 +76,7 @@ func snippetByID(ctx context.Context, db interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
 }, id string) (*models.Snippet, error) {
 	query := `
-		SELECT id, title, description, content, language, is_favorite, is_public,
+		SELECT id, kind, revision, title, description, content, language, is_favorite, is_public,
 		       view_count, s3_key, checksum, is_archived, expires_at, created_at, updated_at, deleted_at
 		FROM snippets
 		WHERE id = ?
@@ -82,6 +85,8 @@ func snippetByID(ctx context.Context, db interface {
 	snippet := &models.Snippet{}
 	err := db.QueryRowContext(ctx, query, id).Scan(
 		&snippet.ID,
+		&snippet.Kind,
+		&snippet.Revision,
 		&snippet.Title,
 		&snippet.Description,
 		&snippet.Content,
@@ -112,9 +117,9 @@ func snippetByID(ctx context.Context, db interface {
 func (r *SnippetRepository) Update(ctx context.Context, id string, input *models.SnippetInput) (*models.Snippet, error) {
 	query := `
 		UPDATE snippets
-		SET title = ?, description = ?, content = ?, language = ?, is_public = ?, is_archived = ?, expires_at = ?, updated_at = CURRENT_TIMESTAMP
-		WHERE id = ?
-		RETURNING id, title, description, content, language, is_favorite, is_public,
+		SET title = ?, description = ?, content = ?, language = ?, is_public = ?, is_archived = ?, expires_at = ?, revision = revision + 1, updated_at = CURRENT_TIMESTAMP
+		WHERE id = ? AND kind = 'snippet'
+		RETURNING id, kind, revision, title, description, content, language, is_favorite, is_public,
 		          view_count, s3_key, checksum, is_archived, expires_at, created_at, updated_at, deleted_at
 	`
 
@@ -130,6 +135,8 @@ func (r *SnippetRepository) Update(ctx context.Context, id string, input *models
 		id,
 	).Scan(
 		&snippet.ID,
+		&snippet.Kind,
+		&snippet.Revision,
 		&snippet.Title,
 		&snippet.Description,
 		&snippet.Content,
@@ -292,6 +299,11 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 		conditions = append(conditions, "s.deleted_at IS NULL")
 	}
 
+	if filter.Kind != "" {
+		conditions = append(conditions, "s.kind = ?")
+		args = append(args, filter.Kind)
+	}
+
 	// Fuzzy search on title, description, content, and snippet files
 	if filter.Query != "" {
 		// Split query into words for fuzzy matching
@@ -382,11 +394,11 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 
 	// Build main query using safe column names from allowedSortColumns map
 	query := fmt.Sprintf(`
-		SELECT s.id, s.title, s.description, s.content, s.language, s.is_favorite, s.is_public,
+		SELECT s.id, s.kind, s.revision, s.title, s.description, s.content, s.language, s.is_favorite, s.is_public,
 		       s.view_count, s.s3_key, s.checksum, s.is_archived, s.expires_at, s.created_at, s.updated_at, s.deleted_at
 		FROM snippets s
 		%s
-		ORDER BY s.%s %s
+		ORDER BY s.%s %s, s.id
 		LIMIT ? OFFSET ?
 	`, whereClause, sortColumn, sortOrder)
 
@@ -407,6 +419,8 @@ func (r *SnippetRepository) List(ctx context.Context, filter models.SnippetFilte
 		var s models.Snippet
 		if err := rows.Scan(
 			&s.ID,
+			&s.Kind,
+			&s.Revision,
 			&s.Title,
 			&s.Description,
 			&s.Content,
@@ -454,13 +468,15 @@ func (r *SnippetRepository) ToggleFavorite(ctx context.Context, id string) (*mod
 		UPDATE snippets
 		SET is_favorite = NOT is_favorite
 		WHERE id = ?
-		RETURNING id, title, description, content, language, is_favorite, is_public,
+		RETURNING id, kind, revision, title, description, content, language, is_favorite, is_public,
 		          view_count, s3_key, checksum, is_archived, created_at, updated_at, deleted_at
 	`
 
 	snippet := &models.Snippet{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&snippet.ID,
+		&snippet.Kind,
+		&snippet.Revision,
 		&snippet.Title,
 		&snippet.Description,
 		&snippet.Content,
@@ -492,15 +508,18 @@ func (r *SnippetRepository) ToggleArchive(ctx context.Context, id string) (*mode
 		UPDATE snippets
 		SET is_archived = NOT is_archived,
 		    is_public = CASE WHEN (NOT is_archived) = 1 THEN 0 ELSE is_public END,
+		    revision = revision + 1,
 		    updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
-		RETURNING id, title, description, content, language, is_favorite, is_public,
+		RETURNING id, kind, revision, title, description, content, language, is_favorite, is_public,
 		          view_count, s3_key, checksum, is_archived, expires_at, created_at, updated_at, deleted_at
 	`
 
 	snippet := &models.Snippet{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&snippet.ID,
+		&snippet.Kind,
+		&snippet.Revision,
 		&snippet.Title,
 		&snippet.Description,
 		&snippet.Content,
@@ -537,25 +556,29 @@ func (r *SnippetRepository) IncrementViewCount(ctx context.Context, id string) e
 }
 
 // Search performs full-text search on snippets
-func (r *SnippetRepository) Search(ctx context.Context, query string, limit int) ([]models.Snippet, error) {
+func (r *SnippetRepository) Search(ctx context.Context, query string, limit int, kinds ...string) ([]models.Snippet, error) {
 	if limit <= 0 {
 		limit = 10
 	}
 
 	safeQuery := sanitizeFTSQuery(query)
+	kind := ""
+	if len(kinds) > 0 {
+		kind = kinds[0]
+	}
 
 	sqlQuery := `
-		SELECT s.id, s.title, s.description, s.content, s.language, s.is_favorite, s.is_public,
+		SELECT s.id, s.kind, s.revision, s.title, s.description, s.content, s.language, s.is_favorite, s.is_public,
 		       s.view_count, s.s3_key, s.checksum, s.is_archived, s.expires_at, s.created_at, s.updated_at, s.deleted_at
 		FROM snippets s
 		WHERE s.rowid IN (
 			SELECT rowid FROM snippets_fts WHERE snippets_fts MATCH ?
 		)
-        AND s.deleted_at IS NULL
+        AND s.deleted_at IS NULL AND (? = '' OR s.kind = ?)
 		LIMIT ?
 	`
 
-	rows, err := r.db.QueryContext(ctx, sqlQuery, safeQuery, limit)
+	rows, err := r.db.QueryContext(ctx, sqlQuery, safeQuery, kind, kind, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search snippets: %w", err)
 	}
@@ -570,6 +593,8 @@ func (r *SnippetRepository) Search(ctx context.Context, query string, limit int)
 		var s models.Snippet
 		if err := rows.Scan(
 			&s.ID,
+			&s.Kind,
+			&s.Revision,
 			&s.Title,
 			&s.Description,
 			&s.Content,

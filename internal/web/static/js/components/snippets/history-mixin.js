@@ -92,19 +92,19 @@ export const historyMixin = {
         `/api/v1/snippets/${historyEntry.snippet_id}/history/${historyEntry.id}/restore`
       );
       
-      if (result) {
-        showToast('Snippet successfully restored from history');
+      if (result && !result.error) {
+        showToast(result.kind === 'note' ? 'Note restored from history' : 'Snippet restored from history');
         
         this.closeHistoryDetail();
         this.closeHistory();
         
         if (this.editingSnippet && this.editingSnippet.id === historyEntry.snippet_id) {
-          await this.loadSnippet(historyEntry.snippet_id);
+          await this.viewSnippet(result);
         }
         
         await this.loadSnippets();
       } else {
-        throw new Error('No response from server');
+        throw new Error(result?.error?.message || 'No response from server');
       }
     } catch (error) {
       console.error('Failed to restore history:', error);
@@ -116,7 +116,7 @@ export const historyMixin = {
       } else if (error.message && error.message.includes('network')) {
         showToast('Network error - please check your connection', 'error');
       } else {
-        showToast('Failed to restore from history', 'error');
+        showToast(error.message || 'Failed to restore from history', 'error');
       }
     } finally {
       this.restoringHistoryEntry = null;

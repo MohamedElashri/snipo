@@ -22,6 +22,7 @@ import { theme } from '../modules/theme.js';
 // Import component mixins
 import { sessionMixin } from './snippets/session-mixin.js';
 import { workspaceMixin } from './snippets/workspace-mixin.js';
+import { notesMixin } from './snippets/notes-mixin.js';
 import { editorMixin } from './snippets/editor-mixin.js';
 import { fileManagerMixin } from './snippets/file-manager-mixin.js';
 import { foldersMixin } from './snippets/folders-mixin.js';
@@ -68,6 +69,7 @@ export function initSnippetsApp(Alpine) {
 
     filter: {
       query: '',
+      kind: 'all',
       tagId: null,
       folderId: null,
       language: '',
@@ -78,6 +80,7 @@ export function initSnippetsApp(Alpine) {
 
     pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
     totalSnippets: 0,
+    noteLayout: ['grid', 'compact'].includes(localStorage.getItem('snipo-note-layout')) ? localStorage.getItem('snipo-note-layout') : 'list',
     favoritesCount: 0,
     loading: true,
     loadError: '',
@@ -190,6 +193,7 @@ export function initSnippetsApp(Alpine) {
       params.set('page', this.pagination.page);
       params.set('limit', this.pagination.limit);
       params.set('view', 'summary');
+      params.set('kind', this.filter.kind);
 
       // Handle sorting
       if (this.sortBy) {
@@ -219,13 +223,13 @@ export function initSnippetsApp(Alpine) {
       try {
         const result = await api.get(`/api/v1/snippets?${params}`);
         if (request !== this.listRequest) return;
-        if (!result || result.error) throw new Error(result?.error?.message || 'Unable to load snippets.');
+        if (!result || result.error) throw new Error(result?.error?.message || 'Unable to load your library.');
         if (result) {
           this.snippets = result.data || [];
           this.pagination = result.pagination || this.pagination;
         }
       } catch (error) {
-        if (request === this.listRequest) this.loadError = error.message || 'Unable to load snippets.';
+        if (request === this.listRequest) this.loadError = error.message || 'Unable to load your library.';
       } finally {
         if (request === this.listRequest) this.loading = false;
       }
@@ -261,12 +265,12 @@ export function initSnippetsApp(Alpine) {
     },
 
     async loadTotalCount() {
-      const result = await api.get('/api/v1/snippets?limit=1&view=summary');
+      const result = await api.get('/api/v1/snippets?kind=all&limit=1&view=summary');
       if (result?.pagination) this.totalSnippets = result.pagination.total;
     },
 
     async loadFavoritesCount() {
-      const result = await api.get('/api/v1/snippets?favorite=true&limit=1&view=summary');
+      const result = await api.get('/api/v1/snippets?kind=all&favorite=true&limit=1&view=summary');
       if (result && result.pagination) {
         this.favoritesCount = result.pagination.total;
       }
@@ -281,6 +285,8 @@ export function initSnippetsApp(Alpine) {
 
     async filterByTag(tagId) {
       if (!this.prepareLibraryNavigation()) return;
+      this.filter.kind = 'all';
+      this.filter.language = '';
       this.filter.isArchived = null;
       this.filter.isDeleted = null;
       this.filter.tagId = tagId;
@@ -293,6 +299,8 @@ export function initSnippetsApp(Alpine) {
 
     async filterByFolder(folderId) {
       if (!this.prepareLibraryNavigation()) return;
+      this.filter.kind = 'all';
+      this.filter.language = '';
       this.filter.isArchived = null;
       this.filter.isDeleted = null;
       this.filter.folderId = folderId;
@@ -303,17 +311,18 @@ export function initSnippetsApp(Alpine) {
       this.updateUrl({ folder: folderId });
     },
 
-    async clearFilters() {
+    async clearFilters(kind = 'all') {
       if (!this.prepareLibraryNavigation()) return;
-      this.filter = { query: '', tagId: null, folderId: null, language: '', isFavorite: null, isArchived: null, isDeleted: null };
+      this.filter = { query: '', kind, tagId: null, folderId: null, language: '', isFavorite: null, isArchived: null, isDeleted: null };
       this.pagination.page = 1;
       await this.loadSnippets();
-      this.totalSnippets = this.pagination.total;
       this.updateUrl({});
     },
 
     async showFavorites() {
       if (!this.prepareLibraryNavigation()) return;
+      this.filter.kind = 'all';
+      this.filter.language = '';
       this.filter.isArchived = null;
       this.filter.isDeleted = null;
       this.filter.isFavorite = true;
@@ -326,6 +335,8 @@ export function initSnippetsApp(Alpine) {
 
     async showArchive() {
       if (!this.prepareLibraryNavigation()) return;
+      this.filter.kind = 'all';
+      this.filter.language = '';
       this.filter.isArchived = true;
       this.filter.isDeleted = null;
       this.filter.tagId = null;
@@ -338,6 +349,8 @@ export function initSnippetsApp(Alpine) {
 
     async showTrash() {
       if (!this.prepareLibraryNavigation()) return;
+      this.filter.kind = 'all';
+      this.filter.language = '';
       this.filter.isDeleted = true;
       this.filter.isArchived = null;
       this.filter.tagId = null;
@@ -367,11 +380,11 @@ export function initSnippetsApp(Alpine) {
       const url = new URL(window.location);
       const values = {
         q: this.filter.query, folder: this.filter.folderId, tag: this.filter.tagId,
-        language: this.filter.language, favorites: this.filter.isFavorite,
+        language: this.filter.language, kind: this.filter.kind === 'all' ? null : this.filter.kind, favorites: this.filter.isFavorite,
         archive: this.filter.isArchived, trash: this.filter.isDeleted,
         settings: this.showSettings ? this.settingsTab : null, ...params
       };
-      for (const key of ['snippet', 'edit', 'note', 'folder', 'tag', 'favorites', 'trash', 'archive', 'q', 'language', 'settings']) {
+      for (const key of ['snippet', 'edit', 'note', 'folder', 'tag', 'favorites', 'trash', 'archive', 'q', 'language', 'kind', 'settings']) {
         url.searchParams.delete(key);
         if (values[key]) url.searchParams.set(key, values[key]);
       }
@@ -386,6 +399,7 @@ export function initSnippetsApp(Alpine) {
         const params = new URLSearchParams(window.location.search);
         this.filter = {
           query: params.get('q') || '', language: params.get('language') || '',
+          kind: ['note', 'snippet'].includes(params.get('kind')) ? params.get('kind') : 'all',
           folderId: parseInt(params.get('folder'), 10) || null,
           tagId: parseInt(params.get('tag'), 10) || null,
           isFavorite: params.get('favorites') === 'true' || null,
@@ -401,7 +415,7 @@ export function initSnippetsApp(Alpine) {
         const editing = params.get('edit') === 'true';
         const note = params.get('note') === 'true';
         if (editing && this.draftSnippet && (this.draftSnippet.id || null) === snippetId &&
-            (snippetId || Boolean(this.draftSnippet.newNote) === note)) {
+            (snippetId || Boolean(this.draftSnippet.newNote || this.draftSnippet.kind === 'note') === note)) {
           this.restoreDraft();
         } else if (snippetId && /^[a-zA-Z0-9_-]+$/.test(snippetId)) {
           await this.viewSnippet({ id: snippetId });
@@ -411,6 +425,29 @@ export function initSnippetsApp(Alpine) {
       } finally {
         this.restoringUrl = false;
       }
+    },
+
+    get isNote() {
+      return this.editingSnippet?.kind === 'note';
+    },
+
+    get noteTitleSuggestion() {
+      const body = this.editingSnippet?.content || '';
+      const firstLine = body.split(/\r?\n/).find(line => line.trim());
+      if (!firstLine) return '';
+      const title = this.editingSnippet.language === 'markdown'
+        ? firstLine.trim().replace(/^(?:#{1,6}|>|[-*+])\s+/, '')
+        : firstLine.trim();
+      return Array.from(title).slice(0, 200).join('');
+    },
+
+    get libraryLayout() {
+      if (this.filter.kind === 'note') return this.noteLayout;
+      return this.viewMode === 'grid' ? 'grid' : (this.density === 'compact' ? 'compact' : 'list');
+    },
+
+    get scopedLibrary() {
+      return this.filter.folderId || this.filter.tagId || this.filter.isFavorite || this.filter.isArchived || this.filter.isDeleted;
     },
 
     // Computed
@@ -519,6 +556,7 @@ export function initSnippetsApp(Alpine) {
     ...sessionMixin,
     ...workspaceMixin,
     ...editorMixin,
+    ...notesMixin,
     ...fileManagerMixin,
     ...foldersMixin,
     ...tagsMixin,

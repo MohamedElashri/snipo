@@ -3,7 +3,7 @@
 <div class="snipo-modal-backdrop" x-show="showDeleteModal" x-cloak @click.self="showDeleteModal = false">
     <div class="modal">
         <div class="modal-header">
-            <h3 x-text="(filter?.isDeleted || !settings?.trash_enabled) ? 'Permanently Delete Snippet' : 'Move to Trash'"></h3>
+            <h3 x-text="(filter?.isDeleted || !settings?.trash_enabled) ? (deleteTarget?.kind === 'note' ? 'Permanently Delete Note' : 'Permanently Delete Snippet') : 'Move to Trash'"></h3>
             <button class="btn-icon" @click="showDeleteModal = false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -150,7 +150,7 @@
 <div class="snipo-modal-backdrop" x-show="showHistory" x-cloak @click.self="closeHistory()">
     <div class="modal" style="max-width: 900px; max-height: 80vh;">
         <div class="modal-header">
-            <h3>Snippet History</h3>
+            <h3 x-text="isNote ? 'Note history' : 'Snippet History'">Snippet History</h3>
             <button class="btn-icon" @click="closeHistory()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -160,7 +160,7 @@
         </div>
         <div class="modal-body" style="overflow-y: auto; max-height: calc(80vh - 120px);">
             <p class="text-sm text-muted" x-show="!historyLoading && history.length === 0">
-                No history available for this snippet yet.
+                No history available yet.
             </p>
             <p class="text-sm text-muted" x-show="historyLoading">
                 Loading history...
@@ -310,7 +310,7 @@
             </div>
             <h4 style="text-align: center; margin: 1rem 0;">Restore Previous Version?</h4>
             <p style="text-align: center; color: var(--snipo-text-secondary); margin-bottom: 1rem;">
-                This will restore the snippet to:
+                This will restore the item to:
             </p>
             <div class="restore-info">
                 <div class="restore-info-item">

@@ -53,6 +53,8 @@ func setupTestWorker(t *testing.T) (*GistSyncWorker, *sql.DB) {
 		description TEXT DEFAULT '',
 		content TEXT NOT NULL,
 		language TEXT DEFAULT 'plaintext',
+		kind TEXT NOT NULL DEFAULT 'snippet',
+		revision INTEGER NOT NULL DEFAULT 1,
 		is_favorite INTEGER DEFAULT 0,
 		is_public INTEGER DEFAULT 0,
 		view_count INTEGER DEFAULT 0,

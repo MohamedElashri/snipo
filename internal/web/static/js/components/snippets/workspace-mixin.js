@@ -24,7 +24,7 @@ export const workspaceMixin = {
     if (this.filter.isFavorite) return 'Favorites';
     if (this.filter.folderId) return this.flattenedFolders.find(f => f.id == this.filter.folderId)?.name || 'Folder';
     if (this.filter.tagId) return this.tags.find(t => t.id == this.filter.tagId)?.name || 'Tag';
-    return this.filter.query ? 'Search results' : 'All snippets';
+    return ({ all: 'All items', snippet: 'Snippets', note: 'Notes' })[this.filter.kind];
   },
   activeFilterChips() {
     const labels = {
@@ -34,7 +34,7 @@ export const workspaceMixin = {
       tagId: this.tags.find(t => t.id == this.filter.tagId)?.name,
       isFavorite: 'Favorites', isArchived: 'Archive', isDeleted: 'Trash'
     };
-    return Object.entries(this.filter).filter(([, value]) => !!value)
+    return Object.entries(this.filter).filter(([key, value]) => key !== 'kind' && !!value)
       .map(([key, value]) => ({ key, label: labels[key] || String(value) }));
   },
   hasActiveFilters() { return this.activeFilterChips().length > 0; },
@@ -59,8 +59,19 @@ export const workspaceMixin = {
       this.$store.app.sidebarOpen = false;
     }
   },
+
+  async setItemKind(kind) {
+    this.filter.kind = kind;
+    this.filter.language = '';
+    await this.search();
+  },
   setLibraryLayout(layout) {
     if (!['grid', 'list', 'compact'].includes(layout)) return;
+    if (this.filter.kind === 'note') {
+      this.noteLayout = layout;
+      localStorage.setItem('snipo-note-layout', layout);
+      return;
+    }
     this.setViewMode(layout === 'grid' ? 'grid' : 'list');
     this.density = layout === 'compact' ? 'compact' : 'comfortable';
     localStorage.setItem('snipo-density', this.density);

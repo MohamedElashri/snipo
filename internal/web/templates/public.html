@@ -3,7 +3,7 @@
     <!-- Loading state -->
     <div class="public-loading" x-show="loading">
         <div class="spinner"></div>
-        <p>Loading snippet...</p>
+        <p>Loading shared item…</p>
     </div>
     
     <!-- Error state -->
@@ -13,7 +13,7 @@
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
         </svg>
-        <h2>Snippet Not Found</h2>
+        <h2>Shared item unavailable</h2>
         <p x-text="errorMessage"></p>
         <a href="{{.BasePath}}/" class="btn-primary" style="display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; text-decoration: none;">
             Go to Snipo
@@ -31,7 +31,7 @@
                 </a>
             </div>
             <div class="public-header-right">
-                <button class="btn-action" @click="copyCode()" title="Copy active file">
+                <button class="btn-action" @click="copyCode()" :title="snippet.kind === 'note' ? 'Copy note' : 'Copy active file'">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -71,7 +71,7 @@
                 x-show="snippet.description" x-text="snippet.description"></p>
             
             <div class="public-meta">
-                <span class="language-badge" :style="{ background: getLanguageColor(getCurrentLanguage()) }" x-text="getCurrentLanguage()"></span>
+                <span class="language-badge" x-show="snippet.kind !== 'note'" :style="{ background: getLanguageColor(getCurrentLanguage()) }" x-text="getCurrentLanguage()"></span>
                 <template x-for="tag in (snippet.tags || [])" :key="tag.id">
                     <span class="tag-badge" x-text="tag.name"></span>
                 </template>
@@ -95,7 +95,7 @@
                 </template>
             </div>
             <!-- Single file info (only for single-file snippets) -->
-            <div class="file-info" x-show="!hasMultipleFiles()">
+            <div class="file-info" x-show="snippet.kind !== 'note' && !hasMultipleFiles()">
                 <span class="file-name" x-text="getCurrentFilename()"></span>
             </div>
             <!-- File actions (always visible) -->
@@ -107,7 +107,7 @@
                         <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
                 </button>
-                <button class="btn-icon-small" @click="copyFileUrl()" title="Copy file URL">
+                <button class="btn-icon-small" x-show="snippet.kind !== 'note'" @click="copyFileUrl()" title="Copy file URL">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
                         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
@@ -117,7 +117,11 @@
         </div>
         
         <!-- Code -->
-        <div class="public-code">
+        <article class="preview-markdown-scroll note-document" x-show="snippet.kind === 'note' && snippet.language === 'markdown'"
+            @click="copyMarkdownBlock($event)" x-html="snippet.kind === 'note' && snippet.language === 'markdown' ? renderMarkdownWithCopy(snippet.content) : ''" dir="auto"></article>
+        <article class="note-document note-plain" x-show="snippet.kind === 'note' && snippet.language === 'plaintext'"
+            x-text="snippet.content" dir="auto"></article>
+        <div class="public-code" x-show="snippet.kind !== 'note'">
             <pre><code :class="'language-' + getCurrentLanguage()" x-html="highlightCode(getCurrentContent(), getCurrentLanguage())"></code></pre>
         </div>
         

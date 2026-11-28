@@ -121,12 +121,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             if (request.action === 'getSaveDraft') {
                 sendResponse({ success: true, data: record.data });
             } else if (request.action === 'listDraftNoteTargets') {
-                await withClient(client => client.getNoteTargets(request.query, request.page))
+                await withClient(client => client.getNoteTargets(request.query, request.page, request.kind))
                     .then(data => sendResponse({ success: true, data }))
                     .catch(error => sendResponse({ success: false, error: error.message }));
             } else if (request.action === 'appendDraftToNote') {
-                await withClient(client => client.appendNote(request.snippetId, formatNoteCapture(record.data), request.fileId))
+                const format = request.language === 'plaintext' ? 'plaintext' : 'markdown';
+                await withClient(client => client.appendNote(request.snippetId, formatNoteCapture(record.data, format), request.fileId, format))
                     .then(() => sendResponse({ success: true }))
+                    .catch(error => sendResponse({ success: false, error: error.message }));
+            } else if (request.kind === 'note') {
+                const format = request.language === 'plaintext' ? 'plaintext' : 'markdown';
+                const payload = {
+                    kind: 'note', title: request.title || 'Captured note', language: format,
+                    content: formatNoteCapture(record.data, format), folder_id: request.folder_id ? Number(request.folder_id) : undefined,
+                    tags: request.tags, is_public: false,
+                };
+                await withClient(client => client.createSnippet(payload))
+                    .then(data => sendResponse({ success: true, data }))
                     .catch(error => sendResponse({ success: false, error: error.message }));
             } else {
                 await saveSnippet(record.data.code, record.tab, request.language, request.title,
@@ -195,10 +206,10 @@ async function withClient(action) {
     }
 }
 
-function formatNoteCapture({ code, language, sourceURL }) {
+function formatNoteCapture({ code, language, sourceURL }, format = 'markdown') {
     if (typeof code !== 'string' || !code.trim()) throw new Error('Select text to append');
     let capture = code;
-    if (language !== 'plaintext' && /^[a-z0-9+-]+$/i.test(language || '')) {
+    if (format === 'markdown' && language !== 'plaintext' && /^[a-z0-9+-]+$/i.test(language || '')) {
         const runs = code.match(/~+/g) || [];
         const length = runs.reduce((longest, run) => Math.max(longest, run.length + 1), 3);
         const fence = '~'.repeat(length);
@@ -210,7 +221,7 @@ function formatNoteCapture({ code, language, sourceURL }) {
     source.username = '';
     source.password = '';
     const link = source.href.replaceAll('<', '%3C').replaceAll('>', '%3E');
-    return capture + '\n\n[Source](<' + link + '>)';
+    return capture + (format === 'markdown' ? '\n\n[Source](<' + link + '>)' : '\n\nSource: ' + link);
 }
 
 function getDefaultFilename(language) {

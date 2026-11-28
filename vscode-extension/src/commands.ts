@@ -37,7 +37,7 @@ function detectLanguage(vscodeLang: string): string {
     return mappings[lang] || 'plaintext';
 }
 
-async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | undefined> {
+async function showDynamicSnippetPicker(placeHolder: string, kind?: 'note'): Promise<Snippet | undefined> {
     return new Promise((resolve) => {
         let searchTimeout: NodeJS.Timeout | undefined;
         let searchAbortController: AbortController | undefined;
@@ -48,13 +48,16 @@ async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | 
         quickPick.matchOnDescription = true;
         quickPick.matchOnDetail = true;
 
+        const loadItems = () => kind === 'note' ? api.getSnippets('', undefined, undefined, undefined, kind) : api.getSnippets();
+        const icon = kind === 'note' ? 'note' : 'code';
+
         // Initial load
         quickPick.busy = true;
-        api.getSnippets().then(snippets => {
+        loadItems().then(snippets => {
             if (disposed || generation !== 0) return;
             try {
                 quickPick.items = snippets.map(s => ({
-                    label: `$(code) ${s.title}`,
+                    label: `$(${icon}) ${s.title}`,
                     description: s.language,
                     detail: s.description,
                     snippet: s
@@ -82,10 +85,10 @@ async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | 
             searchTimeout = setTimeout(async () => {
                 searchAbortController = new AbortController();
                 try {
-                    const snippets = value ? await api.searchSnippets(value, searchAbortController.signal) : await api.getSnippets();
+                    const snippets = value ? await api.searchSnippets(value, searchAbortController.signal, kind) : await loadItems();
                     if (disposed || request !== generation) return;
                     quickPick.items = snippets.map(s => ({
-                        label: `$(code) ${s.title}`,
+                        label: `$(${icon}) ${s.title}`,
                         description: s.language,
                         detail: s.description,
                         snippet: s
@@ -393,9 +396,56 @@ export async function openInVSCode(arg?: any) {
         }
         snippet = current;
         const doc = await vscode.workspace.openTextDocument({
-            language: snippet.language || 'text',
+            language: snippet.language || 'plaintext',
             content: snippet.content || ''
         });
+        if (snippet.kind === 'note') {
+            noteDocuments.set(doc.uri.toString(), { note: snippet, server: configuredServerURL(), saving: false });
+        }
         await vscode.window.showTextDocument(doc);
+    }
+}
+
+
+const noteDocuments = new Map<string, { note: Snippet; server: string; saving: boolean }>();
+
+export async function browseNotes() {
+    if (!(await api.isConfigured())) {
+        vscode.window.showErrorMessage('Configure Snipo to browse notes.');
+        return;
+    }
+    const note = await showDynamicSnippetPicker('Search Snipo notes', 'note');
+    if (note) await openInVSCode(note);
+}
+
+export function forgetNoteDocument(document: vscode.TextDocument) {
+    noteDocuments.delete(document.uri.toString());
+}
+
+export async function saveOpenNote() {
+    const doc = vscode.window.activeTextEditor?.document;
+    const entry = doc && noteDocuments.get(doc.uri.toString());
+    if (!doc || !entry || entry.server !== configuredServerURL()) {
+        vscode.window.showErrorMessage('Open a note from the current Snipo server to save it here.');
+        return;
+    }
+    if (entry.saving) return;
+    const { note } = entry;
+    const content = doc.getText();
+    const language = doc.languageId;
+    if (language !== 'markdown' && language !== 'plaintext') {
+        vscode.window.showErrorMessage('Choose Markdown or Plain Text for this note.');
+        return;
+    }
+    entry.saving = true;
+    try {
+        const saved = await api.updateSnippet(note.id, {
+            kind: 'note', revision: note.revision, title: note.title, description: note.description,
+            content, language, is_public: note.is_public, is_archived: note.is_archived, expires_at: note.expires_at,
+            folder_id: note.folders?.[0]?.id, tags: note.tags?.map(tag => tag.name),
+        });
+        if (saved) entry.note = saved;
+    } finally {
+        entry.saving = false;
     }
 }

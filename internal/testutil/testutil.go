@@ -45,6 +45,8 @@ func runTestMigrations(db *sql.DB) error {
 			description TEXT DEFAULT '',
 			content TEXT NOT NULL DEFAULT '',
 			language TEXT DEFAULT 'plaintext',
+			kind TEXT NOT NULL DEFAULT 'snippet',
+			revision INTEGER NOT NULL DEFAULT 1,
 			is_favorite INTEGER DEFAULT 0,
 			is_public INTEGER DEFAULT 0,
 			is_archived INTEGER DEFAULT 0,

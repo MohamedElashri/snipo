@@ -1,5 +1,7 @@
 export interface Snippet {
   id: string;
+  kind?: 'note' | 'snippet';
+  revision?: number;
   title: string;
   description: string;
   content: string;
@@ -13,6 +15,8 @@ export interface Snippet {
   tags?: Tag[];
   files?: SnippetFile[];
 }
+
+export type SnippetWrite = Omit<Partial<Snippet>, 'tags'> & { tags?: string[] };
 
 export interface SnippetFile {
   id: number;
@@ -40,6 +44,8 @@ export interface SnipoApiOptions {
 }
 
 export interface NoteTarget {
+  kind?: 'note' | 'snippet';
+  language?: 'markdown' | 'plaintext';
   snippet_id: string;
   title: string;
   file_id?: number;
@@ -118,9 +124,8 @@ export class SnipoClient {
     }
   }
 
-  async getSnippets(query?: string, signal?: AbortSignal): Promise<Snippet[]> {
-    const params: any = { limit: 100 };
-    if (query) params.q = query;
+  async getSnippets(query?: string, signal?: AbortSignal, kind?: 'all' | 'note' | 'snippet'): Promise<Snippet[]> {
+    const params = { limit: 100, kind, q: query || undefined };
     const response = await this.request<any>(query ? '/api/v1/snippets/search' : '/api/v1/snippets', { 
         params,
         signal 
@@ -145,21 +150,21 @@ export class SnipoClient {
     return this.unwrapSnippet(await this.request<Snippet | { data: Snippet }>('/api/v1/snippets', { method: 'POST', body: JSON.stringify(data) }));
   }
 
-  async getNoteTargets(query = '', page = 1): Promise<NoteTargets> {
+  async getNoteTargets(query = '', page = 1, kind?: 'note' | 'snippet'): Promise<NoteTargets> {
     const response = await this.request<{ data: NoteTargets }>('/api/v1/snippets/note-targets', {
-      params: { q: query, page }
+      params: { q: query, page, kind }
     });
     return response.data;
   }
 
-  async appendNote(id: string, content: string, fileID?: number): Promise<void> {
+  async appendNote(id: string, content: string, fileID?: number, language?: 'markdown' | 'plaintext'): Promise<void> {
     await this.request<void>(`/api/v1/snippets/${encodeURIComponent(id)}/append`, {
       method: 'POST',
-      body: JSON.stringify({ content, file_id: fileID }),
+      body: JSON.stringify({ content, file_id: fileID, language }),
     });
   }
 
-  async updateSnippet(id: string, data: Partial<Snippet>): Promise<Snippet> {
+  async updateSnippet(id: string, data: SnippetWrite): Promise<Snippet> {
     return this.unwrapSnippet(await this.request<Snippet | { data: Snippet }>(`/api/v1/snippets/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }));
   }
 

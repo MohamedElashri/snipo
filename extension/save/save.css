@@ -138,6 +138,10 @@
     display: none;
 }
 
+[hidden] {
+    display: none !important;
+}
+
 /* Form Row Layout */
 .snipo-form-group-row {
     display: flex;

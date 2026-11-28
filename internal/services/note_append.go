@@ -10,8 +10,8 @@ import (
 	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
-func (s *SnippetService) ListNoteTargets(ctx context.Context, query string, page int) (models.NoteTargets, error) {
-	return s.repo.ListNoteTargets(ctx, strings.TrimSpace(query), page, 25)
+func (s *SnippetService) ListNoteTargets(ctx context.Context, query string, page int, kinds ...string) (models.NoteTargets, error) {
+	return s.repo.ListNoteTargets(ctx, strings.TrimSpace(query), page, 25, kinds...)
 }
 
 func (s *SnippetService) AppendNote(ctx context.Context, id string, input models.NoteAppendInput) error {

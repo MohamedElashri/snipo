@@ -22,7 +22,7 @@
 
     <!-- Search -->
     <div class="search-container">
-        <input type="search" class="search-input" aria-label="Search snippets" placeholder="Search snippets... (/ or Ctrl+K)"
+        <input type="search" class="search-input" :aria-label="'Search ' + libraryTitle()" :placeholder="'Search ' + libraryTitle() + '…'"
             x-model="filter.query" @input.debounce.300ms="search()" @keydown.arrow-down.prevent="focusFirstResult()">
         <button class="search-help-btn" @click="showSearchHelp = !showSearchHelp" title="Search Help">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -34,14 +34,14 @@
     </div>
 
     <!-- Creation actions -->
-    <div class="header-actions">
-        <button class="btn-action primary new-snippet-button" @click="newSnippet()" :disabled="saving" title="New snippet (Ctrl/Cmd+N)">
+    <div class="header-actions" :class="{ 'notes-active': filter.kind === 'note' }">
+        <button class="btn-action new-snippet-button" :class="{ primary: filter.kind !== 'note' }" @click="newSnippet()" :disabled="saving" title="New snippet (Ctrl/Cmd+N)" aria-label="New snippet">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg><span>New snippet</span>
         </button>
-        <button class="btn-action new-note-button" @click="newSnippet({ note: true })" :disabled="saving || loading || restoringUrl" title="New note" aria-label="New note">
+        <button class="btn-action new-note-button" :class="{ primary: filter.kind === 'note' }" @click="newSnippet({ note: true })" :disabled="saving || loading || restoringUrl" title="New note" aria-label="New note">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
                 <polyline points="13 2 13 9 20 9"></polyline>

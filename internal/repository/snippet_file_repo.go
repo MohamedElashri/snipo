@@ -154,6 +154,12 @@ func (r *SnippetFileRepository) SyncFiles(ctx context.Context, snippetID string,
 		existingMap[f.ID] = true
 	}
 
+	for _, file := range files {
+		if file.ID > 0 && !existingMap[file.ID] {
+			return nil, fmt.Errorf("file does not belong to item")
+		}
+	}
+
 	// Track which IDs are in the input
 	inputIDs := make(map[int64]bool)
 	var result []models.SnippetFile

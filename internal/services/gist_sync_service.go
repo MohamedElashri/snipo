@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/MohamedElashri/snipo/internal/repository"
+	"github.com/MohamedElashri/snipo/internal/validation"
 	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
@@ -172,12 +174,43 @@ func (s *GistSyncService) SyncGistToSnippet(ctx context.Context, gistID string) 
 		})
 	}
 
-	updatedSnippet, err := s.snippetRepo.Update(ctx, mapping.SnippetID, snippetInput)
+	var updatedSnippet *models.Snippet
+	if existingSnippet != nil && existingSnippet.Kind == models.KindNote {
+		if len(snippetInput.Files) != 1 {
+			return fmt.Errorf("a note can sync with exactly one Gist file")
+		}
+		file := snippetInput.Files[0]
+		if filepath.Ext(file.Filename) == "" {
+			file.Language = existingSnippet.Language
+		}
+		snippetInput.Kind = models.KindNote
+		snippetInput.Revision = &existingSnippet.Revision
+		snippetInput.Description = existingSnippet.Description
+		snippetInput.ExpiresAt = existingSnippet.ExpiresAt
+		snippetInput.IsPublic = existingSnippet.IsPublic
+		snippetInput.IsArchived = existingSnippet.IsArchived
+		snippetInput.Files[0] = file
+		if errs := validation.ValidateItemInput(snippetInput); errs.HasErrors() {
+			return errs
+		}
+		err = s.snippetRepo.UpdateNote(ctx, mapping.SnippetID, snippetInput, false)
+		if err == nil {
+			updatedSnippet, err = s.snippetRepo.GetByID(ctx, mapping.SnippetID)
+			if err == nil && updatedSnippet != nil {
+				updatedSnippet.Files, err = s.fileRepo.GetBySnippetID(ctx, mapping.SnippetID)
+			}
+		}
+	} else {
+		updatedSnippet, err = s.snippetRepo.Update(ctx, mapping.SnippetID, snippetInput)
+	}
 	if err != nil {
 		s.logError(ctx, mapping.SnippetID, gistID, models.SyncOpUpdate, err)
 		return fmt.Errorf("failed to update snippet: %w", err)
 	}
 
+	if updatedSnippet == nil {
+		return ErrSnippetNotFound
+	}
 	checksum, _ := CalculateSnippetChecksum(updatedSnippet)
 	gistChecksum, _ := CalculateGistChecksum(gist)
 

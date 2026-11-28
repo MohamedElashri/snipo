@@ -23,6 +23,10 @@ func CalculateSnippetChecksum(snippet *models.Snippet) (string, error) {
 		"files":       make([]map[string]string, 0),
 	}
 
+	if snippet.Kind == models.KindNote {
+		data["content"] = snippet.Content
+		data["language"] = snippet.Language
+	}
 	for _, file := range snippet.Files {
 		data["files"] = append(data["files"].([]map[string]string), map[string]string{
 			"filename": file.Filename,

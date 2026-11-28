@@ -11,6 +11,8 @@ import (
 
 func TestTrashRevokesPublicAccess(t *testing.T) {
 	db := testutil.TestDB(t)
+	// The in-memory SQLite database is private to its connection.
+	db.SetMaxOpenConns(1)
 	repo := repository.NewSnippetRepository(db)
 	svc := NewSnippetService(repo, testutil.TestLogger())
 	ctx := testutil.TestContext()

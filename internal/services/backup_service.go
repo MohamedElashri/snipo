@@ -158,10 +158,23 @@ func (b *BackupService) listBackupSnippets(ctx context.Context) ([]models.Snippe
 	return snippets, nil
 }
 
+type backupItemKey struct {
+	kind, title, language, content string
+	folderID                       int64
+}
+
+func backupKey(snippet models.Snippet, folderID int64) backupItemKey {
+	if snippet.Kind == models.KindNote {
+		return backupItemKey{kind: models.KindNote, title: snippet.Title, language: snippet.Language,
+			content: snippet.Content, folderID: folderID}
+	}
+	return backupItemKey{kind: models.KindSnippet, title: snippet.Title}
+}
+
 func backupSnippetInput(snippet models.Snippet) *models.SnippetInput {
-	input := &models.SnippetInput{Title: snippet.Title, Description: snippet.Description,
+	input := &models.SnippetInput{Kind: snippet.Kind, Title: snippet.Title, Description: snippet.Description,
 		Content: snippet.Content, Language: snippet.Language, IsPublic: snippet.IsPublic,
-		IsArchived: snippet.IsArchived}
+		IsArchived: snippet.IsArchived, ExpiresAt: snippet.ExpiresAt}
 	for _, tag := range snippet.Tags {
 		input.Tags = append(input.Tags, tag.Name)
 	}
@@ -185,7 +198,7 @@ func validateReplacementBackup(data models.BackupData) error {
 		}
 	}
 	for i, snippet := range data.Snippets {
-		if errs := validation.ValidateSnippetInput(backupSnippetInput(snippet)); errs.HasErrors() {
+		if errs := validation.ValidateItemInput(backupSnippetInput(snippet)); errs.HasErrors() {
 			return fmt.Errorf("%w: snippet %d: %s", ErrInvalidBackupFormat, i+1, errs)
 		}
 	}
@@ -290,9 +303,13 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 	if err != nil {
 		return nil, fmt.Errorf("failed to list existing snippets: %w", err)
 	}
-	existingSnippetsByTitle := make(map[string]*models.Snippet)
-	for i := range existingSnippets {
-		existingSnippetsByTitle[existingSnippets[i].Title] = &existingSnippets[i]
+	existingItems := make(map[backupItemKey]string)
+	for _, snippet := range existingSnippets {
+		var folderID int64
+		if len(snippet.Folders) > 0 {
+			folderID = snippet.Folders[0].ID
+		}
+		existingItems[backupKey(snippet, folderID)] = snippet.ID
 	}
 
 	// Import tags first (needed for relationships)
@@ -321,6 +338,7 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 
 	// Import folders
 	folderMap := make(map[int64]int64) // old ID -> new ID
+	createdFolders := make(map[int64]bool)
 	// First pass: create folders without parent relationships (only if they don't exist)
 	for _, folder := range data.Folders {
 		oldID := folder.ID
@@ -337,6 +355,7 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 			newFolder, err := b.folderRepo.Create(ctx, input)
 			if err == nil {
 				folderMap[oldID] = newFolder.ID
+				createdFolders[oldID] = true
 				existingFoldersByName[folder.Name] = newFolder // Add to map to prevent duplicates
 				result.FoldersImported++
 			} else {
@@ -345,39 +364,32 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 		}
 	}
 
-	// Second pass: update parent relationships for newly created folders
+	// Restore parents after all folder IDs have been mapped.
 	for _, folder := range data.Folders {
-		if folder.ParentID != nil {
-			// Only update if this folder was newly created
-			if _, existed := existingFoldersByName[folder.Name]; !existed {
-				if newID, ok := folderMap[folder.ID]; ok {
-					if newParentID, ok := folderMap[*folder.ParentID]; ok {
-						_, _ = b.folderRepo.Move(ctx, newID, &newParentID)
-					}
-				}
+		if folder.ParentID == nil || !createdFolders[folder.ID] {
+			continue
+		}
+		if parentID, ok := folderMap[*folder.ParentID]; ok {
+			if _, err := b.folderRepo.Move(ctx, folderMap[folder.ID], &parentID); err != nil {
+				result.Errors = append(result.Errors, fmt.Sprintf("folder parent %s: %v", validation.TruncateForLog(folder.Name, 100), err))
 			}
 		}
 	}
 
-	// Import snippets
 	snippetMap := make(map[string]string)
 	for _, snippet := range data.Snippets {
-		// Check if snippet with same title already exists
-		if existing, exists := existingSnippetsByTitle[snippet.Title]; exists {
-			// Skip if strategy is "skip" or "merge" (merge doesn't overwrite existing)
-			if opts.Strategy == "skip" || opts.Strategy == "merge" {
-				snippetMap[snippet.ID] = existing.ID
-				continue
+		input := backupSnippetInput(snippet)
+		var folderID int64
+		if len(snippet.Folders) > 0 {
+			if mappedID, ok := folderMap[snippet.Folders[0].ID]; ok {
+				folderID = mappedID
+				input.FolderID = &folderID
 			}
 		}
-
-		input := backupSnippetInput(snippet)
-
-		// Map folder (use first folder if any)
-		if len(snippet.Folders) > 0 {
-			if newFolderID, ok := folderMap[snippet.Folders[0].ID]; ok {
-				input.FolderID = &newFolderID
-			}
+		key := backupKey(snippet, folderID)
+		if existingID, exists := existingItems[key]; exists && (opts.Strategy == "skip" || opts.Strategy == "merge") {
+			snippetMap[snippet.ID] = existingID
+			continue
 		}
 
 		created, err := b.snippetSvc.Create(ctx, input)
@@ -385,7 +397,7 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 			snippetMap[snippet.ID] = created.ID
 			result.SnippetsImported++
 			// Add to map to prevent duplicates within same import
-			existingSnippetsByTitle[snippet.Title] = created
+			existingItems[key] = created.ID
 		} else {
 			result.Errors = append(result.Errors, fmt.Sprintf("snippet %s: %v", validation.TruncateForLog(snippet.Title, 100), err))
 		}
@@ -426,8 +438,16 @@ func (b *BackupService) createZipBackup(data models.BackupData) ([]byte, error) 
 
 	// Add snippets as individual files
 	for _, s := range data.Snippets {
-		// Add each file in the snippet
-		if len(s.Files) > 0 {
+		if s.Kind == models.KindNote {
+			filename := fmt.Sprintf("notes/%s-%s.%s", sanitizeFilename(s.Title), sanitizeFilename(s.ID), getExtension(s.Language))
+			w, err := zw.Create(filename)
+			if err != nil {
+				return nil, err
+			}
+			if _, err := w.Write([]byte(s.Content)); err != nil {
+				return nil, err
+			}
+		} else if len(s.Files) > 0 {
 			for _, f := range s.Files {
 				filename := fmt.Sprintf("snippets/%s/%s", sanitizeFilename(s.Title), f.Filename)
 				w, err := zw.Create(filename)

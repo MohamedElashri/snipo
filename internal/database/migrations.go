@@ -368,5 +368,11 @@ func getMigrations() []Migration {
 		{Version: 13, Name: "add_folder_overview", SQL: `
 			ALTER TABLE folders ADD COLUMN overview_snippet_id TEXT REFERENCES snippets(id) ON DELETE SET NULL;
 		`},
+		{Version: 14, Name: "add_item_kind", SQL: `
+			ALTER TABLE snippets ADD COLUMN kind TEXT NOT NULL DEFAULT 'snippet'
+				CHECK (kind = 'snippet' OR (kind = 'note' AND language IN ('markdown', 'plaintext')));
+			ALTER TABLE snippets ADD COLUMN revision INTEGER NOT NULL DEFAULT 1;
+			CREATE INDEX snippets_kind_updated_idx ON snippets(kind, updated_at);
+		`},
 	}
 }
