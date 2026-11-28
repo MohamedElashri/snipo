@@ -1,8 +1,7 @@
 {{define "sidebar"}}
 <!-- Sidebar -->
-<aside class="sidebar" :class="{ 'open': $store.app.sidebarOpen, 'closed': !$store.app.sidebarOpen }"
-    x-init="initSidebarResize()">
-    <div class="sidebar-resize-handle" @mousedown="startSidebarResize($event)"></div>
+<aside class="sidebar" id="navigation-sidebar" :class="{ 'open': $store.app.sidebarOpen, 'closed': !$store.app.sidebarOpen }"
+    :inert="!$store.app.sidebarOpen">
     <div class="sidebar-header-row">
         <a href="{{.BasePath}}/" class="sidebar-header" title="Go to Home">
             <img src="{{.AssetBasePath}}/logo.png" alt="Snipo" class="logo" width="24" height="24">

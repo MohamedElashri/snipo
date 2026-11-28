@@ -110,6 +110,7 @@ export function initSnippetsApp(Alpine) {
 
     // Lifecycle
     async init() {
+      this.initSidebarResize();
       this.initSessionGuard();
       this._editorTheme = () => this.applyEditorSettings();
       window.addEventListener('snipo-theme-change', this._editorTheme);
@@ -150,42 +151,6 @@ export function initSnippetsApp(Alpine) {
       window.removeEventListener('popstate', this._popstate);
       clearTimeout(this.autoSaveTimeout);
       this.destroyCodeEditor();
-    },
-
-    // Sidebar resize functionality
-    initSidebarResize() {
-      const savedWidth = localStorage.getItem('sidebarWidth');
-      if (savedWidth) {
-        document.documentElement.style.setProperty('--sidebar-width', savedWidth + 'px');
-      }
-    },
-
-    startSidebarResize(event) {
-      event.preventDefault();
-      const sidebar = event.target.closest('.sidebar');
-      const handle = event.target;
-      handle.classList.add('resizing');
-
-      const startX = event.clientX;
-      const startWidth = sidebar.offsetWidth;
-      const minWidth = 180;
-      const maxWidth = 500;
-
-      const onMouseMove = (e) => {
-        const newWidth = Math.min(maxWidth, Math.max(minWidth, startWidth + e.clientX - startX));
-        document.documentElement.style.setProperty('--sidebar-width', newWidth + 'px');
-      };
-
-      const onMouseUp = () => {
-        handle.classList.remove('resizing');
-        const finalWidth = sidebar.offsetWidth;
-        localStorage.setItem('sidebarWidth', finalWidth);
-        document.removeEventListener('mousemove', onMouseMove);
-        document.removeEventListener('mouseup', onMouseUp);
-      };
-
-      document.addEventListener('mousemove', onMouseMove);
-      document.addEventListener('mouseup', onMouseUp);
     },
 
     // Core methods

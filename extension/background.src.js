@@ -133,12 +133,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     .catch(error => sendResponse({ success: false, error: error.message }));
             } else if (request.kind === 'note') {
                 const format = request.language === 'plaintext' ? 'plaintext' : 'markdown';
-                const payload = {
-                    kind: 'note', title: request.title || 'Captured note', language: format,
-                    content: formatNoteCapture(record.data, format), folder_id: request.folder_id ? Number(request.folder_id) : undefined,
-                    tags: request.tags, is_public: false,
+                const capture = {
+                    ...record.data,
+                    code: request.noteText ?? record.data.code,
+                    sourceURL: request.includeSource === false ? undefined : record.data.sourceURL,
                 };
-                await withClient(client => client.createSnippet(payload))
+                await withClient(client => client.createSnippet({
+                    kind: 'note', title: request.title || 'Captured note', language: format,
+                    content: formatNoteCapture(capture, format), folder_id: request.folder_id ? Number(request.folder_id) : undefined,
+                    tags: request.tags, is_public: false,
+                }))
                     .then(data => sendResponse({ success: true, data }))
                     .catch(error => sendResponse({ success: false, error: error.message }));
             } else {
@@ -209,7 +213,7 @@ async function withClient(action) {
 }
 
 function formatNoteCapture({ code, language, sourceURL }, format = 'markdown') {
-    if (typeof code !== 'string' || !code.trim()) throw new Error('Select text to append');
+    if (typeof code !== 'string' || !code.trim()) throw new Error('Capture text cannot be empty');
     let capture = code;
     if (format === 'markdown' && language !== 'plaintext' && /^[a-z0-9+-]+$/i.test(language || '')) {
         const runs = code.match(/~+/g) || [];

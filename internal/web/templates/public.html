@@ -117,7 +117,7 @@
         </div>
         
         <!-- Code -->
-        <article class="preview-markdown-scroll note-document" x-show="snippet.kind === 'note' && snippet.language === 'markdown'"
+        <article class="markdown-content note-document" x-show="snippet.kind === 'note' && snippet.language === 'markdown'"
             @click="copyMarkdownBlock($event)" x-html="snippet.kind === 'note' && snippet.language === 'markdown' ? renderMarkdownWithCopy(snippet.content) : ''" dir="auto"></article>
         <article class="note-document note-plain" x-show="snippet.kind === 'note' && snippet.language === 'plaintext'"
             x-text="snippet.content" dir="auto"></article>

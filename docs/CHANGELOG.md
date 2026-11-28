@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.6] - 2026-11-28
+
+### Fixed
+
+- **Web app:** Give notes their own full-width workspace. Markdown Preview now renders below the writing controls, and Save and Edit stay reachable as notes scroll.
+- **Snippy:** Read plain-text notes literally and keep file tabs out of note views.
+
+### Changed
+
+- **Web app:** Drag the navigation sidebar border to resize it. The workspace reflows to fit and remembers the chosen width.
+- **Browser extension:** Edit captured text before saving it as a note and choose whether to include its source link.
+- **VS Code:** Create Markdown or plain-text notes and preview Markdown drafts beside the editor.
+- **Snippy:** Start a note from any library with `N` and switch between writing and Markdown Preview with `F2`.
+
 ## [2.2.5] - 2026-11-28
 
 ### Added

@@ -2,7 +2,7 @@
   "name": "snipo",
   "displayName": "Snipo",
   "description": "Snipo snippets manager for VS Code",
-  "version": "2.2.5",
+  "version": "2.2.6",
   "publisher": "muhammadelashri",
   "icon": "resources/icon.png",
   "repository": {
@@ -19,6 +19,15 @@
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
+      {
+        "command": "snipo.newNote",
+        "title": "Snipo: New Note",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "snipo.previewNote",
+        "title": "Snipo: Preview Markdown Note"
+      },
       {
         "command": "snipo.browseNotes",
         "title": "Snipo: Browse Notes"
@@ -84,9 +93,14 @@
           "group": "navigation@1"
         },
         {
-          "command": "snipo.browseNotes",
+          "command": "snipo.newNote",
           "when": "view == snipo-notes",
           "group": "navigation@2"
+        },
+        {
+          "command": "snipo.browseNotes",
+          "when": "view == snipo-notes",
+          "group": "navigation@3"
         },
         {
           "command": "snipo.refreshTree",
@@ -147,7 +161,7 @@
         },
         {
           "command": "snipo.openInSnipo",
-          "when": "viewItem == snippet",
+          "when": "viewItem == snippet || viewItem == note",
           "group": "1_actions@2"
         },
         {

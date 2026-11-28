@@ -19,7 +19,7 @@
                 <button class="btn-action" :disabled="savingFolderOverview"
                     @click="setFolderOverview(folderOverview.folderId, null)">Remove overview</button>
             </div>
-            <div class="preview-markdown-scroll folder-overview-preview" x-html="renderFolderOverview(folderOverview.content)"></div>
+            <div class="preview-markdown-scroll markdown-content folder-overview-preview" x-html="renderFolderOverview(folderOverview.content)"></div>
         </details>
     </template>
     <nav class="library-pagination" aria-label="Library pages" x-show="pagination.totalPages > 1">
@@ -85,7 +85,7 @@
     <div :class="showEditor || libraryLayout !== 'grid' ? 'snippet-list-view' : 'snippet-grid'" x-show="!loading && snippets.length > 0">
         <template x-for="snippet in snippets" :key="snippet.id">
             <article class="snippet-card" :class="{ selected: showEditor && editingSnippet?.id === snippet.id, 'note-card': snippet.kind === 'note' }">
-                <div class="snippet-open" role="button" tabindex="0" :aria-label="'Open ' + snippet.title" :aria-current="showEditor && editingSnippet?.id === snippet.id ? 'true' : null" @click="viewSnippet(snippet)" @keydown.enter.prevent="viewSnippet(snippet)" @keydown.space.prevent="viewSnippet(snippet)" @keydown.arrow-down.prevent="focusResult($event, 1)" @keydown.arrow-up.prevent="focusResult($event, -1)">
+                <div class="snippet-open" :data-item-id="snippet.id" role="button" tabindex="0" :aria-label="'Open ' + snippet.title" :aria-current="showEditor && editingSnippet?.id === snippet.id ? 'true' : null" @click="viewSnippet(snippet)" @keydown.enter.prevent="viewSnippet(snippet)" @keydown.space.prevent="viewSnippet(snippet)" @keydown.arrow-down.prevent="focusResult($event, 1)" @keydown.arrow-up.prevent="focusResult($event, -1)">
                     <div class="snippet-card-header">
                         <svg x-show="snippet.kind === 'note'" class="note-card-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                             <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9ZM13 2v7h7M8 13h8M8 17h6"></path>

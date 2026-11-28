@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { browseNotes, forgetNoteDocument, saveOpenNote, searchAndInsertSnippet, saveSelectedSnippet, replaceWithTemplate, openInSnipo, openInVSCode, updateSnippet, deleteSnippetCommand } from './commands';
+import { browseNotes, newNote, previewOpenNote, forgetNoteDocument, saveOpenNote, searchAndInsertSnippet, saveSelectedSnippet, replaceWithTemplate, openInSnipo, openInVSCode, updateSnippet, deleteSnippetCommand } from './commands';
 import { SnippetTreeProvider, TagsTreeProvider } from './treeView';
 import { SnipoHoverProvider, SnipoCodeLensProvider } from './providers';
 import { SnipoStatusBar } from './statusBar';
@@ -20,6 +20,8 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.workspace.onDidCloseTextDocument(forgetNoteDocument),
         vscode.commands.registerCommand('snipo.browseNotes', browseNotes),
+        vscode.commands.registerCommand('snipo.newNote', newNote),
+        vscode.commands.registerCommand('snipo.previewNote', previewOpenNote),
         vscode.commands.registerCommand('snipo.saveOpenNote', saveOpenNote),
         vscode.commands.registerCommand('snipo.searchAndInsert', searchAndInsertSnippet),
         vscode.commands.registerCommand('snipo.saveSelected', saveSelectedSnippet),

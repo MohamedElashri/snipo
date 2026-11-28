@@ -48,6 +48,7 @@ HTTPS for remote servers.
 | List | `Enter` | Open snippet |
 | List | `Tab` | Switch between All items, Snippets, and Notes |
 | List | `n`, `e` | Create/edit the current item type |
+| List | `N` | Start a note from any library |
 | List | `f` | Toggle favorite |
 | List | `d` or `x` | Delete selected snippet |
 | List | `/`, `r`, `s` | Search, refresh, settings |
@@ -56,6 +57,7 @@ HTTPS for remote servers.
 | Detail | `c`, `e`, `Esc` | Copy, edit, return |
 | Form | `Tab`, `Shift+Tab` | Change field |
 | Form | `Ctrl+E` | Open content in `$EDITOR` |
+| Markdown note | `F2` | Switch between writing and a scrollable preview |
 | Form | `Ctrl+S`, `Esc` | Save/cancel |
 | Global | `?`, `q`, `Ctrl+C` | Help, quit, force quit |
 
