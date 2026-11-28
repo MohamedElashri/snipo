@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
-import { searchAndInsertSnippet, saveSelectedSnippet, updateSnippet, openInSnipo, openInVSCode } from '../commands';
+import { searchAndInsertSnippet, saveSelectedSnippet, updateSnippet, openInSnipo, openInVSCode, saveOpenNote } from '../commands';
 import { api } from '../api';
 import { SnipoCodeLensProvider } from '../providers';
 
@@ -209,6 +209,29 @@ suite('Commands Test Suite', () => {
         await openInVSCode({...fresh,content:'stale sidebar content'});
         assert.strictEqual(get.calledWith('current'),true);
         assert.strictEqual((open.firstCall.args[0] as any).content,'updated on server');
+    });
+
+    test('editing a note sends its current revision and preserves organization', async () => {
+        const note = {
+            id: 'runbook', kind: 'note' as const, revision: 8, title: 'Runbook', description: '',
+            content: '# Runbook', language: 'markdown', is_favorite: false, is_public: false,
+            folders: [{ id: 12, name: 'Deployment' }], tags: [{ id: 4, name: 'ops', color: '' }]
+        };
+        const doc = { uri: vscode.Uri.parse('untitled:Runbook'), getText: () => '# Edited', languageId: 'markdown' };
+        sinon.stub(api, 'getSnippet').resolves(note);
+        const update = sinon.stub(api, 'updateSnippet').resolves({ ...note, revision: 9 });
+        sinon.stub(vscode.workspace, 'openTextDocument').resolves(doc as vscode.TextDocument);
+        sinon.stub(vscode.window, 'showTextDocument').resolves({} as vscode.TextEditor);
+        sinon.stub(vscode.window, 'activeTextEditor').get(() => ({ document: doc }));
+
+        await openInVSCode(note);
+        await saveOpenNote();
+        assert.strictEqual(update.firstCall.args[0], note.id);
+        assert.deepStrictEqual(update.firstCall.args[1], {
+            kind: 'note', revision: 8, title: 'Runbook', description: '', content: '# Edited',
+            language: 'markdown', is_public: false, is_archived: undefined, expires_at: undefined,
+            folder_id: 12, tags: ['ops']
+        });
     });
 
 });

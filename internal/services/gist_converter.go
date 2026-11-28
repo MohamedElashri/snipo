@@ -48,7 +48,7 @@ func SnippetToGistRequest(snippet *models.Snippet) (*models.GistRequest, error) 
 	}
 
 	// Add snippet files
-	if len(snippet.Files) == 0 {
+	if snippet.Kind == models.KindNote || len(snippet.Files) == 0 {
 		// Use snippet title as filename for single-file snippets
 		filename := snippet.Title
 		if filename == "" {
@@ -63,6 +63,9 @@ func SnippetToGistRequest(snippet *models.Snippet) (*models.GistRequest, error) 
 			return r
 		}, filename)
 
+		if snippet.Kind == models.KindNote {
+			filename += "." + getExtensionForLanguage(snippet.Language)
+		}
 		req.Files[filename] = models.GistFile{
 			Content: snippet.Content,
 		}

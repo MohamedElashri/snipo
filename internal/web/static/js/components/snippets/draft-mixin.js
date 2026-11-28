@@ -19,6 +19,7 @@ export const draftMixin = {
       snippet: { ...this.editingSnippet },
       savedAt: new Date().toISOString()
     };
+    if (this.isNote) return this.saveNoteDraft(draft);
     const serialized = JSON.stringify(draft);
     // Keep a tab-local copy so another tab cannot replace its recovery buffer.
     try { sessionStorage.setItem('snipo-draft', serialized); } catch { /* Use the persistent backup below. */ }
@@ -31,6 +32,7 @@ export const draftMixin = {
   },
 
   loadDraft() {
+    this.refreshNoteDrafts();
     if (this.showEditor) return;
     this.hasDraft = false;
     this.draftSnippet = null;
@@ -73,31 +75,48 @@ export const draftMixin = {
   },
 
   restoreDraft() {
-    if (this.saving) return;
-    this.showSettings = false;
-    if (this.draftSnippet) {
-      this.editingSnippet = { ...this.draftSnippet };
-      this.activeFileIndex = 0;
-      if (this._resetFileManagerState) {
-        this._resetFileManagerState();
+    if (this.saving || !this.draftSnippet) return;
+    const snippet = { ...this.draftSnippet };
+    if (snippet.kind === 'note' || (!snippet.id && snippet.newNote)) {
+      if (snippet.newNote) {
+        snippet.kind = 'note';
+        snippet.content = snippet.files?.[0]?.content ?? snippet.content;
+        snippet.language = snippet.files?.[0]?.language === 'plaintext' ? 'plaintext' : 'markdown';
+        snippet.files = [];
+        snippet.sync_to_gist = false;
+        snippet.expires_at = '';
       }
-      if (this._ensureEditableFiles) {
-        this._ensureEditableFiles();
-      }
-      this.showEditor = true;
-      this.isEditing = true;
-      this.hasDraft = false;
-      this.saveState = 'local';
-      this.updateUrl({
-        snippet: this.editingSnippet.id, edit: true,
-        note: !this.editingSnippet.id && this.editingSnippet.newNote
-      });
-      showToast('Draft restored');
-      this.$nextTick(() => {
-        this.updateCodeEditor();
-        this.highlightAll();
-      });
+      if (!snippet.id) snippet.localDraftId ||= this.newNoteDraftId();
+      this.saveNoteDraft({ snippet, savedAt: new Date().toISOString() });
+      this.clearDraft();
     }
+    this.hasDraft = false;
+    this.restoreDraftSnippet(snippet);
+  },
+
+  restoreDraftSnippet(snippet) {
+    if (this.saving || !snippet) return;
+    this.preserveDraft();
+    ++this.viewRequest;
+    this.destroyCodeEditor();
+    this.showSettings = false;
+    this.editingSnippet = { ...snippet };
+    this.noteMode = 'write';
+    this.noteConflict = null;
+    this.noteOverviewError = false;
+    this.activeFileIndex = 0;
+    this._resetFileManagerState();
+    if (!this.isNote) this._ensureEditableFiles();
+    this.showEditor = true;
+    this.isEditing = true;
+    this.saveState = 'local';
+    this.updateUrl({ snippet: snippet.id, edit: true });
+    showToast('Draft restored');
+    if (this.isNote) this.focusNote();
+    this.$nextTick(() => {
+      this.updateCodeEditor();
+      this.highlightAll();
+    });
   },
 
   discardDraft() {

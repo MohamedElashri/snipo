@@ -26,6 +26,11 @@ func NewSnippetHandler(service *services.SnippetService) *SnippetHandler {
 // List handles GET /api/v1/snippets
 func (h *SnippetHandler) List(w http.ResponseWriter, r *http.Request) {
 	filter := models.DefaultSnippetFilter()
+	kind, ok := readItemKind(w, r)
+	if !ok {
+		return
+	}
+	filter.Kind = kind
 
 	// Parse query parameters
 	if page := r.URL.Query().Get("page"); page != "" {
@@ -180,6 +185,9 @@ func (h *SnippetHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	snippet, err := h.service.Update(r.Context(), id, &input)
 	if err != nil {
+		if writeNoteError(w, r, err) {
+			return
+		}
 		if errors.Is(err, services.ErrSnippetNotFound) {
 			NotFound(w, r, "Snippet not found")
 			return
@@ -320,7 +328,11 @@ func (h *SnippetHandler) Search(w http.ResponseWriter, r *http.Request) {
 		limit = 100
 	}
 
-	snippets, err := h.service.Search(r.Context(), query, limit)
+	kind, ok := readItemKind(w, r)
+	if !ok {
+		return
+	}
+	snippets, err := h.service.Search(r.Context(), query, limit, kind)
 	if err != nil {
 		InternalError(w, r)
 		return
@@ -476,6 +488,9 @@ func (h *SnippetHandler) RestoreFromHistory(w http.ResponseWriter, r *http.Reque
 
 	snippet, err := h.service.RestoreFromHistory(r.Context(), id, historyID)
 	if err != nil {
+		if writeNoteError(w, r, err) {
+			return
+		}
 		if errors.Is(err, services.ErrSnippetNotFound) {
 			NotFound(w, r, "Snippet not found")
 			return

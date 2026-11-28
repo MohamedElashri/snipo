@@ -1,0 +1,172 @@
+.library-nav-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: start;
+}
+
+.library-kind-filter,
+.note-format-bar,
+.note-mode-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.library-kind-filter {
+  margin-block: 0.5rem;
+}
+
+.library-kind-filter button[aria-pressed="true"],
+.note-mode-picker button[aria-pressed="true"] {
+  color: var(--snipo-text-primary);
+  background: var(--snipo-bg-secondary);
+  border-color: var(--snipo-border);
+}
+
+.note-card-icon,
+.note-card-type {
+  flex: none;
+  color: var(--snipo-text-secondary);
+}
+
+.note-card-type {
+  font-size: 0.75rem;
+}
+
+.note-card-excerpt {
+  margin-block: 0.4rem 0;
+  color: var(--snipo-text-secondary);
+  font-size: 0.875rem;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.note-preview .snippet-details {
+  order: -1;
+}
+
+.note-reader {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  background: var(--snipo-bg-primary);
+}
+
+.note-document {
+  box-sizing: border-box;
+  max-width: 72ch;
+  min-height: 12rem;
+  margin-inline: auto;
+  padding: clamp(1rem, 4vw, 2.5rem);
+  overflow-wrap: anywhere;
+  line-height: 1.65;
+}
+
+.note-plain {
+  white-space: pre-wrap;
+}
+
+.note-editor {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.note-format-bar {
+  justify-content: space-between;
+  padding: 0.65rem clamp(0.75rem, 3vw, 1.4rem);
+  border-bottom: 1px solid var(--snipo-border);
+}
+
+.note-format-bar label {
+  color: var(--snipo-text-secondary);
+  font-size: 0.875rem;
+}
+
+.note-format-bar select {
+  margin-inline-start: 0.4rem;
+}
+
+.note-body-input {
+  width: 100%;
+  max-width: 72ch;
+  min-height: 16rem;
+  flex: 1 1 auto;
+  margin-inline: auto;
+  padding: clamp(1rem, 4vw, 2.5rem);
+  border: 0;
+  background: transparent;
+  color: var(--snipo-text-primary);
+  font: inherit;
+  line-height: 1.65;
+  resize: vertical;
+}
+
+.note-body-input:focus-visible {
+  outline-offset: -2px;
+}
+
+.note-edit-notice {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--snipo-border);
+}
+
+.note-edit-notice pre {
+  max-height: 12rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.public-snippet .note-document {
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 640px) {
+  .notes-active .new-note-button span {
+    display: inline;
+  }
+
+  .notes-active .new-snippet-button {
+    order: 1;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .notes-active .new-snippet-button span {
+    display: none;
+  }
+}
+
+.note-drafts {
+  display: block;
+}
+
+.note-drafts summary {
+  cursor: pointer;
+}
+
+.note-drafts ul {
+  max-height: 13rem;
+  overflow-y: auto;
+  margin-block: 0.5rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.note-drafts li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-block: 0.35rem;
+}
+
+.note-drafts li > span {
+  overflow-wrap: anywhere;
+}

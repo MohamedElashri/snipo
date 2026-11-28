@@ -25,12 +25,17 @@ function addAppendNotePane(modal, actions, close) {
     const appendPane = element('form');
     appendPane.hidden = true;
     const heading = element('h2', 'Append to a note');
-    const searchGroup = element('label', 'Find a note by title or filename', 'snipo-form-group');
+    const kindGroup = element('label', 'Append to', 'snipo-form-group');
+    const kind = element('select', '', 'snipo-input');
+    kind.add(new Option('Note', 'note'));
+    kind.add(new Option('Markdown file in a snippet', 'snippet'));
+    kindGroup.append(kind);
+    const searchGroup = element('label', 'Find by title or filename', 'snipo-form-group');
     const search = element('input', '', 'snipo-input');
     search.type = 'search';
     search.autocomplete = 'off';
     searchGroup.append(search);
-    const selectGroup = element('label', 'Note or Markdown file', 'snipo-form-group');
+    const selectGroup = element('label', 'Destination', 'snipo-form-group');
     const select = element('select', '', 'snipo-input');
     select.size = 4;
     selectGroup.append(select);
@@ -45,7 +50,7 @@ function addAppendNotePane(modal, actions, close) {
     submit.type = 'submit';
     submit.disabled = true;
     buttons.append(back, submit);
-    appendPane.append(heading, searchGroup, selectGroup, status, more, buttons);
+    appendPane.append(heading, kindGroup, searchGroup, selectGroup, status, more, buttons);
     modal.append(createPane, appendPane);
 
     let requestNumber = 0;
@@ -60,19 +65,24 @@ function addAppendNotePane(modal, actions, close) {
         more.disabled = true;
         status.textContent = 'Finding notes…';
         try {
-            const result = await request('listDraftNoteTargets', { query: search.value.trim(), page: nextPage });
+            const result = await request('listDraftNoteTargets', { query: search.value.trim(), page: nextPage, kind: kind.value });
             if (current !== requestNumber) return;
             for (const target of result.targets) {
-                const title = target.filename ? target.title + ' — ' + target.filename : target.title;
+                if ((target.kind || 'snippet') !== kind.value) continue;
+                const format = target.language || 'markdown';
+                const title = kind.value === 'snippet' && target.filename
+                    ? target.title + ' — ' + target.filename
+                    : target.title + (format === 'plaintext' ? ' · Plain text' : ' · Markdown');
                 const option = element('option', title);
                 option.value = target.snippet_id;
+                if (target.language) option.dataset.language = format;
                 if (target.file_id !== undefined) option.dataset.fileId = target.file_id;
                 select.append(option);
             }
             page = nextPage;
             more.textContent = 'Load more';
             more.hidden = !result.has_more;
-            status.textContent = select.options.length ? '' : 'No matching private Markdown notes.';
+            status.textContent = select.options.length ? '' : (kind.value === 'note' ? 'No matching private notes.' : 'No matching private Markdown files.');
         } catch (error) {
             if (current !== requestNumber) return;
             status.textContent = error.message;
@@ -113,6 +123,11 @@ function addAppendNotePane(modal, actions, close) {
         createPane.hidden = false;
         openButton.focus();
     });
+    kind.addEventListener('change', () => {
+        resetSearch();
+        heading.textContent = kind.value === 'note' ? 'Append to a note' : 'Append to a Markdown file';
+        void loadTargets(1);
+    });
     search.addEventListener('input', () => {
         resetSearch();
         debounce = setTimeout(() => loadTargets(1), 250);
@@ -124,18 +139,19 @@ function addAppendNotePane(modal, actions, close) {
         const target = select.selectedOptions[0];
         if (saving || submit.disabled || !target) return;
         saving = true;
-        search.disabled = select.disabled = more.disabled = back.disabled = submit.disabled = true;
+        kind.disabled = search.disabled = select.disabled = more.disabled = back.disabled = submit.disabled = true;
         status.textContent = 'Appending selection…';
         try {
             await request('appendDraftToNote', {
                 snippetId: target.value,
+                language: target.dataset.language,
                 fileId: target.dataset.fileId === undefined ? undefined : Number(target.dataset.fileId),
             });
             close();
         } catch (error) {
             status.textContent = error.message;
             saving = false;
-            search.disabled = select.disabled = more.disabled = back.disabled = submit.disabled = false;
+            kind.disabled = search.disabled = select.disabled = more.disabled = back.disabled = submit.disabled = false;
         }
     });
 }

@@ -192,6 +192,27 @@ async function showModal(snippetData) {
     tagsGroup.appendChild(tagSuggestions);
     modal.appendChild(tagsGroup);
 
+    const kindGroup = document.createElement('label');
+    kindGroup.className = 'snipo-form-group';
+    kindGroup.textContent = 'Save as';
+    const kindSelect = document.createElement('select');
+    kindSelect.className = 'snipo-select';
+    kindSelect.add(new Option('Snippet', 'snippet'));
+    kindSelect.add(new Option('Note', 'note'));
+    kindGroup.append(kindSelect);
+    rowGroup.before(kindGroup);
+
+    const formatGroup = document.createElement('label');
+    formatGroup.className = 'snipo-form-group';
+    formatGroup.textContent = 'Format';
+    const noteFormat = document.createElement('select');
+    noteFormat.className = 'snipo-select';
+    noteFormat.add(new Option('Markdown', 'markdown'));
+    noteFormat.add(new Option('Plain text', 'plaintext'));
+    formatGroup.append(noteFormat);
+    formatGroup.hidden = true;
+    rowGroup.after(formatGroup);
+
     // Action buttons
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'snipo-modal-actions';
@@ -202,7 +223,15 @@ async function showModal(snippetData) {
     const saveBtn = document.createElement('button');
     saveBtn.id = 'snipo-save';
     saveBtn.className = 'snipo-btn-primary';
-    saveBtn.textContent = 'Save Snippet';
+    const saveLabel = () => kindSelect.value === 'note' ? 'Save Note' : 'Save Snippet';
+    saveBtn.textContent = saveLabel();
+    kindSelect.addEventListener('change', () => {
+        const note = kindSelect.value === 'note';
+        rowGroup.hidden = note;
+        descGroup.hidden = note;
+        formatGroup.hidden = !note;
+        saveBtn.textContent = saveLabel();
+    });
     actionsDiv.appendChild(cancelBtn);
     actionsDiv.appendChild(saveBtn);
     modal.appendChild(actionsDiv);
@@ -331,7 +360,7 @@ async function showModal(snippetData) {
 
     overlay.querySelector('#snipo-save').addEventListener('click', async () => {
         const title = overlay.querySelector('#snipo-title').value;
-        const language = overlay.querySelector('#snipo-language').value;
+        const language = kindSelect.value === 'note' ? noteFormat.value : langSelect.value;
         const filename = overlay.querySelector('#snipo-filename').value; // Get filename
         const description = overlay.querySelector('#snipo-desc').value;
         const folderId = overlay.querySelector('#snipo-folder').value || null;
@@ -348,6 +377,7 @@ async function showModal(snippetData) {
         // Send Save Request
         chrome.runtime.sendMessage({
             action: "saveDraftSnippet",
+            kind: kindSelect.value,
             draftId: draftId,
             code: snippetData.code,
             language: language,
@@ -359,7 +389,7 @@ async function showModal(snippetData) {
         }, (response) => {
             if (chrome.runtime.lastError) {
                 console.error("Save failed:", chrome.runtime.lastError.message);
-                saveBtn.innerText = 'Save Snippet';
+                saveBtn.innerText = saveLabel();
                 saveBtn.disabled = false;
                 showToast(false, "Failed to connect to background script.");
                 return;
@@ -367,7 +397,7 @@ async function showModal(snippetData) {
             if (response && response.success) {
                 close();
             } else {
-                saveBtn.innerText = 'Save Snippet';
+                saveBtn.innerText = saveLabel();
                 saveBtn.disabled = false;
                 showToast(false, response ? response.error : "Unknown error");
             }

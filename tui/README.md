@@ -46,7 +46,8 @@ HTTPS for remote servers.
 | List | `j`/`↓`, `k`/`↑` | Move selection |
 | List | `h`/`←`, `l`/`→` | Previous/next page |
 | List | `Enter` | Open snippet |
-| List | `n`, `e` | Create/edit snippet |
+| List | `Tab` | Switch between All items, Snippets, and Notes |
+| List | `n`, `e` | Create/edit the current item type |
 | List | `f` | Toggle favorite |
 | List | `d` or `x` | Delete selected snippet |
 | List | `/`, `r`, `s` | Search, refresh, settings |

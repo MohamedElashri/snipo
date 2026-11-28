@@ -20,6 +20,14 @@
   "contributes": {
     "commands": [
       {
+        "command": "snipo.browseNotes",
+        "title": "Snipo: Browse Notes"
+      },
+      {
+        "command": "snipo.saveOpenNote",
+        "title": "Snipo: Save Note"
+      },
+      {
         "command": "snipo.searchAndInsert",
         "title": "Snipo: Search and Insert Snippet"
       },
@@ -70,6 +78,16 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "snipo.refreshTree",
+          "when": "view == snipo-notes",
+          "group": "navigation@1"
+        },
+        {
+          "command": "snipo.browseNotes",
+          "when": "view == snipo-notes",
+          "group": "navigation@2"
+        },
         {
           "command": "snipo.refreshTree",
           "when": "view == snipo-favorites",
@@ -168,6 +186,10 @@
         {
           "id": "snipo-recent",
           "name": "Recently Used"
+        },
+        {
+          "id": "snipo-notes",
+          "name": "Notes"
         },
         {
           "id": "snipo-tags",

@@ -1,9 +1,9 @@
 {{define "snippets-list"}}
 <!-- Content area -->
-<section class="snippet-list" aria-label="Snippet library" :aria-busy="loading">
-    <div class="library-heading"><div><h1 x-text="libraryTitle()">All snippets</h1><span class="library-count" x-text="pagination.total + (pagination.total === 1 ? ' snippet' : ' snippets')"></span></div>
+<section class="snippet-list" aria-label="Library" :aria-busy="loading">
+    <div class="library-heading"><div><h1 x-text="libraryTitle()">All items</h1><span class="library-count" x-text="pagination.total + ' ' + ({ note: 'note', snippet: 'snippet', all: 'item' })[filter.kind] + (pagination.total === 1 ? '' : 's')"></span></div>
         <label class="library-layout-picker">View
-            <select aria-label="Snippet layout" :value="viewMode === 'grid' ? 'grid' : density === 'compact' ? 'compact' : 'list'" @change="setLibraryLayout($event.target.value)">
+            <select aria-label="Library layout" :value="libraryLayout" @change="setLibraryLayout($event.target.value)">
                 <option value="grid">Cards</option>
                 <option value="list">List</option>
                 <option value="compact">Compact</option>
@@ -32,7 +32,12 @@
             <button @click="goToPage(pagination.page + 1)" :disabled="loading || pagination.page >= pagination.totalPages" aria-label="Next page">›</button>
         </div>
     </nav>
-    <details class="library-filters"><summary>Filter by language</summary>
+    <div class="library-kind-filter" x-show="scopedLibrary" role="group" aria-label="Item type">
+        <template x-for="type in [{ value: 'all', text: 'All' }, { value: 'snippet', text: 'Snippets' }, { value: 'note', text: 'Notes' }]" :key="type.value">
+            <button type="button" class="btn-action" :aria-pressed="filter.kind === type.value" @click="setItemKind(type.value)" x-text="type.text"></button>
+        </template>
+    </div>
+    <details class="library-filters" x-show="filter.kind !== 'note'"><summary>Filter by language</summary>
         <label>Language<select x-model="filter.language" @change="search()">
             <option value="">All languages</option>
             <template x-for="language in ['bash', 'go', 'javascript', 'json', 'markdown', 'plaintext', 'python', 'sql', 'typescript', 'yaml']" :key="language"><option :value="language" x-text="language"></option></template>
@@ -60,16 +65,16 @@
                     <line x1="14" y1="11" x2="14" y2="17"></line>
                 </svg>
                 <h3>Trash is empty</h3>
-                <p>No deleted snippets found</p>
+                <p>No deleted items found</p>
             </div>
         </template>
         <template x-if="!filter.isDeleted">
             <div>
                 <img src="{{.AssetBasePath}}/logo.png" alt="Snipo" width="48" height="48" style="opacity: 0.5;">
-                <h3 x-text="hasActiveFilters() ? 'No matching snippets' : 'Your library starts here'"></h3>
-                <p x-text="hasActiveFilters() ? 'Try a different search or remove a filter.' : 'Keep a useful command, a configuration, or a piece of code.'"></p>
+                <h3 x-text="hasActiveFilters() ? 'No matching items' : filter.kind === 'note' ? 'No notes yet' : 'Your library starts here'"></h3>
+                <p x-text="hasActiveFilters() ? 'Try a different search or remove a filter.' : filter.kind === 'note' ? 'Save a thought, a runbook, or a reference.' : 'Keep a useful command, a configuration, or a piece of code.'"></p>
                 <button class="btn-secondary" x-show="hasActiveFilters()" @click="clearFilters()">Clear filters</button>
-                <button class="btn-primary mt-4" x-show="!hasActiveFilters()" @click="newSnippet()">
+                <button class="btn-primary mt-4" x-show="!hasActiveFilters()" @click="newSnippet({ note: filter.kind === 'note' })" x-text="filter.kind === 'note' ? 'New note' : 'New snippet'">
                     Create Snippet
                 </button>
             </div>
@@ -77,22 +82,27 @@
     </div>
 
     <!-- Snippet grid/list -->
-    <div :class="showEditor || viewMode === 'list' ? 'snippet-list-view' : 'snippet-grid'" x-show="!loading && snippets.length > 0">
+    <div :class="showEditor || libraryLayout !== 'grid' ? 'snippet-list-view' : 'snippet-grid'" x-show="!loading && snippets.length > 0">
         <template x-for="snippet in snippets" :key="snippet.id">
-            <article class="snippet-card" :class="{ selected: showEditor && editingSnippet?.id === snippet.id }">
+            <article class="snippet-card" :class="{ selected: showEditor && editingSnippet?.id === snippet.id, 'note-card': snippet.kind === 'note' }">
                 <div class="snippet-open" role="button" tabindex="0" :aria-label="'Open ' + snippet.title" :aria-current="showEditor && editingSnippet?.id === snippet.id ? 'true' : null" @click="viewSnippet(snippet)" @keydown.enter.prevent="viewSnippet(snippet)" @keydown.space.prevent="viewSnippet(snippet)" @keydown.arrow-down.prevent="focusResult($event, 1)" @keydown.arrow-up.prevent="focusResult($event, -1)">
                     <div class="snippet-card-header">
+                        <svg x-show="snippet.kind === 'note'" class="note-card-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9ZM13 2v7h7M8 13h8M8 17h6"></path>
+                        </svg>
                         <h3 class="snippet-card-title" x-text="snippet.title"></h3>
-                        <span class="snippet-card-language" :style="{ background: getLanguageColor(snippet.files?.[0]?.language || snippet.language) }"
+                        <span class="note-card-type" x-show="snippet.kind === 'note' && filter.kind !== 'note'">Note</span>
+                        <span class="snippet-card-language" x-show="snippet.kind !== 'note'" :style="{ background: getLanguageColor(snippet.files?.[0]?.language || snippet.language) }"
                             x-text="snippet.files?.[0]?.language || snippet.language"></span>
                     </div>
 
                     <!-- Show description if exists, otherwise show first 2 lines of code -->
-                    <p class="snippet-card-description" x-show="snippet.description && !filter.query" x-text="snippet.description">
+                    <p class="snippet-card-description" x-show="snippet.kind !== 'note' && snippet.description && !filter.query" x-text="snippet.description">
                     </p>
-                    <small class="match-filename" x-show="filter.query && snippet.preview_filename" x-text="snippet.preview_filename"></small>
+                    <small class="match-filename" x-show="snippet.kind !== 'note' && filter.query && snippet.preview_filename" x-text="snippet.preview_filename"></small>
+                    <p class="note-card-excerpt" x-show="snippet.kind === 'note'" x-text="noteExcerpt(snippet)" dir="auto"></p>
                     <pre class="snippet-card-preview"
-                        x-show="!snippet.description || filter.query"><code x-text="snippetExcerpt(snippet)"></code></pre>
+                        x-show="snippet.kind !== 'note' && (!snippet.description || filter.query)"><code x-text="snippetExcerpt(snippet)"></code></pre>
                 </div>
 
                 <div class="snippet-card-footer">
@@ -105,7 +115,7 @@
                         </template>
                     </div>
                     <div class="snippet-card-meta">
-                        <span class="snippet-card-file-indicator"
+                        <span class="snippet-card-file-indicator" x-show="snippet.kind !== 'note'"
                             :class="{ 'multi': snippet.files && snippet.files.length > 1 }"
                             :title="snippet.files && snippet.files.length > 1 ? snippet.files.length + ' files' : 'Single file'">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -116,7 +126,7 @@
                             <span x-text="snippet.files && snippet.files.length > 1 ? snippet.files.length + ' files' : 'Single file'"></span>
                         </span>
                         <!-- Single file: simple copy button -->
-                        <button x-show="!snippet.files || snippet.files.length <= 1" class="snippet-card-copy-btn"
+                        <button x-show="snippet.kind !== 'note' && (!snippet.files || snippet.files.length <= 1)" class="snippet-card-copy-btn"
                             @click.stop="copySnippetFromCard(snippet)" title="Copy code">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
@@ -126,7 +136,7 @@
                         </button>
 
                         <!-- Multiple files: dropdown menu -->
-                        <div x-show="snippet.files && snippet.files.length > 1" class="snippet-card-copy-dropdown"
+                        <div x-show="snippet.kind !== 'note' && snippet.files && snippet.files.length > 1" class="snippet-card-copy-dropdown"
                             x-data="{ open: false }" @click.outside="open = false">
                             <button class="snippet-card-copy-btn" @click.stop="open = !open"
                                 :title="'Copy file (' + (snippet.files?.length || 0) + ' files)'">

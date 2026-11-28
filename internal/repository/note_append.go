@@ -1,7 +1,10 @@
 package repository
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"database/sql"
 	"database/sql/driver"
 	"errors"
 	"strings"
@@ -9,22 +12,31 @@ import (
 	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
-var ErrNoteTooLarge = errors.New("appended content exceeds the 1 MiB file limit")
+var (
+	ErrNoteTooLarge           = errors.New("appended content exceeds the 1 MiB file limit")
+	ErrCaptureRequestConflict = errors.New("this capture request ID was already used for a different capture")
+)
 
 const appendableNote = `s.deleted_at IS NULL AND s.is_archived = 0 AND s.is_public = 0
 	AND ` + unexpiredSnippet
 
 // ListNoteTargets returns private Markdown files and Markdown snippets without a file list.
-func (r *SnippetRepository) ListNoteTargets(ctx context.Context, query string, page, limit int) (models.NoteTargets, error) {
+func (r *SnippetRepository) ListNoteTargets(ctx context.Context, query string, page, limit int, kinds ...string) (models.NoteTargets, error) {
 	result := models.NoteTargets{Targets: make([]models.NoteTarget, 0, limit)}
+	kind := ""
+	if len(kinds) > 0 {
+		kind = kinds[0]
+	}
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT s.id, s.title, COALESCE(f.id, 0), COALESCE(f.filename, '')
+		SELECT s.id, s.title, COALESCE(f.id, 0), COALESCE(f.filename, ''), s.kind, COALESCE(f.language, s.language)
 		FROM snippets s LEFT JOIN snippet_files f ON f.snippet_id = s.id
 		WHERE `+appendableNote+`
-			AND (f.language = 'markdown' OR (f.id IS NULL AND s.language = 'markdown'))
+			AND (? = '' OR s.kind = ?)
+			AND (COALESCE(f.language, s.language) = 'markdown'
+				OR (? = 'note' AND s.kind = 'note' AND COALESCE(f.language, s.language) = 'plaintext'))
 			AND (instr(lower(s.title), lower(?)) > 0 OR instr(lower(f.filename), lower(?)) > 0 OR ? = '')
 		ORDER BY s.updated_at DESC, s.id, f.sort_order, f.id LIMIT ? OFFSET ?`,
-		query, query, query, limit+1, (page-1)*limit)
+		kind, kind, kind, query, query, query, limit+1, (page-1)*limit)
 	if err != nil {
 		return result, err
 	}
@@ -35,7 +47,7 @@ func (r *SnippetRepository) ListNoteTargets(ctx context.Context, query string, p
 			break
 		}
 		var target models.NoteTarget
-		if err := rows.Scan(&target.SnippetID, &target.Title, &target.FileID, &target.Filename); err != nil {
+		if err := rows.Scan(&target.SnippetID, &target.Title, &target.FileID, &target.Filename, &target.Kind, &target.Language); err != nil {
 			return result, err
 		}
 		result.Targets = append(result.Targets, target)
@@ -43,7 +55,8 @@ func (r *SnippetRepository) ListNoteTargets(ctx context.Context, query string, p
 	return result, rows.Err()
 }
 
-// AppendNote updates one Markdown file and returns the previous state for history.
+// AppendNote appends to one body and returns the previous state for history.
+// A completed retry returns no history snapshot.
 func (r *SnippetRepository) AppendNote(ctx context.Context, id string, input models.NoteAppendInput) (*models.Snippet, error) {
 	conn, err := r.db.Conn(ctx)
 	if err != nil {
@@ -65,6 +78,27 @@ func (r *SnippetRepository) AppendNote(ctx context.Context, id string, input mod
 		}
 	}()
 
+	var contentHash [sha256.Size]byte
+	if input.RequestID != "" {
+		contentHash = sha256.Sum256([]byte(input.Content))
+		var previousHash []byte
+		var fileID int64
+		var language string
+		err := conn.QueryRowContext(ctx, `
+			SELECT file_id, language, content_hash FROM note_capture_requests
+			WHERE snippet_id = ? AND request_id = ?`, id, input.RequestID).Scan(&fileID, &language, &previousHash)
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			// The capture and its receipt are written in the same transaction.
+		case err != nil:
+			return nil, err
+		case fileID != input.FileID || language != input.Language || !bytes.Equal(previousHash, contentHash[:]):
+			return nil, ErrCaptureRequestConflict
+		default:
+			return nil, nil
+		}
+	}
+
 	before, err := snippetByID(ctx, conn, id)
 	if err != nil {
 		return nil, err
@@ -78,7 +112,7 @@ func (r *SnippetRepository) AppendNote(ctx context.Context, id string, input mod
 	}
 	primary := before.Content
 	if len(before.Files) == 0 {
-		if input.FileID != 0 || before.Language != "markdown" {
+		if input.FileID != 0 || !acceptsCapture(before.Kind, before.Language, input.Language) {
 			return nil, ErrNotFound
 		}
 		primary, err = joinNoteContent(primary, input.Content)
@@ -88,7 +122,7 @@ func (r *SnippetRepository) AppendNote(ctx context.Context, id string, input mod
 	} else {
 		index := -1
 		for i, file := range before.Files {
-			if file.ID == input.FileID && file.Language == "markdown" {
+			if file.ID == input.FileID && acceptsCapture(before.Kind, file.Language, input.Language) {
 				index = i
 				break
 			}
@@ -110,15 +144,29 @@ func (r *SnippetRepository) AppendNote(ctx context.Context, id string, input mod
 		}
 	}
 	if _, err := conn.ExecContext(ctx, `
-		UPDATE snippets SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+		UPDATE snippets SET content = ?, revision = revision + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
 		primary, id); err != nil {
 		return nil, err
+	}
+	if input.RequestID != "" {
+		if _, err := conn.ExecContext(ctx, `
+			INSERT INTO note_capture_requests(snippet_id, request_id, file_id, language, content_hash)
+			VALUES (?, ?, ?, ?, ?)`, id, input.RequestID, input.FileID, input.Language, contentHash[:]); err != nil {
+			return nil, err
+		}
 	}
 	if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
 		return nil, err
 	}
 	committed = true
 	return before, nil
+}
+
+func acceptsCapture(kind, language, requested string) bool {
+	if requested != "" && requested != language {
+		return false
+	}
+	return language == "markdown" || (kind == models.KindNote && requested == "plaintext" && language == requested)
 }
 
 func joinNoteContent(existing, added string) (string, error) {

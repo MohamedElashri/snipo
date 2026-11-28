@@ -379,6 +379,7 @@ func (h *GistSyncHandler) EnableSyncForAll(w http.ResponseWriter, r *http.Reques
 
 	// Get all snippets using List with high limit
 	result, err := h.snippetRepo.List(r.Context(), models.SnippetFilter{
+		Kind:  models.KindSnippet,
 		Limit: 10000, // High limit to get all snippets
 	})
 	if err != nil {

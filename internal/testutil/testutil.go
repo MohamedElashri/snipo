@@ -45,6 +45,8 @@ func runTestMigrations(db *sql.DB) error {
 			description TEXT DEFAULT '',
 			content TEXT NOT NULL DEFAULT '',
 			language TEXT DEFAULT 'plaintext',
+			kind TEXT NOT NULL DEFAULT 'snippet',
+			revision INTEGER NOT NULL DEFAULT 1,
 			is_favorite INTEGER DEFAULT 0,
 			is_public INTEGER DEFAULT 0,
 			is_archived INTEGER DEFAULT 0,
@@ -161,6 +163,15 @@ func runTestMigrations(db *sql.DB) error {
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (snippet_id) REFERENCES snippets(id) ON DELETE CASCADE
+		);
+
+		CREATE TABLE IF NOT EXISTS note_capture_requests (
+			snippet_id TEXT NOT NULL REFERENCES snippets(id) ON DELETE CASCADE,
+			request_id TEXT NOT NULL,
+			file_id INTEGER NOT NULL,
+			language TEXT NOT NULL,
+			content_hash BLOB NOT NULL,
+			PRIMARY KEY (snippet_id, request_id)
 		);
 
 		-- Snippet history tables

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SnipoClient, Snippet, Tag, Folder } from '@snipo/api-client';
+import { SnipoClient, Snippet, SnippetWrite, Tag, Folder } from '@snipo/api-client';
 
 export function normalizeServerURL(value: string): string {
     const url = value.trim();
@@ -107,15 +107,16 @@ export class SnipoAPI {
         }
     }
 
-    async getSnippets(query: string = '', isFavorite?: boolean, tagId?: number, folderId?: number): Promise<Snippet[]> {
+    async getSnippets(query: string = '', isFavorite?: boolean, tagId?: number, folderId?: number, kind?: 'note' | 'all'): Promise<Snippet[]> {
         let cacheKey = `snippets_all_${isFavorite}`;
         if (tagId) cacheKey = `snippets_tag_${tagId}`;
         if (folderId) cacheKey = `snippets_folder_${folderId}`;
-        cacheKey = this.cacheKey(cacheKey);
+        cacheKey = this.cacheKey(kind ? `${kind}_${cacheKey}` : cacheKey);
         const scope = this.cacheScope;
 
         try {
-            const params: any = { limit: 50 };
+            const params: Record<string, string | number | boolean> = { limit: 50 };
+            if (kind) params.kind = kind;
             if (query) params.q = query;
             if (isFavorite !== undefined) params.favorite = isFavorite;
             if (tagId !== undefined) params.tag_ids = tagId;
@@ -156,10 +157,10 @@ export class SnipoAPI {
         }
     }
 
-    async searchSnippets(query: string, signal?: AbortSignal): Promise<Snippet[]> {
-        const cacheKey = this.cacheKey('snippets_all_undefined');
+    async searchSnippets(query: string, signal?: AbortSignal, kind?: 'note'): Promise<Snippet[]> {
+        const cacheKey = this.cacheKey(kind ? 'note_snippets_all_undefined' : 'snippets_all_undefined');
         try {
-            const response = await this.client.client.get('/api/v1/snippets/search', { params: { q: query }, signal });
+            const response = await this.client.client.get('/api/v1/snippets/search', { params: { q: query, kind }, signal });
             return Array.isArray(response.data) ? response.data : (response.data.data || []);
         } catch (error: any) {
             if (error.name === 'AbortError') {
@@ -228,11 +229,11 @@ export class SnipoAPI {
         }
     }
 
-    async updateSnippet(id: string, data: Partial<Snippet>): Promise<Snippet | null> {
+    async updateSnippet(id: string, data: SnippetWrite): Promise<Snippet | null> {
         try {
             const snippet = await this.client.updateSnippet(id, data);
             refreshSidebar();
-            vscode.window.showInformationMessage('Snippet updated successfully!');
+            vscode.window.showInformationMessage(snippet.kind === 'note' ? 'Note saved to Snipo.' : 'Snippet updated successfully!');
             return snippet;
         } catch (error: any) {
             console.error('Error updating snippet', error);

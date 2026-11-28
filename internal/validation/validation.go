@@ -52,6 +52,10 @@ var tagRegex = regexp.MustCompile(`^[a-zA-Z0-9_ .\-#+]+$`)
 
 // ValidateSnippetInput validates snippet input
 func ValidateSnippetInput(input *models.SnippetInput) ValidationErrors {
+	return validateSnippetInput(input, false)
+}
+
+func validateSnippetInput(input *models.SnippetInput, allowEmptyBody bool) ValidationErrors {
 	var errs ValidationErrors
 
 	// Title validation
@@ -64,7 +68,7 @@ func ValidateSnippetInput(input *models.SnippetInput) ValidationErrors {
 
 	// Content validation (skip if multi-file snippet with files)
 	hasFiles := len(input.Files) > 0
-	if !hasFiles && strings.TrimSpace(input.Content) == "" {
+	if !allowEmptyBody && !hasFiles && strings.TrimSpace(input.Content) == "" {
 		errs = append(errs, ValidationError{Field: "content", Message: "Content is required"})
 	} else if len(input.Content) > 1024*1024 { // 1MB limit
 		errs = append(errs, ValidationError{Field: "content", Message: "Content must be less than 1MB"})

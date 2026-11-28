@@ -1,5 +1,5 @@
 {{define "content"}}
-<div class="app-container" x-data="snippetsApp()" :data-density="density">
+<div class="app-container" x-data="snippetsApp()" :data-density="libraryLayout === 'compact' ? 'compact' : 'comfortable'">
     <!-- Sidebar Component -->
     {{template "sidebar" .}}
 
