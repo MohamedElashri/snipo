@@ -108,19 +108,22 @@ const cases = [
       await page.getByRole('button', { name: 'Preview', exact: true }).click();
       await page.getByRole('button', { name: 'Copy code block' }).waitFor();
       await save(page);
+      const edit = page.getByRole('button', { name: 'Edit', exact: true });
+      await edit.waitFor();
       await page.locator('.note-reader').getByRole('heading', { name: 'Release checklist' }).waitFor();
       const id = new URL(page.url()).searchParams.get('snippet');
-      await page.getByRole('button', { name: 'Edit', exact: true }).click();
+      assert.ok(id, 'A saved note should have a URL');
+      await edit.click();
       await page.getByRole('combobox', { name: 'Format' }).selectOption('plaintext');
       const text = '  First line\n\nSecond <literal> line\n';
       await body.fill(text);
-      await page.getByTitle('Toggle details panel').click();
-      await page.locator('label[title="Make this item publicly accessible"]').click();
+      await page.getByRole('button', { name: 'Details', exact: true }).click();
+      await page.getByRole('checkbox', { name: 'Make public', exact: true }).check();
       await save(page);
       const reader = page.locator('.note-reader .note-plain');
       await reader.waitFor();
       assert.equal(await reader.textContent(), text);
-      await page.getByText('More', { exact: true }).click();
+      await page.getByRole('region', { name: 'Note workspace' }).getByText('More', { exact: true }).click();
       const downloadPromise = page.waitForEvent('download');
       await page.getByRole('button', { name: 'Download note', exact: true }).click();
       const download = await downloadPromise;
@@ -130,6 +133,16 @@ const cases = [
       const visitor = await browser.newContext();
       try {
         const share = await visitor.newPage();
+        const markdown = await createNote(page, server, {
+          title: 'Shareable Markdown', content: '## Reading view\n\n```sh\necho ready\n```', is_public: true,
+        });
+        await share.goto(server.url + '/s/' + markdown.id);
+        const document = share.locator('.note-document.markdown-content');
+        await document.getByRole('heading', { name: 'Reading view' }).waitFor();
+        assert.equal(await document.evaluate(el => getComputedStyle(el).position), 'static');
+        await share.getByRole('button', { name: 'Copy code block' }).click();
+        await share.getByTitle('Copy note').click();
+
         await share.goto(server.url + '/s/' + id);
         await share.locator('.note-plain').waitFor();
         assert.equal(await share.locator('.note-plain').textContent(), text);
@@ -142,6 +155,152 @@ const cases = [
       } finally {
         await visitor.close();
       }
+    }],
+  ['fills the note workspace and keeps editing controls reachable in both Markdown modes',
+    async ({ page, server }) => {
+      const code = 'echo ' + 'x'.repeat(250);
+      const content = ['## Start of document', '```bash\n' + code + '\n```', ...Array.from({ length: 40 }, (_, i) => 'Paragraph ' + i), '## End of document'].join('\n\n');
+      const note = await createNote(page, server, { title: 'Long note '.repeat(16), content });
+      const scroll = page.locator('.note-scroll');
+      const writer = page.getByRole('textbox', { name: 'Note body' });
+      const previewButton = page.getByRole('button', { name: 'Preview', exact: true });
+      const writeButton = page.getByRole('button', { name: 'Write', exact: true });
+
+      for (const [width, height] of [[1440, 900], [1030, 720], [390, 844], [320, 680]]) {
+        await page.setViewportSize({ width, height });
+        await openNote(page, server, note.id, true);
+        assert.equal(await page.locator('.workspace > .snippet-list').isVisible(), false);
+        const workspaceWidth = (await page.locator('.workspace').boundingBox()).width;
+        const editor = await writer.boundingBox();
+        assert.ok(editor.width >= workspaceWidth - 2, 'The writer should fill the workspace at ' + width);
+        assert.ok(editor.height >= (await scroll.boundingBox()).height - 2, 'The writer should fill the available height');
+
+        await writer.fill(content + '\n\nLast edit');
+        await writer.evaluate(input => { input.selectionStart = 12; input.selectionEnd = 21; });
+        const writingStart = await writer.evaluate(el => el.getBoundingClientRect().left + parseFloat(getComputedStyle(el).paddingLeft));
+        await previewButton.click();
+        await page.locator('.note-reader').getByRole('heading', { name: 'Start of document' }).waitFor();
+        const document = page.locator('.note-reader .note-document.markdown-content');
+        const preview = await document.evaluate(el => {
+          const style = getComputedStyle(el);
+          const rect = el.getBoundingClientRect();
+          return { position: style.position, width: rect.width, start: rect.left + parseFloat(style.paddingLeft) };
+        });
+        assert.equal(preview.position, 'static');
+        assert.ok(preview.width >= await scroll.evaluate(el => el.clientWidth) - 2, 'Preview should fill the available width');
+        assert.ok(Math.abs(preview.start - writingStart) < 2, 'Preview should line up with the writing area');
+        assert.equal(await page.getByRole('button', { name: 'Copy code block' }).isVisible(), true);
+        await scroll.evaluate(el => { el.scrollTop = el.scrollHeight; });
+        assert.ok(await scroll.evaluate(el => el.scrollTop > 0), 'Long Markdown should scroll beneath the toolbar');
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        await writeButton.click();
+        assert.equal(await writer.inputValue(), content + '\n\nLast edit');
+        assert.deepEqual(await writer.evaluate(el => [el.selectionStart, el.selectionEnd]), [12, 21]);
+        await previewButton.click();
+        await save(page);
+        const edit = page.getByRole('button', { name: 'Edit', exact: true });
+        await edit.waitFor();
+        await page.locator('.note-reader').getByRole('heading', { name: 'End of document' }).waitFor();
+        await scroll.evaluate(el => { el.scrollTop = el.scrollHeight; });
+        const details = page.getByRole('button', { name: 'Details', exact: true });
+        await details.click();
+        assert.equal(await details.getAttribute('aria-expanded'), 'true');
+        await page.waitForFunction(() => document.querySelector('.note-scroll').scrollTop === 0);
+        await page.keyboard.press('Escape');
+        assert.equal(await details.getAttribute('aria-expanded'), 'false');
+        await edit.click();
+        await writer.waitFor();
+        if (width === 320) {
+          await writer.fill('');
+          await previewButton.click();
+          await page.getByText('Nothing to preview yet.').waitFor();
+          await writeButton.click();
+          await writer.waitFor();
+        }
+      }
+    }],
+  ['resizes the navigation sidebar and reflows notes, snippets, and the library',
+    async ({ page, server }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      const note = await createNote(page, server, { title: 'Resizable note', content: '## Resizing the workspace' });
+      const snippet = await request(page, server, '/snippets', 'POST', {
+        title: 'Resizable snippet', language: 'bash', content: 'echo resized',
+      }, 201);
+      await openNote(page, server, note.id, true);
+
+      const divider = page.getByRole('separator', { name: 'Resize navigation sidebar' });
+      const writer = page.getByRole('textbox', { name: 'Note body' });
+      const width = locator => locator.evaluate(el => el.getBoundingClientRect().width);
+      const checkSidebarWidth = async expected => {
+        await page.waitForFunction(width => {
+          const sidebar = document.querySelector('#navigation-sidebar').getBoundingClientRect();
+          const main = document.querySelector('.main-content').getBoundingClientRect();
+          return sidebar.width === width && main.left === sidebar.right && main.right === innerWidth;
+        }, expected);
+        assert.equal(await divider.getAttribute('aria-valuenow'), String(expected));
+      };
+      const drag = async (distance, expected) => {
+        const { x, y, width, height } = await divider.boundingBox();
+        const startX = x + width / 2;
+        await page.mouse.move(startX, y + height / 2);
+        await page.mouse.down();
+        await page.mouse.move(startX + distance, y + height * 0.7, { steps: 8 });
+        await checkSidebarWidth(expected);
+        await page.mouse.up();
+      };
+
+      await checkSidebarWidth(220);
+      const before = await width(writer);
+      await drag(140, 360);
+      assert.equal(await width(writer), before - 140);
+      await page.getByRole('button', { name: 'Preview', exact: true }).click();
+      await page.getByRole('heading', { name: 'Resizing the workspace' }).waitFor();
+      const preview = page.locator('.note-reader .markdown-content');
+      const previewBefore = await width(preview);
+      await drag(90, 450);
+      assert.equal(await width(preview), previewBefore - 90);
+      await page.getByRole('button', { name: 'Write', exact: true }).click();
+      assert.equal(await writer.inputValue(), '## Resizing the workspace');
+
+      await page.reload();
+      await writer.waitFor();
+      await checkSidebarWidth(450);
+      const toggle = page.getByTitle('Toggle Sidebar', { exact: true });
+      await toggle.click();
+      await divider.waitFor({ state: 'hidden' });
+      assert.equal(await width(writer), 1440);
+      await toggle.click();
+      await checkSidebarWidth(450);
+
+      await page.goto(server.url + '/?kind=snippet&snippet=' + snippet.id);
+      await page.getByRole('button', { name: 'Edit', exact: true }).waitFor();
+      const library = page.locator('.workspace > .snippet-list');
+      await library.waitFor();
+      await page.setViewportSize({ width: 1030, height: 900 });
+      await checkSidebarWidth(412);
+      await library.waitFor({ state: 'hidden' });
+      assert.equal(await width(page.locator('.editor-container')), 618);
+      assert.equal(await divider.getAttribute('aria-valuemax'), '412');
+      await drag(200, 412);
+      assert.equal(await page.evaluate(() => localStorage.getItem('sidebarWidth')), '450');
+      await drag(-600, 180);
+      await library.waitFor();
+      await divider.press('ArrowRight');
+      await checkSidebarWidth(196);
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await divider.waitFor({ state: 'hidden' });
+      const mobileToggle = page.getByRole('button', { name: 'Toggle navigation' });
+      assert.equal(await mobileToggle.getAttribute('aria-expanded'), 'false');
+      await mobileToggle.click();
+      assert.equal(await mobileToggle.getAttribute('aria-expanded'), 'true');
+      assert.equal(await divider.isVisible(), false);
+      assert.equal(await width(page.locator('.main-content')), 390);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await checkSidebarWidth(196);
     }],
   ['keeps multiple local drafts after switching notes and saving another item',
     async ({ page, server }) => {
@@ -253,7 +412,8 @@ const cases = [
       await page.getByRole('textbox', { name: 'Note body' }).fill('# After editing');
       await save(page);
       await page.locator('.note-reader').getByRole('heading', { name: 'After editing' }).waitFor();
-      await page.getByText('More', { exact: true }).click();
+      const editor = page.getByRole('region', { name: 'Note workspace' });
+      await editor.getByText('More', { exact: true }).click();
       await page.getByRole('button', { name: 'History', exact: true }).click();
       await page.locator('.history-entry').first().getByRole('button', { name: 'Restore', exact: true }).click();
       await page.getByRole('button', { name: 'Restore Now', exact: true }).click();
@@ -268,7 +428,6 @@ const cases = [
       await request(page, server, '/snippets/' + note.id + '/archive', 'POST');
       await request(page, server, '/snippets/' + note.id, 'DELETE', undefined, 204);
       await page.goto(server.url + '/?trash=true&kind=note&snippet=' + note.id);
-      const editor = page.locator('.editor-container');
       await editor.getByRole('button', { name: 'Restore', exact: true }).click();
       await editor.getByRole('button', { name: 'Edit', exact: true }).waitFor();
       assert.equal((await request(page, server, '/snippets/' + note.id)).kind, 'note');
@@ -356,7 +515,7 @@ const cases = [
 
 const extensionPath = process.env.SNIPO_TEST_EXTENSION;
 if (extensionPath && browserType === chromium) {
-  cases.push(['runs the Chrome extension against Snipo, then retries a capture after a lost reply',
+  cases.push(['runs the Chrome extension against Snipo, edits a capture, and retries an append after a lost reply',
     async ({ page, server }) => {
       const note = await createNote(page, server, { title: 'Extension live target', language: 'plaintext' });
       const token = await request(page, server, '/tokens', 'POST', {
@@ -401,6 +560,25 @@ if (extensionPath && browserType === chromium) {
         const saved = await request(page, server, '/snippets/' + note.id);
         assert.equal(saved.content, 'Original body\n\nLive browser capture\n\nSource: https://capture.example.test/runbook');
         assert.equal(saved.revision, note.revision + 1);
+
+        await source.locator('.snipo-btn').waitFor();
+        const reopened = context.waitForEvent('page');
+        await source.locator('.snipo-btn').click();
+        const create = await reopened;
+        await create.getByRole('combobox', { name: 'Save as' }).selectOption('note');
+        await create.getByRole('combobox', { name: 'Format' }).selectOption('plaintext');
+        await create.locator('#snipo-title').fill('Edited browser capture');
+        await create.getByRole('textbox', { name: 'Note body' }).fill('  Edited before saving\nNext line');
+        await create.getByRole('checkbox', { name: 'Include source link' }).uncheck();
+        const created = create.waitForEvent('close');
+        await create.getByRole('button', { name: 'Save Note' }).click();
+        await created;
+        const notes = await request(page, server, '/snippets?kind=note&q=Edited+browser+capture');
+        assert.equal(notes.length, 1);
+        const capture = await request(page, server, '/snippets/' + notes[0].id);
+        assert.equal(capture.content, '  Edited before saving\nNext line');
+        assert.equal(capture.language, 'plaintext');
+        assert.equal(capture.is_public, false);
       } finally {
         await context.close();
       }

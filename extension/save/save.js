@@ -213,6 +213,27 @@ async function showModal(snippetData) {
     formatGroup.hidden = true;
     rowGroup.after(formatGroup);
 
+    const noteBodyGroup = document.createElement('label');
+    noteBodyGroup.className = 'snipo-form-group';
+    noteBodyGroup.textContent = 'Note body';
+    const noteBody = document.createElement('textarea');
+    noteBody.className = 'snipo-textarea';
+    noteBody.rows = 6;
+    noteBody.dir = 'auto';
+    noteBody.value = snippetData.code;
+    noteBodyGroup.append(noteBody);
+    noteBodyGroup.hidden = true;
+    formatGroup.after(noteBodyGroup);
+
+    const sourceGroup = document.createElement('label');
+    sourceGroup.className = 'snipo-source-option';
+    const includeSource = document.createElement('input');
+    includeSource.type = 'checkbox';
+    includeSource.checked = true;
+    sourceGroup.append(includeSource, ' Include source link');
+    sourceGroup.hidden = true;
+    noteBodyGroup.after(sourceGroup);
+
     // Action buttons
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'snipo-modal-actions';
@@ -229,7 +250,8 @@ async function showModal(snippetData) {
         const note = kindSelect.value === 'note';
         rowGroup.hidden = note;
         descGroup.hidden = note;
-        formatGroup.hidden = !note;
+        formatGroup.hidden = noteBodyGroup.hidden = sourceGroup.hidden = !note;
+        h2.textContent = saveLabel();
         saveBtn.textContent = saveLabel();
     });
     actionsDiv.appendChild(cancelBtn);
@@ -359,8 +381,15 @@ async function showModal(snippetData) {
     });
 
     overlay.querySelector('#snipo-save').addEventListener('click', async () => {
+        const note = kindSelect.value === 'note';
+        if (note && !noteBody.value.trim()) {
+            showToast(false, 'Write some content before saving the note.');
+            noteBody.focus();
+            return;
+        }
+        showToast(true, '');
         const title = overlay.querySelector('#snipo-title').value;
-        const language = kindSelect.value === 'note' ? noteFormat.value : langSelect.value;
+        const language = note ? noteFormat.value : langSelect.value;
         const filename = overlay.querySelector('#snipo-filename').value; // Get filename
         const description = overlay.querySelector('#snipo-desc').value;
         const folderId = overlay.querySelector('#snipo-folder').value || null;
@@ -379,7 +408,8 @@ async function showModal(snippetData) {
             action: "saveDraftSnippet",
             kind: kindSelect.value,
             draftId: draftId,
-            code: snippetData.code,
+            noteText: note ? noteBody.value : undefined,
+            includeSource: note ? includeSource.checked : undefined,
             language: language,
             title: title,
             description: description,

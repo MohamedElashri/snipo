@@ -101,7 +101,7 @@ export const draftMixin = {
     this.destroyCodeEditor();
     this.showSettings = false;
     this.editingSnippet = { ...snippet };
-    this.noteMode = 'write';
+    if (this.isNote) this.resetNoteWorkspace();
     this.noteConflict = null;
     this.noteOverviewError = false;
     this.activeFileIndex = 0;

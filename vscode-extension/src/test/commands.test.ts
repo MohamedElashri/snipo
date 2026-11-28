@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
-import { searchAndInsertSnippet, saveSelectedSnippet, updateSnippet, openInSnipo, openInVSCode, saveOpenNote } from '../commands';
+import { searchAndInsertSnippet, saveSelectedSnippet, updateSnippet, openInSnipo, openInVSCode, newNote, previewOpenNote, saveOpenNote } from '../commands';
 import { api } from '../api';
 import { SnipoCodeLensProvider } from '../providers';
 
@@ -232,6 +232,38 @@ suite('Commands Test Suite', () => {
             language: 'markdown', is_public: false, is_archived: undefined, expires_at: undefined,
             folder_id: 12, tags: ['ops']
         });
+    });
+
+    test('creates a private Markdown note, previews its draft, and updates the newly saved revision', async () => {
+        const doc = { uri: vscode.Uri.parse('untitled:NewNote'), getText: () => '# Release notes\n\nChanges', languageId: 'markdown' };
+        const open = sinon.stub(vscode.workspace, 'openTextDocument').resolves(doc as vscode.TextDocument);
+        sinon.stub(vscode.window, 'showTextDocument').resolves({} as vscode.TextEditor);
+        sinon.stub(vscode.window, 'activeTextEditor').get(() => ({ document: doc }));
+        const execute = sinon.stub(vscode.commands, 'executeCommand').resolves(undefined);
+        const note = {
+            id: 'new-note', kind: 'note' as const, revision: 1, title: 'Release notes', description: '',
+            content: doc.getText(), language: 'markdown', is_favorite: false, is_public: false,
+        };
+        const create = sinon.stub(api, 'createSnippet').resolves(note);
+        const update = sinon.stub(api, 'updateSnippet').resolves({ ...note, revision: 2 });
+        showQuickPickStub.callsFake(async items => items[0]);
+
+        await newNote();
+        assert.deepStrictEqual(open.firstCall.args[0], { language: 'markdown', content: '' });
+        await previewOpenNote();
+        assert.ok(execute.calledWith('markdown.showPreviewToSide', doc.uri));
+        showInputBoxStub.onFirstCall().resolves(undefined);
+        await saveOpenNote();
+        assert.ok(create.notCalled);
+        showInputBoxStub.onSecondCall().resolves('Release notes');
+        await saveOpenNote();
+        assert.strictEqual(showInputBoxStub.secondCall.args[0].value, 'Release notes');
+        assert.ok(create.calledOnceWithExactly({
+            kind: 'note', title: 'Release notes', content: doc.getText(), language: 'markdown', is_public: false,
+        }));
+        await saveOpenNote();
+        assert.strictEqual(update.firstCall.args[0], note.id);
+        assert.strictEqual(update.firstCall.args[1].revision, 1);
     });
 
 });

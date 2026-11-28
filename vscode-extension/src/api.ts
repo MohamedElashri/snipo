@@ -214,7 +214,7 @@ export class SnipoAPI {
         try {
             const snippet = await this.client.createSnippet(data);
             refreshSidebar();
-            vscode.window.showInformationMessage('Snippet created successfully!');
+            vscode.window.showInformationMessage(snippet.kind === 'note' ? 'Note saved to Snipo.' : 'Snippet created successfully!');
             return snippet;
         } catch (error: any) {
             console.error('Error creating snippet', error);
@@ -223,7 +223,7 @@ export class SnipoAPI {
             } else {
                 const msg = error.response?.data?.error?.message || error.message;
                 const details = error.response?.data?.error?.details?.[0]?.message || '';
-                vscode.window.showErrorMessage(`Failed to create snippet: ${msg} ${details}`);
+                vscode.window.showErrorMessage(`Failed to create ${data.kind === 'note' ? 'note' : 'snippet'}: ${msg} ${details}`);
             }
             return null;
         }

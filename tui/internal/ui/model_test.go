@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/MohamedElashri/snipo/pkg/models"
 	"github.com/MohamedElashri/snipo/tui/internal/api"
 	"github.com/MohamedElashri/snipo/tui/internal/config"
 )
@@ -76,6 +77,50 @@ func TestQuestionMarkInForm(t *testing.T) {
 	got := next.(Model)
 	if got.mode != ViewCreate || got.inputs[0].Value() != "?" {
 		t.Fatalf("question mark lost draft: mode %v value %q", got.mode, got.inputs[0].Value())
+	}
+}
+
+func TestNewNoteMarkdownPreviewPreservesDraft(t *testing.T) {
+	m := Model{mode: ViewList, libraryKind: models.KindSnippet, width: 80, height: 24}
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'N'}})
+	m = next.(Model)
+	if m.mode != ViewCreate || !m.noteForm || m.inputs[1].Value() != "markdown" {
+		t.Fatal("N should start a Markdown note from the Snippets library")
+	}
+	m.inputs[0].SetValue("Release notes")
+	const body = "# Preview heading\n\n"
+	m.textarea.SetValue(body + strings.Repeat("Line of text\n\n", 30))
+	draft := m.textarea.Value()
+	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyF2})
+	m = next.(Model)
+	if view := m.View(); !m.notePreview || !strings.Contains(view, " heading") || !strings.Contains(view, "back to writing") || strings.Contains(view, "# Preview") {
+		t.Fatalf("expected a rendered Markdown preview: %q", view)
+	}
+	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyDown})
+	m = next.(Model)
+	if m.detailScroll != 1 {
+		t.Fatal("expected preview to scroll")
+	}
+	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = next.(Model)
+	if m.notePreview || m.mode != ViewCreate || m.textarea.Value() != draft {
+		t.Fatal("Escape should return to the original writing buffer")
+	}
+	m.inputs[1].SetValue("plaintext")
+	next, _ = m.Update(tea.KeyMsg{Type: tea.KeyF2})
+	if next.(Model).notePreview {
+		t.Fatal("plain-text notes should stay in the writer")
+	}
+}
+
+func TestPlainTextNoteReaderUsesBodyWithoutFileTabs(t *testing.T) {
+	m := Model{mode: ViewDetail, width: 36, height: 24, detailSnippet: &api.Snippet{
+		Kind: models.KindNote, Language: "plaintext", Title: "Notes", Content: "# literal text",
+		Files: []api.File{{Filename: "hidden.txt", Content: "stale file content"}},
+	}}
+	view := m.View()
+	if !strings.Contains(view, "# literal text") || strings.Contains(view, "hidden.txt") || strings.Contains(view, "stale file content") {
+		t.Fatalf("expected the note's plain text without file tabs: %q", view)
 	}
 }
 func TestCopySelectedFile(t *testing.T) {

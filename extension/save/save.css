@@ -85,6 +85,13 @@
     min-height: 80px;
 }
 
+.snipo-source-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
 .snipo-modal-actions {
     display: flex;
     justify-content: flex-end;

@@ -1,6 +1,6 @@
 {{define "editor"}}
 <!-- Snippet View/Editor -->
-<div class="editor-container" :inert="saving" x-show="showEditor" x-cloak>
+<div class="editor-container" :inert="saving" x-show="showEditor && !isNote" x-cloak>
     <!-- Toolbar -->
     <div class="editor-toolbar" x-show="editorHeaderVisible">
         <button class="btn-icon" @click="cancelEdit()" title="Back">
@@ -19,8 +19,7 @@
         <div class="editor-title-wrapper" x-show.immediate="isEditing">
             <textarea class="editor-title-input"
                 :class="{ 'rtl': isArabicText(editingSnippet.title) }"
-                :aria-label="isNote ? 'Note title' : 'Snippet title'" x-model="editingSnippet.title"
-                :placeholder="isNote ? (noteTitleSuggestion || 'Note title') : 'Snippet title…'" rows="1"
+                aria-label="Snippet title" x-model="editingSnippet.title" placeholder="Snippet title…" rows="1"
                 @input="scheduleAutoSave(); autoResizeTextarea($event.target)"
                 x-init="$watch('isEditing', (v) => { if(v) $nextTick(() => autoResizeTextarea($el)) })"></textarea>
         </div>
@@ -45,7 +44,7 @@
                 </svg>
                 <span x-text="editingSnippet?.is_favorite ? 'Favorited' : 'Favorite'"></span>
             </button>
-            <button class="btn-action" @click="copyToClipboard(editingSnippet)" :title="isNote ? 'Copy note' : 'Copy active file'">
+            <button class="btn-action" @click="copyToClipboard(editingSnippet)" title="Copy active file">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                 <span>Copy</span>
             </button>
@@ -60,18 +59,16 @@
 
             <details class="editor-more" x-show="editingSnippet?.id">
                 <summary>More<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary><div class="editor-more-menu">
-                    <button class="btn-action" x-show="!isNote" @click="copyAsRichText(editingSnippet)">Copy as rich text</button>
-                    <button class="btn-action" x-show="isNote && !isEditing" @click="downloadNote()">Download note</button>
+                    <button class="btn-action" @click="copyAsRichText(editingSnippet)">Copy as rich text</button>
                     <button class="btn-action" x-show="canConvertItem()"
-                        @click="$el.closest('details').open = false; convertItem()"
-                        x-text="isNote ? 'Convert to snippet' : 'Convert to note'"></button>
+                        @click="$el.closest('details').open = false; convertItem()">Convert to note</button>
                     <button class="btn-action" x-show="canSetFolderOverview()" :disabled="savingFolderOverview"
                         @click="$el.closest('details').open = false; setFolderOverview(editingSnippet.folder_id, editingSnippet.id)">
                         Set as folder overview
                     </button>
             <!-- Archive button -->
             <button class="btn-action" @click="toggleArchive(editingSnippet)"
-                x-show="editingSnippet?.id && settings.archive_enabled && (!isNote || !isEditing)"
+                x-show="editingSnippet?.id && settings.archive_enabled"
                 :title="editingSnippet?.is_archived ? 'Unarchive' : 'Archive'">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     x-show="!editingSnippet?.is_archived">
@@ -93,7 +90,7 @@
 
             <!-- History button -->
             <button class="btn-action" @click="openHistory(editingSnippet)"
-                x-show="editingSnippet?.id && settings.history_enabled && (!isNote || !isEditing)" title="View History">
+                x-show="editingSnippet?.id && settings.history_enabled" title="View History">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M3 3v5h5"></path>
                     <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path>
@@ -136,7 +133,7 @@
             </button>
 
             <!-- Save button (edit mode) -->
-            <button class="btn-action primary" x-show="isEditing" @click="saveSnippet()" :disabled="saving || (isNote && noteConflict)" :aria-busy="saving.toString()" aria-keyshortcuts="Control+S Meta+S">
+            <button class="btn-action primary" x-show="isEditing" @click="saveSnippet()" :disabled="saving" :aria-busy="saving.toString()" aria-keyshortcuts="Control+S Meta+S">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                     <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -158,25 +155,18 @@
 
     <div class="editor-status" x-show="isEditing">
         <span role="status" aria-live="polite" x-text="saveState === 'saving' ? 'Saving to server…' : saveState === 'error' ? 'Save failed — your changes are still open. Retry Save.' : saveState === 'local-error' ? 'Draft could not be stored locally. Save to keep your changes.' : saveState === 'local' ? 'Draft saved on this device · Save to store on server' : isEditing ? 'Unsaved changes' : 'Saved to server'"></span>
-        <span class="editor-engine-indicator" x-show="!isNote" role="status" aria-live="polite"
+        <span class="editor-engine-indicator" role="status" aria-live="polite"
               x-text="editorLoading ? 'Loading ' + editorLabel(editorEngine) + '…' : codeEditor ? 'Editor: ' + editorLabel(activeEditorEngine) + (activeEditorEngine !== editorEngine ? ' (fallback)' : '') : 'Editor unavailable'"></span>
     </div>
 
     <div class="sharing-notice" x-show="isEditing && editingSnippet.is_public" role="note">
-        <span x-text="isNote ? 'Anyone with the public link can read this note.' : 'Anyone with the public link can read this snippet and its files.'"></span>
-        Turn off Public and save to revoke access.
+        Anyone with the public link can read this snippet and its files. Turn off Public and save to revoke access.
     </div>
 
     <!-- PREVIEW MODE: Full-width code preview with metadata -->
-    <div class="preview-mode" :class="{ 'note-preview': isNote }" x-show="!isEditing">
-        <div class="note-reader" x-show="isNote" dir="auto">
-            <article class="preview-markdown-scroll note-document" x-show="isNote && editingSnippet.language === 'markdown'"
-                @click="copyMarkdownBlock($event)" x-html="isNote && editingSnippet.language === 'markdown' ? renderMarkdown(editingSnippet.content) : ''"></article>
-            <article class="note-document note-plain" x-show="isNote && editingSnippet.language === 'plaintext'"
-                x-text="isNote ? editingSnippet.content : ''" dir="auto"></article>
-        </div>
+    <div class="preview-mode" x-show="!isEditing">
         <details class="snippet-details">
-            <summary><span x-text="isNote ? 'Note details' : 'Snippet details'"></span><span class="snippet-visibility" x-text="editingSnippet.is_public ? 'Public' : 'Private'"></span></summary>
+            <summary><span>Snippet details</span><span class="snippet-visibility" x-text="editingSnippet.is_public ? 'Public' : 'Private'"></span></summary>
         <!-- Metadata row 1: Description -->
         <div class="preview-metadata-row" x-show="editingSnippet.description">
             <div class="preview-meta-item">
@@ -247,7 +237,7 @@
             </div>
             <!-- Toggle Focus Mode -->
             <div class="preview-meta-item" style="margin-left: auto;">
-                <button x-show="!isNote" class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"
+                <button class="btn-icon btn-focus" :class="{ 'active': !editorHeaderVisible }"
                     @click="editorHeaderVisible = !editorHeaderVisible" title="Focus Mode (Toggle Header)"
                     style="padding: 2px;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -263,7 +253,7 @@
         </details>
 
         <!-- File bar for multi-file preview -->
-        <div class="preview-file-bar" x-show="!isNote && editingSnippet.files && editingSnippet.files.length > 0">
+        <div class="preview-file-bar" x-show="editingSnippet.files && editingSnippet.files.length > 0">
             <div class="preview-file-current">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -271,7 +261,7 @@
                 </svg>
                 <span class="preview-filename" x-text="activeFile?.filename || ''"></span>
             </div>
-            <div class="file-tabs-compact" x-show="editingSnippet.files.length > 1">
+            <div class="file-tabs-compact" x-show="editingSnippet.files?.length > 1">
                 <template x-for="(file, index) in editingSnippet.files" :key="index">
                     <button class="file-tab-compact" :class="{ 'active': activeFileIndex === index }"
                         @click="selectFile(index); $nextTick(() => highlightAll())" :title="file.filename">
@@ -282,11 +272,11 @@
         </div>
 
         <!-- Full code preview -->
-        <div class="preview-code-wrapper" x-show="!isNote">
+        <div class="preview-code-wrapper">
             <!-- Rendered markdown view -->
-            <div class="preview-markdown-scroll"
+            <div class="preview-markdown-scroll markdown-content"
                 :class="{ 'rtl': isArabicText(activeFile?.content || editingSnippet.content) }"
-                x-show="!isNote && (activeFile?.language || editingSnippet.language) === 'markdown'"
+                x-show="(activeFile?.language || editingSnippet.language) === 'markdown'"
                 @click="copyMarkdownBlock($event)"
                 x-html="isNote ? '' : renderMarkdown(activeFile?.content ?? editingSnippet.content)">
             </div>
@@ -299,39 +289,9 @@
 
     <!-- EDIT MODE: Split view with editor left, details sidebar -->
     <div class="edit-mode" x-show="isEditing">
-        <section class="note-edit-notice" x-show="isNote && noteConflict" role="alert">
-            <strong>A newer version was saved.</strong>
-            <p>Your draft is still open. Review the latest version and merge any changes into your draft before saving again.</p>
-            <p x-show="noteConflictFieldNames()" x-text="'This also keeps the latest changes to ' + noteConflictFieldNames() + '.'"></p>
-            <pre x-text="noteConflict?.content" dir="auto"></pre>
-            <button class="btn-action" type="button" @click="useReviewedRevision()">I’ve reviewed the latest version</button>
-        </section>
-        <section class="note-edit-notice" x-show="isNote && noteOverviewError" role="alert">
-            <p>This note is a folder overview. Update the folder’s overview or remove its current overview assignment to save these changes.</p>
-            <button class="btn-action" type="button" @click="saveSnippet({ clearOverview: true })">Remove overview and save</button>
-        </section>
         <div class="editor-main-row">
             <!-- Left: Editor area -->
-            <div class="editor-left note-editor" x-show="isNote">
-                <div class="note-format-bar">
-                    <label>Format
-                        <select x-model="editingSnippet.language" @change="noteMode = 'write'; scheduleAutoSave()">
-                            <option value="markdown">Markdown</option>
-                            <option value="plaintext">Plain text</option>
-                        </select>
-                    </label>
-                    <div class="note-mode-picker" x-show="editingSnippet.language === 'markdown'" role="group" aria-label="Note view">
-                        <button type="button" class="btn-action" :aria-pressed="noteMode === 'write'" @click="setNoteMode('write')">Write</button>
-                        <button type="button" class="btn-action" :aria-pressed="noteMode === 'preview'" @click="setNoteMode('preview')">Preview</button>
-                    </div>
-                </div>
-                <textarea class="note-body-input" x-ref="noteBody" x-show="isNote && noteMode === 'write'"
-                    x-model="editingSnippet.content" @input="scheduleAutoSave()" aria-label="Note body"
-                    placeholder="Start writing…" dir="auto"></textarea>
-                <article class="preview-markdown-scroll note-document" x-show="isNote && noteMode === 'preview'"
-                    @click="copyMarkdownBlock($event)" x-html="isNote && noteMode === 'preview' ? renderMarkdown(editingSnippet.content) : ''" dir="auto"></article>
-            </div>
-            <div class="editor-left" x-show="!isNote">
+            <div class="editor-left">
                 <!-- File bar: filename input + tabs -->
                 <div class="file-bar">
                     <!-- Current file name (editable) -->
@@ -364,13 +324,13 @@
                     </div>
 
                     <!-- File tabs (when multiple files) -->
-                    <div class="file-tabs-compact" x-show="editingSnippet.files && editingSnippet.files.length > 1">
+                    <div class="file-tabs-compact" x-show="editingSnippet.files && editingSnippet.files?.length > 1">
                         <template x-for="(file, index) in editingSnippet.files" :key="index">
                             <button class="file-tab-compact" :class="{ 'active': activeFileIndex === index }"
                                 @click="selectFile(index)" :title="file.filename">
                                 <span x-text="file.filename"></span>
                                 <span class="file-tab-close-sm" @click.stop="removeFile(index)"
-                                    x-show="editingSnippet.files.length > 1">×</span>
+                                    x-show="editingSnippet.files?.length > 1">×</span>
                             </button>
                         </template>
                     </div>
@@ -394,9 +354,9 @@
             </div>
 
             <!-- Right: Details sidebar -->
-            <aside class="editor-details-sidebar" :aria-label="isNote ? 'Note details' : 'Snippet details'"
+            <aside class="editor-details-sidebar" aria-label="Snippet details"
                 x-data="{ collapsed: window.matchMedia('(max-width: 640px)').matches }"
-                x-effect="if (isEditing) collapsed = isNote || window.matchMedia('(max-width: 640px)').matches"
+                x-effect="if (isEditing && !isNote) collapsed = window.matchMedia('(max-width: 640px)').matches"
                 :class="{ 'details-collapsed': collapsed }">
                 <div class="tags-sidebar-header editor-details-header">
                     <label>Details</label>
@@ -421,7 +381,7 @@
                 </div>
 
                 <div class="editor-details-content">
-                    <section class="editor-details-section" x-show="!isNote || editingSnippet.description">
+                    <section class="editor-details-section">
                         <label class="editor-details-section-title" for="snippet-description">Description</label>
                         <textarea class="editor-details-description" id="snippet-description" x-model="editingSnippet.description" rows="2"
                             :class="{ 'rtl': isArabicText(editingSnippet.description) }"
@@ -429,7 +389,7 @@
                     </section>
                     <section class="editor-details-section">
                         <div class="editor-details-section-title">Organize</div>
-                        <div class="editor-field-inline compact" x-show="!isNote">
+                        <div class="editor-field-inline compact">
                             <span class="editor-label">Language</span>
                             <select :value="activeFile?.language || editingSnippet.language"
                                 class="language-select-full"

@@ -1,7 +1,8 @@
 import * as assert from 'assert';
 import * as http from 'http';
 import * as vscode from 'vscode';
-import { SnipoAPI } from '../api';
+import * as sinon from 'sinon';
+import { api, SnipoAPI } from '../api';
 
 suite('HTTP API integration', () => {
     let server: http.Server;
@@ -58,5 +59,36 @@ suite('HTTP API integration', () => {
         const result = await client.getSnippets();
         assert.strictEqual(result.length, 51);
         assert.strictEqual(result[50].id, '50');
+    });
+});
+
+suite('Notes in the editor', () => {
+    test('opens a native side-by-side preview of an unsaved Markdown note', async function () {
+        this.timeout(10000);
+        const extension = vscode.extensions.getExtension('muhammadelashri.snipo');
+        assert.ok(extension);
+        await extension.activate();
+        const stubs = sinon.createSandbox();
+        stubs.stub(api, 'isConfigured').resolves(true);
+        stubs.stub(vscode.window, 'showQuickPick').callsFake(async items => (await items)[0]);
+        try {
+            await vscode.commands.executeCommand('snipo.newNote');
+            const editor = vscode.window.activeTextEditor;
+            assert.ok(editor);
+            assert.strictEqual(editor.document.languageId, 'markdown');
+            assert.ok(await editor.edit(edit => edit.insert(new vscode.Position(0, 0), '# Draft preview')));
+
+            await vscode.commands.executeCommand('snipo.previewNote');
+            const tabs = () => vscode.window.tabGroups.all.flatMap(group => group.tabs);
+            const hasMarkdownPreview = () => tabs().some(tab => tab.input instanceof vscode.TabInputWebview && tab.input.viewType.includes('markdown.preview'));
+            for (let attempt = 0; !hasMarkdownPreview() && attempt < 100; attempt++) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            const openTabs = tabs().map(tab => ({ label: tab.label, viewType: (tab.input as vscode.TabInputWebview)?.viewType }));
+            assert.ok(hasMarkdownPreview(), `Expected the Markdown preview tab, found ${JSON.stringify(openTabs)}`);
+            assert.strictEqual(editor.document.getText(), '# Draft preview');
+        } finally {
+            stubs.restore();
+        }
     });
 });

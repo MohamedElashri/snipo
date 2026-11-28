@@ -33,6 +33,9 @@ Select text on a page and choose **Save to Snipo** from the context menu.
 - Quick mode immediately creates a private, single-file snippet.
 - Interactive mode lets you edit the title, description, filename, language,
   folder, and tags first.
+- Choose **Save as → Note** to edit the capture, choose Markdown or plain text,
+  and decide whether to include the source link. Choose **Append to a note** to
+  add the selection to an existing private note.
 - Ignored sites prevent the extension UI from acting on matching domains.
 
 The page title and URL are used as default snippet metadata.

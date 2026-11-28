@@ -14,18 +14,67 @@ const noteFieldLabels = {
 
 export const notesMixin = {
   noteMode: 'write',
+  noteDetailsOpen: false,
   noteConflict: null,
   noteOverviewError: false,
 
   focusNote() {
     this.$nextTick(() => {
-      if (this.isEditing && this.isNote && this.noteMode === 'write') this.$refs.noteBody?.focus();
+      if (this.isEditing && this.isNote && this.noteMode === 'write') this.$refs?.noteBody?.focus({ preventScroll: true });
     });
   },
 
-  setNoteMode(mode) {
+  resetNoteWorkspace() {
+    this.noteMode = 'write';
+    this.noteDetailsOpen = false;
+    this.scrollNoteToTop();
+  },
+
+  scrollNoteToTop() {
+    this.$nextTick(() => {
+      if (this.$refs?.noteScroll) this.$refs.noteScroll.scrollTop = 0;
+    });
+  },
+
+  toggleNoteDetails() {
+    this.noteDetailsOpen = !this.noteDetailsOpen;
+    if (this.noteDetailsOpen) this.scrollNoteToTop();
+  },
+
+  setNoteMode(mode, { focus = true } = {}) {
     this.noteMode = mode;
-    if (mode === 'write') this.focusNote();
+    if (mode === 'preview') this.noteDetailsOpen = false;
+    this.scrollNoteToTop();
+    if (mode === 'write' && focus) this.focusNote();
+  },
+
+  closeNoteWorkspace() {
+    if (this.saving) return;
+    const noteId = this.editingSnippet.id;
+    this.cancelEdit();
+    this.$nextTick(() => {
+      if (this.showEditor || !this.$root) return;
+      const row = [...this.$root.querySelectorAll('.snippet-open')].find(item => item.dataset.itemId === noteId);
+      (row || this.$root.querySelector('.search-input'))?.focus();
+    });
+  },
+
+  noteExpirationDate() {
+    const { expires_at: value, persistedExpiration } = this.editingSnippet;
+    if (!value) return '';
+    return (value.endsWith('d') ? persistedExpiration : value)?.slice(0, 10) || '';
+  },
+
+  noteSaveMessage() {
+    return {
+      idle: '',
+      saved: '',
+      saving: 'Saving…',
+      unsaved: 'Unsaved changes',
+      local: 'Draft saved on this device',
+      'local-error': 'Draft could not be stored on this device',
+      error: 'Save failed. Your changes are still open.'
+    }[this.saveState] || '';
   },
 
   canConvertItem() {
@@ -104,6 +153,7 @@ export const notesMixin = {
           persistedExpiration: result.expires_at
         })
       };
+      this.scrollNoteToTop();
     }
   },
 

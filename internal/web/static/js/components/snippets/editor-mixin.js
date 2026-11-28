@@ -56,10 +56,12 @@ export const editorMixin = {
         : 0;
       this.showEditor = true;
       this.isEditing = false;
+      if (this.isNote) this.resetNoteWorkspace();
       this.updateUrl({ snippet: snippet.id });
       this.$nextTick(() => {
         this.highlightAll();
-        this.updateTextDirection();
+        if (this.isNote && !this.isEditing) this.$refs?.noteHeading?.focus({ preventScroll: true });
+        else this.updateTextDirection();
       });
     }
   },
@@ -70,7 +72,7 @@ export const editorMixin = {
     ++this.viewRequest;
     this.destroyCodeEditor();
     this.saveState = 'idle';
-    this.noteMode = 'write';
+    this.resetNoteWorkspace();
     this.noteConflict = null;
     this.noteOverviewError = false;
     this.showSettings = false;
@@ -162,7 +164,7 @@ export const editorMixin = {
       };
     }
     this.isEditing = true;
-    this.noteMode = 'write';
+    this.resetNoteWorkspace();
     this.noteConflict = null;
     this.noteOverviewError = false;
     this._resetFileManagerState();
@@ -197,7 +199,7 @@ export const editorMixin = {
     const title = this.editingSnippet.title?.trim() || (this.isNote ? this.noteTitleSuggestion : '');
     if (!title) {
       showToast(this.isNote ? 'Enter a title or start writing your note.' : 'Give this snippet a title before saving.', 'warning');
-      document.querySelector('.editor-title-input')?.focus();
+      (this.isNote ? this.$refs?.noteTitle : document.querySelector('.editor-title-input'))?.focus();
       return;
     }
     this.saving = true;
@@ -287,7 +289,11 @@ export const editorMixin = {
           tags: (result.tags || []).map(t => typeof t === 'string' ? t : t.name),
           folder_id: result.folders?.[0]?.id || folderId };
         this.updateUrl({ snippet: snippetId });
-        this.$nextTick(() => this.highlightAll());
+        if (this.isNote) this.resetNoteWorkspace();
+        this.$nextTick(() => {
+          this.highlightAll();
+          if (this.isNote) this.$refs?.noteHeading?.focus({ preventScroll: true });
+        });
         await Promise.allSettled([this.loadSnippets(), this.loadTags(), this.loadFavoritesCount(), this.loadTotalCount()]);
 
         // Auto-sync to gist if sync is enabled for this snippet
@@ -300,7 +306,10 @@ export const editorMixin = {
         }
       } else {
         if (result?.error?.code === 'NOTE_CONFLICT') await this.showNoteConflict();
-        if (result?.error?.code === 'NOTE_OVERVIEW') this.noteOverviewError = true;
+        if (result?.error?.code === 'NOTE_OVERVIEW') {
+          this.noteOverviewError = true;
+          this.scrollNoteToTop();
+        }
         const details = result?.error?.details;
         const messages = Array.isArray(details) ? details.map(detail => detail.message).filter(Boolean) : [];
         throw new Error(messages.join(' · ') || result?.error?.message || 'Could not save. Check your connection and try again.');
@@ -669,6 +678,7 @@ export const editorMixin = {
   // Arabic/RTL text detection and support
   updateTextDirection() {
     this.$nextTick(() => {
+      if (this.isNote) return;
       const title = this.editingSnippet?.title || '';
       const description = this.editingSnippet?.description || '';
       const content = this.activeFile?.content ?? this.editingSnippet?.content ?? '';
@@ -702,7 +712,7 @@ export const editorMixin = {
       }
 
       // Update markdown preview direction
-      const markdownPreview = document.querySelector('.preview-markdown-scroll');
+      const markdownPreview = document.querySelector('.preview-code-wrapper .preview-markdown-scroll');
       if (markdownPreview) {
         const isMarkdown = (this.activeFile?.language || this.editingSnippet?.language) === 'markdown';
         if (isMarkdown && isContentArabic) {

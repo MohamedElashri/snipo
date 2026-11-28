@@ -389,6 +389,7 @@ export async function openInVSCode(arg?: any) {
     }
 
     if (snippet) {
+        const server = configuredServerURL();
         const current = await api.getSnippet(snippet.id);
         if (!current) {
             vscode.window.showErrorMessage('Could not load the snippet. Nothing was opened.');
@@ -400,14 +401,39 @@ export async function openInVSCode(arg?: any) {
             content: snippet.content || ''
         });
         if (snippet.kind === 'note') {
-            noteDocuments.set(doc.uri.toString(), { note: snippet, server: configuredServerURL(), saving: false });
+            noteDocuments.set(doc.uri.toString(), { note: snippet, server, saving: false });
         }
         await vscode.window.showTextDocument(doc);
     }
 }
 
 
-const noteDocuments = new Map<string, { note: Snippet; server: string; saving: boolean }>();
+const noteDocuments = new Map<string, { note?: Snippet; server: string; saving: boolean }>();
+
+export async function newNote() {
+    if (!(await api.isConfigured())) {
+        vscode.window.showErrorMessage('Configure Snipo to create a note.');
+        return;
+    }
+    const server = configuredServerURL();
+    const format = await vscode.window.showQuickPick([
+        { label: 'Markdown', language: 'markdown' },
+        { label: 'Plain text', language: 'plaintext' },
+    ], { placeHolder: 'Choose a note format' });
+    if (!format) return;
+    const doc = await vscode.workspace.openTextDocument({ language: format.language, content: '' });
+    noteDocuments.set(doc.uri.toString(), { server, saving: false });
+    await vscode.window.showTextDocument(doc);
+}
+
+export async function previewOpenNote() {
+    const doc = vscode.window.activeTextEditor?.document;
+    if (!doc || !noteDocuments.has(doc.uri.toString()) || doc.languageId !== 'markdown') {
+        vscode.window.showInformationMessage('Open a Markdown note to preview it.');
+        return;
+    }
+    await vscode.commands.executeCommand('markdown.showPreviewToSide', doc.uri);
+}
 
 export async function browseNotes() {
     if (!(await api.isConfigured())) {
@@ -439,6 +465,18 @@ export async function saveOpenNote() {
     }
     entry.saving = true;
     try {
+        if (!note) {
+            const firstLine = content.split(/\r?\n/).map(line => language === 'markdown' ? line.trim().replace(/^#{1,6}\s+/, '') : line.trim()).find(Boolean) || '';
+            const title = await vscode.window.showInputBox({
+                prompt: 'Title for the new note',
+                value: [...firstLine].slice(0, 200).join(''),
+                validateInput: value => !value.trim() || [...value.trim()].length > 200 ? 'Enter a title up to 200 characters.' : undefined,
+            });
+            if (!title?.trim() || entry.server !== configuredServerURL()) return;
+            const created = await api.createSnippet({ kind: 'note', title: title.trim(), content, language, is_public: false });
+            if (created) entry.note = created;
+            return;
+        }
         const saved = await api.updateSnippet(note.id, {
             kind: 'note', revision: note.revision, title: note.title, description: note.description,
             content, language, is_public: note.is_public, is_archived: note.is_archived, expires_at: note.expires_at,

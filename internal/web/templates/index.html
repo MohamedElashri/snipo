@@ -1,7 +1,16 @@
 {{define "content"}}
-<div class="app-container" x-data="snippetsApp()" :data-density="libraryLayout === 'compact' ? 'compact' : 'comfortable'">
+<div class="app-container" x-data="snippetsApp()" :data-density="libraryLayout === 'compact' ? 'compact' : 'comfortable'"
+    :style="{ '--sidebar-width': sidebarWidth() + 'px' }" :class="{ 'sidebar-resizing': sidebarDrag }"
+    @resize.window="updateSidebarViewport()">
     <!-- Sidebar Component -->
     {{template "sidebar" .}}
+    <div class="sidebar-resize-handle" role="separator" tabindex="0" aria-label="Resize navigation sidebar"
+        aria-orientation="vertical" aria-controls="navigation-sidebar" :aria-valuemin="sidebarMinWidth"
+        :aria-valuemax="sidebarMaxWidth()" :aria-valuenow="sidebarWidth()" :aria-valuetext="sidebarWidth() + ' pixels'"
+        x-show="$store.app.sidebarOpen" x-cloak @pointerdown="startSidebarResize($event)"
+        @pointermove="moveSidebarResize($event)" @pointerup="finishSidebarResize($event)"
+        @pointercancel="finishSidebarResize($event)" @lostpointercapture="finishSidebarResize($event)"
+        @keydown="resizeSidebarByKey($event)"></div>
 
     <!-- Mobile sidebar overlay (closes sidebar when tapping outside) -->
     <div class="sidebar-overlay" x-show="$store.app.sidebarOpen" x-cloak
@@ -12,12 +21,13 @@
         <!-- Header Component -->
         {{template "header" .}}
 
-        <div class="workspace" :class="{ 'has-selection': showEditor, 'focus-editor': editorExpanded }" x-show="!showSettings">
+        <div class="workspace" :class="{ 'has-selection': showEditor, 'focus-editor': editorExpanded, 'has-note': showEditor && isNote }" x-show="!showSettings">
         <!-- Snippets List Component -->
         {{template "snippets-list" .}}
 
         <!-- Editor Component -->
         {{template "editor" .}}
+        {{template "note-workspace" .}}
         </div>
         {{template "settings" .}}
     </main>

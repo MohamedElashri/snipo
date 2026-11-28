@@ -47,6 +47,7 @@ type Model struct {
 	filterTags  []int
 	libraryKind string
 	noteForm    bool
+	notePreview bool
 
 	detailSnippet   *api.Snippet
 	detailScroll    int
@@ -165,7 +166,7 @@ func createSnippet(client *api.Client, input api.SnippetInput) tea.Cmd {
 		if err != nil {
 			return errMsg{err}
 		}
-		return successMsg{message: fmt.Sprintf("Created snippet: %s", snippet.Title)}
+		return successMsg{message: fmt.Sprintf("Created %s: %s", itemLabel(input.Kind), snippet.Title)}
 	}
 }
 
@@ -175,7 +176,7 @@ func updateSnippet(client *api.Client, id string, input api.SnippetInput) tea.Cm
 		if err != nil {
 			return errMsg{err}
 		}
-		return successMsg{message: fmt.Sprintf("Updated snippet: %s", snippet.Title)}
+		return successMsg{message: fmt.Sprintf("Updated %s: %s", itemLabel(input.Kind), snippet.Title)}
 	}
 }
 
@@ -331,6 +332,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case successMsg:
 		m.err = nil
 		m.message = msg.message
+		m.notePreview = false
 		m.mode = ViewList
 		cmds = append(cmds, m.loadLibrary(m.currentPage))
 
@@ -413,9 +415,9 @@ func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.snippets = nil
 		return m, m.loadLibrary(1)
 
-	case "n":
+	case "n", "N":
 		m.mode = ViewCreate
-		m.noteForm = m.libraryKind == models.KindNote
+		m.noteForm = msg.String() == "N" || m.libraryKind == models.KindNote
 		m.initCreateForm()
 		if m.noteForm {
 			m.initNoteFields()
@@ -474,55 +476,38 @@ func (m Model) calculateMaxScroll() int {
 	if m.detailSnippet == nil {
 		return 0
 	}
+	lines, _ := m.detailLines()
+	return max(0, len(lines)-m.detailHeight())
+}
 
-	// Get the current content
-	var content string
-	var currentFilename string
-	var highlightLanguage string
-
-	if len(m.detailSnippet.Files) > 0 && m.selectedFileIdx < len(m.detailSnippet.Files) {
-		content = m.detailSnippet.Files[m.selectedFileIdx].Content
-		currentFilename = m.detailSnippet.Files[m.selectedFileIdx].Filename
-	} else {
-		content = m.detailSnippet.Content
+func (m Model) detailLines() ([]string, int) {
+	item := m.detailSnippet
+	if item.Kind == models.KindNote {
+		width := max(12, m.width-8)
+		content := terminalText(item.Content)
+		if item.Language == "markdown" {
+			content = RenderMarkdown(item.Content, width)
+		}
+		return strings.Split(wrapContent(content, width-4), "\n"), width - 4
 	}
 
-	// Determine language
-	highlightLanguage = m.detailSnippet.Language
-	if currentFilename != "" {
-		fileLanguage := GetLanguageFromFilename(currentFilename)
-		if fileLanguage != "" {
-			highlightLanguage = fileLanguage
+	content, language, filename := item.Content, item.Language, ""
+	if m.selectedFileIdx >= 0 && m.selectedFileIdx < len(item.Files) {
+		file := item.Files[m.selectedFileIdx]
+		content, filename = file.Content, file.Filename
+		if detected := GetLanguageFromFilename(filename); detected != "" {
+			language = detected
 		}
 	}
+	width := max(40, m.width-8)
+	return strings.Split(wrapContent(RenderContent(content, language, filename, width), width-4), "\n"), width - 4
+}
 
-	// Calculate render width
-	renderWidth := m.width - 8
-	if renderWidth < 40 {
-		renderWidth = 40
+func (m Model) detailHeight() int {
+	if m.detailSnippet.Kind == models.KindNote {
+		return max(5, m.height-12)
 	}
-
-	// Render content
-	renderedContent := RenderContent(content, highlightLanguage, currentFilename, renderWidth)
-
-	// Wrap content to match what's displayed
-	maxContentWidth := renderWidth - 4
-	wrappedContent := wrapContent(renderedContent, maxContentWidth)
-	contentLines := strings.Split(wrappedContent, "\n")
-
-	// Calculate available height
-	availableHeight := m.height - 16
-	if availableHeight < 5 {
-		availableHeight = 5
-	}
-
-	// Calculate max scroll
-	maxScroll := len(contentLines) - availableHeight
-	if maxScroll < 0 {
-		maxScroll = 0
-	}
-
-	return maxScroll
+	return max(5, m.height-16)
 }
 
 func (m Model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -563,7 +548,7 @@ func (m Model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "c":
 		if m.detailSnippet != nil {
 			content := m.detailSnippet.Content
-			if m.selectedFileIdx >= 0 && m.selectedFileIdx < len(m.detailSnippet.Files) {
+			if m.detailSnippet.Kind != models.KindNote && m.selectedFileIdx >= 0 && m.selectedFileIdx < len(m.detailSnippet.Files) {
 				content = m.detailSnippet.Files[m.selectedFileIdx].Content
 			}
 			return m, copyToClipboard(content)
@@ -581,6 +566,7 @@ func (m Model) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) initCreateForm() {
+	m.notePreview = false
 	m.inputs = make([]textinput.Model, 4)
 
 	m.inputs[0] = textinput.New()
@@ -637,6 +623,7 @@ func (m *Model) initCreateForm() {
 }
 
 func (m *Model) initEditForm(snippet *api.Snippet) {
+	m.notePreview = false
 	m.noteForm = snippet.Kind == models.KindNote
 	m.inputs = make([]textinput.Model, 4)
 
@@ -746,7 +733,28 @@ func (m *Model) initSettingsForm() {
 func (m Model) updateForm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
+	if m.notePreview {
+		switch msg.String() {
+		case "esc", "f2":
+			m.notePreview = false
+		case "up", "k":
+			m.detailScroll = max(0, m.detailScroll-1)
+		case "down", "j":
+			m.detailScroll = min(m.detailScroll+1, m.noteDraftPreview().calculateMaxScroll())
+		case "ctrl+s":
+			m.notePreview = false
+			return m.submitForm()
+		}
+		return m, nil
+	}
+
 	switch msg.String() {
+	case "f2":
+		if m.noteForm && strings.ToLower(strings.TrimSpace(m.inputs[1].Value())) == "markdown" {
+			m.notePreview = true
+			m.detailScroll = 0
+		}
+		return m, nil
 	case "esc":
 		m.mode = ViewList
 		m.err = nil
@@ -1227,10 +1235,14 @@ func (m Model) View() string {
 		s.WriteString(m.viewList())
 	case ViewDetail:
 		s.WriteString(m.viewDetail())
-	case ViewCreate:
-		s.WriteString(m.viewCreateForm())
-	case ViewEdit:
-		s.WriteString(m.viewEditForm())
+	case ViewCreate, ViewEdit:
+		if m.notePreview {
+			s.WriteString(m.noteDraftPreview().viewDetail())
+		} else if m.mode == ViewCreate {
+			s.WriteString(m.viewCreateForm())
+		} else {
+			s.WriteString(m.viewEditForm())
+		}
 	case ViewSearch:
 		s.WriteString(m.viewSearchForm())
 	case ViewHelp:
@@ -1292,7 +1304,7 @@ func (m Model) viewList() string {
 	}
 
 	s.WriteString("\n")
-	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText("↑/k up • ↓/j down • ←/h prev page • →/l next page • enter view • e edit • n new • tab switch library • / search • s settings • r refresh • q quit • ? help")))
+	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText("↑/k up • ↓/j down • ←/h prev page • →/l next page • enter view • e edit • n new • N new note • tab switch library • / search • s settings • r refresh • q quit • ? help")))
 
 	return s.String()
 }
@@ -1310,13 +1322,24 @@ func (m Model) viewDetail() string {
 		favorite = favoriteStyle.Render(" ★")
 	}
 
-	s.WriteString(titleStyle.Render("Snippy " + terminalText(m.detailSnippet.Title) + favorite))
+	titlePrefix := "Snippy "
+	if m.notePreview {
+		titlePrefix = "Preview: "
+	}
+	s.WriteString(titleStyle.Render(titlePrefix + terminalText(m.detailSnippet.Title) + favorite))
 	s.WriteString("\n")
 
 	// Show metadata in a compact format
 	var metadata []string
 
-	if m.detailSnippet.Language != "" {
+	isNote := m.detailSnippet.Kind == models.KindNote
+	if isNote {
+		format := "Plain text"
+		if m.detailSnippet.Language == "markdown" {
+			format = "Markdown"
+		}
+		metadata = append(metadata, languageStyle.Render(format))
+	} else if m.detailSnippet.Language != "" {
 		metadata = append(metadata, languageStyle.Render("Language: "+terminalText(m.detailSnippet.Language)))
 	}
 
@@ -1346,10 +1369,9 @@ func (m Model) viewDetail() string {
 	s.WriteString("\n")
 
 	// Multi-file snippet support
-	var content string
 	var currentFilename string
 
-	if len(m.detailSnippet.Files) > 0 {
+	if !isNote && len(m.detailSnippet.Files) > 0 {
 		// Multi-file snippet - show file tabs with clear separator
 		for i, file := range m.detailSnippet.Files {
 			fileStyle := dimmedStyle
@@ -1363,59 +1385,16 @@ func (m Model) viewDetail() string {
 		s.WriteString(dimmedStyle.Render(strings.Repeat("─", 60)))
 		s.WriteString("\n\n")
 
-		if m.selectedFileIdx < len(m.detailSnippet.Files) {
-			content = m.detailSnippet.Files[m.selectedFileIdx].Content
+		if m.selectedFileIdx >= 0 && m.selectedFileIdx < len(m.detailSnippet.Files) {
 			currentFilename = m.detailSnippet.Files[m.selectedFileIdx].Filename
 		}
-	} else {
-		// Single-file snippet
-		content = m.detailSnippet.Content
 	}
 
-	// Determine the language for syntax highlighting or markdown rendering
-	highlightLanguage := m.detailSnippet.Language
-	if m.detailSnippet.Kind == models.KindNote {
-		currentFilename = ""
-	} else if currentFilename != "" {
-		// If we have a filename, try to get language from it
-		fileLanguage := GetLanguageFromFilename(currentFilename)
-		if fileLanguage != "" {
-			highlightLanguage = fileLanguage
-		}
-	}
-
-	// Calculate available width for rendering (accounting for padding and margins)
-	renderWidth := m.width - 8 // Account for code block padding and margins
-	if renderWidth < 40 {
-		renderWidth = 40 // Minimum width
-	}
-
-	// Apply markdown rendering or syntax highlighting based on content type
-	renderedContent := RenderContent(content, highlightLanguage, currentFilename, renderWidth)
-
-	// Wrap long lines to prevent horizontal scrolling and maintain consistent width
-	maxContentWidth := renderWidth - 4 // Leave some margin
-	wrappedContent := wrapContent(renderedContent, maxContentWidth)
-
-	// Handle scrolling for large content
-	contentLines := strings.Split(wrappedContent, "\n")
-	availableHeight := m.height - 16 // Reserve more space for file tabs
-
-	if availableHeight < 5 {
-		availableHeight = 5
-	}
-
-	// Calculate the maximum line width for consistent rendering
-	maxLineWidth := calculateMaxLineWidth(contentLines)
-
-	// Cap the max width to available space
-	if maxLineWidth > maxContentWidth {
+	contentLines, maxContentWidth := m.detailLines()
+	availableHeight := m.detailHeight()
+	maxLineWidth := max(40, min(calculateMaxLineWidth(contentLines), maxContentWidth))
+	if isNote {
 		maxLineWidth = maxContentWidth
-	}
-
-	// Ensure minimum width for better appearance
-	if maxLineWidth < 40 {
-		maxLineWidth = 40
 	}
 
 	// Ensure scroll position is within bounds
@@ -1454,7 +1433,9 @@ func (m Model) viewDetail() string {
 	s.WriteString("\n\n")
 
 	helpText := "↑/k up • ↓/j down • esc back • e edit • c copy • q quit"
-	if len(m.detailSnippet.Files) > 1 {
+	if m.notePreview {
+		helpText = "↑/k up • ↓/j down • F2/esc back to writing • ctrl+s save"
+	} else if !isNote && len(m.detailSnippet.Files) > 1 {
 		helpText = "←/h prev file • →/l next file • " + helpText
 	}
 	s.WriteString(helpStyle.Width(m.width).Render(renderHelpText(helpText)))
@@ -1512,7 +1493,7 @@ func (m Model) viewCreateForm() string {
 
 	formContent.WriteString(m.textarea.View())
 	formContent.WriteString("\n\n")
-	formContent.WriteString(helpStyle.Width(m.width - 8).Render(renderHelpText("tab next field • ctrl+e open external editor • ctrl+s save • esc cancel")))
+	formContent.WriteString(m.formHelp())
 
 	s.WriteString(borderStyle.Render(formContent.String()))
 	return s.String()
@@ -1568,7 +1549,7 @@ func (m Model) viewEditForm() string {
 
 	formContent.WriteString(m.textarea.View())
 	formContent.WriteString("\n\n")
-	formContent.WriteString(helpStyle.Width(m.width - 8).Render(renderHelpText("tab next field • ctrl+e open external editor • ctrl+s save • esc cancel")))
+	formContent.WriteString(m.formHelp())
 
 	s.WriteString(borderStyle.Render(formContent.String()))
 	return s.String()
@@ -1648,8 +1629,10 @@ func (m Model) viewHelp() string {
 		{"↓/j", "Move down in list"},
 		{"←/h", "Previous page / Previous file (in detail view)"},
 		{"→/l", "Next page / Next file (in detail view)"},
-		{"enter", "View selected snippet"},
-		{"/", "Search snippets"},
+		{"enter", "View selected item"},
+		{"N", "Start a note from any library"},
+		{"F2", "Switch between writing and Markdown preview"},
+		{"/", "Search the current library"},
 		{"s", "Settings (change server/API key)"},
 		{"r", "Refresh list"},
 		{"c", "Copy content to clipboard (in detail view)"},
@@ -1683,6 +1666,13 @@ func (m Model) libraryLabel() string {
 
 func (m Model) formItem() string {
 	if m.noteForm {
+		return itemLabel(models.KindNote)
+	}
+	return itemLabel(models.KindSnippet)
+}
+
+func itemLabel(kind string) string {
+	if kind == models.KindNote {
 		return "note"
 	}
 	return "snippet"
@@ -1703,4 +1693,21 @@ func (m *Model) initNoteFields() {
 	m.inputs[1].SetSuggestions(m.formLanguages())
 	m.textarea.Placeholder = "Start writing…"
 	m.textarea.SetPromptFunc(0, func(int) string { return "" })
+}
+
+func (m Model) formHelp() string {
+	text := "tab next field • ctrl+e open external editor • ctrl+s save • esc cancel"
+	if m.noteForm && strings.EqualFold(strings.TrimSpace(m.inputs[1].Value()), "markdown") {
+		text = "F2 preview • " + text
+	}
+	return helpStyle.Width(m.width - 8).Render(renderHelpText(text))
+}
+
+func (m Model) noteDraftPreview() Model {
+	title := strings.TrimSpace(m.inputs[0].Value())
+	if title == "" {
+		title = "Untitled note"
+	}
+	m.detailSnippet = &api.Snippet{Kind: models.KindNote, Title: title, Language: "markdown", Content: m.textarea.Value()}
+	return m
 }

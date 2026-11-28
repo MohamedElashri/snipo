@@ -68,42 +68,55 @@ test('capture chooses a Markdown file, can retry, and appends the original text 
   }));
 });
 
-test('browser capture creates a private plain text note with its source', async ({ page, context, extensionId }) => {
-  const background = context.serviceWorkers().find(worker => worker.url().includes(extensionId));
-  await background.evaluate(async () => {
-    await chrome.storage.sync.set({ instanceUrl: 'https://snipo.test', apiKey: 'test-token', interactiveMode: true });
-    self.createdNote = null;
-    self.fetch = async (url, options) => {
-      const request = new URL(url);
-      if (request.pathname === '/api/v1/snippets' && options.method === 'POST') {
-        self.createdNote = JSON.parse(options.body);
-        return Response.json({ data: { ...self.createdNote, id: 'new-note' } }, { status: 201 });
-      }
-      return Response.json({ data: [] });
-    };
+for (const includeSource of [true, false]) {
+  test(`edits a private plain text capture ${includeSource ? 'with' : 'without'} its source`, async ({ page, context, extensionId }) => {
+    const background = context.serviceWorkers().find(worker => worker.url().includes(extensionId));
+    await background.evaluate(async () => {
+      await chrome.storage.sync.set({ instanceUrl: 'https://snipo.test', apiKey: 'test-token', interactiveMode: true });
+      self.createdNote = null;
+      self.fetch = async (url, options) => {
+        const request = new URL(url);
+        if (request.pathname === '/api/v1/snippets' && options.method === 'POST') {
+          self.createdNote = JSON.parse(options.body);
+          return Response.json({ data: { ...self.createdNote, id: 'new-note' } }, { status: 201 });
+        }
+        return Response.json({ data: [] });
+      };
+    });
+    await page.route('https://code.test/**', route => route.fulfill({
+      contentType: 'text/html',
+      body: '<title>Capture</title><pre><code class="language-javascript">console.log("hello");</code></pre>',
+    }));
+    await page.goto('https://code.test/runbook');
+    const pending = context.waitForEvent('page');
+    await page.locator('.snipo-btn').click();
+    const dialog = await pending;
+    await dialog.waitForURL(/\/save\/save.html\?draft=/);
+    await dialog.getByRole('combobox', { name: 'Save as' }).selectOption('note');
+    await dialog.getByRole('combobox', { name: 'Format' }).selectOption('plaintext');
+    await expect(dialog.locator('#snipo-filename')).toBeHidden();
+    await dialog.locator('#snipo-title').fill('Runbook');
+    const body = dialog.getByRole('textbox', { name: 'Note body' });
+    await expect(body).toHaveValue('console.log("hello");');
+    await body.fill('');
+    await dialog.getByRole('button', { name: 'Save Note' }).click();
+    await expect(dialog.locator('#save-status')).toContainText('Write some content');
+    await body.fill('  Edited selection\nSecond line');
+    if (!includeSource) await dialog.getByRole('checkbox', { name: 'Include source link' }).uncheck();
+    await dialog.getByRole('combobox', { name: 'Save as' }).selectOption('snippet');
+    await expect(body).toBeHidden();
+    await dialog.getByRole('combobox', { name: 'Save as' }).selectOption('note');
+    await expect(body).toHaveValue('  Edited selection\nSecond line');
+    const closed = dialog.waitForEvent('close');
+    await dialog.getByRole('button', { name: 'Save Note' }).click();
+    await closed;
+    expect(await background.evaluate(() => self.createdNote)).toEqual({
+      kind: 'note',
+      title: 'Runbook',
+      language: 'plaintext',
+      content: '  Edited selection\nSecond line' + (includeSource ? '\n\nSource: https://code.test/runbook' : ''),
+      tags: [],
+      is_public: false,
+    });
   });
-  await page.route('https://code.test/**', route => route.fulfill({
-    contentType: 'text/html',
-    body: '<title>Capture</title><pre><code class="language-javascript">console.log("hello");</code></pre>',
-  }));
-  await page.goto('https://code.test/runbook');
-  const pending = context.waitForEvent('page');
-  await page.locator('.snipo-btn').click();
-  const dialog = await pending;
-  await dialog.waitForURL(/\/save\/save.html\?draft=/);
-  await dialog.getByRole('combobox', { name: 'Save as' }).selectOption('note');
-  await dialog.getByRole('combobox', { name: 'Format' }).selectOption('plaintext');
-  await expect(dialog.locator('#snipo-filename')).toBeHidden();
-  await dialog.locator('#snipo-title').fill('Runbook');
-  const closed = dialog.waitForEvent('close');
-  await dialog.getByRole('button', { name: 'Save Note' }).click();
-  await closed;
-  expect(await background.evaluate(() => self.createdNote)).toEqual({
-    kind: 'note',
-    title: 'Runbook',
-    language: 'plaintext',
-    content: 'console.log("hello");\n\nSource: https://code.test/runbook',
-    tags: [],
-    is_public: false,
-  });
-});
+}
