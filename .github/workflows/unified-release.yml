@@ -213,7 +213,7 @@ jobs:
           docker run --rm --platform "linux/$ARCH" "$IMAGE" version | grep -F "snipo $VERSION "
           docker run -d --name smoke --platform "linux/$ARCH" --network none -e SNIPO_MASTER_PASSWORD=release-smoke -e SNIPO_SESSION_SECRET=release-smoke-session-secret-32chars "$IMAGE"
           trap 'docker logs smoke; docker rm -f smoke' EXIT
-          for attempt in $(seq 1 30); do
+          for ((attempt = 0; attempt < 30; attempt++)); do
             if docker exec smoke /snipo health; then exit 0; fi
             sleep 1
           done
@@ -350,11 +350,12 @@ jobs:
 
           Download server packages (including the web app), Snippy, the VS Code extension
           (VSIX), and the browser extension (Chrome/Firefox ZIPs) below.
-          Extension store submissions are pending.
+          Store submissions start after this GitHub release. Chrome and Firefox updates
+          become available after store review.
           Firefox ZIPs are for temporary loading or store submission, not signed installation.
           NOTES
           IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
-          printf '\n**Server Docker images:** `%s:%s` and `%s:%s-hardened`.\n' "$IMAGE" "$VERSION" "$IMAGE" "$VERSION" >> release-notes.md
+          printf "\n**Server Docker images:** \`%s:%s\` and \`%s:%s-hardened\`.\n" "$IMAGE" "$VERSION" "$IMAGE" "$VERSION" >> release-notes.md
           if gh release view "v$VERSION" >/dev/null 2>&1; then
             if [ "$(gh release view "v$VERSION" --json isDraft --jq .isDraft)" = true ]; then
               gh release upload "v$VERSION" dist/release/* --clobber
@@ -369,6 +370,93 @@ jobs:
             gh release upload "v$VERSION" dist/release/*
             gh release edit "v$VERSION" --draft=false --latest
           fi
+
+  publish-vscode:
+    name: Publish to Visual Studio Marketplace
+    if: github.event_name == 'push'
+    needs: [resolve, publish-release]
+    runs-on: ubuntu-latest
+    environment: vscode-marketplace
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: release-assets-extensions
+          path: dist/extensions
+      - run: npm ci --ignore-scripts
+      - name: Publish release VSIX
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+        run: |
+          set -euo pipefail
+          npx --no-install vsce show muhammadelashri.snipo --json > marketplace.json
+          if jq -e --arg version "$VERSION" 'any(.versions[]?; .version == $version)' marketplace.json >/dev/null; then
+            echo 'This VS Code version is already published.'
+          else
+            npx --no-install vsce publish --oidc --packagePath "dist/extensions/snipo-$VERSION.vsix"
+          fi
+
+  publish-chrome:
+    name: Submit to Chrome Web Store
+    if: github.event_name == 'push'
+    needs: [resolve, publish-release]
+    runs-on: ubuntu-latest
+    environment: chrome-web-store
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: release-assets-extensions
+          path: dist/extensions
+      - name: Upload and submit release ZIP
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          CHROME_PUBLISHER_ID: ${{ vars.CHROME_PUBLISHER_ID }}
+          CHROME_SERVICE_ACCOUNT_JSON: ${{ secrets.CHROME_SERVICE_ACCOUNT_JSON }}
+        run: node scripts/publish-browser-extension.mjs chrome "$VERSION" "dist/extensions/snipo-chrome-v$VERSION.zip"
+
+  publish-firefox:
+    name: Submit to Firefox Add-ons
+    if: github.event_name == 'push'
+    needs: [resolve, publish-release]
+    runs-on: ubuntu-latest
+    environment: firefox-add-ons
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: release-assets-extensions
+          path: dist/extensions
+      - name: Submit release ZIP and review source
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: >-
+          node scripts/publish-browser-extension.mjs firefox "$VERSION"
+          "dist/extensions/snipo-firefox-v$VERSION.zip" "dist/extensions/snipo-source-v$VERSION.zip"
 
   promote-images:
     name: Advance stable image tags
@@ -441,7 +529,7 @@ jobs:
   summary:
     name: Release status
     if: always()
-    needs: [resolve, checks, assemble, publish-images, publish-release, promote-images, homebrew]
+    needs: [resolve, checks, assemble, publish-images, publish-release, promote-images, homebrew, publish-vscode, publish-chrome, publish-firefox]
     runs-on: ubuntu-latest
     steps:
       - env:
@@ -452,6 +540,9 @@ jobs:
           RELEASE: ${{ needs.publish-release.result }}
           ALIASES: ${{ needs.promote-images.result }}
           HOMEBREW: ${{ needs.homebrew.result }}
+          VSCODE: ${{ needs.publish-vscode.result }}
+          CHROME: ${{ needs.publish-chrome.result }}
+          FIREFOX: ${{ needs.publish-firefox.result }}
         run: |
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
           ## Snipo $VERSION
@@ -463,7 +554,9 @@ jobs:
           | GitHub release | $RELEASE |
           | Stable Docker tags | $ALIASES |
           | Homebrew | $HOMEBREW |
-          | VS Code / Chrome / Firefox stores | Pending manual submission |
+          | Visual Studio Marketplace | $VSCODE |
+          | Chrome Web Store submission | $CHROME |
+          | Firefox Add-ons submission | $FIREFOX |
 
           Manual runs are previews: publishing jobs are skipped.
           EOF

@@ -65,9 +65,9 @@ jobs:
           npm audit --audit-level=high
           node packages/frontend-vendor/sync-vendor.js
           git diff --exit-code -- internal/web/static/vendor package-lock.json
-      - name: Check version preparation
+      - name: Test release scripts and version preparation
         run: |
-          node --test scripts/release-version.test.mjs
+          node --test scripts/release-version.test.mjs scripts/publish-browser-extension.test.mjs
           VERSION=$(node -p "require('./extension/manifest.json').version")
           bash scripts/bump-version.sh --check "$VERSION"
       - name: Build extensions

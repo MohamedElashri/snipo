@@ -32,14 +32,36 @@ git push origin v2.2.1
 ```
 
 Actions publishes the GitHub release, standard/hardened Docker images, and
-Homebrew formula. Check the run summary for each destination's result.
+Homebrew formula. Once the GitHub release is public, three independent jobs
+publish the VSIX to Visual Studio Marketplace and submit the Chrome and Firefox
+ZIPs to their stores. Check the run summary for each destination's result.
 
-## Extension stores and retries
+## Configure extension publishing
 
-Store uploads are manual for now. Submit the release's VSIX to VS Code, the
-Chrome ZIP to Chrome Web Store, and the Firefox ZIP plus source ZIP to Mozilla.
-Firefox must sign the extension before it can be installed normally.
+Create the `vscode-marketplace`, `chrome-web-store`, and `firefox-add-ons`
+GitHub Actions environments before the first automated release. Allow `v*`
+tags as deployment sources.
+
+- **VS Code** — In the `muhammadelashri` publisher's Trusted Publishing
+  settings, register owner `MohamedElashri`, repository `snipo`, workflow
+  `unified-release.yml`, and environment `vscode-marketplace`. The job uses
+  GitHub OIDC. [Marketplace setup](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#publish-with-github-actions-and-trusted-publishing)
+- **Chrome** — Enable the Chrome Web Store API and link a Google Cloud service
+  account to the existing Snipo publisher. Add `CHROME_SERVICE_ACCOUNT_JSON` as
+  an environment secret and `CHROME_PUBLISHER_ID` as an environment variable in
+  `chrome-web-store`. The item ID is already configured in the publishing script.
+  [Service account setup](https://developer.chrome.com/docs/webstore/service-accounts)
+- **Firefox** — Create AMO API credentials for an author of the existing Snipo
+  listing and set `AMO_JWT_ISSUER` and `AMO_JWT_SECRET` as environment secrets in
+  `firefox-add-ons`. The job includes the matching source ZIP for review.
+  [AMO API credentials](https://addons.mozilla.org/en-US/developers/addon/api/key/)
+
+Chrome and Firefox jobs report submission. Store review controls when updates
+become available. Firefox signs the approved extension for normal installation.
+
+## Retry a release
 
 Use **Re-run failed jobs** to retry a failed destination using the retained
-artifacts. Never move a published tag or replace published packages; changed
-code needs a new patch release.
+artifacts. If Chrome is already reviewing another version, retry after that
+review finishes. Keep published tags and packages in place. Changed code needs
+a new patch release.
