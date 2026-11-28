@@ -38,14 +38,14 @@ test('capture chooses a Markdown file, can retry, and appends the original text 
   await open.click();
   await dialog.getByRole('combobox', { name: 'Append to' }).selectOption('snippet');
   const list = dialog.getByRole('listbox', { name: 'Destination' });
-  await expect(list.getByRole('option', { name: 'Other runbook — journal.md' })).toBeAttached();
+  await expect(list.getByRole('option', { name: 'Other runbook · journal.md' })).toBeAttached();
   await dialog.getByRole('button', { name: 'Load more' }).click();
   await expect(list.getByRole('option', { name: 'Legacy runbook · Markdown' })).toBeAttached();
   await dialog.getByRole('button', { name: 'Back' }).click();
   await expect(dialog.getByRole('button', { name: 'Save Snippet' })).toBeVisible();
   await open.click();
   await dialog.getByRole('searchbox', { name: 'Find by title or filename' }).fill('selected');
-  await expect(list.getByRole('option', { name: 'Selected runbook — journal.md' })).toBeAttached();
+  await expect(list.getByRole('option', { name: 'Selected runbook · journal.md' })).toBeAttached();
   const submit = dialog.getByRole('button', { name: 'Append selection' });
   await expect(submit).toBeDisabled();
   await list.selectOption('runbook');

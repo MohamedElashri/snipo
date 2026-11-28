@@ -855,7 +855,7 @@
   height: 14px;
 }
 
-/* Toggle control — matches compact select container exactly */
+/* Toggle control matching the compact select container */
 .toggle-control {
   display: inline-flex;
   align-items: center;
@@ -1490,7 +1490,7 @@
 
 }
 
-/* Expiration selector — mirrors editor-field-inline compact */
+/* Expiration selector matching editor-field-inline compact */
 .expiration-field select.expiration-select {
   min-width: 120px;
   max-width: 160px;
