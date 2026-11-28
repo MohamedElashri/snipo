@@ -34,7 +34,7 @@ func (h *BackupHandler) Export(w http.ResponseWriter, r *http.Request) {
 		Format: r.URL.Query().Get("format"),
 	}
 
-	// Reject passwords in URL query parameters — they'd appear in server logs.
+	// Reject passwords in URL query parameters because they can appear in server logs.
 	if r.URL.Query().Get("password") != "" {
 		Error(w, r, http.StatusBadRequest, "PASSWORD_IN_URL", "Use POST /api/v1/backup/export to encrypt backups with a password")
 		return
