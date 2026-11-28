@@ -1,6 +1,6 @@
 {
   "name": "extension",
-  "version": "2.2.4",
+  "version": "2.2.5",
   "description": "The Chrome and Firefox extension saves selected text to a self-hosted Snipo instance.",
   "main": "background.js",
   "scripts": {
