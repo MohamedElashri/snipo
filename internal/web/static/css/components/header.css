@@ -77,6 +77,10 @@
   gap: 0.5rem;
 }
 
+.header-actions > button {
+  margin-bottom: 0;
+}
+
 .header-actions-right {
   display: flex;
   align-items: center;

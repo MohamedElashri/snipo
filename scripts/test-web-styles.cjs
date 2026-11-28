@@ -86,8 +86,21 @@ async function checkTemplateWorkflow(browser, origin, password) {
     await page.waitForURL(origin + '/');
     await appReady(page);
 
-    await page.getByRole('button', { name: 'Templates', exact: true }).click();
     const dialog = page.getByRole('dialog');
+    let finishList;
+    const waitToList = new Promise(resolve => { finishList = resolve; });
+    await page.route(/\/api\/v1\/templates\?/, async route => {
+      await waitToList;
+      await route.continue();
+    }, { times: 1 });
+    try {
+      await page.getByRole('button', { name: 'Templates', exact: true }).click();
+      await dialog.getByText('Loading templates…', { exact: true }).waitFor();
+      assert.equal(await dialog.getByText('No templates here.').isVisible(), false);
+    } finally {
+      finishList();
+    }
+    await dialog.getByText('No templates here.').waitFor();
     await dialog.getByRole('button', { name: 'Starter templates' }).click();
     await dialog.getByRole('button', { name: /Compose service/ }).click();
     await dialog.getByRole('heading', { name: 'New template', exact: true }).waitFor();
@@ -133,8 +146,10 @@ async function checkTemplateWorkflow(browser, origin, password) {
     await dialog.getByRole('button', { name: /Compose service/ }).click();
     await dialog.getByLabel('Service name *', { exact: true }).fill('redis');
     assert.equal(await dialog.getByRole('textbox', { name: 'Notes', exact: true }).getAttribute('required'), null);
+    const yamlWorker = page.waitForResponse(response => response.url().endsWith('/worker-yaml.js'));
     await dialog.getByRole('button', { name: 'Open draft' }).click();
     await page.waitForFunction(() => Alpine.$data(document.querySelector('.app-container')).codeEditor);
+    assert.ok((await yamlWorker).ok(), 'The YAML worker should load for the Compose draft');
     const edited = await page.evaluate(async () => {
       const app = Alpine.$data(document.querySelector('.app-container'));
       const state = { title: app.editingSnippet.title, files: app.editingSnippet.files.map(file => file.filename) };
@@ -156,6 +171,41 @@ async function checkTemplateWorkflow(browser, origin, password) {
     assert.equal(data.is_public, false);
     assert.deepEqual(errors, []);
     console.log('PASS: web template revision conflict, discard prompt, render, and multi-file save');
+  } finally {
+    await context.close();
+  }
+}
+
+async function checkTemplateMobileLayout(browser, origin, password) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage();
+    await page.goto(origin + '/login');
+    await page.locator('#password').fill(password);
+    await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+    await page.waitForURL(origin + '/');
+    await appReady(page);
+
+    const name = 'NetworkMigration'.repeat(11);
+    const filename = 'runbook'.repeat(26) + '.md';
+    const saved = await page.request.post(origin + '/api/v1/templates', { data: {
+      name, title: 'Network migration', files: [{ filename, language: 'markdown', content: '# Steps' }],
+    } });
+    assert.equal(saved.status(), 201);
+    await page.getByRole('button', { name: 'Toggle navigation' }).click();
+    await page.getByRole('button', { name: 'Templates', exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    const result = dialog.getByRole('button', { name: new RegExp(name) });
+    const fits = () => dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1);
+    await result.waitFor();
+    assert.ok(await fits(), 'Long template names and filenames should wrap in the mobile library');
+
+    await result.click();
+    await dialog.getByRole('heading', { name, exact: true }).waitFor();
+    assert.ok(await fits(), 'The mobile template editor should stay within the viewport');
+    await dialog.getByRole('button', { name: 'Close templates', exact: true }).click();
+    await dialog.waitFor({ state: 'hidden' });
+    console.log('PASS: mobile template library and editor fit long names');
   } finally {
     await context.close();
   }
@@ -195,6 +245,7 @@ async function checkTemplateWorkflow(browser, origin, password) {
     await checkLoginRedirectSecurity(browser, origin, password);
     await checkLogoutSecurity(browser, origin, password);
     await checkTemplateWorkflow(browser, origin, password);
+    await checkTemplateMobileLayout(browser, origin, password);
 
     for (const width of [1440, 390]) {
       for (const theme of ['light', 'dark']) {

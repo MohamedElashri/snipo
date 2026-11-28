@@ -20,6 +20,7 @@ export const templatesMixin = {
   templateView: '',
   templateLanguages: ['plaintext', 'markdown'],
   templateItems: [],
+  templateLoading: false,
   templateState: 'active',
   templateMode: 'picker',
   templateQuery: '',
@@ -92,6 +93,7 @@ export const templatesMixin = {
 
   async loadTemplates(page = 1) {
     const request = ++this.templateRequest;
+    this.templateLoading = true;
     this.templatePage = page;
     this.templateError = '';
     this.templateItems = [];
@@ -105,6 +107,8 @@ export const templatesMixin = {
       }
     } catch (error) {
       if (request === this.templateRequest) this.templateError = error.message;
+    } finally {
+      if (request === this.templateRequest) this.templateLoading = false;
     }
   },
 

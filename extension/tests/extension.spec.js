@@ -242,6 +242,7 @@ test('interactive templates fill capture fields and preserve every edited file',
   const dialog = await openSaveWindow(page, context);
   await expect(dialog.locator('#snipo-template-picker option')).toHaveText(['Save selection', 'Research note']);
   await dialog.getByRole('combobox', { name: 'Template', exact: true }).selectOption('capture');
+  await expect(dialog.locator('#snipo-save')).toBeDisabled();
   await expect(dialog.getByLabel('Source URL')).toHaveValue('https://code.test/research');
   await expect(dialog.getByLabel('Source title')).toHaveValue('A captured page');
   await expect(dialog.getByLabel('Excerpt')).toHaveValue('    first line\nsecond line');

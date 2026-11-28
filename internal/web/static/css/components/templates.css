@@ -7,6 +7,7 @@
   border: 1px solid var(--snipo-input-border);
   border-radius: .7rem;
   overflow: auto;
+  overflow-wrap: anywhere;
   scroll-padding-block: 4rem;
   font-size: var(--text-body);
 }
@@ -89,6 +90,11 @@
   gap: .4rem;
 }
 
+.template-list > li {
+  list-style: none;
+  margin: 0;
+}
+
 .template-result,
 .template-card {
   border: 1px solid var(--snipo-input-border);
@@ -101,6 +107,7 @@
   display: grid;
   gap: .15rem;
   width: 100%;
+  margin: 0;
   color: inherit;
   text-align: start;
 }
@@ -139,6 +146,26 @@
   border-bottom: 1px solid var(--snipo-input-border);
 }
 
+.template-dialog > .template-bar h2 {
+  flex: 1;
+  min-width: 0;
+}
+
+.template-dialog .template-actions .btn-action {
+  height: auto;
+  min-height: 28px;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.template-dialog .template-actions button[type="submit"] {
+  width: auto;
+}
+
+.template-dialog .btn-action {
+  margin-bottom: 0;
+}
+
 .template-dialog .template-footer {
   position: sticky;
   bottom: -1.2rem;
@@ -147,4 +174,10 @@
   padding: .75rem 1.2rem;
   background: var(--snipo-bg-primary);
   border-top: 1px solid var(--snipo-input-border);
+}
+
+@media (max-width: 640px) {
+  .template-dialog .template-footer .btn-action {
+    min-height: 44px;
+  }
 }

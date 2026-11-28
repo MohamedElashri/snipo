@@ -76,6 +76,7 @@ const vendorConfig = {
     'worker-json.js': 'ace-builds/src-min-noconflict/worker-json.js',
     'worker-php.js': 'ace-builds/src-min-noconflict/worker-php.js',
     'worker-xml.js': 'ace-builds/src-min-noconflict/worker-xml.js',
+    'worker-yaml.js': 'ace-builds/src-min-noconflict/worker-yaml.js',
   },
 };
 

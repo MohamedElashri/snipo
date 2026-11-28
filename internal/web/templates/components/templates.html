@@ -25,7 +25,8 @@
             <button type="button" class="btn-action" @click="$refs.templateImport.value = ''; $refs.templateImport.click()" :disabled="templateBusy">Import…</button>
             <input type="file" accept=".json,application/json" x-ref="templateImport" @change="previewTemplateImport($event)" hidden>
         </div>
-        <p x-show="templateItems.length === 0 && !templateError">No templates here. <button type="button" class="btn-action" x-show="templateMode === 'picker' && !templateQuery" @click="openTemplateLibrary()">Open library</button></p>
+        <p role="status" x-show="templateLoading">Loading templates…</p>
+        <p x-show="!templateLoading && templateItems.length === 0 && !templateError">No templates here. <button type="button" class="btn-action" x-show="templateMode === 'picker' && !templateQuery" @click="openTemplateLibrary()">Open library</button></p>
         <ul class="template-list">
             <template x-for="item in templateItems" :key="item.id">
                 <li>
@@ -37,7 +38,7 @@
                 </li>
             </template>
         </ul>
-        <div class="template-actions" x-show="templateTotalPages > 1">
+        <div class="template-actions" x-show="!templateLoading && templateTotalPages > 1">
             <button type="button" class="btn-action" :disabled="templatePage <= 1" @click="loadTemplates(templatePage - 1)">Previous</button>
             <span x-text="templatePage + ' / ' + templateTotalPages"></span>
             <button type="button" class="btn-action" :disabled="templatePage >= templateTotalPages" @click="loadTemplates(templatePage + 1)">Next</button>
@@ -187,7 +188,7 @@
                         </label>
                     </template>
                 </div>
-                <div class="template-actions">
+                <div class="template-actions template-footer">
                     <button type="button" class="btn-action" @click="templateView === 'test' || (templateMode === 'manage' && templateForm) ? templateDialog('edit') : openTemplateLibrary('picker')">Back</button>
                     <button type="submit" class="btn-action primary" x-text="templateView === 'test' ? 'Render preview' : 'Open draft'"></button>
                 </div>
