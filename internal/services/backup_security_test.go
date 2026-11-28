@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/MohamedElashri/snipo/internal/repository"
 	"github.com/MohamedElashri/snipo/internal/testutil"
@@ -211,6 +212,58 @@ func TestExportFailsRatherThanReturningIncompleteMetadata(t *testing.T) {
 		content, filename, err := svc.Export(context.Background(), models.ExportOptions{Format: "json"})
 		if err == nil || content != nil || filename != "" {
 			t.Fatalf("failed %s lookup produced a partial backup: filename=%q err=%v", table, filename, err)
+		}
+	}
+}
+
+func TestBackupRestorePreservesNestedFoldersAndExpiration(t *testing.T) {
+	svc, snippets := backupFixture(t)
+	ctx := t.Context()
+	expires := time.Now().UTC().Add(time.Hour).Truncate(time.Second)
+	parentA, parentB := int64(10), int64(20)
+	content, err := json.Marshal(models.BackupData{
+		Version: BackupVersion,
+		Folders: []models.Folder{
+			{ID: 30, Name: "Shared", ParentID: &parentA},
+			{ID: 40, Name: "Shared", ParentID: &parentB},
+			{ID: parentA, Name: "Operations"},
+			{ID: parentB, Name: "Development"},
+		},
+		Snippets: []models.Snippet{
+			{Title: "Runbook", Content: "Start here", Language: "plaintext", ExpiresAt: &expires, Folders: []models.Folder{{ID: 30}}},
+			{Title: "Scratch", Content: "Working notes", Language: "plaintext", Folders: []models.Folder{{ID: 40}}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := svc.Import(ctx, content, models.ImportOptions{Strategy: "replace"})
+	if err != nil || result.FoldersImported != 4 || result.SnippetsImported != 2 || len(result.Errors) != 0 {
+		t.Fatalf("restore = %+v, %v", result, err)
+	}
+	list, err := snippets.List(ctx, models.DefaultSnippetFilter())
+	if err != nil || len(list.Data) != 2 {
+		t.Fatalf("restored snippets = %+v, %v", list, err)
+	}
+	for _, summary := range list.Data {
+		snippet, err := snippets.GetByID(ctx, summary.ID)
+		if err != nil || len(snippet.Folders) != 1 || snippet.Folders[0].Name != "Shared" || snippet.Folders[0].ParentID == nil {
+			t.Fatalf("restored snippet lost its nested folder: %+v, %v", snippet, err)
+		}
+		parent, err := svc.folderRepo.GetByID(ctx, *snippet.Folders[0].ParentID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		wantParent := "Development"
+		if snippet.Title == "Runbook" {
+			wantParent = "Operations"
+			if snippet.ExpiresAt == nil || !snippet.ExpiresAt.Equal(expires) {
+				t.Fatalf("expiration = %v, want %v", snippet.ExpiresAt, expires)
+			}
+		}
+		if parent.Name != wantParent {
+			t.Fatalf("%s parent = %s, want %s", snippet.Title, parent.Name, wantParent)
 		}
 	}
 }

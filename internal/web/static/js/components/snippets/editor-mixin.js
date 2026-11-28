@@ -301,7 +301,9 @@ export const editorMixin = {
       } else {
         if (result?.error?.code === 'NOTE_CONFLICT') await this.showNoteConflict();
         if (result?.error?.code === 'NOTE_OVERVIEW') this.noteOverviewError = true;
-        throw new Error(result?.error?.message || 'Could not save. Check your connection and try again.');
+        const details = result?.error?.details;
+        const messages = Array.isArray(details) ? details.map(detail => detail.message).filter(Boolean) : [];
+        throw new Error(messages.join(' · ') || result?.error?.message || 'Could not save. Check your connection and try again.');
       }
     } catch (error) {
       this.saveDraft();

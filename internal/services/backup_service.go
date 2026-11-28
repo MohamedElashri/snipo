@@ -434,7 +434,7 @@ func (b *BackupService) importFolders(ctx context.Context, folders []models.Fold
 		queue = append(queue, children[folder.ID]...)
 		key := location{name: folder.Name}
 		input := &models.FolderInput{Name: folder.Name, Icon: folder.Icon, SortOrder: folder.SortOrder}
-		if folder.ParentID != nil && sourceIDs[*folder.ParentID] {
+		if folder.ParentID != nil {
 			parentID, ok := folderMap[*folder.ParentID]
 			if !ok {
 				result.Errors = append(result.Errors, fmt.Sprintf("folder %s: parent was not imported", validation.TruncateForLog(folder.Name, 100)))
