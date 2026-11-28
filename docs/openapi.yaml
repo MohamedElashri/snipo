@@ -1583,6 +1583,10 @@ paths:
                   type: string
                   enum: [markdown, plaintext]
                   default: markdown
+                request_id:
+                  type: string
+                  maxLength: 100
+                  description: Reuse the same value when retrying the same capture for this item.
                 file_id:
                   type: integer
                   minimum: 0
@@ -1598,6 +1602,8 @@ paths:
           description: Write permission required
         '404':
           description: Note or Markdown file unavailable
+        '409':
+          description: The capture request ID was already used for a different payload.
         '413':
           description: The resulting file would exceed 1 MiB
 

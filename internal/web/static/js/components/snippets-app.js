@@ -22,6 +22,7 @@ import { theme } from '../modules/theme.js';
 // Import component mixins
 import { sessionMixin } from './snippets/session-mixin.js';
 import { workspaceMixin } from './snippets/workspace-mixin.js';
+import { noteDraftsMixin } from './snippets/note-drafts.js';
 import { notesMixin } from './snippets/notes-mixin.js';
 import { editorMixin } from './snippets/editor-mixin.js';
 import { fileManagerMixin } from './snippets/file-manager-mixin.js';
@@ -375,7 +376,7 @@ export function initSnippetsApp(Alpine) {
     },
 
     // URL routing
-    updateUrl(params = {}) {
+    updateUrl(params = {}, { replace = false } = {}) {
       if (this.restoringUrl) return;
       const url = new URL(window.location);
       const values = {
@@ -384,11 +385,18 @@ export function initSnippetsApp(Alpine) {
         archive: this.filter.isArchived, trash: this.filter.isDeleted,
         settings: this.showSettings ? this.settingsTab : null, ...params
       };
-      for (const key of ['snippet', 'edit', 'note', 'folder', 'tag', 'favorites', 'trash', 'archive', 'q', 'language', 'kind', 'settings']) {
+      if (params.edit && this.isNote && !this.editingSnippet.id) {
+        values.note = true;
+        values.draft = this.editingSnippet.localDraftId;
+      }
+      for (const key of ['snippet', 'edit', 'note', 'draft', 'folder', 'tag', 'favorites', 'trash', 'archive', 'q', 'language', 'kind', 'settings']) {
         url.searchParams.delete(key);
         if (values[key]) url.searchParams.set(key, values[key]);
       }
-      if (url.href !== window.location.href) history.pushState({}, '', url);
+      if (url.href !== window.location.href) {
+        if (replace && history.replaceState) history.replaceState({}, '', url);
+        else history.pushState({}, '', url);
+      }
     },
 
     async restoreFromUrl() {
@@ -414,16 +422,24 @@ export function initSnippetsApp(Alpine) {
         const snippetId = params.get('snippet');
         const editing = params.get('edit') === 'true';
         const note = params.get('note') === 'true';
-        if (editing && this.draftSnippet && (this.draftSnippet.id || null) === snippetId &&
+        const draftId = params.get('draft');
+        const localDraftId = /^[a-zA-Z0-9_-]+$/.test(draftId || '') ? draftId : undefined;
+        const noteDraft = editing && note && !snippetId && this.findNoteDraft({ localDraftId });
+        if (noteDraft) {
+          this.restoreDraftSnippet(noteDraft);
+        } else if (editing && !localDraftId && this.draftSnippet && (this.draftSnippet.id || null) === snippetId &&
             (snippetId || Boolean(this.draftSnippet.newNote || this.draftSnippet.kind === 'note') === note)) {
           this.restoreDraft();
         } else if (snippetId && /^[a-zA-Z0-9_-]+$/.test(snippetId)) {
           await this.viewSnippet({ id: snippetId });
           if (this.showEditor && params.get('edit') === 'true') this.startEditing();
-        } else if (editing) this.newSnippet({ note });
+        } else if (editing) this.newSnippet({ note, localDraftId });
         if (params.has('settings')) await this.openSettings(params.get('settings'));
       } finally {
         this.restoringUrl = false;
+        if (this.isEditing && this.isNote && !this.editingSnippet.id && !new URL(window.location).searchParams.has('draft')) {
+          this.updateUrl({ edit: true }, { replace: true });
+        }
       }
     },
 
@@ -557,6 +573,7 @@ export function initSnippetsApp(Alpine) {
     ...workspaceMixin,
     ...editorMixin,
     ...notesMixin,
+    ...noteDraftsMixin,
     ...fileManagerMixin,
     ...foldersMixin,
     ...tagsMixin,

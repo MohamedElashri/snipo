@@ -93,7 +93,7 @@
 
             <!-- History button -->
             <button class="btn-action" @click="openHistory(editingSnippet)"
-                x-show="editingSnippet?.id && settings.history_enabled" title="View History">
+                x-show="editingSnippet?.id && settings.history_enabled && (!isNote || !isEditing)" title="View History">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M3 3v5h5"></path>
                     <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path>
@@ -302,6 +302,7 @@
         <section class="note-edit-notice" x-show="isNote && noteConflict" role="alert">
             <strong>A newer version was saved.</strong>
             <p>Your draft is still open. Review the latest version and merge any changes into your draft before saving again.</p>
+            <p x-show="noteConflictFieldNames()" x-text="'This also keeps the latest changes to ' + noteConflictFieldNames() + '.'"></p>
             <pre x-text="noteConflict?.content" dir="auto"></pre>
             <button class="btn-action" type="button" @click="useReviewedRevision()">I’ve reviewed the latest version</button>
         </section>

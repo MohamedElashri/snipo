@@ -11,8 +11,8 @@ test('capture chooses a Markdown file, can retry, and appends the original text 
         const query = request.searchParams.get('q');
         const page = Number(request.searchParams.get('page'));
         const targets = page === 2
-          ? [{ snippet_id: 'legacy', title: 'Legacy runbook' }]
-          : [{ snippet_id: 'runbook', title: query ? 'Selected runbook' : 'Other runbook', file_id: 7, filename: 'journal.md' }];
+          ? [{ snippet_id: 'legacy', title: 'Legacy runbook', language: 'markdown' }]
+          : [{ snippet_id: 'runbook', title: query ? 'Selected runbook' : 'Other runbook', file_id: 7, filename: 'journal.md', language: 'markdown' }];
         return Response.json({ data: { targets, has_more: page === 1 && !query } });
       }
       if (request.pathname.endsWith('/append')) {
@@ -56,11 +56,13 @@ test('capture chooses a Markdown file, can retry, and appends the original text 
   await submit.click();
   await closed;
   const requests = await background.evaluate(() => self.noteRequests);
+  expect(requests[0].body.request_id).toMatch(/^[0-9a-f-]{36}:7$/);
   expect(requests).toEqual(Array(2).fill({
     path: '/api/v1/snippets/runbook/append',
     body: {
       file_id: 7,
       language: 'markdown',
+      request_id: requests[0].body.request_id,
       content: '~~~javascript\n  console.log("hello");\n~~~\n\n[Source](<https://code.test/example_(1)?v=2>)',
     },
   }));

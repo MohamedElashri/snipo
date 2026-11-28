@@ -142,3 +142,31 @@
     display: none;
   }
 }
+
+.note-drafts {
+  display: block;
+}
+
+.note-drafts summary {
+  cursor: pointer;
+}
+
+.note-drafts ul {
+  max-height: 13rem;
+  overflow-y: auto;
+  margin-block: 0.5rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.note-drafts li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-block: 0.35rem;
+}
+
+.note-drafts li > span {
+  overflow-wrap: anywhere;
+}

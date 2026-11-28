@@ -166,7 +166,7 @@
                 Loading history...
             </p>
             <div class="history-list" x-show="!historyLoading && history.length > 0">
-                <template x-for="(entry, index) in history" :key="entry.id">
+                <template x-for="entry in history" :key="entry.id">
                     <div class="history-entry">
                         <div class="history-entry-header">
                             <div>
@@ -175,7 +175,7 @@
                                     <span x-text="formatDate(entry.created_at)"></span>
                                     <span x-show="entry.change_type === 'create'" class="badge">Created</span>
                                     <span x-show="entry.change_type === 'update'" class="badge">Updated</span>
-                                    <span x-show="index === 0" class="badge badge-current">Current</span>
+                                    <span x-show="isCurrentHistoryEntry(entry)" class="badge badge-current">Current</span>
                                 </div>
                             </div>
                             <div class="history-entry-actions">
@@ -188,7 +188,7 @@
                                     View Full
                                 </button>
                                 <button class="btn-sm btn-primary" @click="confirmRestoreHistory(entry)"
-                                    x-show="index > 0">
+                                    x-show="canRestoreHistoryEntry(entry)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                         width="14" height="14">
                                         <polyline points="1 4 1 10 7 10"></polyline>
@@ -232,7 +232,7 @@
 
             <!-- Single file/content view -->
             <div class="history-detail-section"
-                x-show="!viewingHistoryEntry?.files || viewingHistoryEntry?.files.length === 0">
+                x-show="!viewingHistoryEntry?.files || viewingHistoryEntry?.files?.length === 0">
                 <h4>Content</h4>
                 <div class="history-detail-content">
                     <div class="history-detail-file-header">
@@ -253,8 +253,8 @@
 
             <!-- Multiple files view -->
             <div class="history-detail-section"
-                x-show="viewingHistoryEntry?.files && viewingHistoryEntry?.files.length > 0">
-                <h4>Files (<span x-text="viewingHistoryEntry?.files.length"></span>)</h4>
+                x-show="viewingHistoryEntry?.files && viewingHistoryEntry?.files?.length > 0">
+                <h4>Files (<span x-text="viewingHistoryEntry?.files?.length"></span>)</h4>
                 <template x-for="(file, idx) in viewingHistoryEntry?.files" :key="file.id">
                     <div class="history-detail-content" style="margin-bottom: 1rem;">
                         <div class="history-detail-file-header">
@@ -279,7 +279,7 @@
         <div class="modal-footer">
             <button @click="closeHistoryDetail()">Close</button>
             <button class="btn-primary" @click="confirmRestoreHistory(viewingHistoryEntry)"
-                x-show="viewingHistoryEntry && !viewingHistoryEntry.is_current">
+                x-show="canRestoreHistoryEntry(viewingHistoryEntry)">
                 Restore This Version
             </button>
         </div>
@@ -321,7 +321,7 @@
                 </div>
                 <div class="restore-info-item"
                     x-show="restoringHistoryEntry?.files && restoringHistoryEntry.files.length > 0">
-                    <strong>Files:</strong> <span x-text="restoringHistoryEntry?.files.length"></span>
+                    <strong>Files:</strong> <span x-text="restoringHistoryEntry?.files?.length"></span>
                 </div>
             </div>
             <div class="restore-notice">

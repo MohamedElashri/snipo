@@ -125,8 +125,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     .then(data => sendResponse({ success: true, data }))
                     .catch(error => sendResponse({ success: false, error: error.message }));
             } else if (request.action === 'appendDraftToNote') {
-                const format = request.language === 'plaintext' ? 'plaintext' : 'markdown';
-                await withClient(client => client.appendNote(request.snippetId, formatNoteCapture(record.data, format), request.fileId, format))
+                const language = ['markdown', 'plaintext'].includes(request.language) ? request.language : undefined;
+                const requestID = language && request.draftId + ':' + (request.fileId || 0);
+                await withClient(client => client.appendNote(request.snippetId, formatNoteCapture(record.data, language),
+                    request.fileId, language, requestID))
                     .then(() => sendResponse({ success: true }))
                     .catch(error => sendResponse({ success: false, error: error.message }));
             } else if (request.kind === 'note') {

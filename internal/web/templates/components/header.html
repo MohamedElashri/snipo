@@ -147,4 +147,21 @@
         <button class="btn-primary" @click="restoreDraft()">Restore Draft</button>
     </div>
 </div>
+
+<details class="draft-banner note-drafts" x-show="noteDrafts.length && !isEditing" x-cloak>
+    <summary x-text="noteDrafts.length === 1 ? '1 unsaved note draft' : noteDrafts.length + ' unsaved note drafts'"></summary>
+    <ul>
+        <template x-for="draft in noteDrafts" :key="draft.snippet.id || draft.snippet.localDraftId">
+            <li>
+                <span dir="auto" x-text="draft.snippet.title || draft.snippet.content?.trim().split('\n')[0].slice(0, 80) || 'Untitled note'"></span>
+                <div class="draft-banner-actions">
+                    <button class="btn-secondary" @click="discardNoteDraft(draft.snippet)"
+                        :aria-label="'Discard draft ' + (draft.snippet.title || 'Untitled note')">Discard</button>
+                    <button class="btn-primary" @click="$el.closest('details').open = false; restoreDraftSnippet(draft.snippet)"
+                        :aria-label="'Restore draft ' + (draft.snippet.title || 'Untitled note')">Restore</button>
+                </div>
+            </li>
+        </template>
+    </ul>
+</details>
 {{end}}

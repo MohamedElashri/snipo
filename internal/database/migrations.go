@@ -374,5 +374,15 @@ func getMigrations() []Migration {
 			ALTER TABLE snippets ADD COLUMN revision INTEGER NOT NULL DEFAULT 1;
 			CREATE INDEX snippets_kind_updated_idx ON snippets(kind, updated_at);
 		`},
+		{Version: 15, Name: "deduplicate_note_captures", SQL: `
+			CREATE TABLE note_capture_requests (
+				snippet_id TEXT NOT NULL REFERENCES snippets(id) ON DELETE CASCADE,
+				request_id TEXT NOT NULL,
+				file_id INTEGER NOT NULL,
+				language TEXT NOT NULL,
+				content_hash BLOB NOT NULL,
+				PRIMARY KEY (snippet_id, request_id)
+			);
+		`},
 	}
 }

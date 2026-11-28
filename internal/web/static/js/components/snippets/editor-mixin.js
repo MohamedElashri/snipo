@@ -23,7 +23,7 @@ export const editorMixin = {
     if (this.isEditing) {
       clearTimeout(this.autoSaveTimeout);
       this.saveDraft();
-      if (this.saveState === 'local') {
+      if (!this.isNote && this.saveState === 'local') {
         this.hasDraft = true;
         this.draftSnippet = JSON.parse(JSON.stringify(this.editingSnippet));
       }
@@ -64,7 +64,7 @@ export const editorMixin = {
     }
   },
 
-  newSnippet({ note = false } = {}) {
+  newSnippet({ note = false, localDraftId } = {}) {
     if (this.saving) return;
     this.preserveDraft();
     ++this.viewRequest;
@@ -87,6 +87,7 @@ export const editorMixin = {
     this.editingSnippet = {
       id: null,
       kind: note ? 'note' : 'snippet',
+      localDraftId: note ? (localDraftId || this.newNoteDraftId()) : undefined,
       title: '',
       description: '',
       content: '',
@@ -150,6 +151,16 @@ export const editorMixin = {
   },
 
   startEditing() {
+    if (this.isNote) {
+      const draft = this.findNoteDraft(this.editingSnippet);
+      if (draft) {
+        this.restoreDraftSnippet(draft);
+        return;
+      }
+      this.editingSnippet.noteBase = {
+        ...this.noteMetadata(this.editingSnippet), content: this.editingSnippet.content
+      };
+    }
     this.isEditing = true;
     this.noteMode = 'write';
     this.noteConflict = null;
@@ -262,9 +273,13 @@ export const editorMixin = {
         this.isEditing = false;
         this.saveState = 'saved';
         this.destroyCodeEditor();
-        this.clearDraft();
-        this.hasDraft = false;
-        this.draftSnippet = null;
+        if (this.isNote) {
+          this.clearNoteDraft(this.editingSnippet);
+        } else {
+          this.clearDraft();
+          this.hasDraft = false;
+          this.draftSnippet = null;
+        }
         // Keep the saved snippet open, with the library context intact.
         this.editingSnippet = { ...this.editingSnippet, ...result,
           expires_at: this.resolveToShorthand(result.expires_at),

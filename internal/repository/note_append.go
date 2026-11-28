@@ -1,7 +1,10 @@
 package repository
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"database/sql"
 	"database/sql/driver"
 	"errors"
 	"strings"
@@ -9,7 +12,10 @@ import (
 	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
-var ErrNoteTooLarge = errors.New("appended content exceeds the 1 MiB file limit")
+var (
+	ErrNoteTooLarge           = errors.New("appended content exceeds the 1 MiB file limit")
+	ErrCaptureRequestConflict = errors.New("this capture request ID was already used for a different capture")
+)
 
 const appendableNote = `s.deleted_at IS NULL AND s.is_archived = 0 AND s.is_public = 0
 	AND ` + unexpiredSnippet
@@ -49,7 +55,8 @@ func (r *SnippetRepository) ListNoteTargets(ctx context.Context, query string, p
 	return result, rows.Err()
 }
 
-// AppendNote updates one Markdown file and returns the previous state for history.
+// AppendNote appends to one body and returns the previous state for history.
+// A completed retry returns no history snapshot.
 func (r *SnippetRepository) AppendNote(ctx context.Context, id string, input models.NoteAppendInput) (*models.Snippet, error) {
 	conn, err := r.db.Conn(ctx)
 	if err != nil {
@@ -70,6 +77,27 @@ func (r *SnippetRepository) AppendNote(ctx context.Context, id string, input mod
 			}
 		}
 	}()
+
+	var contentHash [sha256.Size]byte
+	if input.RequestID != "" {
+		contentHash = sha256.Sum256([]byte(input.Content))
+		var previousHash []byte
+		var fileID int64
+		var language string
+		err := conn.QueryRowContext(ctx, `
+			SELECT file_id, language, content_hash FROM note_capture_requests
+			WHERE snippet_id = ? AND request_id = ?`, id, input.RequestID).Scan(&fileID, &language, &previousHash)
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			// The capture and its receipt are written in the same transaction.
+		case err != nil:
+			return nil, err
+		case fileID != input.FileID || language != input.Language || !bytes.Equal(previousHash, contentHash[:]):
+			return nil, ErrCaptureRequestConflict
+		default:
+			return nil, nil
+		}
+	}
 
 	before, err := snippetByID(ctx, conn, id)
 	if err != nil {
@@ -119,6 +147,13 @@ func (r *SnippetRepository) AppendNote(ctx context.Context, id string, input mod
 		UPDATE snippets SET content = ?, revision = revision + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
 		primary, id); err != nil {
 		return nil, err
+	}
+	if input.RequestID != "" {
+		if _, err := conn.ExecContext(ctx, `
+			INSERT INTO note_capture_requests(snippet_id, request_id, file_id, language, content_hash)
+			VALUES (?, ?, ?, ?, ?)`, id, input.RequestID, input.FileID, input.Language, contentHash[:]); err != nil {
+			return nil, err
+		}
 	}
 	if _, err := conn.ExecContext(ctx, "COMMIT"); err != nil {
 		return nil, err

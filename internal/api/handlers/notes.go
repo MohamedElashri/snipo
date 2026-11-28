@@ -45,6 +45,8 @@ func (h *SnippetHandler) AppendNote(w http.ResponseWriter, r *http.Request) {
 	switch err := h.service.AppendNote(r.Context(), utils.URLParam(r, "id"), input); {
 	case errors.Is(err, services.ErrSnippetNotFound):
 		NotFound(w, r, "This note is no longer available for capture")
+	case errors.Is(err, repository.ErrCaptureRequestConflict):
+		Error(w, r, http.StatusConflict, "CAPTURE_REQUEST_CONFLICT", err.Error())
 	case errors.Is(err, repository.ErrNoteTooLarge):
 		Error(w, r, http.StatusRequestEntityTooLarge, "NOTE_TOO_LARGE", "This capture exceeds the note's 1 MiB size limit")
 	case errors.As(err, &invalid):

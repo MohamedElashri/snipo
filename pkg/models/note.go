@@ -12,9 +12,10 @@ func IsNoteFormat(language string) bool {
 }
 
 type NoteAppendInput struct {
-	Language string `json:"language,omitempty"`
-	FileID   int64  `json:"file_id,omitempty"`
-	Content  string `json:"content"`
+	RequestID string `json:"request_id,omitempty"`
+	Language  string `json:"language,omitempty"`
+	FileID    int64  `json:"file_id,omitempty"`
+	Content   string `json:"content"`
 }
 
 type NoteTarget struct {

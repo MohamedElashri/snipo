@@ -165,6 +165,15 @@ func runTestMigrations(db *sql.DB) error {
 			FOREIGN KEY (snippet_id) REFERENCES snippets(id) ON DELETE CASCADE
 		);
 
+		CREATE TABLE IF NOT EXISTS note_capture_requests (
+			snippet_id TEXT NOT NULL REFERENCES snippets(id) ON DELETE CASCADE,
+			request_id TEXT NOT NULL,
+			file_id INTEGER NOT NULL,
+			language TEXT NOT NULL,
+			content_hash BLOB NOT NULL,
+			PRIMARY KEY (snippet_id, request_id)
+		);
+
 		-- Snippet history tables
 		CREATE TABLE IF NOT EXISTS snippet_history (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,

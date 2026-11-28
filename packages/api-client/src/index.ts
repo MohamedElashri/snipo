@@ -157,10 +157,10 @@ export class SnipoClient {
     return response.data;
   }
 
-  async appendNote(id: string, content: string, fileID?: number, language?: 'markdown' | 'plaintext'): Promise<void> {
+  async appendNote(id: string, content: string, fileID?: number, language?: 'markdown' | 'plaintext', requestID?: string): Promise<void> {
     await this.request<void>(`/api/v1/snippets/${encodeURIComponent(id)}/append`, {
       method: 'POST',
-      body: JSON.stringify({ content, file_id: fileID, language }),
+      body: JSON.stringify({ content, file_id: fileID, language, request_id: requestID }),
     });
   }
 

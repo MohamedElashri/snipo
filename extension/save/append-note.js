@@ -75,7 +75,7 @@ function addAppendNotePane(modal, actions, close) {
                     : target.title + (format === 'plaintext' ? ' · Plain text' : ' · Markdown');
                 const option = element('option', title);
                 option.value = target.snippet_id;
-                option.dataset.language = format;
+                if (target.language) option.dataset.language = format;
                 if (target.file_id !== undefined) option.dataset.fileId = target.file_id;
                 select.append(option);
             }
