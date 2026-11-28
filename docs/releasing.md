@@ -48,8 +48,8 @@ tags as deployment sources.
   GitHub OIDC. [Marketplace setup](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#publish-with-github-actions-and-trusted-publishing)
 - For **Chrome**, enable the Chrome Web Store API and link a Google Cloud service
   account to the existing Snipo publisher. Add `CHROME_SERVICE_ACCOUNT_JSON` as
-  an environment secret and `CHROME_PUBLISHER_ID` as an environment variable in
-  `chrome-web-store`. The item ID is already configured in the publishing script.
+  an environment secret and `CHROME_PUBLISHER_ID` as an environment variable or
+  secret in `chrome-web-store`. The publishing script already has the item ID.
   [Service account setup](https://developer.chrome.com/docs/webstore/service-accounts)
 - For **Firefox**, create AMO API credentials for an author of the existing Snipo
   listing and set `AMO_JWT_ISSUER` and `AMO_JWT_SECRET` as environment secrets in
