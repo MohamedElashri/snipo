@@ -767,7 +767,7 @@ export const editorMixin = {
     if (!expiresAt) return '';
     // Already a shorthand value
     if (typeof expiresAt === 'string' && expiresAt.endsWith('d')) return expiresAt;
-    // Not a valid date string (e.g., random string) — return as-is
+    // Return invalid date strings as-is.
     if (isNaN(Date.parse(expiresAt))) return '';
     const shorthandDays = [7, 30, 90, 180, 365];
     const now = new Date();

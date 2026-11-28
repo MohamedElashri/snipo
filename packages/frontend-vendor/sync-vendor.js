@@ -195,7 +195,7 @@ function status() {
 
   for (const name of vendorPkgs) {
     const pkgDir = path.join(NODE_MODULES, name);
-    let installed = '—';
+    let installed = 'missing';
     if (fs.existsSync(path.join(pkgDir, 'package.json'))) {
       try {
         const meta = JSON.parse(fs.readFileSync(path.join(pkgDir, 'package.json'), 'utf8'));
