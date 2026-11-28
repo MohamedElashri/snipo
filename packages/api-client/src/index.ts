@@ -167,14 +167,17 @@ export class SnipoClient {
     await this.request<void>(`/api/v1/snippets/${encodeURIComponent(id)}`, { method: 'DELETE' });
   }
 
+  private async getCollection<T>(path: string, params?: Record<string, string | boolean>): Promise<T[]> {
+    const response = await this.request<T[] | { data: T[] | null }>(path, { params });
+    return Array.isArray(response) ? response : response?.data ?? [];
+  }
+
   async getTags(): Promise<Tag[]> {
-    const response = await this.request<Tag[] | { data: Tag[] | null }>('/api/v1/tags');
-    return Array.isArray(response) ? response : response.data ?? [];
+    return this.getCollection<Tag>('/api/v1/tags');
   }
 
   async getFolders(): Promise<Folder[]> {
-    const response = await this.request<Folder[] | { data: Folder[] | null }>('/api/v1/folders', { params: { tree: true } });
-    return Array.isArray(response) ? response : response.data ?? [];
+    return this.getCollection<Folder>('/api/v1/folders', { tree: true });
   }
 
   // Fetch-like client wrapper for backward compatibility with existing extensions
