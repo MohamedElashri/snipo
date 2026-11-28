@@ -11,7 +11,8 @@ The extension handles:
 - the Snipo server URL and API token you configure;
 - interactive-mode and ignored-site preferences;
 - titles, descriptions, filenames, languages, folders, and tags entered in the
-  save dialog.
+  save dialog;
+- template field values and edits to generated files in interactive mode.
 
 ## Storage and transmission
 
@@ -21,8 +22,10 @@ that data, including the API token, under the vendor's own privacy and security
 terms.
 
 When you save a snippet, its content and metadata are sent directly to the
-Snipo URL you configured. Connection tests and folder/tag lookups also contact
-that instance.
+Snipo URL you configured. When you preview a template, its field values are
+sent to the same instance for rendering. Values can include the selected text,
+page title, or URL when a template requests them. Connection tests and lookups
+for templates, folders, and tags also contact that instance.
 
 The extension contains no advertising, analytics, telemetry, or developer-run
 backend. It does not intentionally send data to the extension developer or

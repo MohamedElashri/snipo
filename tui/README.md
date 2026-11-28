@@ -49,6 +49,8 @@ HTTPS for remote servers.
 | List | `Tab` | Switch between All items, Snippets, and Notes |
 | List | `n`, `e` | Create/edit the current item type |
 | List | `N` | Start a note from any library |
+| List | `t` | New from template |
+| Template draft | `F2`, `F3`, `F4` | Previous file, next file, copy |
 | List | `f` | Toggle favorite |
 | List | `d` or `x` | Delete selected snippet |
 | List | `/`, `r`, `s` | Search, refresh, settings |

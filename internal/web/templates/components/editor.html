@@ -60,6 +60,8 @@
             <details class="editor-more" x-show="editingSnippet?.id">
                 <summary>More<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary><div class="editor-more-menu">
                     <button class="btn-action" @click="copyAsRichText(editingSnippet)">Copy as rich text</button>
+                    <button class="btn-action" x-show="!editingSnippet?.deleted_at" @click="$el.closest('details').open = false; saveSnippetAsTemplate()">Save as template</button>
+                    <button class="btn-action" x-show="editingSnippet?.template_origin" @click="$el.closest('details').open = false; useTemplateAgain(editingSnippet.template_origin.id)">Use template again</button>
                     <button class="btn-action" x-show="canConvertItem()"
                         @click="$el.closest('details').open = false; convertItem()">Convert to note</button>
                     <button class="btn-action" x-show="canSetFolderOverview()" :disabled="savingFolderOverview"
@@ -153,8 +155,12 @@
         </div>
     </div>
 
+    <div class="editor-status" x-show="!isEditing && editingSnippet?.template_origin">
+        <span x-text="'Created from ' + (editingSnippet?.template_origin?.name || '')"></span>
+    </div>
+
     <div class="editor-status" x-show="isEditing">
-        <span role="status" aria-live="polite" x-text="saveState === 'saving' ? 'Saving to server…' : saveState === 'error' ? 'Save failed — your changes are still open. Retry Save.' : saveState === 'local-error' ? 'Draft could not be stored locally. Save to keep your changes.' : saveState === 'local' ? 'Draft saved on this device · Save to store on server' : isEditing ? 'Unsaved changes' : 'Saved to server'"></span>
+        <span role="status" aria-live="polite" x-text="saveState === 'saving' ? 'Saving to server…' : saveState === 'error' ? 'Save failed. Your changes are still open. Retry Save.' : saveState === 'local-error' ? 'Draft could not be stored locally. Save to keep your changes.' : saveState === 'local' ? 'Draft saved on this device · Save to store on server' : isEditing ? 'Unsaved changes' : 'Saved to server'"></span>
         <span class="editor-engine-indicator" role="status" aria-live="polite"
               x-text="editorLoading ? 'Loading ' + editorLabel(editorEngine) + '…' : codeEditor ? 'Editor: ' + editorLabel(activeEditorEngine) + (activeEditorEngine !== editorEngine ? ' (fallback)' : '') : 'Editor unavailable'"></span>
     </div>
@@ -433,7 +439,7 @@
                         </div>
                     </section>
 
-                    <section class="editor-details-section">
+                    <section class="editor-details-section" x-show="editingSnippet.id || !editingSnippet.template_origin">
                         <div class="editor-details-section-title">Sharing</div>
                         <div class="editor-field-inline compact editor-toggle-row">
                             <span class="editor-label">Public</span>

@@ -97,8 +97,8 @@ disabled:
 
 | Variable | Default | Purpose |
 |---|---:|---|
-| `SNIPO_MASTER_PASSWORD_HASH` | — | Argon2id master-password hash; preferred |
-| `SNIPO_MASTER_PASSWORD` | — | Plaintext master password |
+| `SNIPO_MASTER_PASSWORD_HASH` | Unset | Argon2id master-password hash; preferred |
+| `SNIPO_MASTER_PASSWORD` | Unset | Plaintext master password |
 | `SNIPO_DISABLE_AUTH` | `false` | Bypass all Snipo authentication |
 | `SNIPO_SESSION_SECRET` | generated | Stable secret used by encrypted application data |
 | `SNIPO_SESSION_DURATION` | `168h` | Session lifetime |

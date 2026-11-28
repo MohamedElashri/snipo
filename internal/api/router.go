@@ -102,8 +102,12 @@ func NewRouter(cfg RouterConfig) http.Handler {
 			WithMaxFiles(cfg.MaxFilesPerSnippet)
 	}
 
+	templateRepo := repository.NewTemplateRepository(cfg.DB)
+	templateService := services.NewTemplateService(templateRepo, folderRepo, cfg.MaxFilesPerSnippet)
+	templateHandler := handlers.NewTemplateHandler(templateService)
+
 	// Create backup service
-	backupService := services.NewBackupService(cfg.DB, snippetService, tagRepo, folderRepo, fileRepo, cfg.Logger, cfg.Config.Auth.EncryptionSalt)
+	backupService := services.NewBackupService(cfg.DB, snippetService, tagRepo, folderRepo, fileRepo, cfg.Logger, cfg.Config.Auth.EncryptionSalt).WithTemplateRepo(templateRepo)
 
 	// Create S3 sync service if configured
 	var s3SyncService *services.S3SyncService
@@ -223,6 +227,30 @@ func NewRouter(cfg RouterConfig) http.Handler {
 				r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead).Get("/history", snippetHandler.GetHistory)
 				r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite).Post("/history/{history_id}/restore", snippetHandler.RestoreFromHistory)
 			})
+		})
+
+		r.Route("/api/v1/templates", func(r *Router) {
+			r.Use(func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+					w.Header().Set("Cache-Control", "no-store")
+					next.ServeHTTP(w, req)
+				})
+			})
+			read := r.With(middleware.RequireRead, apiRateLimiter.RateLimitRead)
+			write := r.With(middleware.RequireWrite, apiRateLimiter.RateLimitWrite)
+			read.Get("/", templateHandler.List)
+			read.Get("/starters", templateHandler.Starters)
+			read.Post("/test", templateHandler.Test)
+			write.Post("/", templateHandler.Create)
+			write.Post("/import", templateHandler.Import)
+			read.Get("/{id}", templateHandler.Get)
+			read.Get("/{id}/export", templateHandler.Export)
+			read.Get("/{id}/history", templateHandler.History)
+			read.Post("/{id}/render", templateHandler.Render)
+			write.Put("/{id}", templateHandler.Update)
+			write.Put("/{id}/status", templateHandler.Status)
+			write.Post("/{id}/restore-revision", templateHandler.RestoreRevision)
+			write.Delete("/{id}", templateHandler.Purge)
 		})
 
 		// Tag CRUD (read for GET, write for modifications)

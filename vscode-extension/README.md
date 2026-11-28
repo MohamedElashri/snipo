@@ -44,6 +44,13 @@ Choose Markdown or plain text and write in the editor. **Snipo: Preview Markdown
 opens a side-by-side preview. Use **Snipo: Save Note** to save a new note or send
 changes to an existing note back to your server.
 
+## Templates
+
+Run **Snipo: Use Template** in the Command Palette. Pick a template and fill in
+its fields. Review the generated files, open them as untitled tabs, insert a
+file into the active editor, or save the whole draft to Snipo. Manage templates
+in the Snipo web library.
+
 ## Support
 
 Tips are optional and help maintain the project.

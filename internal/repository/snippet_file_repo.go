@@ -68,6 +68,10 @@ func filesBySnippetID(ctx context.Context, db interface {
 
 // Create creates a new snippet file
 func (r *SnippetFileRepository) Create(ctx context.Context, snippetID string, file *models.SnippetFileInput, sortOrder int) (*models.SnippetFile, error) {
+	return createSnippetFile(ctx, r.db, snippetID, file, sortOrder)
+}
+
+func createSnippetFile(ctx context.Context, db rowQuerier, snippetID string, file *models.SnippetFileInput, sortOrder int) (*models.SnippetFile, error) {
 	query := `
 		INSERT INTO snippet_files (snippet_id, filename, content, language, sort_order)
 		VALUES (?, ?, ?, ?, ?)
@@ -75,7 +79,7 @@ func (r *SnippetFileRepository) Create(ctx context.Context, snippetID string, fi
 	`
 
 	var f models.SnippetFile
-	err := r.db.QueryRowContext(ctx, query,
+	err := db.QueryRowContext(ctx, query,
 		snippetID,
 		file.Filename,
 		file.Content,

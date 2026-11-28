@@ -64,6 +64,9 @@ func (c *Client) doRequest(method, path string, body interface{}, result interfa
 		return fmt.Errorf("failed to read response: %w", err)
 	}
 
+	if resp.StatusCode == http.StatusNotFound && strings.HasPrefix(path, "/api/v1/templates?") {
+		return ErrTemplatesUnavailable
+	}
 	if resp.StatusCode >= 400 {
 		var errResp ErrorResponse
 		if err := json.Unmarshal(respBody, &errResp); err != nil {

@@ -8,6 +8,9 @@ import (
 	"github.com/MohamedElashri/snipo/pkg/models"
 )
 
+// MaxJSONRequestBytes is the limit for JSON API request bodies.
+const MaxJSONRequestBytes = 2 * 1024 * 1024
+
 // ValidationError represents a field validation error
 type ValidationError struct {
 	Field   string `json:"field"`

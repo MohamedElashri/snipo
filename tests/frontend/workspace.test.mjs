@@ -348,6 +348,46 @@ test('saving or discarding in one tab preserves another tab recovery buffer', ()
   } finally { globalThis.sessionStorage = session; }
 });
 
+test('changing a favorite keeps the template editor on its original revision', async () => {
+  const state = app();
+  state.templateRecord = { id: 'template-id', revision: 1, favorite: false, state: 'active' };
+  state.templateForm = { title: 'Unsaved local edit' };
+  const originalGet = api.get;
+  const originalPut = api.put;
+  try {
+    api.get = async () => ({ id: 'template-id', revision: 2, favorite: true, state: 'active' });
+    api.put = async () => null;
+    await state.updateTemplateStatus({ favorite: true });
+    assert.equal(state.templateRecord.favorite, true);
+    assert.equal(state.templateRecord.revision, 1);
+    assert.equal(state.templateForm.title, 'Unsaved local edit');
+  } finally {
+    api.get = originalGet;
+    api.put = originalPut;
+  }
+});
+
+test('dismissing the discard prompt leaves unsaved template edits open', () => {
+  const state = app();
+  state.templateForm = { title: 'Original', files: [] };
+  state.templateFormBaseline = JSON.stringify(state.templateDefinitionInput());
+  state.templateForm.title = 'Unsaved edit';
+  let closed = false;
+  state.$refs = { templateDialog: { close() { closed = true; } } };
+  try {
+    window.confirm = () => false;
+    state.closeTemplateDialog();
+    assert.equal(closed, false);
+    assert.equal(state.templateForm.title, 'Unsaved edit');
+    window.confirm = () => true;
+    state.closeTemplateDialog();
+    assert.equal(closed, true);
+    assert.equal(state.templateForm, null);
+  } finally {
+    delete window.confirm;
+  }
+});
+
 test('reloading a blank new note preserves a separate code draft', async () => {
   const state = app();
   state.loadSnippets = async () => {};

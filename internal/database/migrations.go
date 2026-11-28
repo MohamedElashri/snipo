@@ -353,6 +353,32 @@ CREATE INDEX IF NOT EXISTS idx_snippets_expires_at ON snippets(expires_at);
 `
 
 // getMigrations returns all available migrations in order
+const addTemplatesSQL = `
+CREATE TABLE templates (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    revision INTEGER NOT NULL DEFAULT 1,
+    state TEXT NOT NULL DEFAULT 'active' CHECK (state IN ('active', 'archived', 'trash')),
+    favorite BOOLEAN NOT NULL DEFAULT false,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_used_at DATETIME
+);
+
+CREATE TABLE template_revisions (
+    template_id TEXT NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
+    revision INTEGER NOT NULL,
+    definition TEXT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (template_id, revision)
+);
+
+CREATE TABLE snippet_template_origins (
+    snippet_id TEXT PRIMARY KEY REFERENCES snippets(id) ON DELETE CASCADE,
+    template_id TEXT NOT NULL,
+    revision INTEGER NOT NULL,
+    name TEXT NOT NULL
+);
+`
+
 func getMigrations() []Migration {
 	return []Migration{
 		{Version: 1, Name: "initial_schema", SQL: initialSchemaSQL},
@@ -384,5 +410,6 @@ func getMigrations() []Migration {
 				PRIMARY KEY (snippet_id, request_id)
 			);
 		`},
+		{Version: 16, Name: "add_templates", SQL: addTemplatesSQL},
 	}
 }

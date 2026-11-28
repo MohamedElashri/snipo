@@ -37,6 +37,10 @@
         "title": "Snipo: Save Note"
       },
       {
+        "command": "snipo.useTemplate",
+        "title": "Snipo: Use Template"
+      },
+      {
         "command": "snipo.searchAndInsert",
         "title": "Snipo: Search and Insert Snippet"
       },

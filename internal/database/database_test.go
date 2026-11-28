@@ -10,7 +10,7 @@ import (
 )
 
 func TestMigrateFromEverySchemaVersion(t *testing.T) {
-	for version := 0; version <= 15; version++ {
+	for version := 0; version <= 16; version++ {
 		t.Run(fmt.Sprintf("version_%d", version), func(t *testing.T) {
 			db := newMigrationTestDB(t)
 			prepareSchemaVersion(t, db.DB, version)
@@ -147,8 +147,8 @@ func assertCurrentSchema(t *testing.T, db *sql.DB) {
 	if err := db.QueryRow("SELECT MAX(version) FROM schema_migrations").Scan(&version); err != nil {
 		t.Fatalf("read current version: %v", err)
 	}
-	if version != 15 {
-		t.Fatalf("expected schema version 15, got %d", version)
+	if version != 16 {
+		t.Fatalf("expected schema version 16, got %d", version)
 	}
 
 	for table, column := range map[string]string{
@@ -169,6 +169,9 @@ func assertCurrentSchema(t *testing.T, db *sql.DB) {
 		"snippet_files",
 		"snippet_history",
 		"gist_sync_config",
+		"templates",
+		"template_revisions",
+		"snippet_template_origins",
 		"snippet_gist_mappings",
 	} {
 		var count int

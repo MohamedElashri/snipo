@@ -66,7 +66,7 @@ export const editorMixin = {
     }
   },
 
-  newSnippet({ note = false, localDraftId } = {}) {
+  newSnippet({ note = false, localDraftId, draft } = {}) {
     if (this.saving) return;
     this.preserveDraft();
     ++this.viewRequest;
@@ -107,6 +107,15 @@ export const editorMixin = {
         language
       }]
     };
+    if (draft) {
+      this.editingSnippet = {
+        ...this.editingSnippet, ...draft,
+        folder_id: draft.folder_id ?? this.filter?.folderId ?? null,
+        tags: draft.tags || [],
+        expires_at: '',
+        sync_to_gist: false
+      };
+    }
     this.activeFileIndex = 0;
     this._resetFileManagerState();
     this.showEditor = true;
@@ -262,6 +271,10 @@ export const editorMixin = {
       if (this.editingSnippet.id) {
         result = await api.put(`/api/v1/snippets/${this.editingSnippet.id}`, data);
       } else {
+        if (this.editingSnippet.template_origin) {
+          data.template_origin = this.editingSnippet.template_origin;
+          data.content = '';
+        }
         result = await api.post('/api/v1/snippets', data);
       }
 
@@ -754,7 +767,7 @@ export const editorMixin = {
     if (!expiresAt) return '';
     // Already a shorthand value
     if (typeof expiresAt === 'string' && expiresAt.endsWith('d')) return expiresAt;
-    // Not a valid date string (e.g., random string) — return as-is
+    // Return invalid date strings as-is.
     if (isNaN(Date.parse(expiresAt))) return '';
     const shorthandDays = [7, 30, 90, 180, 365];
     const now = new Date();

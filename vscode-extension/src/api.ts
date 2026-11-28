@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SnipoClient, Snippet, SnippetWrite, Tag, Folder } from '@snipo/api-client';
+import { SnipoClient, Snippet, SnippetWrite, Tag, Folder, TemplateDraft } from '@snipo/api-client';
 
 export function normalizeServerURL(value: string): string {
     const url = value.trim();
@@ -210,7 +210,19 @@ export class SnipoAPI {
         }
     }
 
-    async createSnippet(data: Partial<Snippet>): Promise<Snippet | null> {
+    listTemplates() {
+        return this.client.listTemplates();
+    }
+
+    getTemplate(id: string, revision: number) {
+        return this.client.getTemplate(id, revision);
+    }
+
+    renderTemplate(id: string, revision: number, values: Record<string, string>) {
+        return this.client.renderTemplate(id, revision, values);
+    }
+
+    async createSnippet(data: Partial<Snippet> | TemplateDraft): Promise<Snippet | null> {
         try {
             const snippet = await this.client.createSnippet(data);
             refreshSidebar();
@@ -223,7 +235,8 @@ export class SnipoAPI {
             } else {
                 const msg = error.response?.data?.error?.message || error.message;
                 const details = error.response?.data?.error?.details?.[0]?.message || '';
-                vscode.window.showErrorMessage(`Failed to create ${data.kind === 'note' ? 'note' : 'snippet'}: ${msg} ${details}`);
+                const item = 'kind' in data && data.kind === 'note' ? 'note' : 'snippet';
+                vscode.window.showErrorMessage(`Failed to create ${item}: ${msg} ${details}`);
             }
             return null;
         }

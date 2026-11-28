@@ -38,7 +38,10 @@ Select text on a page and choose **Save to Snipo** from the context menu.
   add the selection to an existing private note.
 - Ignored sites prevent the extension UI from acting on matching domains.
 
-The page title and URL are used as default snippet metadata.
+The page title and URL are used as default snippet metadata. In interactive
+mode, choose a Snipo template to review its fields and edit its generated files
+before saving. If requested by the template, the extension prefills the page
+title, source URL, and selected text.
 
 ## Permissions and privacy
 

@@ -209,8 +209,19 @@ func (r *TagRepository) SetSnippetTags(ctx context.Context, snippetID string, ta
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	if err := setSnippetTag(ctx, tx, snippetID, tagNames); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+func setSnippetTag(ctx context.Context, tx *sql.Tx, snippetID string, tagNames []string) error {
 	// Remove existing tags
-	_, err = tx.ExecContext(ctx, `DELETE FROM snippet_tags WHERE snippet_id = ?`, snippetID)
+	_, err := tx.ExecContext(ctx, `DELETE FROM snippet_tags WHERE snippet_id = ?`, snippetID)
 	if err != nil {
 		return fmt.Errorf("failed to remove existing tags: %w", err)
 	}
@@ -241,10 +252,6 @@ func (r *TagRepository) SetSnippetTags(ctx context.Context, snippetID string, ta
 		if err != nil {
 			return fmt.Errorf("failed to link tag %s to snippet: %w", name, err)
 		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil

@@ -43,6 +43,7 @@ type BackupService struct {
 	tagRepo        *repository.TagRepository
 	folderRepo     *repository.FolderRepository
 	fileRepo       *repository.SnippetFileRepository
+	templateRepo   *repository.TemplateRepository
 	logger         *slog.Logger
 	encryptionSalt string
 }
@@ -68,6 +69,11 @@ func NewBackupService(
 	}
 }
 
+func (b *BackupService) WithTemplateRepo(repo *repository.TemplateRepository) *BackupService {
+	b.templateRepo = repo
+	return b
+}
+
 // Export creates a complete backup of all data
 func (b *BackupService) Export(ctx context.Context, opts models.ExportOptions) ([]byte, string, error) {
 	data := models.BackupData{
@@ -81,6 +87,23 @@ func (b *BackupService) Export(ctx context.Context, opts models.ExportOptions) (
 		return nil, "", fmt.Errorf("failed to get snippets: %w", err)
 	}
 	data.Snippets = snippets
+
+	if b.templateRepo != nil {
+		templates, err := b.templateRepo.Snapshots(ctx)
+		if err != nil {
+			return nil, "", fmt.Errorf("export templates: %w", err)
+		}
+		data.Templates = &templates
+		origins, err := b.templateRepo.SnippetOrigins(ctx)
+		if err != nil {
+			return nil, "", fmt.Errorf("export snippet origins: %w", err)
+		}
+		for i := range data.Snippets {
+			if origin, ok := origins[data.Snippets[i].ID]; ok {
+				data.Snippets[i].TemplateOrigin = &origin
+			}
+		}
+	}
 
 	// Gather all tags
 	if b.tagRepo != nil {
@@ -174,7 +197,7 @@ func backupKey(snippet models.Snippet, folderID int64) backupItemKey {
 func backupSnippetInput(snippet models.Snippet) *models.SnippetInput {
 	input := &models.SnippetInput{Kind: snippet.Kind, Title: snippet.Title, Description: snippet.Description,
 		Content: snippet.Content, Language: snippet.Language, IsPublic: snippet.IsPublic,
-		IsArchived: snippet.IsArchived, ExpiresAt: snippet.ExpiresAt}
+		IsArchived: snippet.IsArchived, ExpiresAt: snippet.ExpiresAt, TemplateOrigin: snippet.TemplateOrigin}
 	for _, tag := range snippet.Tags {
 		input.Tags = append(input.Tags, tag.Name)
 	}
@@ -198,6 +221,9 @@ func validateReplacementBackup(data models.BackupData) error {
 		}
 	}
 	for i, snippet := range data.Snippets {
+		if err := validateTemplateOrigin(snippet.TemplateOrigin); err != nil {
+			return fmt.Errorf("%w: snippet %d: %v", ErrInvalidBackupFormat, i+1, err)
+		}
 		if errs := validation.ValidateItemInput(backupSnippetInput(snippet)); errs.HasErrors() {
 			return fmt.Errorf("%w: snippet %d: %s", ErrInvalidBackupFormat, i+1, errs)
 		}
@@ -272,12 +298,27 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 		}
 	}
 
+	if data.Templates != nil {
+		if err := validateTemplateSnapshots(*data.Templates); err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrInvalidBackupFormat, err)
+		}
+	}
+
 	if opts.Strategy == "replace" {
 		if err := validateReplacementBackup(data); err != nil {
 			return nil, err
 		}
 	}
 	result := &models.ImportResult{}
+
+	var previousFolders []models.Folder
+	if opts.Strategy == "replace" && data.Templates == nil && b.templateRepo != nil {
+		var err error
+		previousFolders, err = b.folderRepo.List(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("read existing template destinations: %w", err)
+		}
+	}
 
 	// Handle strategy
 	if opts.Strategy == "replace" {
@@ -335,6 +376,37 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 		return nil, err
 	}
 
+	if data.Templates != nil && b.templateRepo != nil {
+		for i := range *data.Templates {
+			item := &(*data.Templates)[i]
+			for j := range item.Revisions {
+				def := &item.Revisions[j].Definition
+				if def.FolderID != nil {
+					id, mapped := folderMap[*def.FolderID]
+					def.FolderID = nil
+					if mapped {
+						def.FolderID = &id
+					}
+				}
+			}
+		}
+		count, err := b.templateRepo.RestoreSnapshots(ctx, *data.Templates, opts.Strategy == "replace")
+		if err != nil {
+			return nil, fmt.Errorf("restore templates: %w", err)
+		}
+		result.TemplatesImported = count
+	}
+
+	if len(previousFolders) != 0 {
+		restoredFolders, err := b.folderRepo.List(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("read restored template destinations: %w", err)
+		}
+		if err := b.templateRepo.RemapFolders(ctx, matchFolderDestinations(previousFolders, restoredFolders)); err != nil {
+			return nil, fmt.Errorf("restore existing template destinations: %w", err)
+		}
+	}
+
 	snippetMap := make(map[string]string)
 	for _, snippet := range data.Snippets {
 		input := backupSnippetInput(snippet)
@@ -351,7 +423,13 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 			continue
 		}
 
-		created, err := b.snippetSvc.Create(ctx, input)
+		var created *models.Snippet
+		var err error
+		if input.TemplateOrigin != nil {
+			created, err = b.snippetSvc.createFromTemplate(ctx, input, false)
+		} else {
+			created, err = b.snippetSvc.Create(ctx, input)
+		}
 		if err == nil {
 			snippetMap[snippet.ID] = created.ID
 			result.SnippetsImported++
@@ -388,6 +466,53 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 	)
 
 	return result, nil
+}
+
+// A pre-template backup replaces the folder tree but preserves the current
+// templates. Match their previous destinations by the full folder path.
+func matchFolderDestinations(previous, restored []models.Folder) map[int64]int64 {
+	type location struct {
+		parent int64
+		name   string
+	}
+	destination := make(map[location]int64, len(restored))
+	for _, folder := range restored {
+		parent := int64(0)
+		if folder.ParentID != nil {
+			parent = *folder.ParentID
+		}
+		destination[location{parent, folder.Name}] = folder.ID
+	}
+	original := make(map[int64]models.Folder, len(previous))
+	for _, folder := range previous {
+		original[folder.ID] = folder
+	}
+
+	mapped := make(map[int64]int64, len(previous))
+	var resolve func(int64) int64
+	resolve = func(id int64) int64 {
+		if result, known := mapped[id]; known {
+			return result
+		}
+		folder, found := original[id]
+		if !found {
+			return 0
+		}
+		mapped[id] = 0
+		parent := int64(0)
+		if folder.ParentID != nil {
+			parent = resolve(*folder.ParentID)
+			if parent == 0 {
+				return 0
+			}
+		}
+		mapped[id] = destination[location{parent, folder.Name}]
+		return mapped[id]
+	}
+	for _, folder := range previous {
+		resolve(folder.ID)
+	}
+	return mapped
 }
 
 // importFolders uses the restored parent and name together to match folders.
@@ -522,6 +647,7 @@ func (b *BackupService) createZipBackup(data models.BackupData) ([]byte, error) 
 // clearAllData removes all snippets, tags, and folders
 func (b *BackupService) clearAllData(ctx context.Context) error {
 	queries := []string{
+		"DELETE FROM snippet_template_origins",
 		"DELETE FROM note_capture_requests",
 		"DELETE FROM snippet_tags",
 		"DELETE FROM snippet_folders",

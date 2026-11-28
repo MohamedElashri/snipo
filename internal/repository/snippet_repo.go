@@ -23,6 +23,10 @@ func NewSnippetRepository(db *sql.DB) *SnippetRepository {
 
 // Create inserts a new snippet
 func (r *SnippetRepository) Create(ctx context.Context, input *models.SnippetInput) (*models.Snippet, error) {
+	return createSnippet(ctx, r.db, input)
+}
+
+func createSnippet(ctx context.Context, db rowQuerier, input *models.SnippetInput) (*models.Snippet, error) {
 	query := `
 		INSERT INTO snippets (kind, title, description, content, language, is_public, is_archived, expires_at)
 		VALUES (COALESCE(NULLIF(?, ''), 'snippet'), ?, ?, ?, ?, ?, ?, ?)
@@ -31,7 +35,7 @@ func (r *SnippetRepository) Create(ctx context.Context, input *models.SnippetInp
 	`
 
 	snippet := &models.Snippet{}
-	err := r.db.QueryRowContext(ctx, query,
+	err := db.QueryRowContext(ctx, query,
 		input.Kind,
 		input.Title,
 		input.Description,
@@ -206,6 +210,10 @@ func (r *SnippetRepository) Delete(ctx context.Context, id string, permanent boo
 	_, _ = tx.ExecContext(ctx, "DELETE FROM snippet_tags WHERE snippet_id = ?", id)
 	_, _ = tx.ExecContext(ctx, "DELETE FROM snippet_folders WHERE snippet_id = ?", id)
 	_, _ = tx.ExecContext(ctx, "DELETE FROM snippet_files WHERE snippet_id = ?", id)
+
+	if _, err := tx.ExecContext(ctx, "DELETE FROM snippet_template_origins WHERE snippet_id = ?", id); err != nil {
+		return fmt.Errorf("failed to delete snippet origin: %w", err)
+	}
 
 	// Delete the snippet
 	result, err := tx.ExecContext(ctx, "DELETE FROM snippets WHERE id = ?", id)

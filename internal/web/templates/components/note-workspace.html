@@ -30,6 +30,7 @@
                         @click="copyShareLink(editingSnippet)">Copy share link</button>
                     <button type="button" class="btn-action" x-show="!editingSnippet.deleted_at" @click="toggleFavorite(editingSnippet)"
                         x-text="editingSnippet.is_favorite ? 'Remove from favorites' : 'Add to favorites'"></button>
+                    <button type="button" class="btn-action" x-show="!editingSnippet.deleted_at" @click="saveSnippetAsTemplate()">Save as template</button>
                     <button type="button" class="btn-action" x-show="canSetFolderOverview()" :disabled="savingFolderOverview"
                         @click="setFolderOverview(editingSnippet.folder_id, editingSnippet.id)">Set as folder overview</button>
                     <button type="button" class="btn-action" x-show="settings.history_enabled && !editingSnippet.deleted_at"

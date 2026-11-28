@@ -113,7 +113,7 @@ func (s *S3SyncService) RestoreFromS3(ctx context.Context, key string, opts mode
 		return result, fmt.Errorf("failed to import backup: %w", err)
 	}
 
-	result.Restored = importResult.SnippetsImported + importResult.TagsImported + importResult.FoldersImported
+	result.Restored = importResult.SnippetsImported + importResult.TagsImported + importResult.FoldersImported + importResult.TemplatesImported
 	result.Errors = append(result.Errors, importResult.Errors...)
 	result.FinishedAt = time.Now().UTC()
 
@@ -122,6 +122,7 @@ func (s *S3SyncService) RestoreFromS3(ctx context.Context, key string, opts mode
 		"snippets", importResult.SnippetsImported,
 		"tags", importResult.TagsImported,
 		"folders", importResult.FoldersImported,
+		"templates", importResult.TemplatesImported,
 		"duration", result.FinishedAt.Sub(result.StartedAt),
 	)
 

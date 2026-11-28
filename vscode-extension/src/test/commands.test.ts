@@ -1,6 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
+import { useTemplate } from '../templates';
 import { searchAndInsertSnippet, saveSelectedSnippet, updateSnippet, openInSnipo, openInVSCode, newNote, previewOpenNote, saveOpenNote } from '../commands';
 import { api } from '../api';
 import { SnipoCodeLensProvider } from '../providers';
@@ -266,4 +267,64 @@ suite('Commands Test Suite', () => {
         assert.strictEqual(update.firstCall.args[1].revision, 1);
     });
 
+});
+
+suite('Template Commands', () => {
+    teardown(() => sinon.restore());
+
+    test('reports a render error for a template without fields', async () => {
+        const summary = { id: 'template-1', revision: 1, name: 'Blank note', purpose: '', filenames: ['note.md'], favorite: false };
+        sinon.stub(api, 'isConfigured').resolves(true);
+        sinon.stub(api, 'listTemplates').resolves([summary]);
+        sinon.stub(api, 'getTemplate').resolves({ ...summary, definition: { name: summary.name, purpose: '', fields: [] } });
+        sinon.stub(api, 'renderTemplate').rejects(new Error('Revision unavailable'));
+        sinon.stub(vscode.window, 'showQuickPick').callsFake(async (items: any) => items[0]);
+        const showError = sinon.stub(vscode.window, 'showErrorMessage').resolves();
+        await useTemplate();
+        assert.strictEqual(showError.callCount, 1);
+        assert.deepStrictEqual(showError.firstCall.args, ['Revision unavailable']);
+    });
+
+    test('reviews all files and saves the edited secondary file', async () => {
+        const origin = { id: 'bundle', revision: 2, name: 'Runbook bundle' };
+        const files = [
+            { filename: 'runbook.md', content: '# Runbook', language: 'markdown' },
+            { filename: 'health.sh', content: 'echo health', language: 'bash' },
+            { filename: '.env.example', content: 'PORT=8080', language: 'plaintext' }
+        ];
+        sinon.stub(api, 'isConfigured').resolves(true);
+        sinon.stub(api, 'listTemplates').resolves([{ ...origin, purpose: 'Service files', filenames: files.map(file => file.filename), favorite: false }]);
+        sinon.stub(api, 'getTemplate').resolves({ ...origin, definition: { name: origin.name, purpose: 'Service files', fields: [] } });
+        const render = sinon.stub(api, 'renderTemplate').resolves({
+            title: 'Running Redis', description: '', files, content: files[0].content, language: files[0].language,
+            template_origin: origin, is_public: false
+        });
+        const create = sinon.stub(api, 'createSnippet').resolves({
+            id: 'created', title: 'Running Redis', description: '', content: files[0].content, language: files[0].language,
+            is_favorite: false, is_public: false
+        });
+        const choices = sinon.stub(vscode.window, 'showQuickPick');
+        choices.onFirstCall().callsFake(async (items: any) => items[0]);
+        choices.onSecondCall().callsFake(async (items: any) => items.find((item: any) => item.label === 'health.sh'));
+        choices.onThirdCall().callsFake(async (items: any) => items.find((item: any) => item.action === 'save'));
+        sinon.stub(vscode.window, 'showInformationMessage').callsFake(async () => {
+            const editor = vscode.window.activeTextEditor!;
+            assert.ok(editor.document.isUntitled);
+            assert.ok(editor.document.uri.path.endsWith('/health.sh'));
+            assert.strictEqual(editor.document.getText(), 'echo health');
+            await editor.edit(edit => edit.insert(new vscode.Position(0, 0), '# Edited\n'));
+            return 'Return to template actions' as any;
+        });
+        sinon.stub(vscode.window, 'showInputBox').resolves('Running Redis');
+        try {
+            await useTemplate();
+            assert.ok(render.calledWith('bundle', 2));
+            const saved = create.firstCall.args[0];
+            assert.strictEqual(saved.files?.length, 3);
+            assert.strictEqual(saved.files[1].content, '# Edited\necho health');
+            assert.deepStrictEqual(saved.template_origin, origin);
+        } finally {
+            await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+        }
+    });
 });

@@ -115,7 +115,7 @@
     color: white;
 }
 
-.snipo-btn-primary:hover {
+.snipo-btn-primary:not(:disabled):hover {
     background-color: #2563eb;
 }
 
@@ -125,9 +125,15 @@
     border: 1px solid #334155;
 }
 
-.snipo-btn-secondary:hover {
+.snipo-btn-secondary:not(:disabled):hover {
     background-color: #334155;
     color: #f8fafc;
+}
+
+.snipo-btn-primary:disabled,
+.snipo-btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* Autocomplete Suggestions */
@@ -208,6 +214,32 @@ html, body { margin: 0; min-width: 280px; background: #1e293b; color: #f8fafc; }
 #save-status { margin: 0; padding: 0 24px; font: 14px system-ui, sans-serif; color: #fca5a5; }
 #save-status:not(:empty) { padding-top: 16px; }
 .snipo-input, .snipo-select, .snipo-textarea { width: 100%; }
+
+.snipo-template-purpose:empty {
+    display: none;
+}
+
+.snipo-template-purpose {
+    font-size: 13px;
+    margin: 0 0 12px;
+}
+
+.snipo-modal .snipo-form-group[hidden] {
+    display: none;
+}
+
+.snipo-modal details {
+    padding: 8px 0;
+}
+
+.snipo-modal details summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.snipo-modal .snipo-template-content {
+    font-family: monospace;
+}
 
 .snipo-note-status {
     margin: .5rem 0;

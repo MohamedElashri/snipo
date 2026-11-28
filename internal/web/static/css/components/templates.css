@@ -1,0 +1,183 @@
+.template-dialog {
+  width: min(46rem, calc(100% - 2rem));
+  max-height: min(50rem, calc(100dvh - 2rem));
+  padding: 1.2rem;
+  color: var(--snipo-text-primary);
+  background: var(--snipo-bg-primary);
+  border: 1px solid var(--snipo-input-border);
+  border-radius: .7rem;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  scroll-padding-block: 4rem;
+  font-size: var(--text-body);
+}
+
+.template-dialog::backdrop {
+  background: rgb(15 23 42 / 55%);
+}
+
+.template-dialog h2,
+.template-dialog h3,
+.template-dialog p {
+  margin: 0;
+}
+
+.template-dialog h3 {
+  margin-top: .7rem;
+  font-size: var(--text-lead);
+}
+
+.template-dialog section,
+.template-dialog form,
+.template-dialog fieldset {
+  display: grid;
+  gap: .65rem;
+}
+
+.template-dialog fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.template-dialog label {
+  display: grid;
+  gap: .25rem;
+  min-width: 0;
+}
+
+.template-dialog input:not([type="checkbox"]),
+.template-dialog select,
+.template-dialog textarea {
+  width: 100%;
+  margin: 0;
+}
+
+.template-bar,
+.template-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+  align-items: center;
+}
+
+.template-bar {
+  justify-content: space-between;
+  margin-bottom: .6rem;
+}
+
+.template-bar .template-search {
+  flex: 1;
+}
+
+.template-grid {
+  display: grid;
+  gap: .55rem 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+
+.template-dialog .template-checkbox {
+  display: flex;
+  align-items: center;
+}
+
+.template-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: .4rem;
+}
+
+.template-list > li {
+  list-style: none;
+  margin: 0;
+}
+
+.template-result,
+.template-card {
+  border: 1px solid var(--snipo-input-border);
+  border-radius: .4rem;
+  background: var(--snipo-bg-secondary);
+  padding: .55rem .7rem;
+}
+
+.template-result {
+  display: grid;
+  gap: .15rem;
+  width: 100%;
+  margin: 0;
+  color: inherit;
+  text-align: start;
+}
+
+.template-result:hover,
+.template-actions button[aria-pressed="true"] {
+  background: var(--snipo-input-selected-bg);
+}
+
+.template-card {
+  display: grid;
+  gap: .45rem;
+}
+
+.template-card.template-bar {
+  display: flex;
+}
+
+.template-code {
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.template-error {
+  color: var(--snipo-danger);
+}
+
+.template-dialog > .template-bar {
+  position: sticky;
+  top: -1.2rem;
+  z-index: 2;
+  margin: -1.2rem -1.2rem .7rem;
+  padding: .75rem 1.2rem;
+  background: var(--snipo-bg-primary);
+  border-bottom: 1px solid var(--snipo-input-border);
+}
+
+.template-dialog > .template-bar h2 {
+  flex: 1;
+  min-width: 0;
+}
+
+.template-dialog .template-actions .btn-action {
+  height: auto;
+  min-height: 28px;
+  max-width: 100%;
+  white-space: normal;
+}
+
+.template-dialog .template-actions button[type="submit"] {
+  width: auto;
+}
+
+.template-dialog .btn-action {
+  margin-bottom: 0;
+}
+
+.template-dialog .template-footer {
+  position: sticky;
+  bottom: -1.2rem;
+  z-index: 1;
+  margin: .1rem -1.2rem -1.2rem;
+  padding: .75rem 1.2rem;
+  background: var(--snipo-bg-primary);
+  border-top: 1px solid var(--snipo-input-border);
+}
+
+@media (max-width: 640px) {
+  .template-dialog .template-footer .btn-action {
+    min-height: 44px;
+  }
+}

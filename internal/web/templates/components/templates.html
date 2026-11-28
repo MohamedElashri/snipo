@@ -1,0 +1,260 @@
+{{define "templates"}}
+<dialog class="template-dialog" x-ref="templateDialog" aria-labelledby="template-heading" @cancel="closeTemplateDialog($event)">
+    <header class="template-bar">
+        <h2 id="template-heading" x-text="({ list: templateMode === 'picker' ? 'From template' : 'Templates', edit: templateRecord ? templateRecord.definition.name : 'New template', use: templateRecord?.definition.name || 'Use template', test: 'Test template', 'test-preview': 'Rendered preview', history: 'Template history', starters: 'Starter templates', purge: 'Delete template', 'import-preview': 'Import template' })[templateView]"></h2>
+        <button type="button" class="btn-action" aria-label="Close templates" :disabled="templateBusy" @click="closeTemplateDialog()">Close</button>
+    </header>
+    <p class="template-error" x-ref="templateError" role="alert" x-show="templateError" x-text="templateError"></p>
+
+    <section x-show="templateView === 'list'">
+        <div class="template-bar">
+            <label class="template-search">Search templates
+                <input x-ref="templateSearch" type="search" x-model="templateQuery" @input.debounce.250ms="loadTemplates()" placeholder="Name, purpose, or filename">
+            </label>
+            <label x-show="templateMode === 'manage'">Show
+                <select x-model="templateState" @change="loadTemplates()">
+                    <option value="active">Active</option>
+                    <option value="archived">Archived</option>
+                    <option value="trash">Trash</option>
+                </select>
+            </label>
+        </div>
+        <div class="template-actions" x-show="templateMode === 'manage'">
+            <button type="button" class="btn-action primary" @click="editTemplateDefinition()">New template</button>
+            <button type="button" class="btn-action" @click="openTemplateStarters()" :disabled="templateBusy">Starter templates</button>
+            <button type="button" class="btn-action" @click="$refs.templateImport.value = ''; $refs.templateImport.click()" :disabled="templateBusy">Import…</button>
+            <input type="file" accept=".json,application/json" x-ref="templateImport" @change="previewTemplateImport($event)" hidden>
+        </div>
+        <p role="status" x-show="templateLoading">Loading templates…</p>
+        <p x-show="!templateLoading && templateItems.length === 0 && !templateError">No templates here. <button type="button" class="btn-action" x-show="templateMode === 'picker' && !templateQuery" @click="openTemplateLibrary()">Open library</button></p>
+        <ul class="template-list">
+            <template x-for="item in templateItems" :key="item.id">
+                <li>
+                    <button type="button" class="template-result" :disabled="templateBusy" @click="selectTemplate(item)">
+                        <strong x-text="(item.favorite ? '★ ' : '') + item.name"></strong>
+                        <span x-text="item.purpose" x-show="item.purpose"></span>
+                        <small x-text="item.filenames.join(', ')"></small>
+                    </button>
+                </li>
+            </template>
+        </ul>
+        <div class="template-actions" x-show="!templateLoading && templateTotalPages > 1">
+            <button type="button" class="btn-action" :disabled="templatePage <= 1" @click="loadTemplates(templatePage - 1)">Previous</button>
+            <span x-text="templatePage + ' / ' + templateTotalPages"></span>
+            <button type="button" class="btn-action" :disabled="templatePage >= templateTotalPages" @click="loadTemplates(templatePage + 1)">Next</button>
+        </div>
+    </section>
+
+    <template x-if="templateView === 'edit' && templateForm">
+        <section>
+            <div class="template-actions">
+                <button type="button" class="btn-action" @click="openTemplateLibrary()">Library</button>
+                <button type="button" class="btn-action" x-show="templateRecord?.state === 'active'" :disabled="templateBusy" @click="templateAction(() => prepareTemplateUse())">Use saved template</button>
+                <button type="button" class="btn-action" x-show="templateRecord" @click="openTemplateHistory()" :disabled="templateBusy">History</button>
+                <button type="button" class="btn-action" x-show="templateRecord" @click="downloadTemplate()" :disabled="templateBusy">Export</button>
+                <button type="button" class="btn-action" x-show="templateRecord?.state !== 'trash' && templateRecord" @click="updateTemplateStatus({ favorite: !templateRecord.favorite })" x-text="templateRecord?.favorite ? 'Remove favorite' : 'Favorite'"></button>
+            </div>
+            <template x-if="templateRecord?.state === 'trash'">
+                <div class="template-actions">
+                    <button type="button" class="btn-action primary" @click="updateTemplateStatus({ state: 'active' })" :disabled="templateBusy">Restore template</button>
+                    <button type="button" class="btn-action danger" @click="templateDialog('purge')" :disabled="templateBusy">Delete permanently…</button>
+                </div>
+            </template>
+            <fieldset :disabled="templateRecord?.state === 'trash' || templateBusy">
+                <div class="template-grid">
+                    <label>Template name <input type="text" x-model="templateForm.name" maxlength="200"></label>
+                    <label>Purpose <input type="text" x-model="templateForm.purpose"></label>
+                    <label>Output title <input type="text" x-model="templateForm.title" x-ref="templateTitle"></label>
+                    <label>Output description <textarea x-model="templateForm.description" x-ref="templateDescription" rows="2"></textarea></label>
+                    <label>Default tags <input type="text" x-model="templateTags"></label>
+                    <label>Default folder
+                        <select x-model="templateForm.folder_id">
+                            <option value="">No default folder</option>
+                            <template x-for="folder in templateFolderOptions()" :key="folder.id"><option :value="folder.id" x-text="folder.label"></option></template>
+                        </select>
+                    </label>
+                </div>
+
+                <h3>Files</h3>
+                <div class="template-actions">
+                    <template x-for="(file, index) in templateForm.files" :key="index">
+                        <button type="button" class="btn-action" :aria-pressed="templateFile === index" @click="templateFile = index" x-text="file.filename || 'Untitled file'"></button>
+                    </template>
+                    <button type="button" class="btn-action" @click="addTemplateFile()">Add file</button>
+                </div>
+                <div class="template-grid">
+                    <label>Filename <input type="text" x-model="templateForm.files[templateFile].filename" x-ref="templateFilename"></label>
+                    <label>Language
+                        <select x-model="templateForm.files[templateFile].language">
+                            <template x-for="language in templateLanguages" :key="language"><option :value="language" x-text="language"></option></template>
+                        </select>
+                    </label>
+                </div>
+                <label>File content <textarea class="template-code" x-ref="templateContent" x-model="templateForm.files[templateFile].content" rows="9" spellcheck="false"></textarea></label>
+                <div class="template-actions">
+                    <button type="button" class="btn-action" :disabled="templateFile === 0" @click="moveTemplateFile(-1)">Move earlier</button>
+                    <button type="button" class="btn-action" :disabled="templateFile >= templateForm.files.length - 1" @click="moveTemplateFile(1)">Move later</button>
+                    <button type="button" class="btn-action" :disabled="templateForm.files.length === 1" @click="removeTemplateFile()">Remove file</button>
+                </div>
+
+                <h3>Fields</h3>
+                <template x-for="(field, index) in templateForm.fields" :key="index">
+                    <div class="template-card">
+                        <div class="template-grid">
+                            <label>Key <input type="text" :value="field.key" @change="changeTemplateFieldKey(field, index, $event.target.value)" placeholder="service_name"></label>
+                            <label>Label <input type="text" x-model="field.label"></label>
+                            <label>Type
+                                <select x-model="field.type">
+                                    <option value="text">Text</option><option value="multiline">Multiline text</option>
+                                    <option value="number">Number</option><option value="choice">Choice</option>
+                                    <option value="toggle">Toggle</option><option value="date">Date</option>
+                                </select>
+                            </label>
+                            <label>Help text <input type="text" x-model="field.help"></label>
+                            <label>Default value <textarea rows="1" :value="field.default ?? ''" @input="field.default = $event.target.value || null"></textarea></label>
+                            <label x-show="field.type === 'choice'">Choices, one per line <textarea rows="2" :value="(field.choices || []).join('\n')" @change="field.choices = $event.target.value.split('\n').map(value => value.trim()).filter(Boolean)"></textarea></label>
+                            <label>Browser capture source
+                                <select x-model="field.source">
+                                    <option value="">None</option><option value="selection">Selected text</option>
+                                    <option value="page_title">Page title</option><option value="url">Page URL</option>
+                                </select>
+                            </label>
+                            <label class="template-checkbox"><input type="checkbox" x-model="field.required"> Required</label>
+                        </div>
+                        <div class="template-actions">
+                            <button type="button" class="btn-action" :disabled="!field.key" @click="insertTemplateField(field)">Insert in file</button>
+                            <button type="button" class="btn-action" :disabled="!field.key" @click="insertTemplateField(field, 'filename')">Insert in filename</button>
+                            <button type="button" class="btn-action" :disabled="!field.key" @click="insertTemplateField(field, 'title')">Insert in title</button>
+                            <button type="button" class="btn-action" :disabled="!field.key" @click="insertTemplateField(field, 'description')">Insert in description</button>
+                            <button type="button" class="btn-action" @click="removeTemplateField(index)">Remove field</button>
+                        </div>
+                    </div>
+                </template>
+                <button type="button" class="btn-action" @click="addTemplateField()">Add field</button>
+
+                <h3>Presets</h3>
+                <template x-for="(preset, index) in templateForm.presets" :key="index">
+                    <div class="template-card">
+                        <label>Preset name <input type="text" x-model="preset.name"></label>
+                        <div class="template-grid">
+                            <template x-for="(field, position) in templateForm.fields" :key="position">
+                                <label><span x-text="field.label || field.key || 'Unnamed field'"></span><textarea rows="1" :value="Object.hasOwn(preset.values, field.key) ? preset.values[field.key] : ''" @input="setTemplatePresetValue(preset, field.key, $event.target.value)"></textarea></label>
+                            </template>
+                        </div>
+                        <button type="button" class="btn-action" @click="templateForm.presets.splice(index, 1)">Remove preset</button>
+                    </div>
+                </template>
+                <button type="button" class="btn-action" @click="addTemplatePreset()">Add preset</button>
+
+                <div class="template-actions template-footer">
+                    <button type="button" class="btn-action primary" @click="saveTemplateDefinition()">Save template</button>
+                    <button type="button" class="btn-action" @click="prepareTemplateUse(true)">Test template</button>
+                    <button type="button" class="btn-action" x-show="templateRecord?.state === 'active'" @click="updateTemplateStatus({ state: 'archived' })">Archive</button>
+                    <button type="button" class="btn-action" x-show="templateRecord?.state === 'archived'" @click="updateTemplateStatus({ state: 'active' })">Unarchive</button>
+                    <button type="button" class="btn-action" x-show="templateRecord" @click="updateTemplateStatus({ state: 'trash' })">Move to Trash</button>
+                </div>
+            </fieldset>
+        </section>
+    </template>
+
+    <template x-if="(templateView === 'use' && templateRecord) || (templateView === 'test' && templateForm)">
+        <form @submit.prevent="templateAction(() => renderTemplate(templateView === 'test'))"
+            x-data="{ get def() { return templateView === 'test' ? templateForm : templateRecord?.definition; } }">
+            <p x-show="def?.purpose" x-text="def?.purpose"></p>
+            <fieldset :disabled="templateBusy">
+                <label x-show="def?.presets?.length">Preset
+                    <select x-model="templatePresetIndex" @change="applyTemplatePreset(def)">
+                        <option value="">Template defaults</option>
+                        <template x-for="(preset, index) in def?.presets || []" :key="index"><option :value="index" x-text="preset.name"></option></template>
+                    </select>
+                </label>
+                <div class="template-grid">
+                    <template x-for="field in def?.fields || []" :key="field.key">
+                        <label class="template-value">
+                            <span x-text="field.label + (field.required ? ' *' : '')"></span>
+                            <small x-show="field.help" x-text="field.help"></small>
+                            <template x-if="field.type === 'multiline'">
+                                <textarea data-template-field x-model="templateValues[field.key]" :required="Boolean(field.required)" rows="4"></textarea>
+                            </template>
+                            <template x-if="field.type === 'choice' || field.type === 'toggle'">
+                                <select data-template-field x-model="templateValues[field.key]" :required="Boolean(field.required)">
+                                    <option value="">Choose…</option>
+                                    <template x-for="choice in field.type === 'toggle' ? ['true', 'false'] : field.choices" :key="choice"><option :value="choice" x-text="choice"></option></template>
+                                </select>
+                            </template>
+                            <template x-if="!['multiline', 'choice', 'toggle'].includes(field.type)">
+                                <input data-template-field :type="field.type === 'date' ? 'date' : 'text'" :inputmode="field.type === 'number' ? 'decimal' : null" x-model="templateValues[field.key]" :required="Boolean(field.required)">
+                            </template>
+                        </label>
+                    </template>
+                </div>
+                <div class="template-actions template-footer">
+                    <button type="button" class="btn-action" @click="templateView === 'test' || (templateMode === 'manage' && templateForm) ? templateDialog('edit') : openTemplateLibrary('picker')">Back</button>
+                    <button type="submit" class="btn-action primary" x-text="templateView === 'test' ? 'Render preview' : 'Open draft'"></button>
+                </div>
+            </fieldset>
+        </form>
+    </template>
+
+    <template x-if="templateView === 'test-preview' || templateView === 'import-preview'">
+        <section>
+            <h3 x-text="templatePreview.name || templatePreview.title"></h3>
+            <p x-show="templatePreview.purpose" x-text="templatePreview.purpose"></p>
+            <p x-show="templatePreview.description" x-text="templatePreview.description"></p>
+            <template x-for="(file, index) in templatePreview.files" :key="index">
+                <details>
+                    <summary x-text="file.filename"></summary>
+                    <template x-if="templateView === 'test-preview' && file.language === 'markdown'">
+                        <div class="template-markdown" x-html="renderMarkdown(file.content)"></div>
+                    </template>
+                    <pre class="template-code" x-show="templateView === 'import-preview' || file.language !== 'markdown'" x-text="file.content"></pre>
+                </details>
+            </template>
+            <div x-show="templateView === 'test-preview'" class="template-actions">
+                <button type="button" class="btn-action" @click="templateDialog('test')">Back to fields</button>
+                <button type="button" class="btn-action primary" @click="templateDialog('edit')">Back to editor</button>
+            </div>
+            <div x-show="templateView === 'import-preview'">
+                <p x-show="templateConflict" x-text="'This export matches ' + (templateConflict?.definition.name || '') + ' in your library.'"></p>
+                <div class="template-actions">
+                    <button type="button" class="btn-action" @click="openTemplateLibrary()">Cancel</button>
+                    <button type="button" class="btn-action primary" @click="importTemplate('copy')" :disabled="templateBusy" x-text="templateConflict ? 'Keep both' : 'Import'"></button>
+                    <button type="button" class="btn-action" x-show="templateConflict && templateConflict.state !== 'trash'" @click="importTemplate('replace')" :disabled="templateBusy">Replace existing</button>
+                </div>
+            </div>
+        </section>
+    </template>
+
+    <section x-show="templateView === 'history'">
+        <ul class="template-list">
+            <template x-for="item in templateHistory" :key="item.revision">
+                <li class="template-card template-bar">
+                    <span x-text="'Revision ' + item.revision + ' · ' + new Date(item.created_at).toLocaleString()"></span>
+                    <button type="button" class="btn-action" :disabled="templateBusy || item.revision === templateRecord?.revision || templateRecord?.state === 'trash'"
+                        @click="restoreTemplateRevision(item.revision)">Restore as new revision</button>
+                </li>
+            </template>
+        </ul>
+        <button type="button" class="btn-action" @click="templateDialog('edit')">Back to editor</button>
+    </section>
+
+    <section x-show="templateView === 'starters'">
+        <ul class="template-list">
+            <template x-for="starter in templateStarters" :key="starter.name">
+                <li><button type="button" class="template-result" @click="editTemplateDefinition(starter)">
+                    <strong x-text="starter.name"></strong><span x-text="starter.purpose"></span><small x-text="starter.files.map(file => file.filename).join(', ')"></small>
+                </button></li>
+            </template>
+        </ul>
+        <button type="button" class="btn-action" @click="openTemplateLibrary()">Back to library</button>
+    </section>
+
+    <section x-show="templateView === 'purge'">
+        <p x-text="'Permanently delete ' + (templateRecord?.definition.name || '') + ' and its history?'"></p>
+        <div class="template-actions">
+            <button type="button" class="btn-action" @click="templateDialog('edit')">Cancel</button>
+            <button type="button" class="btn-action danger" @click="purgeTemplate()" :disabled="templateBusy">Delete permanently</button>
+        </div>
+    </section>
+</dialog>
+{{end}}

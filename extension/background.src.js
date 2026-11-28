@@ -63,7 +63,7 @@ function openSaveDialog(data, tab) {
         const id = crypto.randomUUID();
         const key = draftPrefix + id;
         const url = savePage() + '?draft=' + id;
-        const record = { url, tab, data: { ...data, sourceURL: tab.url || 'unknown' } };
+        const record = { url, tab, data: { ...data, sourceURL: tab.url || 'unknown', pageTitle: tab.title || '' } };
         await chrome.storage.session.set({ [key]: record });
         try {
             try {
@@ -116,40 +116,58 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             .catch(() => sendResponse({ success: false, error: 'Unable to open save window' }));
         return true;
     }
-    if (['getSaveDraft', 'saveDraftSnippet', 'listDraftNoteTargets', 'appendDraftToNote'].includes(request.action)) {
+    const draftActions = ['getSaveDraft', 'saveDraftSnippet', 'listDraftNoteTargets', 'appendDraftToNote',
+        'listCaptureTemplates', 'getCaptureTemplate',
+        'renderCaptureTemplate', 'saveCaptureTemplate'];
+    if (draftActions.includes(request.action)) {
         getSaveDraft(request, sender).then(async record => {
-            if (request.action === 'getSaveDraft') {
-                sendResponse({ success: true, data: record.data });
-            } else if (request.action === 'listDraftNoteTargets') {
-                await withClient(client => client.getNoteTargets(request.query, request.page, request.kind))
-                    .then(data => sendResponse({ success: true, data }))
-                    .catch(error => sendResponse({ success: false, error: error.message }));
-            } else if (request.action === 'appendDraftToNote') {
+            switch (request.action) {
+            case 'getSaveDraft':
+                return record.data;
+            case 'listDraftNoteTargets':
+                return withClient(client => client.getNoteTargets(request.query, request.page, request.kind));
+            case 'appendDraftToNote': {
                 const language = ['markdown', 'plaintext'].includes(request.language) ? request.language : undefined;
                 const requestID = language && request.draftId + ':' + (request.fileId || 0);
-                await withClient(client => client.appendNote(request.snippetId, formatNoteCapture(record.data, language),
-                    request.fileId, language, requestID))
-                    .then(() => sendResponse({ success: true }))
-                    .catch(error => sendResponse({ success: false, error: error.message }));
-            } else if (request.kind === 'note') {
-                const format = request.language === 'plaintext' ? 'plaintext' : 'markdown';
-                const capture = {
-                    ...record.data,
-                    code: request.noteText ?? record.data.code,
-                    sourceURL: request.includeSource === false ? undefined : record.data.sourceURL,
-                };
-                await withClient(client => client.createSnippet({
-                    kind: 'note', title: request.title || 'Captured note', language: format,
-                    content: formatNoteCapture(capture, format), folder_id: request.folder_id ? Number(request.folder_id) : undefined,
-                    tags: request.tags, is_public: false,
-                }))
-                    .then(data => sendResponse({ success: true, data }))
-                    .catch(error => sendResponse({ success: false, error: error.message }));
-            } else {
+                return withClient(client => client.appendNote(request.snippetId, formatNoteCapture(record.data, language),
+                    request.fileId, language, requestID));
+            }
+            case 'saveDraftSnippet':
+                if (request.kind === 'note') {
+                    const format = request.language === 'plaintext' ? 'plaintext' : 'markdown';
+                    const capture = {
+                        ...record.data,
+                        code: request.noteText ?? record.data.code,
+                        sourceURL: request.includeSource === false ? undefined : record.data.sourceURL,
+                    };
+                    return withClient(client => client.createSnippet({
+                        kind: 'note', title: request.title || 'Captured note', language: format,
+                        content: formatNoteCapture(capture, format), folder_id: request.folder_id ? Number(request.folder_id) : undefined,
+                        tags: request.tags, is_public: false,
+                    }));
+                }
                 await saveSnippet(record.data.code, record.tab, request.language, request.title,
                     request.folder_id, request.tags, request.description, request.filename, sendResponse);
+                return;
+            case 'listCaptureTemplates':
+                return withClient(client => client.listTemplates());
+            case 'getCaptureTemplate':
+                return withClient(client => client.getTemplate(request.id, request.revision));
+            case 'renderCaptureTemplate':
+                return withClient(client => client.renderTemplate(request.id, request.revision, request.values));
+            case 'saveCaptureTemplate': {
+                const data = await withClient(client => client.createSnippet({ ...request.snippet, is_public: false }));
+                notifyTab(record.tab.id, { success: true });
+                return data;
             }
-        }).catch(() => sendResponse({ success: false, error: 'Save window expired' }));
+            }
+        }).then(data => {
+            if (request.action !== 'saveDraftSnippet' || request.kind === 'note') sendResponse({ success: true, data });
+        }).catch(error => {
+            const detail = error.response?.data?.error;
+            const message = detail?.details?.map(field => field.message).join(' · ') || detail?.message || error.message;
+            sendResponse({ success: false, error: message });
+        });
         return true;
     }
     if (['fetchTags', 'fetchFolders', 'createTag', 'createFolder'].includes(request.action) && !extensionPage(sender)) {

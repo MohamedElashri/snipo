@@ -16,7 +16,7 @@ import (
 const APIVersion = "1.0"
 
 // MaxJSONBodySize is the maximum allowed size for JSON request bodies (2MB)
-const MaxJSONBodySize = 2 * 1024 * 1024
+const MaxJSONBodySize = validation.MaxJSONRequestBytes
 
 // DecodeJSON safely decodes JSON from request body with size limit
 func DecodeJSON(r *http.Request, v interface{}) error {

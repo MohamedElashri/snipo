@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/MohamedElashri/snipo/internal/repository"
 	"github.com/MohamedElashri/snipo/internal/validation"
@@ -115,6 +117,10 @@ func (s *SnippetService) saveHistory(ctx context.Context, snippet *models.Snippe
 
 // Create creates a new snippet
 func (s *SnippetService) Create(ctx context.Context, input *models.SnippetInput) (*models.Snippet, error) {
+	if input.TemplateOrigin != nil {
+		input.IsPublic = false
+		return s.createFromTemplate(ctx, input, true)
+	}
 	// Validate input
 	if errs := validation.ValidateItemInput(input); errs.HasErrors() {
 		return nil, errs
@@ -172,6 +178,50 @@ func (s *SnippetService) Create(ctx context.Context, input *models.SnippetInput)
 	return snippet, nil
 }
 
+func validateTemplateOrigin(origin *models.TemplateOrigin) error {
+	if origin != nil && (!templateID.MatchString(origin.ID) || origin.Revision < 1 || strings.TrimSpace(origin.Name) == "" || utf8.RuneCountInString(origin.Name) > 200) {
+		return templateError("template_origin", "Invalid template origin")
+	}
+	return nil
+}
+
+func (s *SnippetService) createFromTemplate(ctx context.Context, input *models.SnippetInput, trackUse bool) (*models.Snippet, error) {
+	if err := validateTemplateOrigin(input.TemplateOrigin); err != nil {
+		return nil, err
+	}
+	if trackUse {
+		if input.Kind != "" && input.Kind != models.KindSnippet {
+			return nil, templateError("kind", "A template draft must be saved as a snippet")
+		}
+		if len(input.Files) == 0 || len(input.Files) > s.maxFilesPerSnippet {
+			return nil, templateError("files", fmt.Sprintf("Choose between 1 and %d files", s.maxFilesPerSnippet))
+		}
+		if err := validateTemplateSnippet(input, true); err != nil {
+			return nil, err
+		}
+	} else if errs := validation.ValidateItemInput(input); errs.HasErrors() {
+		// Restored snippets may have been edited since they were generated.
+		return nil, errs
+	}
+	snippet, err := s.repo.CreateFromTemplate(ctx, input, trackUse)
+	if errors.Is(err, repository.ErrNotFound) {
+		return nil, templateError("folder_id", "Choose an existing folder")
+	}
+	if err != nil {
+		return nil, err
+	}
+	if s.tagRepo != nil {
+		snippet.Tags, _ = s.tagRepo.GetSnippetTags(ctx, snippet.ID)
+	}
+	if s.folderRepo != nil {
+		snippet.Folders, _ = s.folderRepo.GetSnippetFolders(ctx, snippet.ID)
+	}
+	if err := s.saveHistory(ctx, snippet, "create"); err != nil {
+		s.logger.Warn("failed to save creation to history", "id", snippet.ID, "error", err)
+	}
+	return snippet, nil
+}
+
 // GetByID retrieves a snippet by ID
 func (s *SnippetService) GetByID(ctx context.Context, id string) (*models.Snippet, error) {
 	snippet, err := s.repo.GetByID(ctx, id)
@@ -182,6 +232,11 @@ func (s *SnippetService) GetByID(ctx context.Context, id string) (*models.Snippe
 
 	if snippet == nil {
 		return nil, ErrSnippetNotFound
+	}
+
+	snippet.TemplateOrigin, err = s.repo.GetTemplateOrigin(ctx, id)
+	if err != nil {
+		return nil, err
 	}
 
 	// Fetch tags

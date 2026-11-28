@@ -1,7 +1,9 @@
 // This page belongs to the extension and is never exposed to visited websites.
 const draftId = new URLSearchParams(window.location.search).get('draft');
 function showToast(_success, message) {
-    document.querySelector('#save-status').textContent = message || 'Unable to save snippet.';
+    const status = document.querySelector('#save-status');
+    status.textContent = message || 'Unable to save snippet.';
+    status.scrollIntoView({ block: 'nearest' });
 }
 chrome.runtime.sendMessage({ action: 'getSaveDraft', draftId }, response => {
     if (chrome.runtime.lastError || !response?.success) {
@@ -248,6 +250,7 @@ async function showModal(snippetData) {
     saveBtn.textContent = saveLabel();
     kindSelect.addEventListener('change', () => {
         const note = kindSelect.value === 'note';
+        templateCapture.setNoteMode(note);
         rowGroup.hidden = note;
         descGroup.hidden = note;
         formatGroup.hidden = noteBodyGroup.hidden = sourceGroup.hidden = !note;
@@ -260,6 +263,9 @@ async function showModal(snippetData) {
 
     overlay.appendChild(modal);
 
+    const templateCapture = setupTemplateCapture(snippetData, {
+        h2, kindGroup, rowGroup, titleInput, descTextarea, tagsInput, folderSelect, saveBtn
+    });
     document.body.appendChild(overlay);
 
     langSelect.addEventListener('change', (e) => {
@@ -397,14 +403,20 @@ async function showModal(snippetData) {
         const tagNames = tagsInputVal.split(',').map(t => t.trim()).filter(t => t);
 
         const saveBtn = overlay.querySelector('#snipo-save');
+        if (saveBtn.disabled) return;
         saveBtn.innerText = 'Saving...';
-        saveBtn.disabled = true;
+        templateCapture.setSaving(true);
 
         // Backend expects array of strings for tags
         // It handles creation/lookup automatically
 
         // Send Save Request
-        chrome.runtime.sendMessage({
+        const rendered = templateCapture.snippet();
+        const request = rendered ? {
+            action: 'saveCaptureTemplate',
+            draftId,
+            snippet: { ...rendered, title, description, folder_id: Number(folderId) || null, tags: tagNames }
+        } : {
             action: "saveDraftSnippet",
             kind: kindSelect.value,
             draftId: draftId,
@@ -416,11 +428,12 @@ async function showModal(snippetData) {
             folder_id: folderId,
             tags: tagNames, // Send Names
             filename: filename // Send filename
-        }, (response) => {
+        };
+        chrome.runtime.sendMessage(request, (response) => {
             if (chrome.runtime.lastError) {
                 console.error("Save failed:", chrome.runtime.lastError.message);
                 saveBtn.innerText = saveLabel();
-                saveBtn.disabled = false;
+                templateCapture.setSaving(false);
                 showToast(false, "Failed to connect to background script.");
                 return;
             }
@@ -428,10 +441,259 @@ async function showModal(snippetData) {
                 close();
             } else {
                 saveBtn.innerText = saveLabel();
-                saveBtn.disabled = false;
+                templateCapture.setSaving(false);
                 showToast(false, response ? response.error : "Unknown error");
             }
         });
     });
 }
 // ----------------
+
+function captureRequest(action, input = {}) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ action, draftId, ...input }, response => {
+            const failure = chrome.runtime.lastError?.message;
+            if (failure || !response?.success) reject(new Error(failure || response?.error || 'Template request failed.'));
+            else resolve(response.data);
+        });
+    });
+}
+
+let captureControlID = 0;
+function captureControl(labelText, control) {
+    const group = document.createElement('div');
+    group.className = 'snipo-form-group';
+    const label = document.createElement('label');
+    control.id ||= 'snipo-template-field-' + (++captureControlID);
+    label.htmlFor = control.id;
+    label.textContent = labelText;
+    group.append(label, control);
+    return group;
+}
+
+function captureOption(value, label) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    return option;
+}
+
+function setupTemplateCapture(source, { h2, kindGroup, rowGroup, titleInput, descTextarea, tagsInput, folderSelect, saveBtn }) {
+    const selector = document.createElement('select');
+    selector.className = 'snipo-select';
+    selector.id = 'snipo-template-picker';
+    selector.appendChild(captureOption('', 'Save selection'));
+    const picker = captureControl('Template', selector);
+    picker.hidden = true;
+    h2.after(picker);
+
+    const valuesArea = document.createElement('div');
+    const fileArea = document.createElement('div');
+    const detail = document.createElement('p');
+    detail.className = 'snipo-template-purpose';
+    picker.after(detail, valuesArea);
+    rowGroup.after(fileArea);
+
+    const initial = () => [titleInput.value, descTextarea.value, tagsInput.value, folderSelect.value];
+    let blankMetadata;
+    let draftMetadata;
+    let draft;
+    let files = [];
+    let selection = '';
+    let request = 0;
+    let saving = false;
+    let available = false;
+    let supported = false;
+    let noteMode = false;
+
+    const hasDraftEdits = () => draft && (
+        initial().some((value, index) => value !== draftMetadata[index]) ||
+        files.some(({ filename, area, originalName, originalContent }) =>
+            filename.value !== originalName || area.value !== originalContent)
+    );
+
+    captureRequest('listCaptureTemplates').then(items => {
+        if (items === null) return;
+        supported = true;
+        picker.hidden = noteMode;
+        for (const item of items) {
+            const option = captureOption(item.id, item.name);
+            option.dataset.revision = item.revision;
+            option.dataset.purpose = item.purpose;
+            option.dataset.filenames = item.filenames.join(', ');
+            selector.appendChild(option);
+        }
+        available = items.length > 0;
+        selector.disabled = saving || !available;
+        if (!available) detail.textContent = 'Add templates in the Snipo web library.';
+    }).catch(() => {
+        detail.textContent = 'Could not load templates. Check your Snipo connection in extension settings.';
+    });
+
+    selector.addEventListener('change', async () => {
+        if (saving || (hasDraftEdits() && !window.confirm('Discard your edits and choose a different template?'))) {
+            selector.value = selection;
+            return;
+        }
+        selection = selector.value;
+        kindGroup.hidden = Boolean(selection);
+        const current = ++request;
+        if (!blankMetadata) blankMetadata = initial();
+        [titleInput.value, descTextarea.value, tagsInput.value, folderSelect.value] = blankMetadata;
+        draft = undefined;
+        fileArea.replaceChildren();
+        valuesArea.replaceChildren();
+        rowGroup.hidden = Boolean(selector.value);
+        rowGroup.style.display = selector.value ? 'none' : '';
+        saveBtn.disabled = Boolean(selector.value);
+        const selected = selector.selectedOptions[0];
+        detail.textContent = [selected.dataset.purpose, selected.dataset.filenames].filter(Boolean).join(' · ');
+        document.querySelector('#save-status').textContent = '';
+        if (!selector.value) {
+            blankMetadata = undefined;
+            return;
+        }
+
+        try {
+            const template = await captureRequest('getCaptureTemplate', { id: selector.value, revision: Number(selected.dataset.revision) });
+            if (current !== request) return;
+            const fields = template.definition.fields || [];
+            const presets = template.definition.presets || [];
+            const defaults = { selection: source.code, page_title: source.pageTitle || source.title, url: source.sourceURL };
+            const controls = new Map();
+
+            const gather = async () => {
+                for (const control of controls.values()) if (!control.reportValidity()) return;
+                const values = Object.fromEntries([...controls].map(([key, control]) => [key, control.value]));
+                const rendered = await captureRequest('renderCaptureTemplate', { id: template.id, revision: template.revision, values });
+                if (current !== request) return;
+                draft = rendered;
+                titleInput.value = draft.title;
+                descTextarea.value = draft.description;
+                tagsInput.value = (draft.tags || []).join(', ');
+                folderSelect.value = draft.folder_id ? String(draft.folder_id) : '';
+                draftMetadata = initial();
+                fileArea.replaceChildren();
+                files = draft.files.map((file, index) => {
+                    const preview = document.createElement('details');
+                    preview.open = index === 0;
+                    const name = document.createElement('summary');
+                    name.textContent = file.filename;
+                    const filename = document.createElement('input');
+                    filename.className = 'snipo-input';
+                    filename.value = file.filename;
+                    filename.addEventListener('input', () => { name.textContent = filename.value || file.filename; });
+                    const area = document.createElement('textarea');
+                    area.className = 'snipo-textarea snipo-template-content';
+                    area.rows = 8;
+                    area.spellcheck = false;
+                    area.value = file.content;
+                    preview.append(name, captureControl('Filename', filename), captureControl('Content (' + file.language + ')', area));
+                    fileArea.appendChild(preview);
+                    return { file, filename, area, originalName: filename.value, originalContent: area.value };
+                });
+                if (fields.length) {
+                    const changeValues = document.createElement('button');
+                    changeValues.type = 'button';
+                    changeValues.className = 'snipo-btn-secondary';
+                    changeValues.textContent = 'Change template values…';
+                    changeValues.addEventListener('click', () => {
+                        valuesArea.hidden = false;
+                        controls.values().next().value?.focus();
+                    });
+                    fileArea.prepend(changeValues);
+                    preview.textContent = 'Regenerate draft';
+                }
+                valuesArea.hidden = true;
+                saveBtn.disabled = false;
+                titleInput.focus();
+            };
+
+            valuesArea.hidden = false;
+            if (presets.length) {
+                const preset = document.createElement('select');
+                preset.className = 'snipo-select';
+                preset.appendChild(captureOption('', 'Template defaults'));
+                presets.forEach((entry, index) => preset.appendChild(captureOption(index, entry.name)));
+                valuesArea.appendChild(captureControl('Preset', preset));
+                preset.addEventListener('change', () => {
+                    const values = presets[preset.value]?.values || {};
+                    for (const field of fields) {
+                        controls.get(field.key).value = Object.hasOwn(values, field.key)
+                            ? values[field.key] : defaults[field.source] ?? field.default ?? '';
+                    }
+                });
+            }
+            for (const field of fields) {
+                let control;
+                if (field.type === 'choice' || field.type === 'toggle') {
+                    control = document.createElement('select');
+                    control.className = 'snipo-select';
+                    control.appendChild(captureOption('', 'Choose…'));
+                    const options = field.type === 'toggle' ? ['true', 'false'] : field.choices;
+                    for (const option of options) control.appendChild(captureOption(option, option));
+                } else if (field.type === 'multiline') {
+                    control = document.createElement('textarea');
+                    control.className = 'snipo-textarea';
+                    control.rows = 3;
+                } else {
+                    control = document.createElement('input');
+                    control.className = 'snipo-input';
+                    control.type = field.type === 'date' ? 'date' : 'text';
+                    if (field.type === 'number') control.inputMode = 'decimal';
+                }
+                control.required = Boolean(field.required);
+                control.value = defaults[field.source] ?? field.default ?? '';
+                if (field.help) control.title = field.help;
+                controls.set(field.key, control);
+                valuesArea.appendChild(captureControl(field.label, control));
+            }
+
+            if (!fields.length) {
+                await gather();
+                return;
+            }
+            const preview = document.createElement('button');
+            preview.type = 'button';
+            preview.className = 'snipo-btn-secondary';
+            preview.textContent = 'Preview draft';
+            preview.addEventListener('click', async () => {
+                if (saving || (hasDraftEdits() && !window.confirm('Replace the edited draft with a fresh render?'))) return;
+                preview.disabled = true;
+                saveBtn.disabled = true;
+                document.querySelector('#save-status').textContent = '';
+                try {
+                    await gather();
+                } catch (error) {
+                    if (current === request) showToast(false, error.message);
+                } finally {
+                    preview.disabled = false;
+                    if (current === request) saveBtn.disabled = !draft;
+                }
+            });
+            valuesArea.appendChild(preview);
+            controls.values().next().value?.focus();
+        } catch (error) {
+            if (current === request) showToast(false, error.message);
+        }
+    });
+
+    return {
+        setNoteMode(value) {
+            noteMode = value;
+            picker.hidden = value || !supported;
+            detail.hidden = value;
+        },
+        setSaving(value) {
+            saving = value;
+            kindGroup.querySelector('select').disabled = saving;
+            selector.disabled = saving || !available;
+            saveBtn.disabled = saving || Boolean(selection && !draft);
+        },
+        snippet() {
+            if (!draft) return null;
+            const edited = files.map(({ file, filename, area }) => ({ ...file, filename: filename.value, content: area.value }));
+            return { ...draft, files: edited, content: '', language: edited[0].language };
+        }
+    };
+}
