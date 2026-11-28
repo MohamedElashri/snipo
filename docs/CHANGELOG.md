@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.5] - 2026-11-28
+
+### Added
+
+- **Notes:** Browse notes in a dedicated library view, write in Markdown or plain text, and organize notes with snippets in shared folders and tags.
+- **Notes:** Convert eligible snippets without changing their links or history. Read, share, download, and restore notes.
+- **Browser extension:** Save a selection as a note or append it to an existing note in either format.
+- **VS Code and Snippy:** Browse, search, and edit notes.
+
+### Fixed
+
+- **Notes:** Keep drafts recoverable across notes and preserve newer sharing settings when resolving an edit conflict.
+- **Browser extension:** Retry a browser capture without appending it twice. Request access to the configured Snipo server in Firefox when needed.
+- **Backups:** Preserve nested folders with matching names, expiration dates, and note types. Show the actual import counts.
+- **Web app:** Show field-specific validation messages when a save fails.
+- **Snippy:** Send HTML characters directly in JSON requests to reduce the size of markup-heavy saves.
+
 ## [2.2.4] - 2026-11-27
 
 ### Added

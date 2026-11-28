@@ -2,7 +2,12 @@
 
 Changes below apply to Snipo's VS Code extension.
 
-## [2.2.4] - Unreleased
+## [2.2.5] - 2026-11-28
+
+- Browse and search Snipo notes in the Notes view.
+- Open Markdown and plain text notes in the editor and save changes back to Snipo.
+
+## [2.2.4] - 2026-11-27
 
 - Handle empty tag and folder lists returned by the server.
 
