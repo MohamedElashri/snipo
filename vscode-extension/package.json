@@ -2,7 +2,7 @@
   "name": "snipo",
   "displayName": "Snipo",
   "description": "Snipo snippets manager for VS Code",
-  "version": "2.2.3",
+  "version": "2.2.6",
   "publisher": "muhammadelashri",
   "icon": "resources/icon.png",
   "repository": {
@@ -19,6 +19,23 @@
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
+      {
+        "command": "snipo.newNote",
+        "title": "Snipo: New Note",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "snipo.previewNote",
+        "title": "Snipo: Preview Markdown Note"
+      },
+      {
+        "command": "snipo.browseNotes",
+        "title": "Snipo: Browse Notes"
+      },
+      {
+        "command": "snipo.saveOpenNote",
+        "title": "Snipo: Save Note"
+      },
       {
         "command": "snipo.useTemplate",
         "title": "Snipo: Use Template"
@@ -74,6 +91,21 @@
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "snipo.refreshTree",
+          "when": "view == snipo-notes",
+          "group": "navigation@1"
+        },
+        {
+          "command": "snipo.newNote",
+          "when": "view == snipo-notes",
+          "group": "navigation@2"
+        },
+        {
+          "command": "snipo.browseNotes",
+          "when": "view == snipo-notes",
+          "group": "navigation@3"
+        },
         {
           "command": "snipo.refreshTree",
           "when": "view == snipo-favorites",
@@ -133,7 +165,7 @@
         },
         {
           "command": "snipo.openInSnipo",
-          "when": "viewItem == snippet",
+          "when": "viewItem == snippet || viewItem == note",
           "group": "1_actions@2"
         },
         {
@@ -172,6 +204,10 @@
         {
           "id": "snipo-recent",
           "name": "Recently Used"
+        },
+        {
+          "id": "snipo-notes",
+          "name": "Notes"
         },
         {
           "id": "snipo-tags",

@@ -20,7 +20,7 @@ export class SnippetTreeItem extends vscode.TreeItem {
         }
         
         this.tooltip = tooltipText;
-        this.contextValue = 'snippet';
+        this.contextValue = snippet.kind === 'note' ? 'note' : 'snippet';
         this.iconPath = vscode.ThemeIcon.File;
 
         // Define command when clicked (Open in VS Code by default)
@@ -36,7 +36,7 @@ export class SnippetTreeProvider implements vscode.TreeDataProvider<SnippetTreeI
     private _onDidChangeTreeData: vscode.EventEmitter<SnippetTreeItem | undefined | void> = new vscode.EventEmitter<SnippetTreeItem | undefined | void>();
     readonly onDidChangeTreeData: vscode.Event<SnippetTreeItem | undefined | void> = this._onDidChangeTreeData.event;
 
-    constructor(private type: 'favorites' | 'recent') { }
+    constructor(private type: 'favorites' | 'recent' | 'notes') { }
 
     refresh(): void {
         this._onDidChangeTreeData.fire();
@@ -58,6 +58,8 @@ export class SnippetTreeProvider implements vscode.TreeDataProvider<SnippetTreeI
         let snippets: Snippet[] = [];
         if (this.type === 'favorites') {
             snippets = await api.getSnippets('', true);
+        } else if (this.type === 'notes') {
+            snippets = await api.getSnippets('', undefined, undefined, undefined, 'note');
         } else {
             snippets = await api.getRecentSnippets();
         }

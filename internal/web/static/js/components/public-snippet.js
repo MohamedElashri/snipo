@@ -1,5 +1,7 @@
 // Public snippet view component
 import { showToast } from '../modules/toast.js';
+import { api } from '../modules/api.js';
+import { renderMarkdownWithCopy, copyMarkdownBlock } from '../utils/markdown.js';
 import { getLanguageColor, highlightCode } from '../utils/helpers.js';
 
 // Sanitize filename by replacing spaces with underscores
@@ -69,9 +71,9 @@ export function initPublicSnippet(Alpine) {
       } catch (err) {
         this.error = true;
         this.errorMessage = 'Failed to load snippet';
+      } finally {
+        this.loading = false;
       }
-
-      this.loading = false;
     },
 
     applyTextDirection() {
@@ -102,7 +104,7 @@ export function initPublicSnippet(Alpine) {
           credentials: 'include'
         });
         const json = await response.json();
-        this.isAuthenticated = response.ok && json.authenticated;
+        this.isAuthenticated = response.ok && json.data?.authenticated;
       } catch (err) {
         this.isAuthenticated = false;
       }
@@ -110,28 +112,26 @@ export function initPublicSnippet(Alpine) {
 
     async togglePublic() {
       if (!this.isAuthenticated) {
-        showToast('Please login to change snippet visibility', 'error');
+        showToast('Sign in to change visibility', 'error');
         return;
       }
 
       const newPublicState = !this.snippet.is_public;
       
       try {
-        const response = await fetch(`${window.SNIPO_CONFIG?.basePath || ''}/api/v1/snippets/${this.snippet.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            ...this.snippet,
-            is_public: newPublicState
-          })
+        const path = `/api/v1/snippets/${this.snippet.id}`;
+        const current = await api.get(path);
+        if (!current || current.error) throw new Error(current?.error?.message || 'Could not load the latest version.');
+        const result = await api.put(path, {
+          kind: current.kind, revision: current.revision, title: current.title,
+          description: current.description, content: current.content, language: current.language,
+          files: current.files?.map(({ id, filename, content, language }) => ({ id, filename, content, language })),
+          tags: (current.tags || []).map(tag => tag.name), folder_id: current.folders?.[0]?.id || null,
+          is_public: newPublicState, is_archived: current.is_archived, expires_at: current.expires_at,
         });
-
-        if (response.ok) {
+        if (result && !result.error) {
           this.snippet.is_public = newPublicState;
-          showToast(newPublicState ? 'Snippet is now public' : 'Snippet is now private');
+          showToast(newPublicState ? 'This item is now public' : 'This item is now private');
           
           // If made private, redirect to home after a delay
           if (!newPublicState) {
@@ -141,16 +141,18 @@ export function initPublicSnippet(Alpine) {
             }, 1500);
           }
         } else {
-          const json = await response.json();
-          showToast(json.error?.message || 'Failed to update snippet', 'error');
+          showToast(result?.error?.message || 'Failed to update visibility', 'error');
         }
       } catch (err) {
-        showToast('Failed to update snippet', 'error');
+        showToast(err.message || 'Failed to update visibility', 'error');
       }
     },
 
     getFiles() {
-      if (!this.snippet) return [];
+      if (this.snippet.kind === 'note') {
+        return [{ filename: this.snippet.title.replace(/[\\/:*?"<>|]/g, '_') +
+          (this.snippet.language === 'markdown' ? '.md' : '.txt'), content: this.snippet.content, language: this.snippet.language }];
+      }
       // If snippet has files array with content, use that
       if (this.snippet.files && this.snippet.files.length > 0) {
         return this.snippet.files;
@@ -190,7 +192,7 @@ export function initPublicSnippet(Alpine) {
       const content = this.getCurrentContent();
       if (content) {
         await navigator.clipboard.writeText(content);
-        showToast('Code copied to clipboard');
+        showToast(this.snippet.kind === 'note' ? 'Note copied to clipboard' : 'Code copied to clipboard');
       }
     },
 
@@ -220,6 +222,8 @@ export function initPublicSnippet(Alpine) {
       showToast('File URL copied to clipboard');
     },
 
+    renderMarkdownWithCopy,
+    copyMarkdownBlock,
     getLanguageColor,
     highlightCode,
     isArabicText,

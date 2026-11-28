@@ -122,7 +122,7 @@ func (s *SnippetService) Create(ctx context.Context, input *models.SnippetInput)
 		return s.createFromTemplate(ctx, input, true)
 	}
 	// Validate input
-	if errs := validation.ValidateSnippetInput(input); errs.HasErrors() {
+	if errs := validation.ValidateItemInput(input); errs.HasErrors() {
 		return nil, errs
 	}
 
@@ -190,13 +190,16 @@ func (s *SnippetService) createFromTemplate(ctx context.Context, input *models.S
 		return nil, err
 	}
 	if trackUse {
+		if input.Kind != "" && input.Kind != models.KindSnippet {
+			return nil, templateError("kind", "A template draft must be saved as a snippet")
+		}
 		if len(input.Files) == 0 || len(input.Files) > s.maxFilesPerSnippet {
 			return nil, templateError("files", fmt.Sprintf("Choose between 1 and %d files", s.maxFilesPerSnippet))
 		}
 		if err := validateTemplateSnippet(input, true); err != nil {
 			return nil, err
 		}
-	} else if errs := validation.ValidateSnippetInput(input); errs.HasErrors() {
+	} else if errs := validation.ValidateItemInput(input); errs.HasErrors() {
 		// Restored snippets may have been edited since they were generated.
 		return nil, errs
 	}
@@ -286,11 +289,6 @@ func (s *SnippetService) GetByIDPublic(ctx context.Context, id string) (*models.
 
 // Update updates an existing snippet
 func (s *SnippetService) Update(ctx context.Context, id string, input *models.SnippetInput) (*models.Snippet, error) {
-	// Validate input
-	if errs := validation.ValidateSnippetInput(input); errs.HasErrors() {
-		return nil, errs
-	}
-
 	// Check if snippet exists and get current state for history
 	existing, err := s.repo.GetByID(ctx, id)
 	if err != nil {
@@ -306,6 +304,17 @@ func (s *SnippetService) Update(ctx context.Context, id string, input *models.Sn
 		existing.Files = files
 	}
 
+	if input.Kind != "" && input.Kind != existing.Kind {
+		return nil, validation.ValidationErrors{{Field: "kind", Message: "Use the conversion action to change the item type"}}
+	}
+	input.Kind = existing.Kind
+	if existing.Kind == models.KindNote {
+		return s.updateNote(ctx, existing, input, s.folderRepo != nil)
+	}
+	if errs := validation.ValidateItemInput(input); errs.HasErrors() {
+		return nil, errs
+	}
+
 	// Save current state to history before updating
 	if err := s.saveHistory(ctx, existing, "update"); err != nil {
 		s.logger.Warn("failed to save pre-update state to history")
@@ -315,6 +324,10 @@ func (s *SnippetService) Update(ctx context.Context, id string, input *models.Sn
 	if err != nil {
 		s.logger.Error("failed to update snippet")
 		return nil, err
+	}
+
+	if snippet == nil {
+		return nil, ErrSnippetNotFound
 	}
 
 	// Update tags if provided
@@ -470,12 +483,12 @@ func (s *SnippetService) ToggleArchive(ctx context.Context, id string) (*models.
 }
 
 // Search performs full-text search on snippets
-func (s *SnippetService) Search(ctx context.Context, query string, limit int) ([]models.Snippet, error) {
+func (s *SnippetService) Search(ctx context.Context, query string, limit int, kinds ...string) ([]models.Snippet, error) {
 	if query == "" {
 		return []models.Snippet{}, nil
 	}
 
-	snippets, err := s.repo.Search(ctx, query, limit)
+	snippets, err := s.repo.Search(ctx, query, limit, kinds...)
 	if err != nil {
 		s.logger.Error("failed to search snippets")
 		return nil, err
@@ -495,6 +508,7 @@ func (s *SnippetService) Duplicate(ctx context.Context, id string) (*models.Snip
 	}
 
 	input := &models.SnippetInput{
+		Kind:        existing.Kind,
 		Title:       existing.Title + " (copy)",
 		Description: existing.Description,
 		Content:     existing.Content,
@@ -562,6 +576,18 @@ func (s *SnippetService) RestoreFromHistory(ctx context.Context, snippetID strin
 	if s.fileRepo != nil {
 		files, _ := s.fileRepo.GetBySnippetID(ctx, snippetID)
 		existing.Files = files
+	}
+
+	if existing.Kind == models.KindNote {
+		input := &models.SnippetInput{
+			Kind: models.KindNote, Title: historyEntry.Title, Description: historyEntry.Description,
+			Content: historyEntry.Content, Language: historyEntry.Language, ExpiresAt: existing.ExpiresAt,
+			IsPublic: existing.IsPublic, IsArchived: existing.IsArchived,
+		}
+		for _, file := range historyEntry.Files {
+			input.Files = append(input.Files, models.SnippetFileInput{Filename: file.Filename, Content: file.Content, Language: file.Language})
+		}
+		return s.updateNote(ctx, existing, input, false)
 	}
 
 	// Save current state before restoring

@@ -1,8 +1,86 @@
+const defaultSidebarWidth = 220;
+const minSidebarWidth = 180;
+const maxSidebarWidth = 500;
+const sidebarOverlayBreakpoint = 768;
+
 // Presentation and navigation shared by the library and editor.
 export const workspaceMixin = {
   editorExpanded: false,
+  preferredSidebarWidth: defaultSidebarWidth,
+  sidebarViewportWidth: 0,
+  sidebarMinWidth: minSidebarWidth,
+  sidebarDrag: null,
+  desktopSidebarOpen: true,
   tagSearch: '',
   showAllTags: false,
+  initSidebarResize() {
+    this.sidebarViewportWidth = window.innerWidth;
+    const saved = Math.round(Number(localStorage.getItem('sidebarWidth')));
+    if (Number.isFinite(saved) && saved >= minSidebarWidth) this.preferredSidebarWidth = Math.min(saved, maxSidebarWidth);
+  },
+  updateSidebarViewport() {
+    const wasDesktop = this.sidebarViewportWidth > sidebarOverlayBreakpoint;
+    this.sidebarViewportWidth = window.innerWidth;
+    const isDesktop = this.sidebarViewportWidth > sidebarOverlayBreakpoint;
+    if (wasDesktop === isDesktop) return;
+
+    if (isDesktop) {
+      this.$store.app.sidebarOpen = this.desktopSidebarOpen;
+    } else {
+      this.desktopSidebarOpen = this.$store.app.sidebarOpen;
+      this.$store.app.sidebarOpen = false;
+      if (this.sidebarDrag) this.preferredSidebarWidth = this.sidebarDrag.preference;
+      this.sidebarDrag = null;
+    }
+  },
+  sidebarMaxWidth() {
+    return this.sidebarViewportWidth > sidebarOverlayBreakpoint
+      ? Math.min(maxSidebarWidth, Math.floor(this.sidebarViewportWidth * 0.4))
+      : maxSidebarWidth;
+  },
+  sidebarWidth() {
+    return Math.min(this.preferredSidebarWidth, this.sidebarMaxWidth());
+  },
+  setSidebarWidth(width) {
+    width = Math.min(this.sidebarMaxWidth(), Math.max(minSidebarWidth, Math.round(width)));
+    if (width !== this.sidebarWidth()) this.preferredSidebarWidth = width;
+  },
+  startSidebarResize(event) {
+    if (event.button !== 0 || !event.isPrimary || this.sidebarDrag) return;
+    event.preventDefault();
+    event.currentTarget.focus({ preventScroll: true });
+    event.currentTarget.setPointerCapture(event.pointerId);
+    this.sidebarDrag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      width: this.sidebarWidth(),
+      preference: this.preferredSidebarWidth
+    };
+  },
+  moveSidebarResize(event) {
+    const drag = this.sidebarDrag;
+    if (drag?.pointerId === event.pointerId) this.setSidebarWidth(drag.width + event.clientX - drag.startX);
+  },
+  finishSidebarResize(event) {
+    const drag = this.sidebarDrag;
+    if (drag?.pointerId !== event.pointerId) return;
+    this.sidebarDrag = null;
+    if (event.type !== 'pointerup') this.preferredSidebarWidth = drag.preference;
+    else if (this.preferredSidebarWidth !== drag.preference) localStorage.setItem('sidebarWidth', this.preferredSidebarWidth);
+  },
+  resizeSidebarByKey(event) {
+    if (this.sidebarDrag) return;
+    const width = {
+      ArrowLeft: this.sidebarWidth() - 16,
+      ArrowRight: this.sidebarWidth() + 16,
+      Home: minSidebarWidth,
+      End: this.sidebarMaxWidth()
+    }[event.key];
+    if (width === undefined) return;
+    event.preventDefault();
+    this.setSidebarWidth(width);
+    localStorage.setItem('sidebarWidth', this.preferredSidebarWidth);
+  },
   visibleTags() {
     const query = this.tagSearch.trim().toLocaleLowerCase();
     if (query) return this.tags.filter(tag => tag.name.toLocaleLowerCase().includes(query));
@@ -24,7 +102,7 @@ export const workspaceMixin = {
     if (this.filter.isFavorite) return 'Favorites';
     if (this.filter.folderId) return this.flattenedFolders.find(f => f.id == this.filter.folderId)?.name || 'Folder';
     if (this.filter.tagId) return this.tags.find(t => t.id == this.filter.tagId)?.name || 'Tag';
-    return this.filter.query ? 'Search results' : 'All snippets';
+    return ({ all: 'All items', snippet: 'Snippets', note: 'Notes' })[this.filter.kind];
   },
   activeFilterChips() {
     const labels = {
@@ -34,7 +112,7 @@ export const workspaceMixin = {
       tagId: this.tags.find(t => t.id == this.filter.tagId)?.name,
       isFavorite: 'Favorites', isArchived: 'Archive', isDeleted: 'Trash'
     };
-    return Object.entries(this.filter).filter(([, value]) => !!value)
+    return Object.entries(this.filter).filter(([key, value]) => key !== 'kind' && !!value)
       .map(([key, value]) => ({ key, label: labels[key] || String(value) }));
   },
   hasActiveFilters() { return this.activeFilterChips().length > 0; },
@@ -59,8 +137,19 @@ export const workspaceMixin = {
       this.$store.app.sidebarOpen = false;
     }
   },
+
+  async setItemKind(kind) {
+    this.filter.kind = kind;
+    this.filter.language = '';
+    await this.search();
+  },
   setLibraryLayout(layout) {
     if (!['grid', 'list', 'compact'].includes(layout)) return;
+    if (this.filter.kind === 'note') {
+      this.noteLayout = layout;
+      localStorage.setItem('snipo-note-layout', layout);
+      return;
+    }
     this.setViewMode(layout === 'grid' ? 'grid' : 'list');
     this.density = layout === 'compact' ? 'compact' : 'comfortable';
     localStorage.setItem('snipo-density', this.density);

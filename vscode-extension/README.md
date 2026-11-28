@@ -37,7 +37,12 @@ Once installed, Snipo needs to connect to your backend:
 3. Enter your Snipo Server URL (e.g. `http://localhost:8080`).
 4. Enter your API Token.
 
-You're all set!
+## Notes
+
+Open the **Notes** view to browse saved notes or start one with **Snipo: New Note**.
+Choose Markdown or plain text and write in the editor. **Snipo: Preview Markdown Note**
+opens a side-by-side preview. Use **Snipo: Save Note** to save a new note or send
+changes to an existing note back to your server.
 
 ## Templates
 

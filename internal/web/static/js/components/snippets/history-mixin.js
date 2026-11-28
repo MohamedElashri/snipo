@@ -22,9 +22,8 @@ export const historyMixin = {
 
     try {
       const result = await api.get(`/api/v1/snippets/${snippet.id}/history?limit=50`);
-      if (result) {
-        this.history = result;
-      }
+      if (!Array.isArray(result)) throw new Error(result?.error?.message || 'Failed to load history');
+      this.history = result;
     } catch (error) {
       console.error('Failed to load history:', error);
       showToast('Failed to load history', 'error');
@@ -39,12 +38,35 @@ export const historyMixin = {
     this.expandedHistory = null;
   },
 
+  isCurrentHistoryEntry(entry) {
+    const current = this.editingSnippet;
+    if (!current || !entry || entry.snippet_id !== current.id ||
+        entry.title !== current.title || (entry.description || '') !== (current.description || '')) return false;
+
+    const entryFiles = entry.files || [];
+    if (current.kind === 'note') {
+      const body = entryFiles[0] || entry;
+      return entryFiles.length <= 1 && body.content === current.content && body.language === current.language;
+    }
+
+    const files = current.files || [];
+    return entry.content === current.content && entry.language === current.language &&
+      entry.is_public === current.is_public && entry.is_archived === current.is_archived &&
+      entryFiles.length === files.length && entryFiles.every((file, index) =>
+        file.filename === files[index].filename && file.content === files[index].content &&
+        file.language === files[index].language);
+  },
+
+  canRestoreHistoryEntry(entry) {
+    if (!entry || this.isCurrentHistoryEntry(entry)) return false;
+    if (!this.isNote) return true;
+    const files = entry.files || [];
+    return files.length <= 1 && ['markdown', 'plaintext'].includes((files[0] || entry).language);
+  },
+
   viewHistoryDetail(historyEntry) {
     if (!historyEntry) return;
-    this.viewingHistoryEntry = { 
-      ...historyEntry, 
-      is_current: this.history.indexOf(historyEntry) === 0 
-    };
+    this.viewingHistoryEntry = historyEntry;
     this.showHistoryDetail = true;
   },
 
@@ -66,8 +88,9 @@ export const historyMixin = {
       return;
     }
 
-    if (this.history.indexOf(historyEntry) === 0) {
-      showToast('This is already the current version', 'info');
+    if (!this.canRestoreHistoryEntry(historyEntry)) {
+      showToast(this.isCurrentHistoryEntry(historyEntry) ? 'This is already the current version' :
+        'This version cannot be restored as a note', 'info');
       return;
     }
 
@@ -92,19 +115,19 @@ export const historyMixin = {
         `/api/v1/snippets/${historyEntry.snippet_id}/history/${historyEntry.id}/restore`
       );
       
-      if (result) {
-        showToast('Snippet successfully restored from history');
+      if (result && !result.error) {
+        showToast(result.kind === 'note' ? 'Note restored from history' : 'Snippet restored from history');
         
         this.closeHistoryDetail();
         this.closeHistory();
         
         if (this.editingSnippet && this.editingSnippet.id === historyEntry.snippet_id) {
-          await this.loadSnippet(historyEntry.snippet_id);
+          await this.viewSnippet(result);
         }
         
         await this.loadSnippets();
       } else {
-        throw new Error('No response from server');
+        throw new Error(result?.error?.message || 'No response from server');
       }
     } catch (error) {
       console.error('Failed to restore history:', error);
@@ -116,7 +139,7 @@ export const historyMixin = {
       } else if (error.message && error.message.includes('network')) {
         showToast('Network error - please check your connection', 'error');
       } else {
-        showToast('Failed to restore from history', 'error');
+        showToast(error.message || 'Failed to restore from history', 'error');
       }
     } finally {
       this.restoringHistoryEntry = null;

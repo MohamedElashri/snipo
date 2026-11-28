@@ -85,6 +85,13 @@
     min-height: 80px;
 }
 
+.snipo-source-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
 .snipo-modal-actions {
     display: flex;
     justify-content: flex-end;
@@ -136,6 +143,10 @@
     border-radius: 4px;
     z-index: 1000;
     display: none;
+}
+
+[hidden] {
+    display: none !important;
 }
 
 /* Form Row Layout */
@@ -222,4 +233,9 @@ html, body { margin: 0; min-width: 280px; background: #1e293b; color: #f8fafc; }
 
 .snipo-modal .snipo-template-content {
     font-family: monospace;
+}
+
+.snipo-note-status {
+    margin: .5rem 0;
+    min-height: 1.25em;
 }

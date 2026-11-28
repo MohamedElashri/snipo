@@ -2,8 +2,9 @@
 import { api } from '../../modules/api.js';
 import { showToast } from '../../modules/toast.js';
 import { loadEditor, editorEngines } from '../../modules/editors/index.js';
+import { renderMarkdownWithCopy, copyMarkdownBlock } from '../../utils/markdown.js';
 import { theme } from '../../modules/theme.js';
-import { isArabicText, isPredominantlyArabic, sanitizeHTML, escapeHTML } from '../../utils/helpers.js';
+import { isArabicText, isPredominantlyArabic } from '../../utils/helpers.js';
 
 export const editorMixin = {
   // Editor operations (imported from original app.js)
@@ -22,14 +23,14 @@ export const editorMixin = {
     if (this.isEditing) {
       clearTimeout(this.autoSaveTimeout);
       this.saveDraft();
-      if (this.saveState === 'local') {
+      if (!this.isNote && this.saveState === 'local') {
         this.hasDraft = true;
         this.draftSnippet = JSON.parse(JSON.stringify(this.editingSnippet));
       }
     }
   },
 
-  async viewSnippet(snippet) {
+  async viewSnippet(snippet, { markdown = false } = {}) {
     if (this.saving) return;
     this.preserveDraft();
     this.showSettings = false;
@@ -40,56 +41,70 @@ export const editorMixin = {
     if (result && !result.error && request === this.viewRequest) {
       this.destroyCodeEditor();
       this.saveState = 'saved';
+      this.noteConflict = null;
+      this.noteOverviewError = false;
       this.editingSnippet = {
         ...result,
         expires_at: this.resolveToShorthand(result.expires_at),
+        persistedExpiration: result.expires_at,
         tags: (result.tags || []).map(t => t.name),
         folder_id: result.folders?.[0]?.id || null,
         files: result.files || []
       };
-      this.activeFileIndex = 0;
+      this.activeFileIndex = markdown
+        ? Math.max(0, this.editingSnippet.files.findIndex(file => file.language === 'markdown'))
+        : 0;
       this.showEditor = true;
       this.isEditing = false;
+      if (this.isNote) this.resetNoteWorkspace();
       this.updateUrl({ snippet: snippet.id });
       this.$nextTick(() => {
         this.highlightAll();
-        this.updateTextDirection();
+        if (this.isNote && !this.isEditing) this.$refs?.noteHeading?.focus({ preventScroll: true });
+        else this.updateTextDirection();
       });
     }
   },
 
-  newSnippet(draft = null) {
+  newSnippet({ note = false, localDraftId, draft } = {}) {
     if (this.saving) return;
     this.preserveDraft();
     ++this.viewRequest;
     this.destroyCodeEditor();
     this.saveState = 'idle';
+    this.resetNoteWorkspace();
+    this.noteConflict = null;
+    this.noteOverviewError = false;
     this.showSettings = false;
     // Calculate default expiration if auto-archive is enabled and default days is set
     let defaultExpires = '';
-    if (this.settings?.auto_archive_enabled && this.settings?.default_expiration_days > 0) {
+    if (!note && this.settings?.auto_archive_enabled && this.settings?.default_expiration_days > 0) {
       const d = new Date();
       d.setDate(d.getDate() + this.settings.default_expiration_days);
       defaultExpires = d.toISOString().split('T')[0];
     }
 
+    const language = note ? 'markdown' : 'plaintext';
+    const request = this.viewRequest;
     this.editingSnippet = {
       id: null,
+      kind: note ? 'note' : 'snippet',
+      localDraftId: note ? (localDraftId || this.newNoteDraftId()) : undefined,
       title: '',
       description: '',
       content: '',
-      language: 'plaintext',
+      language,
       tags: [],
-      folder_id: null,
+      folder_id: note ? this.filter.folderId : null,
       is_public: false,
       is_favorite: false,
       expires_at: defaultExpires,
-      sync_to_gist: this.gistConfig?.auto_sync_enabled || false,
-      files: [{
+      sync_to_gist: !note && Boolean(this.gistConfig?.auto_sync_enabled),
+      files: note ? [] : [{
         id: 0,
         filename: 'snippet.txt',
         content: '',
-        language: 'plaintext'
+        language
       }]
     };
     if (draft) {
@@ -105,17 +120,20 @@ export const editorMixin = {
     this._resetFileManagerState();
     this.showEditor = true;
     this.isEditing = true;
-    this.updateUrl({ edit: true });
+    this.updateUrl({ edit: true, note });
 
-    this.$nextTick(() => {
-      this.updateCodeEditor();
-      const titleInput = document.querySelector('.editor-title-input');
-      if (titleInput) {
-        titleInput.focus();
-        titleInput.select();
-      }
-      this.updateTextDirection();
-    });
+    if (note) {
+      this.focusNote();
+    } else {
+      this.$nextTick(() => {
+        if (request !== this.viewRequest || !this.isEditing) return;
+        this.updateCodeEditor();
+        const titleInput = document.querySelector('.editor-title-input');
+        titleInput?.focus();
+        titleInput?.select();
+        this.updateTextDirection();
+      });
+    }
   },
 
   async editSnippet(snippet) {
@@ -124,6 +142,7 @@ export const editorMixin = {
       this.editingSnippet = {
         ...result,
         expires_at: this.resolveToShorthand(result.expires_at),
+        persistedExpiration: result.expires_at,
         tags: (result.tags || []).map(t => t.name),
         folder_id: result.folders?.[0]?.id || null,
         files: result.files || []
@@ -143,12 +162,26 @@ export const editorMixin = {
   },
 
   startEditing() {
+    if (this.isNote) {
+      const draft = this.findNoteDraft(this.editingSnippet);
+      if (draft) {
+        this.restoreDraftSnippet(draft);
+        return;
+      }
+      this.editingSnippet.noteBase = {
+        ...this.noteMetadata(this.editingSnippet), content: this.editingSnippet.content
+      };
+    }
     this.isEditing = true;
+    this.resetNoteWorkspace();
+    this.noteConflict = null;
+    this.noteOverviewError = false;
     this._resetFileManagerState();
-    this._ensureEditableFiles();
+    if (!this.isNote) this._ensureEditableFiles();
     if (this.editingSnippet?.id) {
       this.updateUrl({ snippet: this.editingSnippet.id, edit: true });
     }
+    if (this.isNote) this.focusNote();
     this.$nextTick(() => {
       this.updateCodeEditor();
       this.highlightAll();
@@ -169,11 +202,13 @@ export const editorMixin = {
     }
   },
 
-  async saveSnippet() {
+  async saveSnippet({ clearOverview = false } = {}) {
     if (this.saving) return;
-    if (!this.editingSnippet.title?.trim()) {
-      showToast('Give this snippet a title before saving.', 'warning');
-      document.querySelector('.editor-title-input')?.focus();
+    if (this.isNote && this.noteConflict) return;
+    const title = this.editingSnippet.title?.trim() || (this.isNote ? this.noteTitleSuggestion : '');
+    if (!title) {
+      showToast(this.isNote ? 'Enter a title or start writing your note.' : 'Give this snippet a title before saving.', 'warning');
+      (this.isNote ? this.$refs?.noteTitle : document.querySelector('.editor-title-input'))?.focus();
       return;
     }
     this.saving = true;
@@ -192,7 +227,7 @@ export const editorMixin = {
       }
 
       let files = null;
-      if (this.editingSnippet.files && this.editingSnippet.files.length > 0) {
+      if (!this.isNote && this.editingSnippet.files?.length) {
         files = this.editingSnippet.files.map(f => ({
           id: f.id || 0,
           filename: f.filename,
@@ -204,17 +239,23 @@ export const editorMixin = {
       const primaryContent = files && files.length > 0 ? files[0].content : this.editingSnippet.content;
       const primaryLanguage = files && files.length > 0 ? files[0].language : this.editingSnippet.language;
 
-      // Resolve expiration shorthand (7d, 30d, etc.) to actual date
       let expiresAt = this.editingSnippet.expires_at || null;
-      if (expiresAt && typeof expiresAt === 'string' && expiresAt.endsWith('d')) {
-        const days = parseInt(expiresAt, 10);
-        const d = new Date();
-        d.setDate(d.getDate() + days);
-        expiresAt = d.toISOString().split('T')[0];
+      const persistedExpiration = this.editingSnippet.persistedExpiration;
+      if (persistedExpiration && expiresAt === this.resolveToShorthand(persistedExpiration)) {
+        expiresAt = persistedExpiration;
+      } else if (expiresAt?.endsWith('d')) {
+        const date = new Date();
+        date.setDate(date.getDate() + parseInt(expiresAt, 10));
+        expiresAt = date.toISOString();
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(expiresAt || '')) {
+        expiresAt = new Date(expiresAt + 'T00:00:00').toISOString();
       }
 
       const data = {
-        title: this.editingSnippet.title,
+        title,
+        kind: this.isNote ? 'note' : 'snippet',
+        clear_overview: this.isNote && clearOverview ? true : undefined,
+        revision: this.isNote ? this.editingSnippet.revision : undefined,
         description: this.editingSnippet.description || '',
         content: primaryContent,
         language: primaryLanguage,
@@ -242,19 +283,30 @@ export const editorMixin = {
         const snippetId = result.id || this.editingSnippet.id;
         const shouldSyncToGist = this.editingSnippet.sync_to_gist;
 
-        showToast(wasUpdate ? 'Snippet updated' : 'Snippet created');
+        const label = this.isNote ? 'Note' : 'Snippet';
+        showToast(wasUpdate ? label + ' updated' : label + ' created');
         this.isEditing = false;
         this.saveState = 'saved';
         this.destroyCodeEditor();
-        this.clearDraft();
-        this.hasDraft = false;
-        this.draftSnippet = null;
+        if (this.isNote) {
+          this.clearNoteDraft(this.editingSnippet);
+        } else {
+          this.clearDraft();
+          this.hasDraft = false;
+          this.draftSnippet = null;
+        }
         // Keep the saved snippet open, with the library context intact.
         this.editingSnippet = { ...this.editingSnippet, ...result,
+          expires_at: this.resolveToShorthand(result.expires_at),
+          persistedExpiration: result.expires_at,
           tags: (result.tags || []).map(t => typeof t === 'string' ? t : t.name),
           folder_id: result.folders?.[0]?.id || folderId };
         this.updateUrl({ snippet: snippetId });
-        this.$nextTick(() => this.highlightAll());
+        if (this.isNote) this.resetNoteWorkspace();
+        this.$nextTick(() => {
+          this.highlightAll();
+          if (this.isNote) this.$refs?.noteHeading?.focus({ preventScroll: true });
+        });
         await Promise.allSettled([this.loadSnippets(), this.loadTags(), this.loadFavoritesCount(), this.loadTotalCount()]);
 
         // Auto-sync to gist if sync is enabled for this snippet
@@ -266,9 +318,14 @@ export const editorMixin = {
           }
         }
       } else {
+        if (result?.error?.code === 'NOTE_CONFLICT') await this.showNoteConflict();
+        if (result?.error?.code === 'NOTE_OVERVIEW') {
+          this.noteOverviewError = true;
+          this.scrollNoteToTop();
+        }
         const details = result?.error?.details;
-        const message = details?.length ? details.map(detail => detail.message).join(' · ') : result?.error?.message;
-        throw new Error(message || 'Could not save. Check your connection and try again.');
+        const messages = Array.isArray(details) ? details.map(detail => detail.message).filter(Boolean) : [];
+        throw new Error(messages.join(' · ') || result?.error?.message || 'Could not save. Check your connection and try again.');
       }
     } catch (error) {
       this.saveDraft();
@@ -340,11 +397,16 @@ export const editorMixin = {
       }
     }
 
-    const permanent = this.filter?.isDeleted === true;
+    const permanent = this.filter?.isDeleted === true || this.settings?.trash_enabled === false;
     const url = `/api/v1/snippets/${this.deleteTarget.id}` + (permanent ? '?permanent=true' : '');
 
-    await api.delete(url);
-    showToast(permanent ? 'Snippet permanently deleted' : 'Snippet moved to trash');
+    const result = await api.delete(url);
+    if (result?.error) {
+      showToast(result.error.message || 'Could not delete this item.', 'error');
+      return;
+    }
+    const label = this.deleteTarget.kind === 'note' ? 'Note' : 'Snippet';
+    showToast(permanent ? label + ' permanently deleted' : label + ' moved to trash');
     this.showDeleteModal = false;
     this.showEditor = false;
     this.deleteTarget = null;
@@ -366,9 +428,12 @@ export const editorMixin = {
 
   async restoreSnippet(snippet) {
     const result = await api.post(`/api/v1/snippets/${snippet.id}/restore`);
-    if (result) {
-      showToast('Snippet restored');
+    if (result && !result.error) {
+      showToast(snippet.kind === 'note' ? 'Note restored' : 'Snippet restored');
+      if (this.showEditor && this.editingSnippet?.id === snippet.id) await this.viewSnippet(snippet);
       await Promise.all([this.loadSnippets(), this.loadTotalCount()]);
+    } else {
+      showToast(result?.error?.message || 'Could not restore this item.', 'error');
     }
   },
 
@@ -391,13 +456,13 @@ export const editorMixin = {
   async copyToClipboard(snippet) {
     try {
       // Get content from either legacy content field or first file
-      let contentToCopy = snippet === this.editingSnippet ? this.activeFile.content : snippet.content || '';
+      let contentToCopy = snippet.kind === 'note' ? snippet.content : snippet === this.editingSnippet ? this.activeFile.content : snippet.content || '';
       if (snippet !== this.editingSnippet && !contentToCopy && snippet.files && snippet.files.length > 0) {
         contentToCopy = snippet.files[0].content || '';
       }
 
       // Check if setting to exclude first line is enabled
-      if (this.settings?.exclude_first_line_on_copy) {
+      if (snippet.kind !== 'note' && this.settings?.exclude_first_line_on_copy) {
         const lines = contentToCopy.split('\n');
         if (lines.length > 1) {
           contentToCopy = lines.slice(1).join('\n');
@@ -504,7 +569,8 @@ export const editorMixin = {
         }
       }
 
-      showToast(result.is_archived ? 'Snippet archived' : 'Snippet unarchived');
+      const label = snippet.kind === 'note' ? 'Note' : 'Snippet';
+      showToast(result.is_archived ? label + ' archived' : label + ' unarchived');
     }
   },
 
@@ -539,7 +605,7 @@ export const editorMixin = {
 
   async updateCodeEditor() {
     const container = this.$refs.codeEditor;
-    if (!container || !this.isEditing) return;
+    if (!container || !this.isEditing || this.isNote) return;
     const request = ++this.editorRequest;
     this.editorLoading = true;
     const selected = this.editorEngine;
@@ -625,6 +691,7 @@ export const editorMixin = {
   // Arabic/RTL text detection and support
   updateTextDirection() {
     this.$nextTick(() => {
+      if (this.isNote) return;
       const title = this.editingSnippet?.title || '';
       const description = this.editingSnippet?.description || '';
       const content = this.activeFile?.content ?? this.editingSnippet?.content ?? '';
@@ -658,7 +725,7 @@ export const editorMixin = {
       }
 
       // Update markdown preview direction
-      const markdownPreview = document.querySelector('.preview-markdown-scroll');
+      const markdownPreview = document.querySelector('.preview-code-wrapper .preview-markdown-scroll');
       if (markdownPreview) {
         const isMarkdown = (this.activeFile?.language || this.editingSnippet?.language) === 'markdown';
         if (isMarkdown && isContentArabic) {
@@ -690,37 +757,12 @@ export const editorMixin = {
     });
   },
 
-  renderMarkdown(content) {
-    if (typeof marked === 'undefined' || !content) {
-      return escapeHTML(content);
-    }
-
-    try {
-      const html = sanitizeHTML(marked.parse(content));
-
-      // Check if content is Arabic and apply RTL class
-      if (this.isArabicText(content)) {
-        // Create a temporary div to parse the HTML
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = html;
-
-        // Add RTL class to the markdown preview if content is Arabic
-        this.$nextTick(() => {
-          const preview = document.querySelector('.preview-markdown-scroll');
-          if (preview) {
-            preview.classList.add('rtl');
-          }
-        });
-      }
-
-      return html;
-    } catch (e) {
-      console.error('Error rendering markdown:', e);
-      return escapeHTML(content);
-    }
-  },
+  renderMarkdown: renderMarkdownWithCopy,
+  copyMarkdownBlock,
 
   // Resolve actual date to shorthand for select dropdown
+
+
   resolveToShorthand(expiresAt) {
     if (!expiresAt) return '';
     // Already a shorthand value
@@ -740,8 +782,7 @@ export const editorMixin = {
         return `${days}d`;
       }
     }
-    // Not a match — return empty for custom
-    return '';
+    return expiresAt.slice(0, 10);
   },
 
   // Expiration helpers

@@ -163,7 +163,7 @@ export const templatesMixin = {
     if (this.saving) throw new Error('Finish saving the open snippet first.');
     this.clearTemplateForm();
     this.$refs.templateDialog.close();
-    this.newSnippet(draft);
+    this.newSnippet({ draft });
   },
 
   editTemplateDefinition(def = blankDefinition(), record = null) {

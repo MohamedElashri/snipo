@@ -11,7 +11,7 @@ exports.checkMarkdownSecurity = async function (page, origin, password) {
     assert.equal(created.ok(), true);
     const { data: snippet } = await created.json();
     await victim.goto(origin + '/?snippet=' + snippet.id);
-    await victim.locator('.preview-markdown-scroll').waitFor({ state: 'visible' });
+    await victim.locator('.preview-code-wrapper .preview-markdown-scroll').waitFor({ state: 'visible' });
     await victim.waitForTimeout(150);
     assert.equal(await victim.evaluate(() => window.__snipoSecurityProbe), undefined,
       'Untrusted nested HTML must not execute in a stored snippet');

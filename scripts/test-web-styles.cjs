@@ -176,7 +176,7 @@ async function checkTemplateWorkflow(browser, origin, password) {
       env: { ...process.env, SNIPO_HOST: '127.0.0.1', SNIPO_PORT: String(port),
         SNIPO_DB_PATH: path.join(temp, 'test.db'), SNIPO_MASTER_PASSWORD: password,
         SNIPO_DISABLE_AUTH: 'false', SNIPO_DEMO_MODE: 'false', SNIPO_BASE_PATH: basePath,
-        SNIPO_RATE_LIMIT_ADMIN: '1000', SNIPO_RATE_LIMIT_WRITE: '1000',
+        SNIPO_RATE_LIMIT_ADMIN: '2500', SNIPO_RATE_LIMIT_WRITE: '2500', SNIPO_RATE_LIMIT_READ: '2500',
         SNIPO_SESSION_SECRET: 'web-styles-test-session-secret',
         SNIPO_ENCRYPTION_SALT: 'web-styles-test-encryption-salt' },
       stdio: ['ignore', log, log]
@@ -241,6 +241,47 @@ async function checkTemplateWorkflow(browser, origin, password) {
         await checkPage(page);
         assert.equal(await style(page.locator('.sidebar-nav'), 'display'), 'block');
 
+        // Start a note in a folder and type immediately into its Markdown body.
+        const folderResponse = await page.request.post(origin + '/api/v1/folders', { data: { name: 'Notes ' + width + ' ' + theme } });
+        assert.ok(folderResponse.ok(), await folderResponse.text());
+        const { data: noteFolder } = await folderResponse.json();
+        await page.goto(origin + '/?folder=' + noteFolder.id);
+        await appReady(page);
+        const newNote = page.getByRole('button', { name: 'New note', exact: true });
+        await newNote.click();
+        const noteBody = page.getByRole('textbox', { name: 'Note body' });
+        await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Note body');
+        await page.waitForFunction(() => new URL(location.href).searchParams.get('note') === 'true');
+        await page.reload();
+        await appReady(page);
+        await noteBody.fill('# Deployment notes');
+        await page.getByRole('textbox', { name: 'Note title' }).fill('Deployment ' + width + ' ' + theme);
+        await page.getByRole('button', { name: 'Preview', exact: true }).click();
+        await page.getByRole('heading', { name: 'Deployment notes', exact: true }).waitFor();
+        await page.getByRole('button', { name: 'Save', exact: true }).click();
+        await page.waitForFunction(() => !!new URL(location.href).searchParams.get('snippet'));
+        const noteID = new URL(page.url()).searchParams.get('snippet');
+        const { data: note } = await (await page.request.get(origin + '/api/v1/snippets/' + noteID)).json();
+        assert.equal(note.kind, 'note');
+        assert.equal(note.language, 'markdown');
+        assert.equal(note.content, '# Deployment notes');
+        assert.equal(note.files, undefined);
+        assert.equal(note.folders[0].id, noteFolder.id);
+        assert.equal(note.is_public, false);
+        await page.locator('.note-reader').getByRole('heading', { name: 'Deployment notes', exact: true }).waitFor();
+        await page.getByRole('button', { name: 'Edit', exact: true }).click();
+        await page.getByRole('combobox', { name: 'Format' }).selectOption('plaintext');
+        await noteBody.fill('One  line\nSecond line');
+        await page.getByRole('button', { name: 'Save', exact: true }).click();
+        const plain = page.locator('.note-reader .note-plain');
+        await plain.waitFor();
+        assert.equal(await plain.textContent(), 'One  line\nSecond line');
+        await page.locator('.new-snippet-button').click();
+        await page.waitForFunction(() => document.activeElement?.matches('.editor-title-input'));
+        assert.equal(await page.evaluate(() => Alpine.$data(document.querySelector('.app-container')).activeFile.filename), 'snippet.txt');
+        await page.goto(origin + '/');
+        await appReady(page);
+
         // Switch in both directions without reloading; saved colors must survive reload.
         for (const activeTheme of [theme === 'light' ? 'dark' : 'light', theme]) {
           await page.getByTitle('Toggle theme', { exact: true }).click();
@@ -250,6 +291,40 @@ async function checkTemplateWorkflow(browser, origin, password) {
           await appReady(page);
           await checkTheme(page, activeTheme);
         }
+
+        // A Markdown file in a mixed-language snippet can become its folder's overview.
+        const overviewFolderResponse = await page.request.post(origin + '/api/v1/folders', { data: { name: 'Runbooks ' + width + ' ' + theme } });
+        assert.ok(overviewFolderResponse.ok(), await overviewFolderResponse.text());
+        const { data: overviewFolder } = await overviewFolderResponse.json();
+        const overviewResponse = await page.request.post(origin + '/api/v1/snippets', { data: {
+          title: 'Recovery ' + width + ' ' + theme, folder_id: overviewFolder.id, language: 'bash', content: 'echo hello',
+          files: [{ filename: 'hello.sh', language: 'bash', content: 'echo hello' },
+            { filename: 'overview.md', language: 'markdown', content: '# Recovery instructions\n\nKeep this handy.' }]
+        } });
+        assert.ok(overviewResponse.ok(), await overviewResponse.text());
+        const { data: overviewNote } = await overviewResponse.json();
+        await page.goto(origin + '/?folder=' + overviewFolder.id + '&snippet=' + overviewNote.id);
+        await appReady(page);
+        await page.locator('.editor-more > summary').click();
+        await page.getByRole('button', { name: 'Set as folder overview', exact: true }).click();
+        await page.getByText('Folder overview set', { exact: true }).waitFor();
+        await page.goto(origin + '/?folder=' + overviewFolder.id);
+        await appReady(page);
+        const overview = page.locator('.folder-overview');
+        await overview.getByRole('heading', { name: 'Recovery instructions', exact: true }).waitFor();
+        await overview.locator('summary').click();
+        assert.equal(await overview.getByRole('heading').isVisible(), false);
+        await overview.locator('summary').click();
+        await overview.getByRole('button', { name: /Open overview note/ }).click();
+        await page.locator('.preview-code-wrapper .preview-markdown-scroll').getByRole('heading', { name: 'Recovery instructions' }).waitFor();
+        await page.getByTitle('Back', { exact: true }).click();
+        await overview.getByRole('button', { name: 'Remove overview' }).click();
+        await overview.waitFor({ state: 'detached' });
+        const { data: folderAfter } = await (await page.request.get(origin + '/api/v1/folders/' + overviewFolder.id)).json();
+        assert.equal(folderAfter.overview_snippet_id, undefined);
+        assert.ok((await page.request.get(origin + '/api/v1/snippets/' + overviewNote.id)).ok());
+        await page.goto(origin + '/');
+        await appReady(page);
 
         // Real controls must remain keyboard accessible, visibly focused, and themed.
         await appAction(page, 'openSettings');
@@ -284,6 +359,46 @@ async function checkTemplateWorkflow(browser, origin, password) {
 
         if (width === 1440 && theme === 'light') await checkMarkdownSecurity(page, origin, password);
 
+        // Drive real Markdown controls and intercept writes to verify the clipboard payload.
+        await page.evaluate(() => {
+          window.copiedBlocks = [];
+          Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: { writeText: text => {
+              if (window.rejectCopy) return Promise.reject(new Error('Clipboard denied'));
+              window.copiedBlocks.push(text);
+              return Promise.resolve();
+            } }
+          });
+        });
+        const markdown = '# Copy examples\n\nInline `not a block`\n\n```html\n  <tag>&</tag>\n\n```\n\n```\nsecond  \n```';
+        const copyFixture = await page.request.post(origin + '/api/v1/snippets', { data: {
+          title: 'Block copy ' + width + ' ' + theme, language: 'markdown', content: markdown,
+          files: [{ filename: 'blocks.md', language: 'markdown', content: markdown },
+            { filename: 'empty.md', language: 'markdown', content: '' }]
+        } });
+        assert.ok(copyFixture.ok(), await copyFixture.text());
+        const { data: copyNote } = await copyFixture.json();
+        await page.evaluate(async id => {
+          const app = Alpine.$data(document.querySelector('.app-container'));
+          await app.viewSnippet({ id });
+        }, copyNote.id);
+        const blockButtons = page.getByRole('button', { name: 'Copy code block', exact: true });
+        await blockButtons.first().waitFor();
+        assert.equal(await blockButtons.count(), 2);
+        await blockButtons.first().press('Enter');
+        await blockButtons.last().click();
+        assert.deepEqual(await page.evaluate(() => window.copiedBlocks), ['  <tag>&</tag>\n\n', 'second  \n']);
+        await page.evaluate(() => { window.rejectCopy = true; });
+        await blockButtons.last().click();
+        await page.getByText('Could not copy code block', { exact: true }).waitFor();
+        await page.evaluate(() => {
+          Alpine.$data(document.querySelector('.app-container')).activeFileIndex = 1;
+        });
+        await blockButtons.first().waitFor({ state: 'detached' });
+        await page.goto(origin + '/');
+        await appReady(page);
+
         // Seed through the API, then exercise the actual editor and Markdown preview.
         const created = await page.request.post(origin + '/api/v1/snippets', { data: {
           title: 'Styles regression', description: 'Theme color regression fixture', language: 'markdown', is_public: true,
@@ -295,7 +410,7 @@ async function checkTemplateWorkflow(browser, origin, password) {
         await page.reload();
         await appReady(page);
         const card = page.locator('.snippet-card').filter({ hasText: 'Styles regression' }).first();
-        const layoutPicker = page.getByRole('combobox', { name: 'Snippet layout' });
+        const layoutPicker = page.getByRole('combobox', { name: 'Library layout' });
         await layoutPicker.selectOption('grid');
         await expectStyle(card.locator('.snippet-card-tags'), 'display', 'none');
         await layoutPicker.selectOption('list');
@@ -321,8 +436,8 @@ async function checkTemplateWorkflow(browser, origin, password) {
         assert.equal(await page.locator('.snippet-details').getAttribute('open'), null);
         await checkPage(page);
         await page.screenshot({ path: path.join(temp, `${width}-${theme}-editor.png`) });
-        assert.equal(await page.locator('.preview-markdown-scroll h1').innerText(), 'Heading');
-        assert.equal(await page.locator('.preview-markdown-scroll table').count(), 1);
+        assert.equal(await page.locator('.preview-code-wrapper .preview-markdown-scroll h1').innerText(), 'Heading');
+        assert.equal(await page.locator('.preview-code-wrapper .preview-markdown-scroll table').count(), 1);
         await appAction(page, 'startEditing');
         await page.locator('#code-editor').waitFor({ state: 'visible' });
         await page.waitForFunction(() => !!Alpine.$data(document.querySelector('.app-container')).codeEditor);

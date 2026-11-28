@@ -871,6 +871,13 @@ paths:
         - bearerAuth: []
         - apiKey: []
       parameters:
+        - name: kind
+          in: query
+          description: Use all to include both notes and snippets.
+          schema:
+            type: string
+            enum: [snippet, note, all]
+            default: snippet
         - name: page
           in: query
           schema:
@@ -1264,6 +1271,13 @@ paths:
         - bearerAuth: []
         - apiKey: []
       parameters:
+        - name: kind
+          in: query
+          description: Use all to include both notes and snippets.
+          schema:
+            type: string
+            enum: [snippet, note, all]
+            default: snippet
         - name: q
           in: query
           required: true
@@ -1981,6 +1995,173 @@ paths:
                     error:
                       code: "INTERNAL_ERROR"
                       message: "An internal server error occurred"
+
+  /api/v1/snippets/note-targets:
+    get:
+      tags: [Snippets]
+      summary: Find private notes and Markdown files available for capture
+      operationId: listNoteTargets
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: kind
+          in: query
+          description: Notes include Markdown and plain text. Snippets include Markdown files. Omitting kind returns Markdown targets.
+          schema:
+            type: string
+            enum: [note, snippet]
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Substring of the snippet title or Markdown filename.
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        '200':
+          description: Page of up to 25 targets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      has_more:
+                        type: boolean
+                      targets:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            snippet_id:
+                              type: string
+                            kind:
+                              type: string
+                              enum: [note, snippet]
+                            language:
+                              type: string
+                              enum: [markdown, plaintext]
+                            title:
+                              type: string
+                            file_id:
+                              type: integer
+                              description: Omitted for Markdown snippets without a file list.
+                            filename:
+                              type: string
+        '400':
+          description: Invalid page
+        '401':
+          description: Authentication required
+        '403':
+          description: Read permission required
+
+  /api/v1/snippets/{id}/append:
+    post:
+      tags: [Snippets]
+      summary: Append content to a private note or Markdown file
+      operationId: appendNote
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  description: Text to append, in the target format.
+                language:
+                  type: string
+                  enum: [markdown, plaintext]
+                  default: markdown
+                request_id:
+                  type: string
+                  maxLength: 100
+                  description: Reuse the same value when retrying the same capture for this item.
+                file_id:
+                  type: integer
+                  minimum: 0
+                  description: File ID received from the target picker. Omit for items without a file list.
+      responses:
+        '204':
+          description: Content appended
+        '400':
+          description: Invalid body, file ID, or content
+        '401':
+          description: Authentication required
+        '403':
+          description: Write permission required
+        '404':
+          description: Note or Markdown file unavailable
+        '409':
+          description: The capture request ID was already used for a different payload.
+        '413':
+          description: The resulting file would exceed 1 MiB
+
+  /api/v1/snippets/{id}/convert:
+    post:
+      tags: [Snippets]
+      summary: Convert an item between note and snippet
+      description: Conversion preserves the item ID, metadata, and existing file IDs.
+      operationId: convertItemKind
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind]
+              properties:
+                kind:
+                  type: string
+                  enum: [note, snippet]
+      responses:
+        '200':
+          description: Converted item
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Snippet'
+        '400':
+          description: Invalid item type
+        '403':
+          description: Write permission required
+        '404':
+          description: Item unavailable
+        '422':
+          description: The snippet needs a single Markdown or plain text body to become a note
 
   /api/v1/snippets/{id}/archive:
     post:
@@ -3440,6 +3621,44 @@ paths:
                     error:
                       code: "INTERNAL_ERROR"
                       message: "An internal server error occurred"
+
+  /api/v1/folders/{id}/overview:
+    put:
+      tags: [Folders]
+      summary: Set or clear the folder's Markdown overview
+      operationId: setFolderOverview
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [snippet_id]
+              properties:
+                snippet_id:
+                  type: [string, "null"]
+                  description: ID of an active Markdown snippet in the folder, or null to clear.
+      responses:
+        '200':
+          description: Folder overview updated
+        '400':
+          description: Invalid folder ID, request body, or overview snippet
+        '401':
+          description: Authentication required
+        '403':
+          description: Write permission required
+        '404':
+          description: Folder unavailable
 
   /api/v1/folders/{id}/move:
     put:
@@ -6650,6 +6869,12 @@ components:
       properties:
         template_origin:
           $ref: '#/components/schemas/TemplateOrigin'
+        kind:
+          type: string
+          enum: [note, snippet]
+        revision:
+          type: integer
+          description: Send this value back when editing a note to detect concurrent changes.
         id:
           type: string
           examples:
@@ -6718,6 +6943,16 @@ components:
       properties:
         template_origin:
           $ref: '#/components/schemas/TemplateOrigin'
+        kind:
+          type: string
+          enum: [note, snippet]
+          description: On create, defaults to snippet. On update, omitted values preserve the existing type.
+        revision:
+          type: integer
+          description: When supplied on a note update, returns a conflict if the revision has changed.
+        clear_overview:
+          type: boolean
+          description: Allows an edit to remove an affected folder overview assignment on a note.
         title:
           type: string
           maxLength: 200
@@ -6963,6 +7198,9 @@ components:
         created_at:
           type: string
           format: date-time
+        overview_snippet_id:
+          type: string
+          description: ID of the active Markdown snippet assigned as the overview.
         snippet_count:
           type: integer
         children:

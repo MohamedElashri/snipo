@@ -61,7 +61,7 @@ func (r *TemplateRepository) List(ctx context.Context, state, query string, limi
 	if err != nil {
 		return nil, 0, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	items := []models.TemplateSummary{}
 	for rows.Next() {
 		var item models.TemplateSummary
@@ -86,7 +86,7 @@ func (r *TemplateRepository) Save(ctx context.Context, id string, expected int, 
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	if expected == 0 {
 		if id == "" {
 			err = tx.QueryRowContext(ctx, "INSERT INTO templates DEFAULT VALUES RETURNING id").Scan(&id)
@@ -133,7 +133,7 @@ func (r *TemplateRepository) Purge(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	result, err := tx.ExecContext(ctx, "DELETE FROM templates WHERE id = ? AND state = 'trash'", id)
 	if err := templateAffected(result, err); err != nil {
 		return err
@@ -169,7 +169,7 @@ func templateHistory(ctx context.Context, db templateQueryer, query, id string) 
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	items := []models.TemplateRevision{}
 	for rows.Next() {
 		var item models.TemplateRevision
@@ -192,7 +192,7 @@ func (r *TemplateRepository) Snapshots(ctx context.Context) ([]models.TemplateSn
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	rows, err := tx.QueryContext(ctx, selectTemplate+` WHERE r.revision = t.revision ORDER BY t.id`)
 	if err != nil {
 		return nil, err
@@ -201,16 +201,18 @@ func (r *TemplateRepository) Snapshots(ctx context.Context) ([]models.TemplateSn
 	for rows.Next() {
 		item, err := scanTemplate(rows)
 		if err != nil {
-			rows.Close()
+			_ = rows.Close()
 			return nil, err
 		}
 		items = append(items, models.TemplateSnapshot{Template: *item})
 	}
 	if err := rows.Err(); err != nil {
-		rows.Close()
+		_ = rows.Close()
 		return nil, err
 	}
-	rows.Close()
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
 	for i := range items {
 		items[i].Revisions, err = templateHistory(ctx, tx,
 			"SELECT revision, created_at, definition FROM template_revisions WHERE template_id = ? ORDER BY revision DESC", items[i].ID)
@@ -226,7 +228,7 @@ func (r *TemplateRepository) RestoreSnapshots(ctx context.Context, items []model
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	if replace {
 		if _, err := tx.ExecContext(ctx, "DELETE FROM template_revisions"); err != nil {
 			return 0, err
@@ -290,7 +292,7 @@ func (r *SnippetRepository) CreateFromTemplate(ctx context.Context, input *model
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	snippet, err := createSnippet(ctx, tx, input)
 	if err != nil {
 		return nil, err
@@ -346,7 +348,7 @@ func (r *TemplateRepository) SnippetOrigins(ctx context.Context) (map[string]mod
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	result := make(map[string]models.TemplateOrigin)
 	for rows.Next() {
 		var snippetID string

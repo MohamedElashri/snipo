@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { useTemplate } from './templates';
-import { searchAndInsertSnippet, saveSelectedSnippet, replaceWithTemplate, openInSnipo, openInVSCode, updateSnippet, deleteSnippetCommand } from './commands';
+import { browseNotes, newNote, previewOpenNote, forgetNoteDocument, saveOpenNote, searchAndInsertSnippet, saveSelectedSnippet, replaceWithTemplate, openInSnipo, openInVSCode, updateSnippet, deleteSnippetCommand } from './commands';
 import { SnippetTreeProvider, TagsTreeProvider } from './treeView';
 import { SnipoHoverProvider, SnipoCodeLensProvider } from './providers';
 import { SnipoStatusBar } from './statusBar';
@@ -19,6 +19,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Register commands
     context.subscriptions.push(
+        vscode.workspace.onDidCloseTextDocument(forgetNoteDocument),
+        vscode.commands.registerCommand('snipo.browseNotes', browseNotes),
+        vscode.commands.registerCommand('snipo.newNote', newNote),
+        vscode.commands.registerCommand('snipo.previewNote', previewOpenNote),
+        vscode.commands.registerCommand('snipo.saveOpenNote', saveOpenNote),
         vscode.commands.registerCommand('snipo.searchAndInsert', searchAndInsertSnippet),
         vscode.commands.registerCommand('snipo.useTemplate', useTemplate),
         vscode.commands.registerCommand('snipo.saveSelected', saveSelectedSnippet),
@@ -44,7 +49,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('snipo.insertSnippetFromTree', (arg: any) => {
             let snippet = (arg && arg.snippet) ? arg.snippet : arg;
             const editor = vscode.window.activeTextEditor;
-            if (editor && snippet) {
+            if (editor && snippet && snippet.kind !== 'note') {
                 editor.insertSnippet(new vscode.SnippetString().appendText(snippet.content));
             }
         })
@@ -53,17 +58,20 @@ export async function activate(context: vscode.ExtensionContext) {
     // Register Tree Views
     const favoritesProvider = new SnippetTreeProvider('favorites');
     const recentProvider = new SnippetTreeProvider('recent');
+    const notesProvider = new SnippetTreeProvider('notes');
     const tagsProvider = new TagsTreeProvider();
 
     vscode.window.registerTreeDataProvider('snipo-favorites', favoritesProvider);
     vscode.window.registerTreeDataProvider('snipo-recent', recentProvider);
     vscode.window.registerTreeDataProvider('snipo-tags', tagsProvider);
+    context.subscriptions.push(vscode.window.registerTreeDataProvider('snipo-notes', notesProvider));
 
     // Refresh command
     context.subscriptions.push(
         vscode.commands.registerCommand('snipo.refreshTree', () => {
             favoritesProvider.refresh();
             recentProvider.refresh();
+            notesProvider.refresh();
         }),
         vscode.commands.registerCommand('snipo.refreshTagsTree', () => {
             tagsProvider.refresh();

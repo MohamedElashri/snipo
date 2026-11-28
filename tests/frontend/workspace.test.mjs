@@ -23,7 +23,7 @@ beforeEach(() => { storage.clear(); tabStorage.clear(); window.location = new UR
 
 test('workspace composes without evaluating computed state before initialization', () => {
   const state = app();
-  assert.equal(state.libraryTitle(), 'All snippets');
+  assert.equal(state.libraryTitle(), 'All items');
   assert.equal(state.viewMode, 'grid');
   assert.equal(state.hasActiveFilters(), false);
   state.filter.query = 'docker';
@@ -386,4 +386,37 @@ test('dismissing the discard prompt leaves unsaved template edits open', () => {
   } finally {
     delete window.confirm;
   }
+});
+
+test('reloading a blank new note preserves a separate code draft', async () => {
+  const state = app();
+  state.loadSnippets = async () => {};
+  state.newSnippet();
+  state.editingSnippet.title = 'Pending code';
+  state.editingSnippet.files[0].content = 'echo draft';
+  state.saveDraft();
+  window.location = new URL('http://localhost/snipo/?folder=12&edit=true&note=true');
+  await state.restoreFromUrl();
+  assert.equal(state.editingSnippet.kind, 'note');
+  assert.equal(state.editingSnippet.language, 'markdown');
+  assert.deepEqual(state.editingSnippet.files, []);
+  assert.equal(state.editingSnippet.folder_id, 12);
+  assert.equal(state.hasDraft, true);
+  assert.equal(state.draftSnippet.title, 'Pending code');
+});
+
+test('reloading a new note recovers its body and format', async () => {
+  const state = app();
+  state.loadSnippets = async () => {};
+  state.newSnippet({ note: true });
+  state.editingSnippet.title = 'Deployment';
+  state.editingSnippet.language = 'plaintext';
+  state.editingSnippet.content = '## Checklist';
+  state.saveDraft();
+  await state.restoreFromUrl();
+  assert.equal(state.editingSnippet.kind, 'note');
+  assert.equal(state.editingSnippet.language, 'plaintext');
+  assert.equal(state.editingSnippet.content, '## Checklist');
+  assert.equal(state.hasDraft, false);
+  assert.equal(window.location.searchParams.get('note'), 'true');
 });

@@ -109,7 +109,7 @@ func (m Model) updateTemplateMessage(msg tea.Msg) (Model, tea.Cmd, bool) {
 			m.templates.draft = nil
 			m.mode = ViewList
 			m.message = "Created snippet: " + msg.title
-			return m, loadSnippets(m.client, m.currentPage, 20, m.searchQuery, m.filterTags, nil, "", nil, nil), true
+			return m, m.loadLibrary(m.currentPage), true
 		}
 	default:
 		return m, nil, false
@@ -276,6 +276,7 @@ func (m Model) updateTemplateField(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m *Model) openTemplateDraft(draft *api.SnippetInput) {
 	m.mode = ViewCreate
+	m.noteForm = false
 	m.templates.draft, m.templates.file, m.templates.folder = draft, 0, 0
 	m.initCreateForm()
 	m.textarea.CharLimit = 0

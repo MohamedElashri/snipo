@@ -194,6 +194,48 @@ async function showModal(snippetData) {
     tagsGroup.appendChild(tagSuggestions);
     modal.appendChild(tagsGroup);
 
+    const kindGroup = document.createElement('label');
+    kindGroup.className = 'snipo-form-group';
+    kindGroup.textContent = 'Save as';
+    const kindSelect = document.createElement('select');
+    kindSelect.className = 'snipo-select';
+    kindSelect.add(new Option('Snippet', 'snippet'));
+    kindSelect.add(new Option('Note', 'note'));
+    kindGroup.append(kindSelect);
+    rowGroup.before(kindGroup);
+
+    const formatGroup = document.createElement('label');
+    formatGroup.className = 'snipo-form-group';
+    formatGroup.textContent = 'Format';
+    const noteFormat = document.createElement('select');
+    noteFormat.className = 'snipo-select';
+    noteFormat.add(new Option('Markdown', 'markdown'));
+    noteFormat.add(new Option('Plain text', 'plaintext'));
+    formatGroup.append(noteFormat);
+    formatGroup.hidden = true;
+    rowGroup.after(formatGroup);
+
+    const noteBodyGroup = document.createElement('label');
+    noteBodyGroup.className = 'snipo-form-group';
+    noteBodyGroup.textContent = 'Note body';
+    const noteBody = document.createElement('textarea');
+    noteBody.className = 'snipo-textarea';
+    noteBody.rows = 6;
+    noteBody.dir = 'auto';
+    noteBody.value = snippetData.code;
+    noteBodyGroup.append(noteBody);
+    noteBodyGroup.hidden = true;
+    formatGroup.after(noteBodyGroup);
+
+    const sourceGroup = document.createElement('label');
+    sourceGroup.className = 'snipo-source-option';
+    const includeSource = document.createElement('input');
+    includeSource.type = 'checkbox';
+    includeSource.checked = true;
+    sourceGroup.append(includeSource, ' Include source link');
+    sourceGroup.hidden = true;
+    noteBodyGroup.after(sourceGroup);
+
     // Action buttons
     const actionsDiv = document.createElement('div');
     actionsDiv.className = 'snipo-modal-actions';
@@ -204,7 +246,17 @@ async function showModal(snippetData) {
     const saveBtn = document.createElement('button');
     saveBtn.id = 'snipo-save';
     saveBtn.className = 'snipo-btn-primary';
-    saveBtn.textContent = 'Save Snippet';
+    const saveLabel = () => kindSelect.value === 'note' ? 'Save Note' : 'Save Snippet';
+    saveBtn.textContent = saveLabel();
+    kindSelect.addEventListener('change', () => {
+        const note = kindSelect.value === 'note';
+        templateCapture.setNoteMode(note);
+        rowGroup.hidden = note;
+        descGroup.hidden = note;
+        formatGroup.hidden = noteBodyGroup.hidden = sourceGroup.hidden = !note;
+        h2.textContent = saveLabel();
+        saveBtn.textContent = saveLabel();
+    });
     actionsDiv.appendChild(cancelBtn);
     actionsDiv.appendChild(saveBtn);
     modal.appendChild(actionsDiv);
@@ -212,7 +264,7 @@ async function showModal(snippetData) {
     overlay.appendChild(modal);
 
     const templateCapture = setupTemplateCapture(snippetData, {
-        modal, h2, rowGroup, titleInput, descTextarea, tagsInput, folderSelect, saveBtn
+        h2, kindGroup, rowGroup, titleInput, descTextarea, tagsInput, folderSelect, saveBtn
     });
     document.body.appendChild(overlay);
 
@@ -258,6 +310,7 @@ async function showModal(snippetData) {
             close();
         }
     };
+    addAppendNotePane(modal, actionsDiv, close);
     document.addEventListener('keydown', onDialogKeyDown, true);
     titleInput.focus();
 
@@ -334,8 +387,15 @@ async function showModal(snippetData) {
     });
 
     overlay.querySelector('#snipo-save').addEventListener('click', async () => {
+        const note = kindSelect.value === 'note';
+        if (note && !noteBody.value.trim()) {
+            showToast(false, 'Write some content before saving the note.');
+            noteBody.focus();
+            return;
+        }
+        showToast(true, '');
         const title = overlay.querySelector('#snipo-title').value;
-        const language = overlay.querySelector('#snipo-language').value;
+        const language = note ? noteFormat.value : langSelect.value;
         const filename = overlay.querySelector('#snipo-filename').value; // Get filename
         const description = overlay.querySelector('#snipo-desc').value;
         const folderId = overlay.querySelector('#snipo-folder').value || null;
@@ -358,8 +418,10 @@ async function showModal(snippetData) {
             snippet: { ...rendered, title, description, folder_id: Number(folderId) || null, tags: tagNames }
         } : {
             action: "saveDraftSnippet",
+            kind: kindSelect.value,
             draftId: draftId,
-            code: snippetData.code,
+            noteText: note ? noteBody.value : undefined,
+            includeSource: note ? includeSource.checked : undefined,
             language: language,
             title: title,
             description: description,
@@ -370,7 +432,7 @@ async function showModal(snippetData) {
         chrome.runtime.sendMessage(request, (response) => {
             if (chrome.runtime.lastError) {
                 console.error("Save failed:", chrome.runtime.lastError.message);
-                saveBtn.innerText = 'Save Snippet';
+                saveBtn.innerText = saveLabel();
                 templateCapture.setSaving(false);
                 showToast(false, "Failed to connect to background script.");
                 return;
@@ -378,7 +440,7 @@ async function showModal(snippetData) {
             if (response && response.success) {
                 close();
             } else {
-                saveBtn.innerText = 'Save Snippet';
+                saveBtn.innerText = saveLabel();
                 templateCapture.setSaving(false);
                 showToast(false, response ? response.error : "Unknown error");
             }
@@ -416,7 +478,7 @@ function captureOption(value, label) {
     return option;
 }
 
-function setupTemplateCapture(source, { modal, h2, rowGroup, titleInput, descTextarea, tagsInput, folderSelect, saveBtn }) {
+function setupTemplateCapture(source, { h2, kindGroup, rowGroup, titleInput, descTextarea, tagsInput, folderSelect, saveBtn }) {
     const selector = document.createElement('select');
     selector.className = 'snipo-select';
     selector.id = 'snipo-template-picker';
@@ -441,6 +503,8 @@ function setupTemplateCapture(source, { modal, h2, rowGroup, titleInput, descTex
     let request = 0;
     let saving = false;
     let available = false;
+    let supported = false;
+    let noteMode = false;
 
     const hasDraftEdits = () => draft && (
         initial().some((value, index) => value !== draftMetadata[index]) ||
@@ -450,7 +514,8 @@ function setupTemplateCapture(source, { modal, h2, rowGroup, titleInput, descTex
 
     captureRequest('listCaptureTemplates').then(items => {
         if (items === null) return;
-        picker.hidden = false;
+        supported = true;
+        picker.hidden = noteMode;
         for (const item of items) {
             const option = captureOption(item.id, item.name);
             option.dataset.revision = item.revision;
@@ -471,6 +536,7 @@ function setupTemplateCapture(source, { modal, h2, rowGroup, titleInput, descTex
             return;
         }
         selection = selector.value;
+        kindGroup.hidden = Boolean(selection);
         const current = ++request;
         if (!blankMetadata) blankMetadata = initial();
         [titleInput.value, descTextarea.value, tagsInput.value, folderSelect.value] = blankMetadata;
@@ -613,8 +679,14 @@ function setupTemplateCapture(source, { modal, h2, rowGroup, titleInput, descTex
     });
 
     return {
+        setNoteMode(value) {
+            noteMode = value;
+            picker.hidden = value || !supported;
+            detail.hidden = value;
+        },
         setSaving(value) {
             saving = value;
+            kindGroup.querySelector('select').disabled = saving;
             selector.disabled = saving || !available;
             saveBtn.disabled = saving || Boolean(selection && !draft);
         },

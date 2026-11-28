@@ -21,3 +21,5 @@
 @import './components/workspace.css';
 @import './components/settings.css';
 @import './components/public.css';
+
+@import "./components/notes.css";

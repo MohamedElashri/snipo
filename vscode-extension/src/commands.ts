@@ -37,7 +37,7 @@ function detectLanguage(vscodeLang: string): string {
     return mappings[lang] || 'plaintext';
 }
 
-async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | undefined> {
+async function showDynamicSnippetPicker(placeHolder: string, kind?: 'note'): Promise<Snippet | undefined> {
     return new Promise((resolve) => {
         let searchTimeout: NodeJS.Timeout | undefined;
         let searchAbortController: AbortController | undefined;
@@ -48,13 +48,16 @@ async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | 
         quickPick.matchOnDescription = true;
         quickPick.matchOnDetail = true;
 
+        const loadItems = () => kind === 'note' ? api.getSnippets('', undefined, undefined, undefined, kind) : api.getSnippets();
+        const icon = kind === 'note' ? 'note' : 'code';
+
         // Initial load
         quickPick.busy = true;
-        api.getSnippets().then(snippets => {
+        loadItems().then(snippets => {
             if (disposed || generation !== 0) return;
             try {
                 quickPick.items = snippets.map(s => ({
-                    label: `$(code) ${s.title}`,
+                    label: `$(${icon}) ${s.title}`,
                     description: s.language,
                     detail: s.description,
                     snippet: s
@@ -82,10 +85,10 @@ async function showDynamicSnippetPicker(placeHolder: string): Promise<Snippet | 
             searchTimeout = setTimeout(async () => {
                 searchAbortController = new AbortController();
                 try {
-                    const snippets = value ? await api.searchSnippets(value, searchAbortController.signal) : await api.getSnippets();
+                    const snippets = value ? await api.searchSnippets(value, searchAbortController.signal, kind) : await loadItems();
                     if (disposed || request !== generation) return;
                     quickPick.items = snippets.map(s => ({
-                        label: `$(code) ${s.title}`,
+                        label: `$(${icon}) ${s.title}`,
                         description: s.language,
                         detail: s.description,
                         snippet: s
@@ -386,6 +389,7 @@ export async function openInVSCode(arg?: any) {
     }
 
     if (snippet) {
+        const server = configuredServerURL();
         const current = await api.getSnippet(snippet.id);
         if (!current) {
             vscode.window.showErrorMessage('Could not load the snippet. Nothing was opened.');
@@ -393,9 +397,93 @@ export async function openInVSCode(arg?: any) {
         }
         snippet = current;
         const doc = await vscode.workspace.openTextDocument({
-            language: snippet.language || 'text',
+            language: snippet.language || 'plaintext',
             content: snippet.content || ''
         });
+        if (snippet.kind === 'note') {
+            noteDocuments.set(doc.uri.toString(), { note: snippet, server, saving: false });
+        }
         await vscode.window.showTextDocument(doc);
+    }
+}
+
+
+const noteDocuments = new Map<string, { note?: Snippet; server: string; saving: boolean }>();
+
+export async function newNote() {
+    if (!(await api.isConfigured())) {
+        vscode.window.showErrorMessage('Configure Snipo to create a note.');
+        return;
+    }
+    const server = configuredServerURL();
+    const format = await vscode.window.showQuickPick([
+        { label: 'Markdown', language: 'markdown' },
+        { label: 'Plain text', language: 'plaintext' },
+    ], { placeHolder: 'Choose a note format' });
+    if (!format) return;
+    const doc = await vscode.workspace.openTextDocument({ language: format.language, content: '' });
+    noteDocuments.set(doc.uri.toString(), { server, saving: false });
+    await vscode.window.showTextDocument(doc);
+}
+
+export async function previewOpenNote() {
+    const doc = vscode.window.activeTextEditor?.document;
+    if (!doc || !noteDocuments.has(doc.uri.toString()) || doc.languageId !== 'markdown') {
+        vscode.window.showInformationMessage('Open a Markdown note to preview it.');
+        return;
+    }
+    await vscode.commands.executeCommand('markdown.showPreviewToSide', doc.uri);
+}
+
+export async function browseNotes() {
+    if (!(await api.isConfigured())) {
+        vscode.window.showErrorMessage('Configure Snipo to browse notes.');
+        return;
+    }
+    const note = await showDynamicSnippetPicker('Search Snipo notes', 'note');
+    if (note) await openInVSCode(note);
+}
+
+export function forgetNoteDocument(document: vscode.TextDocument) {
+    noteDocuments.delete(document.uri.toString());
+}
+
+export async function saveOpenNote() {
+    const doc = vscode.window.activeTextEditor?.document;
+    const entry = doc && noteDocuments.get(doc.uri.toString());
+    if (!doc || !entry || entry.server !== configuredServerURL()) {
+        vscode.window.showErrorMessage('Open a note from the current Snipo server to save it here.');
+        return;
+    }
+    if (entry.saving) return;
+    const { note } = entry;
+    const content = doc.getText();
+    const language = doc.languageId;
+    if (language !== 'markdown' && language !== 'plaintext') {
+        vscode.window.showErrorMessage('Choose Markdown or Plain Text for this note.');
+        return;
+    }
+    entry.saving = true;
+    try {
+        if (!note) {
+            const firstLine = content.split(/\r?\n/).map(line => language === 'markdown' ? line.trim().replace(/^#{1,6}\s+/, '') : line.trim()).find(Boolean) || '';
+            const title = await vscode.window.showInputBox({
+                prompt: 'Title for the new note',
+                value: [...firstLine].slice(0, 200).join(''),
+                validateInput: value => !value.trim() || [...value.trim()].length > 200 ? 'Enter a title up to 200 characters.' : undefined,
+            });
+            if (!title?.trim() || entry.server !== configuredServerURL()) return;
+            const created = await api.createSnippet({ kind: 'note', title: title.trim(), content, language, is_public: false });
+            if (created) entry.note = created;
+            return;
+        }
+        const saved = await api.updateSnippet(note.id, {
+            kind: 'note', revision: note.revision, title: note.title, description: note.description,
+            content, language, is_public: note.is_public, is_archived: note.is_archived, expires_at: note.expires_at,
+            folder_id: note.folders?.[0]?.id, tags: note.tags?.map(tag => tag.name),
+        });
+        if (saved) entry.note = saved;
+    } finally {
+        entry.saving = false;
     }
 }

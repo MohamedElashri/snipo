@@ -32,6 +32,10 @@ export function initKeyboardShortcuts() {
       else if (app.showFolderModal) app.showFolderModal = false;
       else if (app.showSettings) app.closeSettings();
       else if (event.target.closest('details[open]')) event.target.closest('details').open = false;
+      else if (app.showEditor && app.isNote && app.noteDetailsOpen) {
+        app.noteDetailsOpen = false;
+        root.querySelector('.note-details-toggle')?.focus();
+      } else if (app.showEditor && app.isNote) app.closeNoteWorkspace();
       else if (app.showEditor) app.cancelEdit();
     }
   });

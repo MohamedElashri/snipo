@@ -19,6 +19,8 @@ type SnippetFile struct {
 // Snippet represents a code snippet
 type Snippet struct {
 	ID          string     `json:"id"`
+	Kind        string     `json:"kind"`
+	Revision    int64      `json:"revision,omitempty"`
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
 	Content     string     `json:"content"`  // Primary/legacy content (first file)
@@ -61,6 +63,9 @@ type SnippetFileInput struct {
 // SnippetInput represents input for creating/updating a snippet
 type SnippetInput struct {
 	TemplateOrigin *TemplateOrigin    `json:"template_origin,omitempty"`
+	ClearOverview  bool               `json:"clear_overview,omitempty"`
+	Kind           string             `json:"kind,omitempty"`
+	Revision       *int64             `json:"revision,omitempty"`
 	Title          string             `json:"title"`
 	Description    string             `json:"description"`
 	Content        string             `json:"content"`  // Legacy single-file content
@@ -75,6 +80,7 @@ type SnippetInput struct {
 
 // SnippetFilter represents filter options for listing snippets
 type SnippetFilter struct {
+	Kind       string
 	Query      string
 	Language   string
 	TagIDs     []int64 // Multiple tags filter
@@ -116,14 +122,15 @@ type TagInput struct {
 
 // Folder represents a folder for organizing snippets
 type Folder struct {
-	ID           int64     `json:"id"`
-	Name         string    `json:"name"`
-	ParentID     *int64    `json:"parent_id,omitempty"`
-	Icon         string    `json:"icon"`
-	SortOrder    int       `json:"sort_order"`
-	CreatedAt    time.Time `json:"created_at"`
-	SnippetCount int       `json:"snippet_count,omitempty"`
-	Children     []Folder  `json:"children,omitempty"`
+	OverviewSnippetID *string   `json:"overview_snippet_id,omitempty"`
+	ID                int64     `json:"id"`
+	Name              string    `json:"name"`
+	ParentID          *int64    `json:"parent_id,omitempty"`
+	Icon              string    `json:"icon"`
+	SortOrder         int       `json:"sort_order"`
+	CreatedAt         time.Time `json:"created_at"`
+	SnippetCount      int       `json:"snippet_count,omitempty"`
+	Children          []Folder  `json:"children,omitempty"`
 }
 
 // FolderInput represents input for creating/updating a folder

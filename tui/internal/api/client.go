@@ -109,8 +109,11 @@ func (c *Client) Health() (*HealthResponse, error) {
 	return &response.Data, nil
 }
 
-func (c *Client) ListSnippets(page, limit int, query string, tagIDs, folderIDs []int, language string, favorite, archived *bool) ([]Snippet, *Pagination, error) {
+func (c *Client) ListSnippets(page, limit int, query string, tagIDs, folderIDs []int, language string, favorite, archived *bool, kind ...string) ([]Snippet, *Pagination, error) {
 	params := url.Values{}
+	if len(kind) > 0 {
+		params.Set("kind", kind[0])
+	}
 	if page > 0 {
 		params.Set("page", strconv.Itoa(page))
 	}

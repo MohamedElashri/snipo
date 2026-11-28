@@ -80,6 +80,18 @@ The terminal client is a separate Go module; its
 [README](../tui/README.md#build-and-test) owns its build commands. Extension
 packaging is documented in the [extension README](../extension/README.md#build).
 
+### Live Notes tests
+
+Run `npm run test:notes` with Playwright Chromium installed. The suite starts
+authenticated Snipo instances on loopback with fresh temporary databases. It
+covers Notes on desktop and mobile, draft recovery and logout, sharing, capture
+retries, history, conversion, and backup restore.
+
+Set `SNIPO_TEST_PREVIOUS_BINARY` to a previous Snipo executable to test an
+in-place database upgrade. To run the unpacked Chrome extension against the
+temporary server as well, build the extension and set `SNIPO_TEST_EXTENSION`
+to the absolute path of `extension/dist/chrome`.
+
 ## Project layout
 
 | Path | Responsibility |
