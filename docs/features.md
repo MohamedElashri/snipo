@@ -167,10 +167,10 @@ shell, Compose, and Helm expressions. Fields can be text, multiline text,
 numbers, choices, toggles, or dates. Define fields and presets in the library
 so the same form works across clients.
 
-- **Snippy** — press `t` in the snippet list. Use F2/F3 to switch files, F4 to
+- In **Snippy**, press `t` in the snippet list. Use F2/F3 to switch files, F4 to
   copy, and Ctrl+S to save the draft.
-- **VS Code** — run **Snipo: Use Template**. Review files, open them as untitled
+- In **VS Code**, run **Snipo: Use Template**. Review files, open them as untitled
   editors, insert a file, or save the bundle to Snipo.
-- **Chrome and Firefox** — use the template picker in interactive **Save to
+- In **Chrome and Firefox**, use the template picker in interactive **Save to
   Snipo**. A template can prefill fields from selected text, the page title,
   or the source URL.
