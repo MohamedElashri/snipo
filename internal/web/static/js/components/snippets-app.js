@@ -212,6 +212,7 @@ export function initSnippetsApp(Alpine) {
       if (this.filter.isArchived !== null) params.set('is_archived', this.filter.isArchived);
       if (this.filter.isDeleted !== null) params.set('is_deleted', this.filter.isDeleted);
 
+      void this.loadFolderOverview(this.filter.folderId);
       const request = ++this.listRequest;
       this.loading = true;
       this.loadError = '';
@@ -370,7 +371,7 @@ export function initSnippetsApp(Alpine) {
         archive: this.filter.isArchived, trash: this.filter.isDeleted,
         settings: this.showSettings ? this.settingsTab : null, ...params
       };
-      for (const key of ['snippet', 'edit', 'folder', 'tag', 'favorites', 'trash', 'archive', 'q', 'language', 'settings']) {
+      for (const key of ['snippet', 'edit', 'note', 'folder', 'tag', 'favorites', 'trash', 'archive', 'q', 'language', 'settings']) {
         url.searchParams.delete(key);
         if (values[key]) url.searchParams.set(key, values[key]);
       }
@@ -398,12 +399,14 @@ export function initSnippetsApp(Alpine) {
         await this.loadSnippets();
         const snippetId = params.get('snippet');
         const editing = params.get('edit') === 'true';
-        if (editing && this.draftSnippet && (this.draftSnippet.id || null) === snippetId) {
+        const note = params.get('note') === 'true';
+        if (editing && this.draftSnippet && (this.draftSnippet.id || null) === snippetId &&
+            (snippetId || Boolean(this.draftSnippet.newNote) === note)) {
           this.restoreDraft();
         } else if (snippetId && /^[a-zA-Z0-9_-]+$/.test(snippetId)) {
           await this.viewSnippet({ id: snippetId });
           if (this.showEditor && params.get('edit') === 'true') this.startEditing();
-        } else if (params.get('edit') === 'true') this.newSnippet();
+        } else if (editing) this.newSnippet({ note });
         if (params.has('settings')) await this.openSettings(params.get('settings'));
       } finally {
         this.restoringUrl = false;

@@ -29,7 +29,7 @@ export const editorMixin = {
     }
   },
 
-  async viewSnippet(snippet) {
+  async viewSnippet(snippet, { markdown = false } = {}) {
     if (this.saving) return;
     this.preserveDraft();
     this.showSettings = false;
@@ -47,7 +47,9 @@ export const editorMixin = {
         folder_id: result.folders?.[0]?.id || null,
         files: result.files || []
       };
-      this.activeFileIndex = 0;
+      this.activeFileIndex = markdown
+        ? Math.max(0, this.editingSnippet.files.findIndex(file => file.language === 'markdown'))
+        : 0;
       this.showEditor = true;
       this.isEditing = false;
       this.updateUrl({ snippet: snippet.id });
@@ -58,7 +60,7 @@ export const editorMixin = {
     }
   },
 
-  newSnippet() {
+  newSnippet({ note = false } = {}) {
     if (this.saving) return;
     this.preserveDraft();
     ++this.viewRequest;
@@ -73,35 +75,45 @@ export const editorMixin = {
       defaultExpires = d.toISOString().split('T')[0];
     }
 
+    const language = note ? 'markdown' : 'plaintext';
+    const request = this.viewRequest;
     this.editingSnippet = {
       id: null,
+      newNote: note,
       title: '',
       description: '',
       content: '',
-      language: 'plaintext',
+      language,
       tags: [],
-      folder_id: null,
+      folder_id: note ? this.filter.folderId : null,
       is_public: false,
       is_favorite: false,
       expires_at: defaultExpires,
       sync_to_gist: this.gistConfig?.auto_sync_enabled || false,
       files: [{
         id: 0,
-        filename: 'snippet.txt',
+        filename: note ? 'note.md' : 'snippet.txt',
         content: '',
-        language: 'plaintext'
+        language
       }]
     };
     this.activeFileIndex = 0;
     this._resetFileManagerState();
     this.showEditor = true;
     this.isEditing = true;
-    this.updateUrl({ edit: true });
+    this.updateUrl({ edit: true, note });
 
-    this.$nextTick(() => {
-      this.updateCodeEditor();
+    this.$nextTick(async () => {
+      if (request !== this.viewRequest || !this.isEditing) return;
+      const previousFocus = document.activeElement;
+      const ready = this.updateCodeEditor();
       const titleInput = document.querySelector('.editor-title-input');
-      if (titleInput) {
+      if (note) {
+        await ready;
+        if (request !== this.viewRequest || !this.isEditing || document.activeElement !== previousFocus) return;
+        if (this.codeEditor) this.codeEditor.focus();
+        else titleInput?.focus();
+      } else if (titleInput) {
         titleInput.focus();
         titleInput.select();
       }
@@ -253,7 +265,9 @@ export const editorMixin = {
           }
         }
       } else {
-        throw new Error(result?.error?.message || 'Could not save. Check your connection and try again.');
+        const details = result?.error?.details;
+        const message = details?.length ? details.map(detail => detail.message).join(' · ') : result?.error?.message;
+        throw new Error(message || 'Could not save. Check your connection and try again.');
       }
     } catch (error) {
       this.saveDraft();
@@ -681,31 +695,42 @@ export const editorMixin = {
     }
 
     try {
-      const html = sanitizeHTML(marked.parse(content));
-
-      // Check if content is Arabic and apply RTL class
-      if (this.isArabicText(content)) {
-        // Create a temporary div to parse the HTML
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = html;
-
-        // Add RTL class to the markdown preview if content is Arabic
-        this.$nextTick(() => {
-          const preview = document.querySelector('.preview-markdown-scroll');
-          if (preview) {
-            preview.classList.add('rtl');
-          }
-        });
+      const preview = document.createElement('template');
+      preview.innerHTML = sanitizeHTML(marked.parse(content));
+      for (const code of preview.content.querySelectorAll('pre > code')) {
+        const block = document.createElement('div');
+        block.className = 'markdown-code-block';
+        const button = document.createElement('button');
+        button.className = 'btn-action markdown-code-copy';
+        button.type = 'button';
+        button.setAttribute('aria-label', 'Copy code block');
+        button.textContent = 'Copy';
+        const pre = code.parentElement;
+        pre.replaceWith(block);
+        block.append(button, pre);
       }
-
-      return html;
+      return preview.innerHTML;
     } catch (e) {
       console.error('Error rendering markdown:', e);
       return escapeHTML(content);
     }
   },
 
+  async copyMarkdownBlock(event) {
+    const button = event.target.closest('.markdown-code-copy');
+    const code = button?.nextElementSibling?.querySelector(':scope > code');
+    if (!code || !event.currentTarget.contains(button)) return;
+    try {
+      await navigator.clipboard.writeText(code.textContent);
+      showToast('Code block copied to clipboard');
+    } catch {
+      showToast('Could not copy code block', 'error');
+    }
+  },
+
   // Resolve actual date to shorthand for select dropdown
+
+
   resolveToShorthand(expiresAt) {
     if (!expiresAt) return '';
     // Already a shorthand value

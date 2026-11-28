@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.4] - 2026-11-27
+
+### Added
+
+- **Web app:** Start a Markdown note in the current folder with the cursor in the note body.
+- **Web app:** Copy individual code blocks from a Markdown preview, including indentation and blank lines.
+- **Web app:** Choose a Markdown snippet as a folder overview. The assignment is included in backups.
+- **Browser extension:** Append a selection and its source link to an existing private Markdown note from the interactive save dialog.
+
+### Fixed
+
+- **Browser and VS Code extensions:** Handle empty tag and folder lists returned by the server.
+
 ## [2.2.3] - 2026-11-23
 
 ### Changed

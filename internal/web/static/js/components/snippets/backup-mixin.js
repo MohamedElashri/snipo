@@ -85,7 +85,7 @@ export const backupMixin = {
         throw new Error(result.error?.message || 'Import failed');
       }
 
-      this.importResult = result;
+      this.importResult = result.data ?? result;
       this.backupFile = null;
 
       await Promise.all([

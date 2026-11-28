@@ -347,3 +347,33 @@ test('saving or discarding in one tab preserves another tab recovery buffer', ()
     assert.equal(second.draftSnippet.title, 'Second tab');
   } finally { globalThis.sessionStorage = session; }
 });
+
+test('reloading a blank new note preserves a separate code draft', async () => {
+  const state = app();
+  state.loadSnippets = async () => {};
+  state.newSnippet();
+  state.editingSnippet.title = 'Pending code';
+  state.editingSnippet.files[0].content = 'echo draft';
+  state.saveDraft();
+  window.location = new URL('http://localhost/snipo/?folder=12&edit=true&note=true');
+  await state.restoreFromUrl();
+  assert.equal(state.activeFile.filename, 'note.md');
+  assert.equal(state.editingSnippet.folder_id, 12);
+  assert.equal(state.hasDraft, true);
+  assert.equal(state.draftSnippet.title, 'Pending code');
+});
+
+test('reloading a new note recovers its Markdown draft even after renaming the file', async () => {
+  const state = app();
+  state.loadSnippets = async () => {};
+  state.newSnippet({ note: true });
+  state.editingSnippet.title = 'Deployment';
+  state.activeFile.filename = 'runbook.md';
+  state.activeFile.content = '## Checklist';
+  state.saveDraft();
+  await state.restoreFromUrl();
+  assert.equal(state.activeFile.filename, 'runbook.md');
+  assert.equal(state.activeFile.content, '## Checklist');
+  assert.equal(state.hasDraft, false);
+  assert.equal(window.location.searchParams.get('note'), 'true');
+});

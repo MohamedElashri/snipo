@@ -118,6 +118,7 @@ func runTestMigrations(db *sql.DB) error {
 			icon TEXT DEFAULT 'folder',
 			sort_order INTEGER DEFAULT 0,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			overview_snippet_id TEXT REFERENCES snippets(id) ON DELETE SET NULL,
 			FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE
 		);
 

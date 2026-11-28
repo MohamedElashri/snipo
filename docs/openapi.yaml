@@ -1472,6 +1472,105 @@ paths:
                       code: "INTERNAL_ERROR"
                       message: "An internal server error occurred"
 
+  /api/v1/snippets/note-targets:
+    get:
+      tags: [Snippets]
+      summary: Find private Markdown notes available for capture
+      operationId: listNoteTargets
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Substring of the snippet title or Markdown filename.
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        '200':
+          description: Page of up to 25 targets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      has_more:
+                        type: boolean
+                      targets:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            snippet_id:
+                              type: string
+                            title:
+                              type: string
+                            file_id:
+                              type: integer
+                              description: Omitted for Markdown snippets without a file list.
+                            filename:
+                              type: string
+        '400':
+          description: Invalid page
+        '401':
+          description: Authentication required
+        '403':
+          description: Read permission required
+
+  /api/v1/snippets/{id}/append:
+    post:
+      tags: [Snippets]
+      summary: Append Markdown content to a private note
+      operationId: appendNote
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  description: Markdown text to append.
+                file_id:
+                  type: integer
+                  minimum: 0
+                  description: ID of the Markdown file. Omit for a snippet without a file list.
+      responses:
+        '204':
+          description: Content appended
+        '400':
+          description: Invalid body, file ID, or content
+        '401':
+          description: Authentication required
+        '403':
+          description: Write permission required
+        '404':
+          description: Note or Markdown file unavailable
+        '413':
+          description: The resulting file would exceed 1 MiB
+
   /api/v1/snippets/{id}/archive:
     post:
       tags: [Snippets]
@@ -2930,6 +3029,44 @@ paths:
                     error:
                       code: "INTERNAL_ERROR"
                       message: "An internal server error occurred"
+
+  /api/v1/folders/{id}/overview:
+    put:
+      tags: [Folders]
+      summary: Set or clear the folder's Markdown overview
+      operationId: setFolderOverview
+      security:
+        - sessionCookie: []
+        - bearerAuth: []
+        - apiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [snippet_id]
+              properties:
+                snippet_id:
+                  type: [string, "null"]
+                  description: ID of an active Markdown snippet in the folder, or null to clear.
+      responses:
+        '200':
+          description: Folder overview updated
+        '400':
+          description: Invalid folder ID, request body, or overview snippet
+        '401':
+          description: Authentication required
+        '403':
+          description: Write permission required
+        '404':
+          description: Folder unavailable
 
   /api/v1/folders/{id}/move:
     put:
@@ -6306,6 +6443,9 @@ components:
         created_at:
           type: string
           format: date-time
+        overview_snippet_id:
+          type: string
+          description: ID of the active Markdown snippet assigned as the overview.
         snippet_count:
           type: integer
         children:

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -257,4 +258,40 @@ func (h *FolderHandler) Move(w http.ResponseWriter, r *http.Request) {
 	}
 
 	OK(w, r, folder)
+}
+
+// SetOverview assigns or clears the Markdown snippet shown in a folder.
+func (h *FolderHandler) SetOverview(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(utils.URLParam(r, "id"), 10, 64)
+	if err != nil || id <= 0 {
+		Error(w, r, http.StatusBadRequest, "INVALID_ID", "Invalid folder ID")
+		return
+	}
+
+	var input struct {
+		SnippetID *string `json:"snippet_id"`
+	}
+	// Require the field for both assignment and explicit clearing with null.
+	var payload map[string]json.RawMessage
+	if err := DecodeJSON(r, &payload); err != nil || len(payload) != 1 || payload["snippet_id"] == nil ||
+		json.Unmarshal(payload["snippet_id"], &input.SnippetID) != nil {
+		Error(w, r, http.StatusBadRequest, "INVALID_JSON", "Provide snippet_id as a string or null")
+		return
+	}
+
+	switch err := h.repo.SetOverview(r.Context(), id, input.SnippetID); {
+	case errors.Is(err, repository.ErrNotFound):
+		NotFound(w, r, "Folder not found")
+	case errors.Is(err, repository.ErrInvalidOverview):
+		Error(w, r, http.StatusBadRequest, "INVALID_OVERVIEW", "Choose an active Markdown snippet in this folder")
+	case err != nil:
+		InternalError(w, r)
+	default:
+		folder, err := h.repo.GetByID(r.Context(), id)
+		if err != nil {
+			InternalError(w, r)
+			return
+		}
+		OK(w, r, folder)
+	}
 }

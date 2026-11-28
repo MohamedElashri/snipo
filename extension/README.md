@@ -77,3 +77,11 @@ Tips are optional and help maintain the project.
 ## License
 
 The extension is licensed under the repository's [AGPLv3 license](../LICENSE).
+
+
+### Append a capture to a note
+
+In interactive mode, open **Save to Snipo** for selected text or a code block
+and choose **Append to a note**. Search by title or filename, select a private
+Markdown file, then choose **Append selection**. Snipo adds the captured text
+and a link to its source when captured from an HTTP or HTTPS page.
