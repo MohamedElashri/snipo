@@ -17,6 +17,27 @@ function showStatus(message, type = 'success') {
     }
 }
 
+async function requestServerAccess(instanceUrl) {
+    if (!chrome.runtime.getManifest().optional_host_permissions?.length) return;
+
+    let server;
+    try {
+        server = new URL(instanceUrl);
+    } catch {
+        throw new Error('Invalid Instance URL.');
+    }
+    if (!['http:', 'https:'].includes(server.protocol) || server.username || server.password) {
+        throw new Error('Enter an HTTP or HTTPS Snipo URL without credentials.');
+    }
+
+    // Firefox match patterns apply to a hostname and scheme. The configured
+    // URL still controls the port and path used for all API requests.
+    const origin = server.protocol + '//' + server.hostname + '/*';
+    if (!await chrome.permissions.request({ origins: [origin] })) {
+        throw new Error('Allow access to your Snipo server to connect.');
+    }
+}
+
 // Refactored connection check to be reusable
 async function verifyConnection(instanceUrl, apiKey) {
     // Normalized URL: remove trailing slash
@@ -81,6 +102,7 @@ document.getElementById('test-btn').addEventListener('click', async () => {
     testBtn.disabled = true;
 
     try {
+        await requestServerAccess(instanceUrl);
         await verifyConnection(instanceUrl, apiKey);
         showStatus('Connection successful!', 'success');
     } catch (error) {
@@ -114,6 +136,7 @@ async function saveOptions(e) {
     saveBtn.disabled = true;
 
     try {
+        await requestServerAccess(instanceUrl);
         await verifyConnection(instanceUrl, apiKey);
 
         // If successful
