@@ -40,7 +40,7 @@ func (s *SnippetService) updateNote(ctx context.Context, existing *models.Snippe
 	}
 	if s.tagRepo != nil && input.Tags != nil {
 		if err := s.tagRepo.SetSnippetTags(ctx, existing.ID, input.Tags); err != nil {
-			s.logger.Warn("failed to update note tags", "error", err)
+			s.logger.Warn("failed to update note tags")
 		}
 	}
 	return s.GetByID(ctx, existing.ID)

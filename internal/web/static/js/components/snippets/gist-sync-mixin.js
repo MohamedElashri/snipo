@@ -155,7 +155,7 @@ export const gistSyncMixin = {
 
     const result = await api.post('/api/v1/gist/sync/verify');
     if (result && !result.error && result.removed > 0) {
-      showToast(`${result.removed} gist(s) deleted on GitHub — mappings removed`, 'info');
+      showToast(`${result.removed} gist(s) deleted on GitHub. Sync mappings removed.`, 'info');
       await this.loadGistMappings();
     }
   },
@@ -224,7 +224,7 @@ export const gistSyncMixin = {
       showToast('Gist sync enabled for snippet', 'success');
       await this.loadGistMappings();
     } else if (result?.error?.code === 'GIST_DELETED') {
-      showToast('Previous gist was deleted on GitHub — a new gist will be created', 'info');
+      showToast('The previous gist was deleted on GitHub. Snipo will create a new gist.', 'info');
       await this.loadGistMappings();
     } else {
       showToast(result?.error?.message || 'Failed to enable sync', 'error');
@@ -270,7 +270,7 @@ export const gistSyncMixin = {
       showToast('Snippet synced to gist', 'success');
       await this.loadGistMappings();
     } else if (result?.error?.code === 'GIST_DELETED') {
-      showToast('Gist was deleted on GitHub — sync mapping removed', 'info');
+      showToast('The gist was deleted on GitHub. Sync mapping removed.', 'info');
       await this.loadGistMappings();
     } else {
       showToast(result?.error?.message || 'Failed to sync snippet', 'error');
