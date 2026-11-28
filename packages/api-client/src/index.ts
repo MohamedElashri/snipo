@@ -39,6 +39,18 @@ export interface SnipoApiOptions {
   token?: string;
 }
 
+export interface NoteTarget {
+  snippet_id: string;
+  title: string;
+  file_id?: number;
+  filename?: string;
+}
+
+export interface NoteTargets {
+  targets: NoteTarget[];
+  has_more: boolean;
+}
+
 export class SnipoClient {
   private baseURL: string;
   private token?: string;
@@ -131,6 +143,20 @@ export class SnipoClient {
 
   async createSnippet(data: Partial<Snippet>): Promise<Snippet> {
     return this.unwrapSnippet(await this.request<Snippet | { data: Snippet }>('/api/v1/snippets', { method: 'POST', body: JSON.stringify(data) }));
+  }
+
+  async getNoteTargets(query = '', page = 1): Promise<NoteTargets> {
+    const response = await this.request<{ data: NoteTargets }>('/api/v1/snippets/note-targets', {
+      params: { q: query, page }
+    });
+    return response.data;
+  }
+
+  async appendNote(id: string, content: string, fileID?: number): Promise<void> {
+    await this.request<void>(`/api/v1/snippets/${encodeURIComponent(id)}/append`, {
+      method: 'POST',
+      body: JSON.stringify({ content, file_id: fileID }),
+    });
   }
 
   async updateSnippet(id: string, data: Partial<Snippet>): Promise<Snippet> {

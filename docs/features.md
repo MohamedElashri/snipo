@@ -14,6 +14,10 @@ History records pre-update snapshots when history is enabled in Settings.
 Restoring an entry creates a new update; permanently deleting a snippet also
 deletes its history.
 
+Open a Markdown snippet in a folder and choose **More → Set as folder
+overview**. Snipo previews the first Markdown file at the top of that folder.
+Use **Remove overview** to clear the assignment. The note stays in the folder.
+
 ## Search and filtering
 
 The snippet list accepts a text query and filters:
@@ -96,11 +100,18 @@ Editor assets and language workers are served by your own Snipo instance.
 CodeMirror and Monaco load only when selected. If a selected editor cannot load,
 Snipo uses Ace and keeps your code.
 
+In the Markdown preview, use **Copy** above a code block to copy that block on
+its own, including its indentation.
+
 Snipo also supports Markdown preview, custom CSS, and right-to-left text.
 Custom CSS examples are in the [customization guide](customization.md).
 
 Ace and CodeMirror adapt text direction to the content. Monaco keeps its standard
 code layout. Text is saved as entered, including Arabic and mixed-language text.
+
+Choose **New note** to open a blank Markdown file named `note.md`. The editor
+focuses the body and selects the folder you are browsing. Give your note a title
+and save it alongside your other snippets.
 
 ## Keyboard shortcuts
 

@@ -16,7 +16,7 @@
             x-show="!isEditing" x-text="editingSnippet.title || 'Untitled'"></h2>
 
         <!-- Edit mode: show title input (as textarea for dynamic resize) -->
-        <div class="editor-title-wrapper" x-show="isEditing">
+        <div class="editor-title-wrapper" x-show.immediate="isEditing">
             <textarea class="editor-title-input"
                 :class="{ 'rtl': isArabicText(editingSnippet.title) }"
                 aria-label="Snippet title" x-model="editingSnippet.title" placeholder="Snippet title..." rows="1"
@@ -60,6 +60,10 @@
             <details class="editor-more" x-show="editingSnippet?.id">
                 <summary>More<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary><div class="editor-more-menu">
                     <button class="btn-action" @click="copyAsRichText(editingSnippet)">Copy as rich text</button>
+                    <button class="btn-action" x-show="canSetFolderOverview()" :disabled="savingFolderOverview"
+                        @click="$el.closest('details').open = false; setFolderOverview(editingSnippet.folder_id, editingSnippet.id)">
+                        Set as folder overview
+                    </button>
             <!-- Archive button -->
             <button class="btn-action" @click="toggleArchive(editingSnippet)"
                 x-show="editingSnippet?.id && settings.archive_enabled"
@@ -271,7 +275,8 @@
             <div class="preview-markdown-scroll"
                 :class="{ 'rtl': isArabicText(activeFile?.content || editingSnippet.content) }"
                 x-show="(activeFile?.language || editingSnippet.language) === 'markdown'"
-                x-html="renderMarkdown(activeFile?.content || editingSnippet.content)">
+                @click="copyMarkdownBlock($event)"
+                x-html="renderMarkdown(activeFile?.content ?? editingSnippet.content)">
             </div>
             <!-- Code view for non-markdown -->
             <div class="preview-code-scroll" x-show="(activeFile?.language || editingSnippet.language) !== 'markdown'">

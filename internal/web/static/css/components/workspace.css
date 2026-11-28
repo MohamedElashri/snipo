@@ -10,7 +10,11 @@ body:has(.app-container) { height: 100dvh; min-height: 0; overflow: hidden; }
 .main-header { min-height: 66px; gap: .65rem; padding: .65rem 1.2rem; }
 .search-container { max-width: 600px; }
 .search-help-btn { color: var(--snipo-text-secondary); }
-.new-snippet-button { white-space: nowrap; }
+.new-snippet-button, .new-note-button { white-space: nowrap; }
+@media (max-width: 480px) {
+  .new-note-button span { display: none; }
+  .new-note-button { min-width: 44px; min-height: 44px; justify-content: center; }
+}
 .workspace { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 .workspace > .snippet-list { flex: 1; min-width: 0; overflow: auto; padding: 1.25rem; }
 .workspace.has-selection > .snippet-list { flex: 0 0 var(--workspace-list-width); border-right: 1px solid var(--snipo-border); padding: 1rem .65rem; resize: horizontal; min-width: 260px; max-width: 45%; }
@@ -18,6 +22,15 @@ body:has(.app-container) { height: 100dvh; min-height: 0; overflow: hidden; }
 .workspace.focus-editor > .snippet-list { display: none; }
 .library-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.15rem; }
 .library-heading h1 { margin: 0 0 .15rem; font-size: var(--text-heading-small); font-weight: 650; letter-spacing: -.025em; }
+.folder-overview {
+  margin-bottom: 1rem;
+  border: 1px solid var(--snipo-border);
+  border-radius: var(--surface-radius);
+}
+.folder-overview > summary { cursor: pointer; padding: .65rem .8rem; font-weight: 600; }
+.folder-overview-actions { display: flex; flex-wrap: wrap; gap: .4rem; padding: 0 .65rem; }
+.folder-overview-actions button { width: auto; overflow-wrap: anywhere; text-align: start; }
+.folder-overview .folder-overview-preview { position: static; max-height: 17rem; min-height: 0; padding: .75rem; overflow: auto; }
 .library-count { font-size: var(--text-small); color: var(--snipo-text-secondary); }
 .filter-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .8rem; }
 .filter-chip, .filter-clear { font-size: var(--text-caption); padding: .25rem .5rem; margin: 0; width: auto; border-radius: 5px; }

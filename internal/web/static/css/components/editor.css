@@ -408,6 +408,17 @@
   font-size: var(--markdown-font-size, 14px);
 }
 
+.markdown-code-block {
+  margin-block: 1em;
+}
+
+.markdown-code-block .markdown-code-copy {
+  display: flex;
+  width: auto;
+  margin: 0 0 .25rem auto;
+  min-height: 32px;
+}
+
 .preview-markdown-scroll h1,
 .preview-markdown-scroll h2,
 .preview-markdown-scroll h3,

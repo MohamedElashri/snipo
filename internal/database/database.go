@@ -92,19 +92,28 @@ func (db *DB) Migrate(ctx context.Context) error {
 		return fmt.Errorf("failed to create migrations table: %w", err)
 	}
 
-	// Get current version
-	var currentVersion int
-	row := db.QueryRowContext(ctx, "SELECT COALESCE(MAX(version), 0) FROM schema_migrations")
-	if err := row.Scan(&currentVersion); err != nil {
-		return fmt.Errorf("failed to get current migration version: %w", err)
+	// A newer additive migration can arrive before an older one. Use the
+	// migration ledger so a gap does not permanently hide a pending migration.
+	rows, err := db.QueryContext(ctx, "SELECT version FROM schema_migrations")
+	if err != nil {
+		return fmt.Errorf("failed to read migration versions: %w", err)
+	}
+	applied := make(map[int]bool)
+	for rows.Next() {
+		var version int
+		if err := rows.Scan(&version); err != nil {
+			_ = rows.Close()
+			return fmt.Errorf("failed to scan migration version: %w", err)
+		}
+		applied[version] = true
+	}
+	_ = rows.Close()
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("failed to read migration versions: %w", err)
 	}
 
-	db.logger.Info("current schema version", "version", currentVersion)
-
-	// Run migrations
-	migrations := getMigrations()
-	for _, m := range migrations {
-		if m.Version <= currentVersion {
+	for _, m := range getMigrations() {
+		if applied[m.Version] {
 			continue
 		}
 
