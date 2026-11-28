@@ -1,5 +1,7 @@
 # Snippy
 
+[![Leave a tip on Ko-fi](https://img.shields.io/badge/Ko--fi-Leave%20a%20tip-913F51?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/melashri)
+
 Snippy is the terminal client for a running Snipo instance.
 
 ## Install
@@ -44,7 +46,9 @@ HTTPS for remote servers.
 | List | `j`/`↓`, `k`/`↑` | Move selection |
 | List | `h`/`←`, `l`/`→` | Previous/next page |
 | List | `Enter` | Open snippet |
-| List | `n`, `e` | Create/edit snippet |
+| List | `Tab` | Switch between All items, Snippets, and Notes |
+| List | `n`, `e` | Create/edit the current item type |
+| List | `N` | Start a note from any library |
 | List | `f` | Toggle favorite |
 | List | `d` or `x` | Delete selected snippet |
 | List | `/`, `r`, `s` | Search, refresh, settings |
@@ -53,6 +57,7 @@ HTTPS for remote servers.
 | Detail | `c`, `e`, `Esc` | Copy, edit, return |
 | Form | `Tab`, `Shift+Tab` | Change field |
 | Form | `Ctrl+E` | Open content in `$EDITOR` |
+| Markdown note | `F2` | Switch between writing and a scrollable preview |
 | Form | `Ctrl+S`, `Esc` | Save/cancel |
 | Global | `?`, `q`, `Ctrl+C` | Help, quit, force quit |
 
@@ -86,6 +91,12 @@ build from a repository checkout using the commands above.
   your desktop/session.
 
 Snippy uses a 30-second HTTP timeout and sends the token as a Bearer credential.
+
+## Support
+
+Tips are optional and help maintain the project.
+
+**[Leave a tip on Ko-fi](https://ko-fi.com/melashri)**
 
 ## License
 

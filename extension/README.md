@@ -1,5 +1,7 @@
 # Snipo browser extension
 
+[![Leave a tip on Ko-fi](https://img.shields.io/badge/Ko--fi-Leave%20a%20tip-913F51?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/melashri)
+
 The Chrome and Firefox extension saves selected text to a self-hosted Snipo
 instance.
 
@@ -17,7 +19,8 @@ For local development, follow [Build](#build), then load
 1. In Snipo, create a dedicated API token with `write` permission.
 2. Open the extension options.
 3. Enter the complete Snipo base URL, including any configured subpath.
-4. Enter the API token and test the connection.
+4. Enter the API token and test the connection. In Firefox, allow access to
+   your Snipo server when prompted.
 5. Save.
 
 Use HTTPS when the browser and Snipo communicate over a network. The token is a
@@ -30,6 +33,9 @@ Select text on a page and choose **Save to Snipo** from the context menu.
 - Quick mode immediately creates a private, single-file snippet.
 - Interactive mode lets you edit the title, description, filename, language,
   folder, and tags first.
+- Choose **Save as → Note** to edit the capture, choose Markdown or plain text,
+  and decide whether to include the source link. Choose **Append to a note** to
+  add the selection to an existing private note.
 - Ignored sites prevent the extension UI from acting on matching domains.
 
 The page title and URL are used as default snippet metadata.
@@ -65,6 +71,20 @@ client and workspace lockfile needed to reproduce the Firefox bundle.
 - **Save rejected:** verify that selected content is below Snipo's request and
   file-size limits.
 
+## Support
+
+Tips are optional and help maintain the project.
+
+**[Leave a tip on Ko-fi](https://ko-fi.com/melashri)**
+
 ## License
 
 The extension is licensed under the repository's [AGPLv3 license](../LICENSE).
+
+
+### Append a capture to a note
+
+In interactive mode, open **Save to Snipo** for selected text or a code block
+and choose **Append to a note**. Search by title or filename, select a private
+Markdown file, then choose **Append selection**. Snipo adds the captured text
+and a link to its source when captured from an HTTP or HTTPS page.

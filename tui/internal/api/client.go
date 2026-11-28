@@ -32,11 +32,13 @@ func NewClient(baseURL, apiKey string) *Client {
 func (c *Client) doRequest(method, path string, body interface{}, result interface{}) error {
 	var reqBody io.Reader
 	if body != nil {
-		jsonData, err := json.Marshal(body)
-		if err != nil {
+		var buffer bytes.Buffer
+		encoder := json.NewEncoder(&buffer)
+		encoder.SetEscapeHTML(false)
+		if err := encoder.Encode(body); err != nil {
 			return fmt.Errorf("failed to marshal request: %w", err)
 		}
-		reqBody = bytes.NewBuffer(jsonData)
+		reqBody = &buffer
 	}
 
 	req, err := http.NewRequest(method, c.baseURL+path, reqBody)
@@ -104,8 +106,11 @@ func (c *Client) Health() (*HealthResponse, error) {
 	return &response.Data, nil
 }
 
-func (c *Client) ListSnippets(page, limit int, query string, tagIDs, folderIDs []int, language string, favorite, archived *bool) ([]Snippet, *Pagination, error) {
+func (c *Client) ListSnippets(page, limit int, query string, tagIDs, folderIDs []int, language string, favorite, archived *bool, kind ...string) ([]Snippet, *Pagination, error) {
 	params := url.Values{}
+	if len(kind) > 0 {
+		params.Set("kind", kind[0])
+	}
 	if page > 0 {
 		params.Set("page", strconv.Itoa(page))
 	}

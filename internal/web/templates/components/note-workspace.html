@@ -1,0 +1,182 @@
+{{define "note-workspace"}}
+<section class="note-workspace" aria-label="Note workspace" :aria-busy="saving" x-show="showEditor && isNote" x-cloak>
+    <header class="note-header">
+        <button type="button" class="btn-action note-back" aria-label="Back to library" title="Back to library" @click="closeNoteWorkspace()" :disabled="saving">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="m12 5-7 7 7 7M5 12h14"></path>
+            </svg>
+        </button>
+        <div class="note-heading">
+            <h1 x-ref="noteHeading" x-show="!isEditing" x-text="editingSnippet.title || 'Untitled note'" tabindex="-1" dir="auto"></h1>
+            <input type="text" class="note-title-input" x-ref="noteTitle" x-show="isEditing" x-model="editingSnippet.title"
+                maxlength="200" :readonly="saving" aria-label="Note title" :placeholder="noteTitleSuggestion || 'Note title'" dir="auto" @input="scheduleAutoSave()">
+        </div>
+        <div class="note-header-actions">
+            <button type="button" class="btn-action note-details-toggle" @click="toggleNoteDetails()"
+                :aria-expanded="noteDetailsOpen" aria-controls="note-details" :disabled="saving">
+                Details
+            </button>
+            <details class="note-more" x-show="!isEditing && editingSnippet.id" @click.outside="$el.open = false"
+                x-effect="if (isEditing || !showEditor || !isNote || !editingSnippet.id) $el.open = false">
+                <summary class="btn-action">More
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="m6 9 6 6 6-6"></path>
+                    </svg>
+                </summary>
+                <div class="note-more-actions" @click="if ($event.target.closest('button')) $el.closest('details').open = false">
+                    <button type="button" class="btn-action" @click="copyToClipboard(editingSnippet)">Copy note</button>
+                    <button type="button" class="btn-action" @click="downloadNote()">Download note</button>
+                    <button type="button" class="btn-action" x-show="editingSnippet.is_public && !editingSnippet.deleted_at"
+                        @click="copyShareLink(editingSnippet)">Copy share link</button>
+                    <button type="button" class="btn-action" x-show="!editingSnippet.deleted_at" @click="toggleFavorite(editingSnippet)"
+                        x-text="editingSnippet.is_favorite ? 'Remove from favorites' : 'Add to favorites'"></button>
+                    <button type="button" class="btn-action" x-show="canSetFolderOverview()" :disabled="savingFolderOverview"
+                        @click="setFolderOverview(editingSnippet.folder_id, editingSnippet.id)">Set as folder overview</button>
+                    <button type="button" class="btn-action" x-show="settings.history_enabled && !editingSnippet.deleted_at"
+                        @click="openHistory(editingSnippet)">History</button>
+                    <button type="button" class="btn-action" x-show="settings.archive_enabled && !editingSnippet.deleted_at"
+                        @click="toggleArchive(editingSnippet)" x-text="editingSnippet.is_archived ? 'Unarchive' : 'Archive'"></button>
+                    <button type="button" class="btn-action" x-show="canConvertItem()" @click="convertItem()">Convert to snippet</button>
+                    <button type="button" class="btn-action danger" @click="confirmDelete(editingSnippet)"
+                        x-text="editingSnippet.deleted_at ? 'Delete permanently' : 'Delete'"></button>
+                </div>
+            </details>
+            <button type="button" class="btn-action primary" x-show="!isEditing && !editingSnippet.deleted_at"
+                @click="startEditing()" :disabled="saving">Edit</button>
+            <button type="button" class="btn-action primary" x-show="!isEditing && editingSnippet.deleted_at"
+                @click="restoreSnippet(editingSnippet)" :disabled="saving">Restore</button>
+            <button type="button" class="btn-action" x-show="isEditing" @click="cancelEditing()" :disabled="saving"
+                title="Close editing and keep a local draft">Close</button>
+            <button type="button" class="btn-action primary" x-show="isEditing" @click="saveSnippet()"
+                :disabled="saving || !!noteConflict" aria-keyshortcuts="Control+S Meta+S"
+                x-text="saving ? 'Saving…' : 'Save'"></button>
+        </div>
+    </header>
+
+    <div class="note-toolbar" x-show="isEditing">
+        <div class="note-mode-picker" x-show="editingSnippet.language === 'markdown'" role="group" aria-label="Note view">
+            <button type="button" class="btn-action" :aria-pressed="noteMode === 'write'" aria-controls="note-body"
+                @click="setNoteMode('write')">Write</button>
+            <button type="button" class="btn-action" :aria-pressed="noteMode === 'preview'" aria-controls="note-preview"
+                @click="setNoteMode('preview')">Preview</button>
+        </div>
+        <select aria-label="Format" x-model="editingSnippet.language" :disabled="saving"
+            @change="setNoteMode('write', { focus: false }); scheduleAutoSave()">
+            <option value="markdown">Markdown</option>
+            <option value="plaintext">Plain text</option>
+        </select>
+        <span class="note-save-status" role="status" aria-live="polite" x-text="noteSaveMessage()"></span>
+    </div>
+
+    <div class="note-scroll" x-ref="noteScroll">
+        <section class="note-details" id="note-details" aria-label="Note details" x-show="noteDetailsOpen">
+            <dl class="note-metadata" x-show="!isEditing">
+                <div x-show="editingSnippet.description">
+                    <dt>Description</dt><dd x-text="editingSnippet.description" dir="auto"></dd>
+                </div>
+                <div>
+                    <dt>Format</dt><dd x-text="editingSnippet.language === 'markdown' ? 'Markdown' : 'Plain text'"></dd>
+                </div>
+                <div>
+                    <dt>Folder</dt>
+                    <dd>
+                        <button type="button" class="btn-action" x-show="editingSnippet.folder_id" @click="filterByFolder(editingSnippet.folder_id)"
+                            x-text="flattenedFolders.find(folder => folder.id == editingSnippet.folder_id)?.name"></button>
+                        <span x-show="!editingSnippet.folder_id">No folder</span>
+                    </dd>
+                </div>
+                <div x-show="editingSnippet.tags?.length">
+                    <dt>Tags</dt><dd x-text="editingSnippet.tags?.join(', ')" dir="auto"></dd>
+                </div>
+                <div>
+                    <dt>Visibility</dt><dd x-text="editingSnippet.is_public ? 'Public' : 'Private'"></dd>
+                </div>
+                <div x-show="editingSnippet.expires_at">
+                    <dt>Expires</dt><dd x-text="resolveExpirationLabel(editingSnippet.expires_at)"></dd>
+                </div>
+                <div x-show="getGistUrl(editingSnippet.id)">
+                    <dt>GitHub Gist</dt>
+                    <dd><a :href="getGistUrl(editingSnippet.id)" target="_blank" rel="noopener noreferrer">Open Gist</a></dd>
+                </div>
+                <div x-show="editingSnippet.updated_at">
+                    <dt>Last edited</dt><dd x-text="formatDate(editingSnippet.updated_at)"></dd>
+                </div>
+            </dl>
+            <div class="note-fields" x-show="isEditing" :inert="saving">
+                <label>Description
+                    <textarea rows="2" x-model="editingSnippet.description" @input="scheduleAutoSave()" dir="auto"></textarea>
+                </label>
+                <label>Folder
+                    <select x-model="editingSnippet.folder_id" @change="scheduleAutoSave()">
+                        <option value="">No folder</option>
+                        <template x-for="folder in flattenedFolders" :key="folder.id">
+                            <option :value="folder.id" x-text="folder.displayName"></option>
+                        </template>
+                    </select>
+                </label>
+                <div>
+                    <form class="note-tag-field" @submit.prevent="addTag($refs.noteTag.value); $refs.noteTag.value = ''">
+                        <label>Tags
+                            <input type="text" x-ref="noteTag" list="note-tag-suggestions" placeholder="Add a tag" dir="auto">
+                        </label>
+                        <datalist id="note-tag-suggestions">
+                            <template x-for="tag in tags" :key="tag.id">
+                                <option :value="tag.name"></option>
+                            </template>
+                        </datalist>
+                        <button type="submit" class="btn-action">Add</button>
+                    </form>
+                    <div class="note-tags" x-show="editingSnippet.tags?.length">
+                        <template x-for="(tag, index) in editingSnippet.tags" :key="index">
+                            <button type="button" class="btn-action" :aria-label="'Remove tag ' + tag" @click="removeTag(index)">
+                                <span x-text="tag"></span><span aria-hidden="true">×</span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+                <div class="note-access-fields">
+                    <label class="note-checkbox" title="Make this item publicly accessible">
+                        <input type="checkbox" x-model="editingSnippet.is_public" @change="scheduleAutoSave()"> Make public
+                    </label>
+                    <p x-show="editingSnippet.is_public">Anyone with the share link can read this note.</p>
+                    <label class="note-checkbox" x-show="isGistConfigured() && !window.SNIPO_CONFIG?.demoMode">
+                        <input type="checkbox" :checked="editingSnippet.id ? isGistSyncEnabled(editingSnippet.id) : editingSnippet.sync_to_gist"
+                            @change="editingSnippet.id ? toggleGistSyncForSnippet(editingSnippet.id) : (editingSnippet.sync_to_gist = $event.target.checked, scheduleAutoSave())">
+                        Sync to GitHub Gist
+                    </label>
+                    <label x-show="settings.auto_archive_enabled || editingSnippet.expires_at">Expiration
+                        <input type="date" :value="noteExpirationDate()"
+                            @change="editingSnippet.expires_at = $event.target.value; scheduleAutoSave()">
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <section class="note-edit-notice" x-show="isEditing && noteConflict" role="alert">
+            <strong>A newer version was saved.</strong>
+            <p>Review the latest version and merge any changes into your draft before saving again.</p>
+            <p x-show="noteConflictFieldNames()" x-text="'This also keeps the latest changes to ' + noteConflictFieldNames() + '.'"></p>
+            <pre x-text="noteConflict?.content" dir="auto"></pre>
+            <button class="btn-action" type="button" @click="useReviewedRevision()">I’ve reviewed the latest version</button>
+        </section>
+        <section class="note-edit-notice" x-show="isEditing && noteOverviewError" role="alert">
+            <p>This note is a folder overview. Update the folder’s overview or remove its current overview assignment to save these changes.</p>
+            <button class="btn-action" type="button" @click="saveSnippet({ clearOverview: true })">Remove overview and save</button>
+        </section>
+
+        <div class="note-writing" x-show="isEditing && noteMode === 'write'">
+            <textarea id="note-body" class="note-body-input" x-ref="noteBody" x-model="editingSnippet.content"
+                @input="scheduleAutoSave()" :readonly="saving" aria-label="Note body" placeholder="Start writing…" dir="auto"></textarea>
+        </div>
+        <div class="note-reader" id="note-preview" :class="{ 'note-reader-preview': isEditing }" x-show="!isEditing || noteMode === 'preview'">
+            <article class="markdown-content note-document" x-show="editingSnippet.language === 'markdown' && editingSnippet.content?.trim()"
+                @click="copyMarkdownBlock($event)"
+                x-html="isNote && editingSnippet.language === 'markdown' && (!isEditing || noteMode === 'preview') ? renderMarkdown(editingSnippet.content) : ''" dir="auto"></article>
+            <article class="note-document note-plain" x-show="editingSnippet.language === 'plaintext' && editingSnippet.content?.trim()"
+                x-text="editingSnippet.content" dir="auto"></article>
+            <p class="note-document note-empty" x-show="!editingSnippet.content?.trim()"
+                x-text="isEditing ? 'Nothing to preview yet.' : 'This note is empty.'"></p>
+        </div>
+    </div>
+</section>
+{{end}}

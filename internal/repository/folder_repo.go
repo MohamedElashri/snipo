@@ -50,7 +50,8 @@ func (r *FolderRepository) Create(ctx context.Context, input *models.FolderInput
 
 // GetByID retrieves a folder by ID
 func (r *FolderRepository) GetByID(ctx context.Context, id int64) (*models.Folder, error) {
-	query := `SELECT id, name, parent_id, icon, sort_order, created_at FROM folders WHERE id = ?`
+	query := `SELECT f.id, f.name, f.parent_id, f.icon, f.sort_order, f.created_at,
+		(` + folderOverviewQuery + `) FROM folders f WHERE f.id = ?`
 
 	folder := &models.Folder{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
@@ -60,6 +61,7 @@ func (r *FolderRepository) GetByID(ctx context.Context, id int64) (*models.Folde
 		&folder.Icon,
 		&folder.SortOrder,
 		&folder.CreatedAt,
+		&folder.OverviewSnippetID,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -75,6 +77,7 @@ func (r *FolderRepository) GetByID(ctx context.Context, id int64) (*models.Folde
 func (r *FolderRepository) List(ctx context.Context) ([]models.Folder, error) {
 	query := `
 		SELECT f.id, f.name, f.parent_id, f.icon, f.sort_order, f.created_at,
+		       (` + folderOverviewQuery + `),
 		       (SELECT COUNT(*) FROM snippet_folders sf 
 		        INNER JOIN snippets s ON s.id = sf.snippet_id 
 		        WHERE sf.folder_id = f.id AND s.is_archived = 0) as snippet_count
@@ -102,6 +105,7 @@ func (r *FolderRepository) List(ctx context.Context) ([]models.Folder, error) {
 			&folder.Icon,
 			&folder.SortOrder,
 			&folder.CreatedAt,
+			&folder.OverviewSnippetID,
 			&folder.SnippetCount,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan folder: %w", err)
@@ -368,8 +372,15 @@ func (r *FolderRepository) SetSnippetFolder(ctx context.Context, snippetID strin
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	if err := setSnippetFolder(ctx, tx, snippetID, folderID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func setSnippetFolder(ctx context.Context, tx *sql.Tx, snippetID string, folderID *int64) error {
 	// Remove existing folder associations
-	_, err = tx.ExecContext(ctx, `DELETE FROM snippet_folders WHERE snippet_id = ?`, snippetID)
+	_, err := tx.ExecContext(ctx, `DELETE FROM snippet_folders WHERE snippet_id = ?`, snippetID)
 	if err != nil {
 		return fmt.Errorf("failed to remove existing folders: %w", err)
 	}
@@ -383,10 +394,6 @@ func (r *FolderRepository) SetSnippetFolder(ctx context.Context, snippetID strin
 		if err != nil {
 			return fmt.Errorf("failed to set snippet folder: %w", err)
 		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil

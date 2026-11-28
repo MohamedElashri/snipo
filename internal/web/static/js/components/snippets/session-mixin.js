@@ -1,3 +1,4 @@
+import { clearStoredNoteDrafts } from './note-drafts.js';
 import { api } from '../../modules/api.js';
 import { showToast } from '../../modules/toast.js';
 
@@ -6,6 +7,7 @@ function logoutEpoch() {
   try { return localStorage.getItem(logoutKey); } catch { return null; }
 }
 function clearRecoveryData() {
+  clearStoredNoteDrafts();
   try { localStorage.removeItem('snipo-draft'); } catch { /* Storage may be unavailable. */ }
   for (const key of ['snipo-draft', 'snipo-settings']) {
     try { sessionStorage.removeItem(key); } catch { /* Storage may be unavailable. */ }
@@ -68,6 +70,7 @@ export const sessionMixin = {
     this.resetEditingSnippet();
     this.snippets = this.tags = this.folders = this.apiTokens = [];
     this.hasDraft = false;
+    this.noteDrafts = [];
     this.draftSnippet = this.createdToken = this.selectedSnippet = null;
     this.tokenPassword = this.disableLoginPassword = '';
     this.backupFile = null;

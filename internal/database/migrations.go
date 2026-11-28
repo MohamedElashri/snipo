@@ -365,5 +365,24 @@ func getMigrations() []Migration {
 		{Version: 9, Name: "add_gist_sync", SQL: addGistSyncSQL},
 		{Version: 10, Name: "add_soft_delete", SQL: addSoftDeleteSQL},
 		{Version: 11, Name: "add_snippet_expiration", SQL: addExpirationSQL},
+		{Version: 13, Name: "add_folder_overview", SQL: `
+			ALTER TABLE folders ADD COLUMN overview_snippet_id TEXT REFERENCES snippets(id) ON DELETE SET NULL;
+		`},
+		{Version: 14, Name: "add_item_kind", SQL: `
+			ALTER TABLE snippets ADD COLUMN kind TEXT NOT NULL DEFAULT 'snippet'
+				CHECK (kind = 'snippet' OR (kind = 'note' AND language IN ('markdown', 'plaintext')));
+			ALTER TABLE snippets ADD COLUMN revision INTEGER NOT NULL DEFAULT 1;
+			CREATE INDEX snippets_kind_updated_idx ON snippets(kind, updated_at);
+		`},
+		{Version: 15, Name: "deduplicate_note_captures", SQL: `
+			CREATE TABLE note_capture_requests (
+				snippet_id TEXT NOT NULL REFERENCES snippets(id) ON DELETE CASCADE,
+				request_id TEXT NOT NULL,
+				file_id INTEGER NOT NULL,
+				language TEXT NOT NULL,
+				content_hash BLOB NOT NULL,
+				PRIMARY KEY (snippet_id, request_id)
+			);
+		`},
 	}
 }

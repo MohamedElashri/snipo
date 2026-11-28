@@ -20,6 +20,9 @@ test('extension background script is running and popup opens', async ({ page, ex
 
   // Verify the page title or a specific element to ensure it loaded correctly
   await expect(page).toHaveTitle(/Snipo/i);
+  const tip = page.getByRole('link', { name: 'Leave a tip on Ko-fi' });
+  await expect(tip).toBeVisible();
+  await expect(tip).toHaveAttribute('href', 'https://ko-fi.com/melashri');
 });
 
 test('quick save prevents duplicate requests and recovers after failure', async ({ page, context, extensionId }) => {
@@ -91,9 +94,12 @@ test('repeated interactive clicks open only one save dialog',async({page,context
   await expect(dialog.locator('.snipo-modal-overlay')).toHaveCount(1);
 });
 
-test('connection check times out and restores the test button',async({page,extensionId})=>{
-  await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+test('connection check times out and restores the test button',async({page,context,extensionId})=>{
   test.setTimeout(45000);
+  const background = context.serviceWorkers().find(worker => worker.url().includes(extensionId));
+  await background.evaluate(() => chrome.storage.sync.set({ instanceUrl: 'https://initial.test' }));
+  await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  await expect(page.locator('#instanceUrl')).toHaveValue('https://initial.test');
   await page.locator('[data-tab="tab-settings"]').click();
   await page.route('https://stalled.test/**',()=>{});
   await page.locator('#instanceUrl').fill('https://stalled.test');await page.locator('#apiKey').fill('test');
@@ -164,12 +170,19 @@ test('pasted API-key whitespace is removed before saving',async({page,context,ex
 
 test('configuration saves normalized connection fields',async({page,context,extensionId})=>{
   const bg=context.serviceWorkers().find(w=>w.url().includes(extensionId));
-  await page.route('https://snipo.test/**',r=>r.fulfill({contentType:'application/json',body:'{"data":[]}'}));
+  await bg.evaluate(() => chrome.storage.sync.set({ instanceUrl: 'https://initial.test' }));
+  await page.route('https://snipo.test/**', route => route.fulfill({
+    contentType: 'application/json',
+    headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*' },
+    body: '{"data":[]}'
+  }));
   await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  await expect(page.locator('#instanceUrl')).toHaveValue('https://initial.test');
   await page.locator('[data-tab="tab-settings"]').click();
   await page.locator('#instanceUrl').fill('https://snipo.test/');
   await page.locator('#apiKey').fill('  pasted-token  ');
   await page.locator('#save-btn').click();
+  await expect(page.locator('#status')).toContainText('Settings saved');
   await expect.poll(()=>bg.evaluate(async()=>chrome.storage.sync.get(['instanceUrl','apiKey']))).toEqual({instanceUrl:'https://snipo.test',apiKey:'pasted-token'});
 });
 
@@ -178,6 +191,7 @@ test('connection checks never forward API keys through redirects',async({page,ex
   await page.route('https://snipo.test/**',r=>r.fulfill({status:307,headers:{location:'https://receiver.test/sink'}}));
   await page.route('https://receiver.test/**',r=>{forwarded++;return r.fulfill({contentType:'application/json',headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*'},body:'{"data":[]}'})});
   await page.goto(`chrome-extension://${extensionId}/options/options.html`);
+  await expect(page.locator('#connection-text')).toHaveText('Not Configured');
   await page.locator('[data-tab="tab-settings"]').click();await page.locator('#instanceUrl').fill('https://snipo.test');await page.locator('#apiKey').fill('test-only-token');await page.locator('#test-btn').click();
   await expect(page.locator('#test-btn')).toBeEnabled();
   expect(forwarded).toBe(0);

@@ -16,6 +16,17 @@ test('detail, create, and update unwrap server envelopes without losing files', 
   assert.deepEqual(await client.getSnippet(saved.id), saved);
 });
 
+test('empty folder and tag envelopes produce empty arrays', async () => {
+  const client = new SnipoClient({ baseURL: 'https://example.test/snipo' });
+  global.fetch = async () => Response.json({ data: null, meta: { version: '1.0' } });
+  assert.deepEqual(await client.getFolders(), []);
+  assert.deepEqual(await client.getTags(), []);
+  const item = { id: 1, name: 'Test' };
+  global.fetch = async () => Response.json([item]);
+  assert.deepEqual(await client.getFolders(), [item]);
+  assert.deepEqual(await client.getTags(), [item]);
+});
+
 test('preserves base paths, filters, raw wrapper envelopes, and clears credentials', async () => {
   const client = new SnipoClient({ baseURL: ' https://example.test/snipo/// ', token: 'old' });
   client.updateToken(undefined);

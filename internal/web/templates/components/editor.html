@@ -1,6 +1,6 @@
 {{define "editor"}}
 <!-- Snippet View/Editor -->
-<div class="editor-container" :inert="saving" x-show="showEditor" x-cloak>
+<div class="editor-container" :inert="saving" x-show="showEditor && !isNote" x-cloak>
     <!-- Toolbar -->
     <div class="editor-toolbar" x-show="editorHeaderVisible">
         <button class="btn-icon" @click="cancelEdit()" title="Back">
@@ -16,10 +16,10 @@
             x-show="!isEditing" x-text="editingSnippet.title || 'Untitled'"></h2>
 
         <!-- Edit mode: show title input (as textarea for dynamic resize) -->
-        <div class="editor-title-wrapper" x-show="isEditing">
+        <div class="editor-title-wrapper" x-show.immediate="isEditing">
             <textarea class="editor-title-input"
                 :class="{ 'rtl': isArabicText(editingSnippet.title) }"
-                aria-label="Snippet title" x-model="editingSnippet.title" placeholder="Snippet title..." rows="1"
+                aria-label="Snippet title" x-model="editingSnippet.title" placeholder="Snippet title…" rows="1"
                 @input="scheduleAutoSave(); autoResizeTextarea($event.target)"
                 x-init="$watch('isEditing', (v) => { if(v) $nextTick(() => autoResizeTextarea($el)) })"></textarea>
         </div>
@@ -60,6 +60,12 @@
             <details class="editor-more" x-show="editingSnippet?.id">
                 <summary>More<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary><div class="editor-more-menu">
                     <button class="btn-action" @click="copyAsRichText(editingSnippet)">Copy as rich text</button>
+                    <button class="btn-action" x-show="canConvertItem()"
+                        @click="$el.closest('details').open = false; convertItem()">Convert to note</button>
+                    <button class="btn-action" x-show="canSetFolderOverview()" :disabled="savingFolderOverview"
+                        @click="$el.closest('details').open = false; setFolderOverview(editingSnippet.folder_id, editingSnippet.id)">
+                        Set as folder overview
+                    </button>
             <!-- Archive button -->
             <button class="btn-action" @click="toggleArchive(editingSnippet)"
                 x-show="editingSnippet?.id && settings.archive_enabled"
@@ -148,7 +154,7 @@
     </div>
 
     <div class="editor-status" x-show="isEditing">
-        <span role="status" aria-live="polite" x-text="saveState === 'saving' ? 'Saving to server…' : saveState === 'error' ? 'Save failed — your changes are still open. Retry Save.' : saveState === 'local-error' ? 'Draft could not be stored locally. Save to keep your changes.' : saveState === 'local' ? 'Draft saved on this device · Save to store on server' : isEditing ? 'Unsaved changes' : 'Saved to server'"></span>
+        <span role="status" aria-live="polite" x-text="saveState === 'saving' ? 'Saving to server…' : saveState === 'error' ? 'Save failed. Your changes are still open. Retry Save.' : saveState === 'local-error' ? 'Draft could not be stored locally. Save to keep your changes.' : saveState === 'local' ? 'Draft saved on this device · Save to store on server' : isEditing ? 'Unsaved changes' : 'Saved to server'"></span>
         <span class="editor-engine-indicator" role="status" aria-live="polite"
               x-text="editorLoading ? 'Loading ' + editorLabel(editorEngine) + '…' : codeEditor ? 'Editor: ' + editorLabel(activeEditorEngine) + (activeEditorEngine !== editorEngine ? ' (fallback)' : '') : 'Editor unavailable'"></span>
     </div>
@@ -255,7 +261,7 @@
                 </svg>
                 <span class="preview-filename" x-text="activeFile?.filename || ''"></span>
             </div>
-            <div class="file-tabs-compact" x-show="editingSnippet.files.length > 1">
+            <div class="file-tabs-compact" x-show="editingSnippet.files?.length > 1">
                 <template x-for="(file, index) in editingSnippet.files" :key="index">
                     <button class="file-tab-compact" :class="{ 'active': activeFileIndex === index }"
                         @click="selectFile(index); $nextTick(() => highlightAll())" :title="file.filename">
@@ -268,10 +274,11 @@
         <!-- Full code preview -->
         <div class="preview-code-wrapper">
             <!-- Rendered markdown view -->
-            <div class="preview-markdown-scroll"
+            <div class="preview-markdown-scroll markdown-content"
                 :class="{ 'rtl': isArabicText(activeFile?.content || editingSnippet.content) }"
                 x-show="(activeFile?.language || editingSnippet.language) === 'markdown'"
-                x-html="renderMarkdown(activeFile?.content || editingSnippet.content)">
+                @click="copyMarkdownBlock($event)"
+                x-html="isNote ? '' : renderMarkdown(activeFile?.content ?? editingSnippet.content)">
             </div>
             <!-- Code view for non-markdown -->
             <div class="preview-code-scroll" x-show="(activeFile?.language || editingSnippet.language) !== 'markdown'">
@@ -317,13 +324,13 @@
                     </div>
 
                     <!-- File tabs (when multiple files) -->
-                    <div class="file-tabs-compact" x-show="editingSnippet.files && editingSnippet.files.length > 1">
+                    <div class="file-tabs-compact" x-show="editingSnippet.files && editingSnippet.files?.length > 1">
                         <template x-for="(file, index) in editingSnippet.files" :key="index">
                             <button class="file-tab-compact" :class="{ 'active': activeFileIndex === index }"
                                 @click="selectFile(index)" :title="file.filename">
                                 <span x-text="file.filename"></span>
                                 <span class="file-tab-close-sm" @click.stop="removeFile(index)"
-                                    x-show="editingSnippet.files.length > 1">×</span>
+                                    x-show="editingSnippet.files?.length > 1">×</span>
                             </button>
                         </template>
                     </div>
@@ -349,12 +356,13 @@
             <!-- Right: Details sidebar -->
             <aside class="editor-details-sidebar" aria-label="Snippet details"
                 x-data="{ collapsed: window.matchMedia('(max-width: 640px)').matches }"
+                x-effect="if (isEditing && !isNote) collapsed = window.matchMedia('(max-width: 640px)').matches"
                 :class="{ 'details-collapsed': collapsed }">
                 <div class="tags-sidebar-header editor-details-header">
                     <label>Details</label>
                     <div style="display:flex;align-items:center;gap:0.15rem;">
                         <button class="btn-icon editor-details-toggle" @click="collapsed = !collapsed"
-                            title="Toggle details panel">
+                            title="Toggle details panel" :aria-expanded="!collapsed">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14"
                                 height="14" :class="{ 'rotate-90': collapsed }">
                                 <polyline points="6 9 12 15 18 9"></polyline>
@@ -429,7 +437,7 @@
                         <div class="editor-details-section-title">Sharing</div>
                         <div class="editor-field-inline compact editor-toggle-row">
                             <span class="editor-label">Public</span>
-                            <label class="toggle-control" title="Make snippet publicly accessible">
+                            <label class="toggle-control" title="Make this item publicly accessible">
                                 <input type="checkbox" x-model="editingSnippet.is_public" @change="scheduleAutoSave()">
                                 <span class="control-thumb"></span>
                             </label>
@@ -438,7 +446,7 @@
                         <div class="editor-field-inline compact editor-toggle-row" x-show="isGistConfigured() && !window.SNIPO_CONFIG?.demoMode">
                             <span class="editor-label">Gist</span>
                             <div class="editor-toggle-with-link">
-                                <label class="toggle-control" title="Sync this snippet to GitHub Gist">
+                                <label class="toggle-control" title="Sync this item to GitHub Gist">
                                     <input type="checkbox"
                                         :checked="editingSnippet?.id ? isGistSyncEnabled(editingSnippet.id) : (editingSnippet?.sync_to_gist === true)"
                                         @change="editingSnippet?.id ? toggleGistSyncForSnippet(editingSnippet.id) : editingSnippet.sync_to_gist = !editingSnippet.sync_to_gist">
@@ -462,13 +470,16 @@
                                 @change="if ($el.value === '__custom__') { showCustom = true; $el.value = ''; } else { showCustom = false; scheduleAutoSave(); }"
                                 :value="editingSnippet.expires_at || ''"
                                 class="expiration-select"
-                                title="Snippet expiration">
+                                title="Expiration">
                                 <option value="">Never</option>
                                 <option value="7d">7 days</option>
                                 <option value="30d">30 days</option>
                                 <option value="90d">90 days</option>
                                 <option value="180d">6 months</option>
                                 <option value="365d">1 year</option>
+                                <template x-if="editingSnippet.expires_at && !editingSnippet.expires_at.endsWith('d')">
+                                    <option :value="editingSnippet.expires_at" x-text="resolveExpirationLabel(editingSnippet.expires_at)"></option>
+                                </template>
                                 <option value="__custom__">Custom…</option>
                             </select>
                             <div class="expiration-custom-inline" x-show="showCustom" x-cloak>

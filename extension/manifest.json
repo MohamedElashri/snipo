@@ -1,13 +1,17 @@
 {
     "manifest_version": 3,
     "name": "Snipo - Code Snippet Manager",
-    "version": "2.2.2",
+    "version": "2.2.6",
     "description": "Save code snippets to your Snipo instance with one click.",
     "permissions": [
         "activeTab",
         "scripting",
         "contextMenus",
         "storage"
+    ],
+    "optional_host_permissions": [
+        "http://*/*",
+        "https://*/*"
     ],
     "browser_specific_settings": {
         "gecko": {

@@ -1,5 +1,7 @@
 # Snipo VS Code Extension
 
+[![Leave a tip on Ko-fi](https://img.shields.io/badge/Ko--fi-Leave%20a%20tip-913F51?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/melashri)
+
 [![VS Code Marketplace](https://img.shields.io/badge/VS_Code_Marketplace-available-blue.svg?logo=visualstudiocode)](https://marketplace.visualstudio.com/items?itemName=muhammadelashri.snipo)
 
 Snipo is a modern snippet manager designed to boost your productivity. This VS Code extension integrates your Snipo snippets directly into your editor, allowing you to access, search, insert, and save snippets without ever leaving your IDE.
@@ -35,4 +37,15 @@ Once installed, Snipo needs to connect to your backend:
 3. Enter your Snipo Server URL (e.g. `http://localhost:8080`).
 4. Enter your API Token.
 
-You're all set!
+## Notes
+
+Open the **Notes** view to browse saved notes or start one with **Snipo: New Note**.
+Choose Markdown or plain text and write in the editor. **Snipo: Preview Markdown Note**
+opens a side-by-side preview. Use **Snipo: Save Note** to save a new note or send
+changes to an existing note back to your server.
+
+## Support
+
+Tips are optional and help maintain the project.
+
+**[Leave a tip on Ko-fi](https://ko-fi.com/melashri)**

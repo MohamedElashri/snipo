@@ -1,8 +1,7 @@
 {{define "sidebar"}}
 <!-- Sidebar -->
-<aside class="sidebar" :class="{ 'open': $store.app.sidebarOpen, 'closed': !$store.app.sidebarOpen }"
-    x-init="initSidebarResize()">
-    <div class="sidebar-resize-handle" @mousedown="startSidebarResize($event)"></div>
+<aside class="sidebar" id="navigation-sidebar" :class="{ 'open': $store.app.sidebarOpen, 'closed': !$store.app.sidebarOpen }"
+    :inert="!$store.app.sidebarOpen">
     <div class="sidebar-header-row">
         <a href="{{.BasePath}}/" class="sidebar-header" title="Go to Home">
             <img src="{{.AssetBasePath}}/logo.png" alt="Snipo" class="logo" width="24" height="24">
@@ -14,16 +13,30 @@
         <!-- Quick actions -->
         <div class="sidebar-section">
             <div class="sidebar-item" role="button" tabindex="0" @keydown.enter.prevent="clearFilters()" @keydown.space.prevent="clearFilters()" @click="clearFilters()"
-                :class="{ 'active': !filter.tagId && !filter.folderId && !filter.isFavorite && !filter.isArchived && !filter.isDeleted }">
+                 :aria-current="!scopedLibrary && filter.kind === 'all' ? 'page' : null"
+                :class="{ 'active': !scopedLibrary && filter.kind === 'all' }">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="3" width="7" height="7"></rect>
                     <rect x="14" y="3" width="7" height="7"></rect>
                     <rect x="14" y="14" width="7" height="7"></rect>
                     <rect x="3" y="14" width="7" height="7"></rect>
                 </svg>
-                <span>All Snippets</span>
+                <span>All items</span>
                 <span class="sidebar-item-count" x-text="totalSnippets"></span>
             </div>
+            <template x-for="item in [{ kind: 'snippet', label: 'Snippets' }, { kind: 'note', label: 'Notes' }]" :key="item.kind">
+                <button type="button" class="sidebar-item library-nav-button" @click="clearFilters(item.kind)"
+                    :class="{ 'active': !scopedLibrary && filter.kind === item.kind }"
+                    :aria-current="!scopedLibrary && filter.kind === item.kind ? 'page' : null">
+                    <svg x-show="item.kind === 'snippet'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="m8 6-6 6 6 6m8-12 6 6-6 6m-2-15-4 18"></path>
+                    </svg>
+                    <svg x-show="item.kind === 'note'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9ZM13 2v7h7M8 13h8M8 17h6"></path>
+                    </svg>
+                    <span x-text="item.label"></span>
+                </button>
+            </template>
             <div class="sidebar-item favorites-item" role="button" tabindex="0" @keydown.enter.prevent="showFavorites()" @keydown.space.prevent="showFavorites()" @click="showFavorites()" :class="{ 'active': filter.isFavorite }">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="star-icon">
                     <polygon

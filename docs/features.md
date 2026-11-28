@@ -14,6 +14,10 @@ History records pre-update snapshots when history is enabled in Settings.
 Restoring an entry creates a new update; permanently deleting a snippet also
 deletes its history.
 
+Open a Markdown snippet in a folder and choose **More → Set as folder
+overview**. Snipo previews the first Markdown file at the top of that folder.
+Use **Remove overview** to clear the assignment. The note stays in the folder.
+
 ## Search and filtering
 
 The snippet list accepts a text query and filters:
@@ -96,11 +100,35 @@ Editor assets and language workers are served by your own Snipo instance.
 CodeMirror and Monaco load only when selected. If a selected editor cannot load,
 Snipo uses Ace and keeps your code.
 
+In the Markdown preview, use **Copy** above a code block to copy that block on
+its own, including its indentation.
+
 Snipo also supports Markdown preview, custom CSS, and right-to-left text.
 Custom CSS examples are in the [customization guide](customization.md).
 
 Ace and CodeMirror adapt text direction to the content. Monaco keeps its standard
 code layout. Text is saved as entered, including Arabic and mixed-language text.
+
+## Notes
+
+Choose **New note** and start writing. Markdown is the default format, and
+**Plain text** preserves spacing and line breaks. Use **Preview** while writing
+Markdown. If you leave the title blank, Snipo uses the first line of the body.
+Notes start private, with no expiry or automatic Gist sync.
+
+Use **Notes** in the sidebar to browse all notes. A note created from a folder
+inherits that folder. Notes and snippets share folders and tags, and you can
+filter a folder or tag by type. A Markdown note can also be a folder overview.
+
+To bring an existing single-body Markdown or plain text snippet into Notes,
+open **More → Convert to note**. The item keeps its link, history, folder, and
+tags. **Convert to snippet** changes it back. Download a note as Markdown or
+plain text from the same menu.
+
+The browser save dialog can create a note or append a selection and its source
+link to an existing private note. In VS Code, use the **Notes** view and
+**Snipo: Save Note**. In the terminal, use **Tab** to switch to Notes and **n**
+to create a note.
 
 ## Keyboard shortcuts
 

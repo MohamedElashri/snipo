@@ -158,10 +158,23 @@ func (b *BackupService) listBackupSnippets(ctx context.Context) ([]models.Snippe
 	return snippets, nil
 }
 
+type backupItemKey struct {
+	kind, title, language, content string
+	folderID                       int64
+}
+
+func backupKey(snippet models.Snippet, folderID int64) backupItemKey {
+	if snippet.Kind == models.KindNote {
+		return backupItemKey{kind: models.KindNote, title: snippet.Title, language: snippet.Language,
+			content: snippet.Content, folderID: folderID}
+	}
+	return backupItemKey{kind: models.KindSnippet, title: snippet.Title}
+}
+
 func backupSnippetInput(snippet models.Snippet) *models.SnippetInput {
-	input := &models.SnippetInput{Title: snippet.Title, Description: snippet.Description,
+	input := &models.SnippetInput{Kind: snippet.Kind, Title: snippet.Title, Description: snippet.Description,
 		Content: snippet.Content, Language: snippet.Language, IsPublic: snippet.IsPublic,
-		IsArchived: snippet.IsArchived}
+		IsArchived: snippet.IsArchived, ExpiresAt: snippet.ExpiresAt}
 	for _, tag := range snippet.Tags {
 		input.Tags = append(input.Tags, tag.Name)
 	}
@@ -185,7 +198,7 @@ func validateReplacementBackup(data models.BackupData) error {
 		}
 	}
 	for i, snippet := range data.Snippets {
-		if errs := validation.ValidateSnippetInput(backupSnippetInput(snippet)); errs.HasErrors() {
+		if errs := validation.ValidateItemInput(backupSnippetInput(snippet)); errs.HasErrors() {
 			return fmt.Errorf("%w: snippet %d: %s", ErrInvalidBackupFormat, i+1, errs)
 		}
 	}
@@ -280,19 +293,17 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 		existingTagsByName[existingTags[i].Name] = &existingTags[i]
 	}
 
-	existingFolders, _ := b.folderRepo.List(ctx)
-	existingFoldersByName := make(map[string]*models.Folder)
-	for i := range existingFolders {
-		existingFoldersByName[existingFolders[i].Name] = &existingFolders[i]
-	}
-
 	existingSnippets, err := b.listBackupSnippets(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list existing snippets: %w", err)
 	}
-	existingSnippetsByTitle := make(map[string]*models.Snippet)
-	for i := range existingSnippets {
-		existingSnippetsByTitle[existingSnippets[i].Title] = &existingSnippets[i]
+	existingItems := make(map[backupItemKey]string)
+	for _, snippet := range existingSnippets {
+		var folderID int64
+		if len(snippet.Folders) > 0 {
+			folderID = snippet.Folders[0].ID
+		}
+		existingItems[backupKey(snippet, folderID)] = snippet.ID
 	}
 
 	// Import tags first (needed for relationships)
@@ -319,72 +330,53 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 		}
 	}
 
-	// Import folders
-	folderMap := make(map[int64]int64) // old ID -> new ID
-	// First pass: create folders without parent relationships (only if they don't exist)
-	for _, folder := range data.Folders {
-		oldID := folder.ID
-		// Check if folder already exists by name
-		if existingFolder, exists := existingFoldersByName[folder.Name]; exists {
-			folderMap[oldID] = existingFolder.ID
-			// Don't count as imported since it already existed
-		} else {
-			input := &models.FolderInput{
-				Name:      folder.Name,
-				Icon:      folder.Icon,
-				SortOrder: folder.SortOrder,
-			}
-			newFolder, err := b.folderRepo.Create(ctx, input)
-			if err == nil {
-				folderMap[oldID] = newFolder.ID
-				existingFoldersByName[folder.Name] = newFolder // Add to map to prevent duplicates
-				result.FoldersImported++
-			} else {
-				result.Errors = append(result.Errors, fmt.Sprintf("folder %s: %v", validation.TruncateForLog(folder.Name, 100), err))
-			}
-		}
+	folderMap, err := b.importFolders(ctx, data.Folders, result)
+	if err != nil {
+		return nil, err
 	}
 
-	// Second pass: update parent relationships for newly created folders
-	for _, folder := range data.Folders {
-		if folder.ParentID != nil {
-			// Only update if this folder was newly created
-			if _, existed := existingFoldersByName[folder.Name]; !existed {
-				if newID, ok := folderMap[folder.ID]; ok {
-					if newParentID, ok := folderMap[*folder.ParentID]; ok {
-						_, _ = b.folderRepo.Move(ctx, newID, &newParentID)
-					}
-				}
-			}
-		}
-	}
-
-	// Import snippets
+	snippetMap := make(map[string]string)
 	for _, snippet := range data.Snippets {
-		// Check if snippet with same title already exists
-		if _, exists := existingSnippetsByTitle[snippet.Title]; exists {
-			// Skip if strategy is "skip" or "merge" (merge doesn't overwrite existing)
-			if opts.Strategy == "skip" || opts.Strategy == "merge" {
-				continue
-			}
-		}
-
 		input := backupSnippetInput(snippet)
-
-		// Map folder (use first folder if any)
+		var folderID int64
 		if len(snippet.Folders) > 0 {
-			if newFolderID, ok := folderMap[snippet.Folders[0].ID]; ok {
-				input.FolderID = &newFolderID
+			if mappedID, ok := folderMap[snippet.Folders[0].ID]; ok {
+				folderID = mappedID
+				input.FolderID = &folderID
 			}
 		}
+		key := backupKey(snippet, folderID)
+		if existingID, exists := existingItems[key]; exists && (opts.Strategy == "skip" || opts.Strategy == "merge") {
+			snippetMap[snippet.ID] = existingID
+			continue
+		}
 
-		_, err := b.snippetSvc.Create(ctx, input)
+		created, err := b.snippetSvc.Create(ctx, input)
 		if err == nil {
+			snippetMap[snippet.ID] = created.ID
 			result.SnippetsImported++
 			// Add to map to prevent duplicates within same import
-			existingSnippetsByTitle[snippet.Title] = &snippet
+			existingItems[key] = created.ID
 		} else {
 			result.Errors = append(result.Errors, fmt.Sprintf("snippet %s: %v", validation.TruncateForLog(snippet.Title, 100), err))
+		}
+	}
+
+	for _, folder := range data.Folders {
+		if folder.OverviewSnippetID == nil {
+			continue
+		}
+		folderID, hasFolder := folderMap[folder.ID]
+		snippetID, hasSnippet := snippetMap[*folder.OverviewSnippetID]
+		if !hasFolder || !hasSnippet {
+			continue
+		}
+		restored, err := b.folderRepo.GetByID(ctx, folderID)
+		if err == nil && restored.OverviewSnippetID == nil {
+			err = b.folderRepo.SetOverview(ctx, folderID, &snippetID)
+		}
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("folder overview %s: %v", validation.TruncateForLog(folder.Name, 100), err))
 		}
 	}
 
@@ -398,6 +390,78 @@ func (b *BackupService) Import(ctx context.Context, content []byte, opts models.
 	return result, nil
 }
 
+// importFolders uses the restored parent and name together to match folders.
+func (b *BackupService) importFolders(ctx context.Context, folders []models.Folder, result *models.ImportResult) (map[int64]int64, error) {
+	type location struct {
+		parent int64
+		name   string
+	}
+	existing, err := b.folderRepo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	byLocation := make(map[location][]int64, len(existing))
+	for _, folder := range existing {
+		key := location{name: folder.Name}
+		if folder.ParentID != nil {
+			key.parent = *folder.ParentID
+		}
+		byLocation[key] = append(byLocation[key], folder.ID)
+	}
+
+	sourceIDs := make(map[int64]bool, len(folders))
+	for _, folder := range folders {
+		sourceIDs[folder.ID] = true
+	}
+	children := make(map[int64][]models.Folder)
+	var queue []models.Folder
+	for _, folder := range folders {
+		if folder.ParentID != nil && sourceIDs[*folder.ParentID] {
+			children[*folder.ParentID] = append(children[*folder.ParentID], folder)
+		} else {
+			queue = append(queue, folder)
+		}
+	}
+
+	folderMap := make(map[int64]int64, len(folders))
+	visited := make(map[int64]bool, len(folders))
+	for i := 0; i < len(queue); i++ {
+		folder := queue[i]
+		if visited[folder.ID] {
+			continue
+		}
+		visited[folder.ID] = true
+		queue = append(queue, children[folder.ID]...)
+		key := location{name: folder.Name}
+		input := &models.FolderInput{Name: folder.Name, Icon: folder.Icon, SortOrder: folder.SortOrder}
+		if folder.ParentID != nil {
+			parentID, ok := folderMap[*folder.ParentID]
+			if !ok {
+				result.Errors = append(result.Errors, fmt.Sprintf("folder %s: parent was not imported", validation.TruncateForLog(folder.Name, 100)))
+				continue
+			}
+			key.parent = parentID
+			input.ParentID = &parentID
+		}
+		if matches := byLocation[key]; len(matches) > 0 {
+			folderMap[folder.ID] = matches[0]
+			byLocation[key] = matches[1:]
+			continue
+		}
+		created, err := b.folderRepo.Create(ctx, input)
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("folder %s: %v", validation.TruncateForLog(folder.Name, 100), err))
+			continue
+		}
+		folderMap[folder.ID] = created.ID
+		result.FoldersImported++
+	}
+	if len(visited) < len(sourceIDs) {
+		result.Errors = append(result.Errors, "Some folder parents form a cycle")
+	}
+	return folderMap, nil
+}
+
 // createZipBackup creates a ZIP archive with snippets as individual files
 func (b *BackupService) createZipBackup(data models.BackupData) ([]byte, error) {
 	buf := new(bytes.Buffer)
@@ -405,8 +469,16 @@ func (b *BackupService) createZipBackup(data models.BackupData) ([]byte, error) 
 
 	// Add snippets as individual files
 	for _, s := range data.Snippets {
-		// Add each file in the snippet
-		if len(s.Files) > 0 {
+		if s.Kind == models.KindNote {
+			filename := fmt.Sprintf("notes/%s-%s.%s", sanitizeFilename(s.Title), sanitizeFilename(s.ID), getExtension(s.Language))
+			w, err := zw.Create(filename)
+			if err != nil {
+				return nil, err
+			}
+			if _, err := w.Write([]byte(s.Content)); err != nil {
+				return nil, err
+			}
+		} else if len(s.Files) > 0 {
 			for _, f := range s.Files {
 				filename := fmt.Sprintf("snippets/%s/%s", sanitizeFilename(s.Title), f.Filename)
 				w, err := zw.Create(filename)
@@ -450,6 +522,7 @@ func (b *BackupService) createZipBackup(data models.BackupData) ([]byte, error) 
 // clearAllData removes all snippets, tags, and folders
 func (b *BackupService) clearAllData(ctx context.Context) error {
 	queries := []string{
+		"DELETE FROM note_capture_requests",
 		"DELETE FROM snippet_tags",
 		"DELETE FROM snippet_folders",
 		"DELETE FROM snippet_files",

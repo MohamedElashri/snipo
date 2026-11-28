@@ -1,6 +1,6 @@
 # Snipo browser extension privacy policy
 
-Last updated: July 1, 2026
+Last updated: November 27, 2026
 
 ## Data handled
 
@@ -31,11 +31,11 @@ Snipo instance can handle traffic according to their own policies.
 
 ## Permissions
 
-The extension requests `activeTab`, `contextMenus`, `storage`, and host access
-to HTTP and HTTPS pages. Broad host access is required because the extension
-can run on pages where text is selected and must connect to an arbitrary
-self-hosted Snipo URL. The extension does not request the `scripting`
-permission.
+The extension requests `activeTab`, `contextMenus`, and `storage`. Chrome
+requests host access to HTTP and HTTPS pages to display its capture controls.
+Firefox uses `scripting` with the active tab when you choose **Save to Snipo**.
+It prompts for optional host access to the configured Snipo server when you
+test or save your connection settings.
 
 ## Security choices
 

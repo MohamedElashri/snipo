@@ -116,10 +116,35 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             .catch(() => sendResponse({ success: false, error: 'Unable to open save window' }));
         return true;
     }
-    if (request.action === 'getSaveDraft' || request.action === 'saveDraftSnippet') {
+    if (['getSaveDraft', 'saveDraftSnippet', 'listDraftNoteTargets', 'appendDraftToNote'].includes(request.action)) {
         getSaveDraft(request, sender).then(async record => {
             if (request.action === 'getSaveDraft') {
                 sendResponse({ success: true, data: record.data });
+            } else if (request.action === 'listDraftNoteTargets') {
+                await withClient(client => client.getNoteTargets(request.query, request.page, request.kind))
+                    .then(data => sendResponse({ success: true, data }))
+                    .catch(error => sendResponse({ success: false, error: error.message }));
+            } else if (request.action === 'appendDraftToNote') {
+                const language = ['markdown', 'plaintext'].includes(request.language) ? request.language : undefined;
+                const requestID = language && request.draftId + ':' + (request.fileId || 0);
+                await withClient(client => client.appendNote(request.snippetId, formatNoteCapture(record.data, language),
+                    request.fileId, language, requestID))
+                    .then(() => sendResponse({ success: true }))
+                    .catch(error => sendResponse({ success: false, error: error.message }));
+            } else if (request.kind === 'note') {
+                const format = request.language === 'plaintext' ? 'plaintext' : 'markdown';
+                const capture = {
+                    ...record.data,
+                    code: request.noteText ?? record.data.code,
+                    sourceURL: request.includeSource === false ? undefined : record.data.sourceURL,
+                };
+                await withClient(client => client.createSnippet({
+                    kind: 'note', title: request.title || 'Captured note', language: format,
+                    content: formatNoteCapture(capture, format), folder_id: request.folder_id ? Number(request.folder_id) : undefined,
+                    tags: request.tags, is_public: false,
+                }))
+                    .then(data => sendResponse({ success: true, data }))
+                    .catch(error => sendResponse({ success: false, error: error.message }));
             } else {
                 await saveSnippet(record.data.code, record.tab, request.language, request.title,
                     request.folder_id, request.tags, request.description, request.filename, sendResponse);
@@ -185,6 +210,24 @@ async function withClient(action) {
         }
         throw new Error(msg);
     }
+}
+
+function formatNoteCapture({ code, language, sourceURL }, format = 'markdown') {
+    if (typeof code !== 'string' || !code.trim()) throw new Error('Capture text cannot be empty');
+    let capture = code;
+    if (format === 'markdown' && language !== 'plaintext' && /^[a-z0-9+-]+$/i.test(language || '')) {
+        const runs = code.match(/~+/g) || [];
+        const length = runs.reduce((longest, run) => Math.max(longest, run.length + 1), 3);
+        const fence = '~'.repeat(length);
+        capture = fence + language + '\n' + code + (code.endsWith('\n') ? '' : '\n') + fence;
+    }
+    let source;
+    try { source = new URL(sourceURL); } catch { return capture; }
+    if (!['http:', 'https:'].includes(source.protocol)) return capture;
+    source.username = '';
+    source.password = '';
+    const link = source.href.replaceAll('<', '%3C').replaceAll('>', '%3E');
+    return capture + (format === 'markdown' ? '\n\n[Source](<' + link + '>)' : '\n\nSource: ' + link);
 }
 
 function getDefaultFilename(language) {

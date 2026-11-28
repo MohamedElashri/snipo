@@ -1,5 +1,7 @@
 export interface Snippet {
   id: string;
+  kind?: 'note' | 'snippet';
+  revision?: number;
   title: string;
   description: string;
   content: string;
@@ -13,6 +15,8 @@ export interface Snippet {
   tags?: Tag[];
   files?: SnippetFile[];
 }
+
+export type SnippetWrite = Omit<Partial<Snippet>, 'tags'> & { tags?: string[] };
 
 export interface SnippetFile {
   id: number;
@@ -37,6 +41,20 @@ export interface Folder {
 export interface SnipoApiOptions {
   baseURL: string;
   token?: string;
+}
+
+export interface NoteTarget {
+  kind?: 'note' | 'snippet';
+  language?: 'markdown' | 'plaintext';
+  snippet_id: string;
+  title: string;
+  file_id?: number;
+  filename?: string;
+}
+
+export interface NoteTargets {
+  targets: NoteTarget[];
+  has_more: boolean;
 }
 
 export class SnipoClient {
@@ -106,9 +124,8 @@ export class SnipoClient {
     }
   }
 
-  async getSnippets(query?: string, signal?: AbortSignal): Promise<Snippet[]> {
-    const params: any = { limit: 100 };
-    if (query) params.q = query;
+  async getSnippets(query?: string, signal?: AbortSignal, kind?: 'all' | 'note' | 'snippet'): Promise<Snippet[]> {
+    const params = { limit: 100, kind, q: query || undefined };
     const response = await this.request<any>(query ? '/api/v1/snippets/search' : '/api/v1/snippets', { 
         params,
         signal 
@@ -133,7 +150,21 @@ export class SnipoClient {
     return this.unwrapSnippet(await this.request<Snippet | { data: Snippet }>('/api/v1/snippets', { method: 'POST', body: JSON.stringify(data) }));
   }
 
-  async updateSnippet(id: string, data: Partial<Snippet>): Promise<Snippet> {
+  async getNoteTargets(query = '', page = 1, kind?: 'note' | 'snippet'): Promise<NoteTargets> {
+    const response = await this.request<{ data: NoteTargets }>('/api/v1/snippets/note-targets', {
+      params: { q: query, page, kind }
+    });
+    return response.data;
+  }
+
+  async appendNote(id: string, content: string, fileID?: number, language?: 'markdown' | 'plaintext', requestID?: string): Promise<void> {
+    await this.request<void>(`/api/v1/snippets/${encodeURIComponent(id)}/append`, {
+      method: 'POST',
+      body: JSON.stringify({ content, file_id: fileID, language, request_id: requestID }),
+    });
+  }
+
+  async updateSnippet(id: string, data: SnippetWrite): Promise<Snippet> {
     return this.unwrapSnippet(await this.request<Snippet | { data: Snippet }>(`/api/v1/snippets/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }));
   }
 
@@ -141,14 +172,17 @@ export class SnipoClient {
     await this.request<void>(`/api/v1/snippets/${encodeURIComponent(id)}`, { method: 'DELETE' });
   }
 
+  private async getCollection<T>(path: string, params?: Record<string, string | boolean>): Promise<T[]> {
+    const response = await this.request<T[] | { data: T[] | null }>(path, { params });
+    return Array.isArray(response) ? response : response?.data ?? [];
+  }
+
   async getTags(): Promise<Tag[]> {
-    const response = await this.request<any>('/api/v1/tags');
-    return response.data || response || [];
+    return this.getCollection<Tag>('/api/v1/tags');
   }
 
   async getFolders(): Promise<Folder[]> {
-    const response = await this.request<any>('/api/v1/folders', { params: { tree: true } });
-    return response.data || response || [];
+    return this.getCollection<Folder>('/api/v1/folders', { tree: true });
   }
 
   // Fetch-like client wrapper for backward compatibility with existing extensions
