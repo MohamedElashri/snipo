@@ -265,7 +265,9 @@ export const editorMixin = {
           }
         }
       } else {
-        throw new Error(result?.error?.message || 'Could not save. Check your connection and try again.');
+        const details = result?.error?.details;
+        const message = details?.length ? details.map(detail => detail.message).join(' · ') : result?.error?.message;
+        throw new Error(message || 'Could not save. Check your connection and try again.');
       }
     } catch (error) {
       this.saveDraft();
