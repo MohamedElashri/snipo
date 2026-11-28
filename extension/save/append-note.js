@@ -71,7 +71,7 @@ function addAppendNotePane(modal, actions, close) {
                 if ((target.kind || 'snippet') !== kind.value) continue;
                 const format = target.language || 'markdown';
                 const title = kind.value === 'snippet' && target.filename
-                    ? target.title + ' — ' + target.filename
+                    ? target.title + ' · ' + target.filename
                     : target.title + (format === 'plaintext' ? ' · Plain text' : ' · Markdown');
                 const option = element('option', title);
                 option.value = target.snippet_id;
